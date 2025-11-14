@@ -90,9 +90,8 @@ do
     function OperationManager:onEvent(event)
         if event.id == world.event.S_EVENT_DEAD or event.id == world.event.S_EVENT_CRASH or event.id == world.event.S_EVENT_PILOT_DEAD then
             -- An initiator is the object that was destroyed/killed/crashed.
-            if event.initiator then
+            if event.initiator and event.initiator.getPlayerName then
                 local dead_unit_name = event.initiator.unit_name or event.initiator:getName()
-                local player_on_mission_died = false
 
                 -- 1. Check if the dead unit was a player on a mission.
                 for i = #self.active_operations, 1, -1 do
@@ -101,7 +100,6 @@ do
                         op.status = OperationStatus.FAILED
                         trigger.action.outTextForCoalition(self.side, "Operation " .. op.operation_name .. " failed: operative lost.", 15)
                         table.remove(self.active_operations, i)
-                        player_on_mission_died = true
                         break
                     end
                 end

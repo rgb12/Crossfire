@@ -146,6 +146,10 @@ do
 
         obj.radius = zone_find.radius
 
+        if obj.radius < 1000 then
+            MissionLogger:warn(zone_name.." has a radius smaller than 1000 meters. This may cause issues.")
+        end
+
         -- Converts the mission's file Vec2 points into Vec3
         --[[ Vec3
             x is directed to the north
@@ -591,7 +595,7 @@ do
             self.capture_convoy_avail = 0
             self:drawF10()
             self:updateDiscoveredZones()
-            CommandHandler.refreshAvailZonesJTAC()
+            
         end
 
         

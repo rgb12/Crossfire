@@ -2,7 +2,6 @@ CommandHandler = {}
 do
     local player_cooldowns = {}
 
-    local destroy_main_submenu
     local destroy_task_submenu
     CommandHandler.destroy_page = 1
 
@@ -278,6 +277,10 @@ do
     function CommandHandler.refreshAvailZonesJTAC()
         if CommandHandler.jtac_main_submenu then
             missionCommands.removeItemForCoalition(coalition.side.BLUE,jtac_task_submenu)
+        end
+
+        if TheatreCommander.COMMS_towers[coalition.side.BLUE] < Config.comm_towers_required_for_jtac then
+            return
         end
         jtac_task_submenu = missionCommands.addSubMenuForCoalition(coalition.side.BLUE,"Task JTAC",CommandHandler.jtac_main_submenu)
 

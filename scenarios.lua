@@ -88,6 +88,28 @@ Scenarios = {
                 -- capture_convoy_avail = 1,
                 capture_heli_avail = 6
             }),
+            ZoneHandler:new({
+                name = "COMMS1",
+                zone_type = ZoneTypes.COMMS
+            }),
+            ZoneHandler:new({
+                name = "COMMS2",
+                zone_type = ZoneTypes.COMMS
+            }),
+            ZoneHandler:new({
+                name = "COMMS3",
+                zone_type = ZoneTypes.COMMS
+            }),
+            ZoneHandler:new({
+                name = "COMMS4",
+                zone_type = ZoneTypes.COMMS
+            }),
+            ZoneHandler:new({
+                name = "COMMS5",
+                zone_type = ZoneTypes.COMMS
+            }),
+
+
         }
     }
 }

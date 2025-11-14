@@ -54,9 +54,9 @@ do
         self.radars = {}
 
         -- Loop through all coalitions
-        for _, coalitionId in ipairs({coalition.side.RED, coalition.side.BLUE, coalition.side.NEUTRAL}) do
+        for _, coalition_id in ipairs({coalition.side.RED, coalition.side.BLUE, coalition.side.NEUTRAL}) do
             
-            local groups = coalition.getGroups(coalitionId)
+            local groups = coalition.getGroups(coalition_id)
             for _, group in ipairs(groups) do
 
                 local units = group:getUnits()

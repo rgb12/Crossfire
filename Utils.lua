@@ -56,13 +56,13 @@ do
             vol = {
                 id = world.VolumeType.BOX,
                 params = {
-                    min = { x = minX, y = -500, z = minZ },
-                    max = { x = maxX, y = 9999, z = maxZ }
+                    min = { x = minX, y = -1000, z = minZ },
+                    max = { x = maxX, y = 99999, z = maxZ }
                 }
             }
         end
     
-        if not vol then 
+        if not vol then
             MissionLogger:info("Unknown volume")
             return {} end
     

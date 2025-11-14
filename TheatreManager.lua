@@ -202,7 +202,8 @@ do
         -- 1. AWACS CHECK
         -- Check if an AWACS is already airborne for this side
         local awacs_enroute = EnrouteManager:findByTaskType(AITaskTypes.AWACS, side)
-        if #awacs_enroute == 0 and closest_dist < 75000 then
+        if #awacs_enroute == 0 and closest_dist < 75000
+        and TheatreCommander.COMMS_towers[side] >= Config.tasking_requirements.comms_zones_required_for_awacs then
             -- No AWACS is up, let's launch one from the home base
             MissionLogger:info("AI Commander: No AWACS found for " .. utils.coalitionToString(side) .. ". Tasking one.")
             local task_sent = TaskManager:initiateAITask(AITaskTypes.AWACS, side, true, nil, home_base, false)
@@ -214,7 +215,8 @@ do
         local cas_enroute = EnrouteManager:findByTaskType(AITaskTypes.CAS, side)
         if #cas_enroute < 2 then -- Only allow 2 auto-CAS missions at a time
    
-            if closest_enemy_zone and closest_dist < 150000 then -- Only attack targets within 150km
+            if closest_enemy_zone and closest_dist < 150000
+            and TheatreCommander.COMMS_towers[side] >= Config.tasking_requirements.comms_zones_required_for_cas then -- Only attack targets within 150km
                 -- Check if a CAS mission is ALREADY going to this specific zone
                 if not EnrouteManager:findByToZone(closest_enemy_zone, side, {AITaskTypes.CAS}) then
                     MissionLogger:info("AI Commander: Tasking CAS for " .. utils.coalitionToString(side) .. " to " .. closest_enemy_zone.name)
@@ -228,7 +230,10 @@ do
         -- 3. SEAD CHECK
         -- Check if we are already running the max number of SEAD missions
         local sead_enroute = EnrouteManager:findByTaskType(AITaskTypes.SEAD, side)
-        if #sead_enroute < 3 then -- Only allow 3 auto-SEAD missions at a time
+        if sead_enroute and #sead_enroute < 3 
+        and TheatreCommander.COMMS_towers[side] >= Config.tasking_requirements.comms_zones_required_for_sead 
+        then -- Only allow 3 auto-SEAD missions at a time
+        
             -- Find a discovered enemy SAM site
             for _, zone in ipairs(zones) do
                 if zone.side == enemy_side and zone.zone_type == ZoneTypes.SAMSITE then
@@ -252,7 +257,9 @@ do
         -- 4. INTERCEPT CHECK
         -- Check if we are already running the max number of INTERCEPT missions
         local intercept_enroute = EnrouteManager:findByTaskType(AITaskTypes.INTERCEPT, side)
-        if #intercept_enroute < 3 then -- Only allow 3 auto-INTERCEPT mission
+        if intercept_enroute and #intercept_enroute < 3
+        and TheatreCommander.COMMS_towers[side] >= Config.tasking_requirements.comms_zones_required_for_intercept
+        then -- Only allow 3 auto-INTERCEPT mission
             -- Find a friendly frontline zone to patrol
             -- We'll pick the friendly zone closest to the ENEMY home base
             if closest_enemy_zone then
@@ -268,7 +275,9 @@ do
         -- 5. STRIKE CHECK
         -- Check if we are already running the max number of STRIKE missions
         local strike_enroute = EnrouteManager:findByTaskType(AITaskTypes.STRIKE, side)
-        if #strike_enroute < 2 then -- Only allow 2 auto-STRIKE missions
+        if strike_enroute and #strike_enroute < 2 
+        and TheatreCommander.COMMS_towers[side] >= Config.tasking_requirements.comms_zones_required_for_strike
+        then -- Only allow 2 auto-STRIKE missions
             
             -- Define high-value static targets
             local valid_strike_targets = {
@@ -306,6 +315,7 @@ do
 
         local t1m_update = function()
             MissionLogger:info("1 minute")
+
 
             -- check all zones that suffered a kill in the last minute
             for zone_name, zone_to_check in pairs(TheatreCommander.zones_to_check_for_capture) do
@@ -426,6 +436,8 @@ do
                     then
                         TaskManager:initiateAITask(AITaskTypes.ATTACK_CONVOY,zone.side,true,nil,zone,false)
                     end
+
+                    CommandHandler.refreshAvailZonesJTAC()
 
                 end
             end

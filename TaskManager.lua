@@ -518,25 +518,12 @@ do
         -- prevents a potential crash, using delay
         local function startMoving()
 
-            local HELO_LZ_TO_MAX_RADIUS_FROM_CENTER = 300
-            local max_radius_lz = to_zone.zone.radius or 20
-            if to_zone.zone.radius > HELO_LZ_TO_MAX_RADIUS_FROM_CENTER then max_radius_lz = HELO_LZ_TO_MAX_RADIUS_FROM_CENTER end
-
-            MissionLogger:info(to_zone.zone.point)
-
-            local safe_lz_pos = utils.rndPointFromCenter(to_zone.zone.point,15,max_radius_lz)
-            for i=0,10 do
-                if to_zone:isPointClearOfUnits(safe_lz_pos,30) then
-                    break
-                else safe_lz_pos = utils.rndPointFromCenter(to_zone.zone.point,15,max_radius_lz) end
-            end
-
             local helo_controller = helo_group:getController()
             helo_controller:setTask({
                 id = "Land",
                 params = {
-                    x = safe_lz_pos.x,
-                    y = safe_lz_pos.z
+                    x = to_zone.zone.point.x,
+                    y = to_zone.zone.point.z
                 }
             })
 
@@ -577,7 +564,7 @@ do
             timer.scheduleFunction(function ()
                 if not convoy_gr or not convoy_gr:isExist() then return end
                 if not UnitHandler.checkConvoyMoving(convoy_gr) then
-                    MissionLogger:info("Convoy:" .. convoy_gr_name .. " not moving, attempting respawn.")
+                    MissionLogger:info("Convoy:" .. convoy_gr_name .. " not moving")
                     convoy_gr:destroy()
 
                     from_zone.capture_convoy_avail = from_zone.capture_convoy_avail+1
@@ -629,7 +616,7 @@ do
             timer.scheduleFunction(function ()
                 if not convoy_gr or not convoy_gr:isExist() then return end
                 if not UnitHandler.checkConvoyMoving(convoy_gr) then
-                    MissionLogger:info("Convoy:" .. convoy_gr_name .. " not moving, attempting respawn.")
+                    MissionLogger:info("Convoy:" .. convoy_gr_name .. " not moving")
                     convoy_gr:destroy()
 
                     from_zone.attack_convoy = from_zone.attack_convoy+1

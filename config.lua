@@ -56,6 +56,15 @@ Config = {
     },
 
     max_comms_zones = 5,
+    tasking_requirements = {
+        comms_zones_required_for_jtac = 2,
+        comms_zones_required_for_cas = 2,
+        comms_zones_required_for_sead = 3,
+        comms_zones_required_for_strike = 2,
+        comms_zones_required_for_intercept = 1,
+        comms_zones_required_for_awacs = 3
+    },
+
     capture_helicopter_max_range = 100*1000 , -- (meters)
     capture_convoy_max_range = 25*1000, -- (meters)
 
