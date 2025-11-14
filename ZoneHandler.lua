@@ -1,0 +1,828 @@
+if not __MARK_ID__ then __MARK_ID__ = 600000 end
+local function nextMarkId()
+    __MARK_ID__ = __MARK_ID__ + 1
+    return __MARK_ID__
+end
+
+
+
+
+---@class ZoneHandler
+---@field name string
+---@field side coalition.side|nil
+---@field sam_classification string|nil
+---@field zone ZoneObj
+---@field zone_type ZoneTypes
+---@field airbase_name string|nil
+---@field acft_resupply_point vec3|nil
+---@field comms_tower_intact boolean|nil
+---@field linked_comms_tower string|nil
+ZoneHandler = {}
+do
+    function ZoneHandler:new(obj)
+        obj = obj or {}
+        obj.zone = ZoneHandler.findZoneInWorld(obj.name)
+        if not obj.zone then 
+            MissionLogger:error("ZoneHandler:new Could not find zone "..obj.name.." in mission triggers zones")
+            trigger.action.outText("Error while initiating the mission. See logs",20)
+            return 
+        end
+        -- obj.side = obj.side or coalition.side.NEUTRAL
+
+        if obj.zone_type == ZoneTypes.AIRBASE then
+            if not obj.airbase_name or not obj.acft_resupply_point then 
+                MissionLogger:error("ZoneHandler:new Missing/Incorrect fields - AIRBASE zone "..obj.name)
+                trigger.action.outText("Error while initiating the mission. See logs",20)
+                return
+            end
+        end
+        if obj.zone_type == ZoneTypes.SAMSITE then
+            if not obj.sam_classification then 
+                MissionLogger:error("ZoneHandler:new Missing/Incorrect fields - SAMSITE zone "..obj.name)
+                trigger.action.outText("Error while initiating the mission. See logs",20)
+                return end
+        end
+
+        if obj.zone_type == ZoneTypes.LOGISTICS then
+            if not obj.next_level_up_avail then 
+                MissionLogger:error("ZoneHandler:new Missing/Incorrect fields - LOGISTICS zone "..obj.name)
+                trigger.action.outText("Error while initiating the mission. See logs",20)
+                return end
+            obj.ammo_depot_intact = false
+            obj.capture_heli_avail = obj.capture_heli_avail or 0
+            obj.capture_convoy_avail = obj.capture_convoy_avail or 0
+        end
+
+        if obj.zone_type == ZoneTypes.STRONGPOINT then
+            obj.attack_convoy = obj.attack_convoy or 0
+        end
+
+
+        setmetatable(obj, self)
+        self.__index = self
+
+        -- Draw the zone, fillcolor=color
+        -- if not obj.panel_only then
+        --     --obj:drawF10(true)
+        -- else
+        --     -- obj.zone:drawF10(0, false)
+        --     local marker_text = string.format("%s - Coalition %s\nCapture Helicopters: %d\nCapture Convoys: %d",
+        --         obj.zone.name,
+        --         utils.coalitionToString(obj.side),
+        --         obj.capture_heli_avail or 0,
+        --         obj.capture_convoy_avail or 0)
+        --     trigger.action.markToAll(obj.zone.id, marker_text, obj.zone.point, true)
+        -- end
+
+        -- change airbase coalition based on zone
+
+        -- checks for good zones declarations
+        
+
+
+        if obj.zone_type == ZoneTypes.AIRBASE and obj.airbase_name then
+            local airbase = Airbase.getByName(obj.airbase_name)
+            if airbase then
+                airbase:autoCapture(false)
+                airbase:setCoalition(obj.side)
+            else 
+                MissionLogger:error("ZoneHandler:new - AIRBASE zone "..obj.name.." could not find airbase "..obj.airbase_name)
+            end
+
+        end
+
+        if obj.side == coalition.side.NEUTRAL then
+            stats.neutral_zones = stats.neutral_zones + 1
+        elseif obj.side == coalition.side.RED then
+            -- table.insert(stats.red_discovered_zones,obj.name)
+            stats.red_zones = stats.red_zones + 1
+        elseif obj.side == coalition.side.BLUE then
+            -- table.insert(stats.blue_discovered_zones,obj.name)
+            stats.blue_zones = stats.blue_zones + 1
+        end
+
+        return obj
+    end
+    ---@class ZoneObj
+    ---@field name string
+    ---@field id number
+    ---@field type number
+    ---@field radius number|nil
+    ---@field point vec3
+    ---@field vertices vec3[]
+    ---@param zone_name string
+    ---@return ZoneObj|nil
+    function ZoneHandler.findZoneInWorld(zone_name)
+        local obj = {} -- Local declaration of obj
+        obj.name = zone_name
+
+        local zone_find = nil
+        local zone_id = nil
+        for k, v in ipairs(env.mission.triggers.zones) do
+            if v.name == zone_name then
+                zone_find = v
+                zone_id = k
+                break
+            end
+        end
+
+        if not zone_find then
+            return nil
+        end
+
+        obj.id = zone_id
+        obj.type = zone_find.type -- 2 == quad, 0 == circle
+        if obj.type == 2 then
+            obj.vertices = {}
+            for _, v in ipairs(zone_find.verticies) do
+                local vertex = {
+                    x = v.x,
+                    y = 0,
+                    z = v.y
+                }
+                table.insert(obj.vertices, vertex)
+            end
+        end
+
+        obj.radius = zone_find.radius
+
+        -- Converts the mission's file Vec2 points into Vec3
+        --[[ Vec3
+            x is directed to the north
+            z is directed to the east
+            y is directed up
+
+            Vec2
+            x is directed to the east?
+            y is directed to the north?
+        --]]
+        obj.point = {
+            x = zone_find.x,
+            y = land.getHeight({x=zone_find.x,y=zone_find.y}),
+            z = zone_find.y
+        }
+        return obj
+    end
+
+    function ZoneHandler:drawF10()
+        -- MissionLogger:info("Drawing zone "..self.name)
+
+        -- 1. Define Color Palettes
+        -- [Border, Fill, Text, Text Background]
+        local red_palette = {
+            {0.7, 0, 0, 0.9},   -- Border: Dark, solid red
+            {0.7, 0, 0, 0.25},  -- Fill: Translucent red
+            {0.5, 0, 0, 1},   -- Text: Dark Maroon
+            {1, 0.5, 0.5, 0.3}    -- Text BG: Light, translucent "pink"
+        }
+        local blue_palette = {
+            {0, 0.2, 0.8, 0.9},   -- Border: Dark, solid blue
+            {0, 0.2, 0.8, 0.25},  -- Fill: Translucent blue
+            {0, 0.1, 0.5, 1},   -- Text: Dark Navy
+            {0.5, 0.8, 1, 0.3}    -- Text BG: Light, translucent "cyan"
+        }
+        local neutral_palette = {
+            {0.4, 0.4, 0.4, 0.8},   -- Border: Solid gray
+            {0.4, 0.4, 0.4, 0.2},   -- Fill: Translucent gray
+            {1, 1, 1, 1},       -- Text: Solid white
+            {0, 0, 0, 0.3}        -- Text BG: Translucent black
+        }
+        
+        -- Set default colors to neutral
+        local border_color = neutral_palette[1]
+        local fill_color   = neutral_palette[2]
+        local text_color   = neutral_palette[3]
+        local text_bg      = neutral_palette[4]
+        local text_display = self.name
+    
+        if self.side == coalition.side.RED then
+            border_color = red_palette[1]
+            fill_color   = red_palette[2]
+            text_color   = red_palette[3]
+            text_bg      = red_palette[4]
+            text_display = text_display .. " - Coalition RED"
+        elseif self.side == coalition.side.BLUE then
+            border_color = blue_palette[1]
+            fill_color   = blue_palette[2]
+            text_color   = blue_palette[3]
+            text_bg      = blue_palette[4]
+            text_display = text_display .. " - Coalition BLUE"
+        end
+        
+        -- 2. Build Display Text
+        if self.zone_type == ZoneTypes.STRONGPOINT then
+            text_display = text_display .. "\nSTRONGPOINT"
+            text_display = text_display .. "\nAttack Convoys: " .. (self.attack_convoy or 0)
+        elseif self.zone_type == ZoneTypes.LOGISTICS then
+            text_display = text_display .. "\nLOGISTICS"
+            text_display = text_display .. "\nCapture Helicopters: " .. (self.capture_heli_avail or 0)
+            text_display = text_display .. "\nCapture Convoys: " .. (self.capture_convoy_avail or 0)
+        elseif self.zone_type == ZoneTypes.SAMSITE then
+            text_display = text_display .. "\nSAM SITE"
+        elseif self.zone_type == ZoneTypes.FARP then
+            text_display = text_display .. "\nFARP"
+        elseif self.zone_type == ZoneTypes.EWSITE then
+            text_display = text_display .. "\nEW SITE"
+        elseif self.zone_type == ZoneTypes.AIRBASE then
+            text_display = text_display .. "\nAIRBASE"
+        elseif self.zone_type == ZoneTypes.COMMS then
+            text_display = text_display .. "\nCOMMS"
+        end
+    
+        text_display = text_display.."\nLevel: "..(self.level or 1).."/4"
+    
+        -- 3. Cleanup Old Marks
+        self._markIds = self._markIds or {
+            blue=nil, blueText=nil,
+            red=nil,  redText=nil,
+            neutral=nil, neutralText=nil
+        }
+    
+        if self._markIds.blue         then trigger.action.removeMark(self._markIds.blue) end
+        if self._markIds.blueText     then trigger.action.removeMark(self._markIds.blueText) end
+        if self._markIds.red          then trigger.action.removeMark(self._markIds.red) end
+        if self._markIds.redText      then trigger.action.removeMark(self._markIds.redText) end
+        if self._markIds.neutral      then trigger.action.removeMark(self._markIds.neutral) end
+        if self._markIds.neutralText  then trigger.action.removeMark(self._markIds.neutralText) end
+    
+        -- 4. Draw New Marks
+        if self.side == coalition.side.NEUTRAL then
+    
+            local nCircleId = nextMarkId()
+            local nTextId   = nextMarkId()
+    
+            if self:isCircle() then
+                trigger.action.circleToAll(-1, nCircleId, self.zone.point, self.zone.radius, border_color, fill_color, 1, true)
+            elseif self:isQuad() then
+                trigger.action.quadToAll(-1, nCircleId, self.zone.vertices[4], self.zone.vertices[3],
+                    self.zone.vertices[2], self.zone.vertices[1], border_color, fill_color, 1, true)
+            end
+            trigger.action.textToAll(-1, nTextId, self.zone.point, text_color, text_bg, 13, true, text_display)
+    
+            self._markIds.neutral = nCircleId
+            self._markIds.neutralText = nTextId
+        else
+            -- Draw for BLUE coalition (if they discovered it)
+            if utils.tableContains(stats.blue_discovered_zones, self.zone.name) then
+    
+                local bCircleId = nextMarkId()
+                local bTextId   = nextMarkId()
+
+                if self:isCircle() then
+                    trigger.action.circleToAll(coalition.side.BLUE, bCircleId, self.zone.point, self.zone.radius, border_color, fill_color, 1, true)
+                elseif self:isQuad() then
+                    trigger.action.quadToAll(coalition.side.BLUE, bCircleId, self.zone.vertices[4], self.zone.vertices[3],
+                        self.zone.vertices[2], self.zone.vertices[1], border_color, fill_color, 1, true)
+                end
+                trigger.action.textToAll(coalition.side.BLUE, bTextId, self.zone.point, text_color, text_bg, 13, true, text_display)
+    
+                self._markIds.blue = bCircleId
+                self._markIds.blueText = bTextId
+            else
+                self._markIds.blue, self._markIds.blueText = nil, nil
+            end
+    
+            -- Draw for RED coalition (if they discovered it)
+            if utils.tableContains(stats.red_discovered_zones, self.zone.name) then
+    
+                local rCircleId = nextMarkId()
+                local rTextId   = nextMarkId()
+
+                if self:isCircle() then
+                    trigger.action.circleToAll(coalition.side.RED, rCircleId, self.zone.point, self.zone.radius, border_color, fill_color, 1, true)
+                elseif self:isQuad() then
+                    trigger.action.quadToAll(coalition.side.RED, rCircleId, self.zone.vertices[4], self.zone.vertices[3],
+                        self.zone.vertices[2], self.zone.vertices[1], border_color, fill_color, 1, true)
+                end
+                trigger.action.textToAll(coalition.side.RED, rTextId, self.zone.point, text_color, text_bg, 13, true, text_display)
+    
+                self._markIds.red = rCircleId
+                self._markIds.redText = rTextId
+            else
+                self._markIds.red, self._markIds.redText = nil, nil
+            end
+        end
+    end
+
+    function ZoneHandler:isQuad()
+        return self.zone.type == 2
+    end
+
+    function ZoneHandler:isCircle()
+        return self.zone.type == 0
+    end
+
+    ---@param side coalition.side
+    ---@param ignore_zone_names string[]|nil
+    ---@param zone_types ZoneTypes[]|nil
+    ---@param discovered boolean|nil
+    function ZoneHandler:getClosestZone(side, ignore_zone_names,zone_types,discovered)
+        local closestZone = nil
+        local closestDistance = math.huge
+        local distance = 0
+
+        if not zone_types then
+            zone_types = { --WARN if new zone type add it here
+                ZoneTypes.AIRBASE,
+                ZoneTypes.COMMS,
+                ZoneTypes.EWSITE,
+                ZoneTypes.FARP,
+                ZoneTypes.LOGISTICS,
+                ZoneTypes.SAMSITE,
+                ZoneTypes.STRONGPOINT
+            }
+        end
+
+        for _, current_zone in ipairs(zones) do
+            if current_zone.name ~= self.name
+            and not utils.tableContains(ignore_zone_names or {}, current_zone.name)
+            and utils.tableContains(zone_types,current_zone.zone_type) then
+            
+                local allow_discovered = false
+                if discovered then
+                    -- Check the discovery list of the CALLER (self.side)
+                    if self.side == coalition.side.BLUE and utils.tableContains(stats.blue_discovered_zones, current_zone.name) then
+                        allow_discovered = true
+                    elseif self.side == coalition.side.RED and utils.tableContains(stats.red_discovered_zones, current_zone.name) then 
+                        allow_discovered = true
+                    end
+                else 
+                    allow_discovered = true -- 'discovered' check is not required
+                end
+
+                if allow_discovered then
+                    distance = mist.utils.get2DDist(self.zone.point, current_zone.zone.point)
+                    
+                    -- Check the side of the TARGET (the 'side' parameter)
+                    if distance < closestDistance and (side == current_zone.side or side == -1) then
+                        closestDistance = distance
+                        closestZone = current_zone
+                    end
+                end
+            end
+        end
+
+        return closestZone, closestDistance
+    end
+
+    function ZoneHandler:isPointInsideZone(point)
+        if self:isCircle() then
+            local dist = mist.utils.get2DDist(point, self.zone.point)
+            return dist < self.zone.radius
+        elseif self:isQuad() then
+            return mist.pointInPolygon(point, self.zone.vertices)
+        end
+    end
+
+    ---@return ZoneHandler[]
+    function ZoneHandler.sortZonesByDistance(point)
+        local sorted_zones_simplified = {}
+
+        for _, zone in pairs(zones) do
+            local transfer_zone = { name = zone.zone.name }
+            transfer_zone.distance = mist.utils.get2DDist(zone.zone.point, point)
+            table.insert(sorted_zones_simplified, transfer_zone)
+        end
+
+        table.sort(sorted_zones_simplified, function(a, b) return a.distance < b.distance end)
+
+        -- creates a table with a copy of the zones table but sorted
+        local sorted_zones = {}
+        for _, sorted_zone in pairs(sorted_zones_simplified) do
+            for _, zone in pairs(zones) do
+                if zone.zone.name == sorted_zone.name then
+                    table.insert(sorted_zones, zone)
+                end
+            end
+        end
+
+
+        return sorted_zones
+    end
+
+    function ZoneHandler:updateDiscoveredZones()
+        -- makes all zones under MAX_GRND_RECON_DIST added to the discoverd var
+        local updated_zones = {}
+
+        for _, other_zone in ipairs(zones) do
+            if self ~= coalition.side.NEUTRAL and self.side ~= other_zone.side
+            and mist.utils.get2DDist(self.zone.point, other_zone.zone.point) < Config.max_ground_recon_range then
+
+                if not utils.tableContains(stats.blue_discovered_zones,other_zone.name) then
+                    table.insert(stats.blue_discovered_zones,other_zone.name)
+                    -- TO CHANGE other_zone:draw() here??
+                    table.insert(updated_zones,other_zone.name)
+                end
+
+                if not utils.tableContains(stats.red_discovered_zones,other_zone.name) then
+                    table.insert(stats.red_discovered_zones,other_zone.name)
+                    -- TO CHANGE other_zone:draw() here??
+                    table.insert(updated_zones,other_zone.name)
+                end
+            end
+        end
+
+        -- draw zone
+        for _,zone in ipairs(zones) do
+            if utils.tableContains(updated_zones,zone.name) then zone:drawF10() end
+        end
+
+
+    end
+
+    function ZoneHandler:capture(side)
+        local side_str = "Neutral"
+        if side == 1 then     -- red
+            side_str = "Red"
+        elseif side == 2 then -- blue
+            side_str = "Blue"
+        end
+
+        if self.side == coalition.side.NEUTRAL then
+            stats.neutral_zones = stats.neutral_zones - 1
+        elseif self.side == coalition.side.RED then
+            stats.red_zones = stats.red_zones - 1
+        elseif self.side == coalition.side.BLUE then
+            stats.blue_zones = stats.blue_zones - 1
+        end
+
+        self.side = side
+        self.level = 1
+
+        if self.side == coalition.side.RED then
+            stats.red_zones = stats.red_zones + 1
+        elseif self.side == coalition.side.BLUE then
+            stats.blue_zones = stats.blue_zones + 1
+        elseif self.side == coalition.side.NEUTRAL then
+            stats.neutral_zones = stats.neutral_zones + 1
+        end
+
+        -- [ all of these zones are level 1 ] --
+        if self.zone_type == ZoneTypes.STRONGPOINT and self.side ~= coalition.side.NEUTRAL then
+            if self.side == coalition.side.RED then
+                UnitHandler.clone(GroupData.STRONGPOINT_SITES.RED[self.level].group_name, self) -- level 1
+                stats.red_strongpoints = stats.red_strongpoints +1
+                stats.blue_strongpoints = stats.blue_strongpoints -1
+
+            elseif self.side == coalition.side.BLUE then
+                UnitHandler.clone(GroupData.STRONGPOINT_SITES.BLUE[self.level].group_name, self)
+                stats.red_strongpoints = stats.red_strongpoints -1
+                stats.blue_strongpoints = stats.blue_strongpoints +1
+            end
+
+
+        elseif self.zone_type == ZoneTypes.LOGISTICS and self.side ~= coalition.side.NEUTRAL then
+            --TO CHANGE add looting capture logic
+
+            if self.side == coalition.side.RED then
+                UnitHandler.clone(GroupData.LOGISTICS_SITES.RED[self.level].group_name, self)
+                -- ... (rest of your RED logistics capture logic) ...
+            elseif self.side == coalition.side.BLUE then
+                UnitHandler.clone(GroupData.LOGISTICS_SITES.BLUE[self.level].group_name, self)
+                WarehouseManager:attributeAirbaseStock(blue_airbase.airbase_name,blue_airbase.side,{WarehouseManager.StockTypes.LOGISTICS_CAPTURE})
+            end
+
+        elseif self.zone_type == ZoneTypes.COMMS and self.side ~= coalition.side.NEUTRAL then
+            if self.side == coalition.side.RED then
+                UnitHandler.clone(GroupData.COMMS_SITES.RED[self.level].group_name, self)
+                stats.red_comms_zones = stats.red_comms_zones +1
+                stats.blue_comms_zones = stats.blue_comms_zones -1
+                -- ... (rest of your comms stat logic) ...
+            elseif self.side == coalition.side.BLUE then
+                UnitHandler.clone(GroupData.COMMS_SITES.BLUE[self.level].group_name, self)
+                stats.red_comms_zones = stats.red_comms_zones -1
+                stats.blue_comms_zones = stats.blue_comms_zones +1
+                -- ... (rest of your comms stat logic) ...
+            end
+
+        elseif self.zone_type == ZoneTypes.FARP and self.side ~= coalition.side.NEUTRAL then
+            if self.side == coalition.side.RED then
+                UnitHandler.clone( "RED GRND TEST" , self) --TO CHANGE
+                stats.red_farp_zones = stats.red_farp_zones +1
+                stats.blue_farp_zones = stats.blue_farp_zones -1
+            elseif self.side == coalition.side.BLUE then
+                UnitHandler.clone( "BLUE GRND TEST" , self) --TO CHANGE
+                stats.red_farp_zones = stats.red_farp_zones -1
+                stats.blue_farp_zones = stats.blue_farp_zones +1
+            end
+ 
+        elseif self.zone_type == ZoneTypes.EWSITE and self.side ~= coalition.side.NEUTRAL then
+            if self.side == coalition.side.RED then
+                UnitHandler.clone(GroupData.EW_SITES.RED[self.level].group_name , self)
+                stats.red_ew_zones = stats.red_ew_zones +1
+                stats.blue_ew_zones = stats.blue_ew_zones -1
+            elseif self.side == coalition.side.BLUE then
+                UnitHandler.clone(GroupData.EW_SITES.BLUE[self.level].group_name , self)
+                stats.red_ew_zones = stats.red_ew_zones -1
+                stats.blue_ew_zones = stats.blue_ew_zones +1
+            end
+
+        elseif self.zone_type == ZoneTypes.SAMSITE and self.side ~= coalition.side.NEUTRAL then
+            local sam_spawned = false
+            for _, sam in pairs(GroupData.SAM_SITES) do
+                -- Spawn SAM based on matching side, classification, AND LEVEL (which is now 1)
+                if sam.side == self.side and sam.sam_classification == self.sam_classification and sam.level == self.level then
+                    mist.cloneInZone(sam.group_name,self.zone.name,false)
+                    sam_spawned = true
+                    break
+                end
+            end
+            if not sam_spawned then
+                MissionLogger:warn("No SAM options found for zone: " .. self.name .. " with classification: " ..tostring(self.sam_classification))
+                if self.side == coalition.side.BLUE then
+                    mist.cloneInZone("BLUE INF", self.name,false)
+                elseif self.side == coalition.side.RED then
+                    mist.cloneInZone("RED INF", self.name,false)
+                end
+            end
+
+            if self.side == coalition.side.RED then
+                stats.red_sam_sites = stats.red_sam_sites +1
+                stats.blue_sam_sites = stats.blue_sam_sites -1
+            elseif self.side == coalition.side.BLUE then
+                stats.red_sam_sites = stats.red_sam_sites -1
+                stats.blue_sam_sites = stats.blue_sam_sites +1
+            end
+
+        elseif self.zone_type == ZoneTypes.AIRBASE  then
+            if self.airbase_name then
+                local airbase = Airbase.getByName(self.airbase_name)
+                if airbase then
+                    airbase:autoCapture(false)
+                    airbase:setCoalition(self.side)
+                end
+            end
+            if self.side == coalition.side.RED then
+                UnitHandler.clone( GroupData.AIRBASE_SITES.RED[self.level].group_name , self)
+                stats.red_airbases = stats.red_airbases +1
+                stats.blue_airbases = stats.blue_airbases -1
+            elseif self.side == coalition.side.BLUE then
+                UnitHandler.clone( GroupData.AIRBASE_SITES.BLUE[self.level].group_name , self)
+                stats.red_airbases = stats.red_airbases -1
+                stats.blue_airbases = stats.blue_airbases +1
+            end
+        end
+        --WARN missing SAM SItE spawning
+        
+
+        -- remove potential attack convoys in zone
+        for _,enroute in ipairs(EnrouteManager.enroutes) do
+            if self.name == enroute.to_zone.name and self.side == enroute.side then
+                local convoy_group = Group.getByName(enroute.group_name)
+                if convoy_group and convoy_group:isExist() then
+                    trigger.action.setGroupAIOff(convoy_group)
+                    timer.scheduleFunction(function ()
+                        convoy_group:destroy()
+                    end, {}, timer.getTime() + math.random(5, 10))
+                    EnrouteManager:remove(enroute.group_name)
+                end
+            end
+        end
+        
+        if self.side == coalition.side.NEUTRAL then
+            self.last_capture_attempt = nil
+            self:drawF10()
+        else
+            self.last_attacked_by = nil 
+            self.last_capture_attempt = nil
+            
+            self.attack_convoy = 0
+            self.capture_heli_avail = 0
+            self.capture_convoy_avail = 0
+            self:drawF10()
+            self:updateDiscoveredZones()
+            CommandHandler.refreshAvailZonesJTAC()
+        end
+
+        
+        MissionLogger:info("Zone " .. self.zone.name .. " captured by " .. side_str)
+        if self.side == coalition.side.BLUE then
+            trigger.action.outText(self.zone.name .. " is now " .. side_str, 5) --TO CHANGE
+        elseif self.side == coalition.side.RED then
+            trigger.action.outText(self.zone.name .. " is now " .. side_str, 5) --TO CHANGE
+        else
+            trigger.action.outText(self.zone.name .. " is now neutral.", 5)
+        end
+
+    end
+
+    function ZoneHandler.getFromName(zone_name)
+        for _, search_zone in ipairs(zones) do
+            if search_zone.name == zone_name then
+                return search_zone
+            end
+        end
+    end
+
+    function ZoneHandler:hasCaptureHeliAvailable()
+        return self.capture_heli_avail > 0
+    end
+    function ZoneHandler:hasCaptureConvoyAvailable()
+        return self.capture_convoy_avail > 0
+    end
+
+    function ZoneHandler:checkIfEmptyAndCapture()
+        if self.side == coalition.side.NEUTRAL then return false end
+        local units_in_zone = utils.getUnitsInZoneObj(self)
+        local static_in_zone = utils.getStaticsInZoneObj(self)
+
+        
+        -- local units_in_zone = TheatreCommander.fetchUnitsInZone(self.zone.name, true, false,utils.getEnemyCoalition(self.side))
+        -- MissionLogger:info(#units_in_zone .. " units in zone " .. self.zone.name)
+        MissionLogger:info("Checking if zone "..self.name.." is empty, units found " .. (#units_in_zone or 0)..", statics found "..(#static_in_zone or 0))
+        
+        --check if all units are not airborne, remove them
+        for i = #units_in_zone, 1, -1 do
+            local unit = units_in_zone[i]
+            if unit:inAir() then
+                table.remove(units_in_zone, i)
+            end
+        end
+
+        if static_in_zone and #static_in_zone >0 then
+            return false
+        end
+        if units_in_zone and #units_in_zone > 0 then
+            return false
+        end
+        -- if no units in zone, neutralise it
+        self:capture(coalition.side.NEUTRAL)
+        return true
+
+
+        -- [ if zone empty then make it neutral]
+    end
+
+    function ZoneHandler:isPointClearOfUnits(vec3_point, min_clearance)
+        local vol = { id = world.VolumeType.SPHERE, params = { point = vec3_point, radius = min_clearance } }
+        local found = false
+        world.searchObjects({Object.Category.UNIT, Object.Category.STATIC}, vol, function() found = true end)
+        if found then return false
+        else return true end
+    end
+
+    --- Adds Capture Helicopters/Convoys or Attack Convoys to zones, based on chance
+    --- @param chance number Chance from 1-100 to add assets
+    function ZoneHandler:addAIAssets(chance)
+        if math.random(1,100) > chance then return end
+
+        if self.zone_type == ZoneTypes.LOGISTICS then
+            self.capture_convoy_avail = self.capture_convoy_avail +1
+            self.capture_heli_avail = self.capture_heli_avail +1
+        elseif self.zone_type == ZoneTypes.STRONGPOINT then
+            self.attack_convoy = self.attack_convoy +1
+        end
+        self:drawF10()
+    end
+
+    function ZoneHandler:checkLogisticsZone()
+        if self.side == coalition.side.NEUTRAL then return end
+        if self.zone_type ~= ZoneTypes.LOGISTICS then return end
+
+
+
+        -- MissionLogger:info("Checking logistcs zone "..self.name)
+
+        if not self.linked_ammo_depot then return end
+        local ammo_depot = StaticObject.getByName(self.linked_ammo_depot)
+        
+        -- First, check the actual status of the depot
+        local is_alive = ammo_depot and ammo_depot:isExist() and ammo_depot:getLife() >= 1
+
+        -- If the script thinks the depot is intact, but it's NOT alive, mark it as destroyed.
+        if self.ammo_depot_intact and not is_alive then
+            self.ammo_depot_intact = false
+            self.ammo_depot_last_destroyed = timer.getTime()
+
+            -- Also, destroy the "dead body" if it exists
+            if ammo_depot and ammo_depot:isExist() then
+                ammo_depot:destroy()
+            end
+        end
+
+        -- checks if the ammo depot has not been destroyed, else respawn one in 
+        if self.ammo_depot_last_destroyed and not self.ammo_depot_intact
+        and self.ammo_depot_last_destroyed + Config.logistics_ammo_depot_respawn_time > timer.getTime() then
+            MissionLogger:info(self.name .." ammo depot pending respawn")
+            return
+        elseif not self.ammo_depot_intact and self.ammo_depot_last_destroyed
+        and self.ammo_depot_last_destroyed + Config.logistics_ammo_depot_respawn_time <= timer.getTime() then
+            MissionLogger:info(self.name .." ammo depot respawn")
+
+            
+            -- respawn the ammo depot --TO CHANGE
+            local country_name
+            if self.side == coalition.side.BLUE then country_name = country.id.CJTF_BLUE
+            else country_name = country.id.CJTF_RED end
+            
+            local pnt= mist.getRandomPointInZone(self.zone.name,40) or {x=self.zone.point.x-67, y=self.zone.point.z+42}
+
+            local ammo_depot_gr = mist.dynAddStatic({
+                type = ".Ammunition depot",
+                country = country_name,
+                category = "Warehouses",
+                x = pnt.x,
+                y = pnt.y})
+                if ammo_depot_gr then
+                    self.ammo_depot_intact = true
+                    self.linked_ammo_depot = ammo_depot_gr.name
+                    self.ammo_depot_last_destroyed = nil
+                    trigger.action.outTextForCoalition(self.side, "Logistics zone "..self.name.." has reestablished its ammunition depot.",10)
+            else
+                MissionLogger:error("Could not spawn ammo depot for ".. self.name)
+            end
+        end
+
+        local _,dist = self:getClosestZone(utils.getEnemyCoalition(self.side))
+        if dist and dist > Config.logistics_upgrade_range then return end
+
+
+        if math.random(1,100) > Config.logistics_upgrade_chance then return end
+
+        -- levels up lowest level zones nearby
+        -- allow level ups only of ammo depot intact (not destroyed)
+        if self.ammo_depot_intact and self.next_level_up_avail and timer.getTime() > self.next_level_up_avail then
+            -- level up nearest zone at lowest level
+            local lowest_level_zone_nearby = nil
+            if self.level < 4 then lowest_level_zone_nearby = self  --level up itself before others
+            else
+                local tried_zones = {}
+                local loop_prevention = 0
+                local level_zone, dist = self:getClosestZone(self.side,tried_zones)
+
+                while level_zone and dist < Config.logistics_upgrade_range
+                and loop_prevention < 400 do
+
+                    if (not lowest_level_zone_nearby) or (level_zone.level < lowest_level_zone_nearby.level) then
+                        lowest_level_zone_nearby = level_zone
+                    end
+                    table.insert(tried_zones,level_zone.name)
+                    level_zone, dist = self:getClosestZone(self.side,tried_zones)
+                    loop_prevention = loop_prevention+1
+                end
+                if loop_prevention > 395 then
+                    MissionLogger:warn("Loop prevention prevented a crash")
+                end
+
+            end
+
+            if lowest_level_zone_nearby and lowest_level_zone_nearby.level < 4 then
+                -- lowest nearby level zones has been found
+                lowest_level_zone_nearby.level = lowest_level_zone_nearby.level + 1
+                lowest_level_zone_nearby:drawF10()
+                self.next_level_up_avail = timer.getTime() + Config.logistics_level_up_interval
+                MissionLogger:info("Logistics zone "..self.name.." leveled up "..lowest_level_zone_nearby.name .. " to level "..lowest_level_zone_nearby.level.."/4")
+                trigger.action.outTextForCoalition(self.side, "Logistics zone "..self.name.." provided additional support for "..lowest_level_zone_nearby.name.."\nT: "..lowest_level_zone_nearby.level.."/4",10)
+            end
+        end
+    end
+
+    function ZoneHandler:checkCOMMSZone()
+        if self.zone_type ~= ZoneTypes.COMMS then return end
+
+        MissionLogger:info("Checking COMMS zone "..self.name)
+
+        if not self.linked_comms_tower then return end
+        local comms_tower = StaticObject.getByName(self.linked_comms_tower)
+        
+        -- First, check the actual status of the depot
+        local is_alive = comms_tower and comms_tower:isExist() and comms_tower:getLife() >= 1
+        -- If the script thinks the depot is intact, but it's NOT alive, mark it as destroyed.
+        if not is_alive then
+            self.comms_tower_intact = false
+            self.comms_tower_last_destroyed = timer.getTime()
+            TheatreCommander.COMMS_towers[self.side] = TheatreCommander.COMMS_towers[self.side] -1
+
+            Config.comms_tower_respawn_time = math.floor(Config.comms_tower_respawn_time * 1.5)
+            trigger.action.outTextForCoalition(self.side, "Comms zone "..self.name.." has lost its communications tower. EWRS system impaired, reports are 50% slower.",10)
+
+
+            timer.scheduleFunction(function ()
+
+                local country_name
+                if self.side == coalition.side.BLUE then country_name = country.id.CJTF_BLUE
+                else country_name = country.id.CJTF_RED end
+                
+                local pnt= mist.getRandomPointInZone(self.zone.name,40) or {x=self.zone.point.x-67, y=self.zone.point.z+42}
+    
+                local comms_tower_gr = mist.dynAddStatic({
+                    type = "Comms tower M",
+                    country = country_name,
+                    category = "Fortifications",
+                    x = pnt.x,
+                    y = pnt.y})
+                if comms_tower_gr then
+                    self.comms_tower_intact = true
+                    self.linked_comms_tower = comms_tower_gr.name
+                    TheatreCommander.COMMS_towers[self.side] = TheatreCommander.COMMS_towers[self.side] +1
+                else
+                    MissionLogger:error("Could not spawn comms tower for ".. self.name)
+                end
+
+            end, {}, timer.getTime() + Config.comms_tower_respawn_time * (1-0.25*self.level))
+
+        end
+
+    end
+
+end

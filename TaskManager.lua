@@ -1,0 +1,1125 @@
+
+
+
+---@class TaskManager
+TaskManager = {}
+do
+    TaskManager.AWACSOrbitArea = {}
+
+    ---@param ai_task_type AITaskTypes
+    ---@param side coalition.side
+    ---@param prevent_duplicates boolean
+    ---@param to_zone ZoneHandler|nil
+    ---@param from_zone ZoneHandler|nil
+    ---@param user_requested boolean
+    ---@return boolean
+    function TaskManager:initiateAITask(ai_task_type,side,prevent_duplicates,to_zone,from_zone,user_requested)
+
+        --[[
+        1. Find closest airbase available to spawn
+        2. Check if payload in stock
+        3. Spawn the aircraft
+        4. Assign AI Task
+        ]]
+        local function sendText(txt)
+            if user_requested then
+                trigger.action.outTextForCoalition(side,txt,5)
+            end
+        end
+
+        if AITaskTypes.CAS == ai_task_type and to_zone then
+        
+            local closest_airbase, template_gr_name = self:findClosestAirbaseWithAircraftInStock(to_zone,side,ai_task_type,2)
+            if not closest_airbase then
+                if user_requested then
+                    txt="CAS unavailable for "..to_zone.name..", check aircraft availability."
+                    trigger.action.outTextForCoalition(side,txt,5)
+                end
+                return false
+            end
+
+            if prevent_duplicates and EnrouteManager:findByToZone(to_zone,side,{AITaskTypes.CAS}) then
+                if user_requested then
+                    txt="CAS already tasked for "..to_zone.name
+                    trigger.action.outTextForCoalition(side,txt,5)
+                end
+                return false
+            end
+
+            local airbase = Airbase.getByName(closest_airbase.airbase_name)
+            if not airbase then return false end
+
+
+            if airbase and not WarehouseManager:checkIfAIPayloadInStock(airbase,ai_task_type)
+            then
+                sendText("CAS required payload/armement not in warehouse.")
+                return false
+
+                end
+
+            local new_group = mist.cloneGroup(template_gr_name,true)
+
+            if not new_group then return false end
+            local ai_enroute_data = EnrouteManager:add({
+                to_zone = to_zone,
+                side=side,
+                from_zone=closest_airbase,
+                group_name=new_group.name,
+                ai_task_type=ai_task_type
+            })
+
+            self:setCASTask(new_group.name,ai_enroute_data)
+            return true
+        elseif AITaskTypes.AWACS == ai_task_type and from_zone and from_zone.zone_type == ZoneTypes.AIRBASE then
+
+
+            local in_stock, template_gr_name = WarehouseManager:checkAircraftInStock(from_zone.airbase_name,ai_task_type)
+            if not in_stock then
+                if user_requested then
+                    txt="AWACS unavailable for "..from_zone.name..", check aircraft availability."
+                    trigger.action.outTextForCoalition(side,txt,5)
+                end
+                return false
+            end
+
+            if prevent_duplicates and EnrouteManager:findByToZone(from_zone,side,{AITaskTypes.AWACS}) then
+                if user_requested then
+                    txt="AWACS already tasked for "..from_zone.name
+                    trigger.action.outTextForCoalition(side,txt,5)
+                end
+                return false
+            end
+
+
+
+            local new_group = mist.cloneGroup(template_gr_name,true)
+            if not new_group then return false end
+
+            local ai_enroute_data = EnrouteManager:add({
+                to_zone = from_zone,
+                side=side,
+                from_zone=from_zone,
+                group_name=new_group.name,
+                ai_task_type=ai_task_type
+            })
+            self:setAWACSTask(new_group.name,ai_enroute_data)
+            return true
+        elseif AITaskTypes.INTERCEPT == ai_task_type and to_zone then
+
+            local closest_airbase, template_gr_name = self:findClosestAirbaseWithAircraftInStock(to_zone,side,ai_task_type,2)
+            if not closest_airbase then
+                if user_requested then
+                    txt="INTERCEPT unavailable for "..to_zone.name..", check aircraft availability."
+                    trigger.action.outTextForCoalition(side,txt,5)
+                end
+                return false
+            end
+
+            if prevent_duplicates and EnrouteManager:findByToZone(to_zone,side,{AITaskTypes.INTERCEPT}) then
+                if user_requested then
+                    txt="INTERCEPT already tasked for "..to_zone.name
+                    trigger.action.outTextForCoalition(side,txt,5)
+                end
+                return false
+            end
+
+            local airbase = Airbase.getByName(closest_airbase.airbase_name)
+            if not airbase then return false end
+
+            if airbase and not WarehouseManager:checkIfAIPayloadInStock(airbase,ai_task_type)
+            then sendText("INTERCEPT required payload/armement not in warehouse.") return false end
+
+            local new_group = mist.cloneGroup(template_gr_name,true)
+            if not new_group then return false end
+
+            local ai_enroute_data = EnrouteManager:add({
+                to_zone = to_zone,
+                side=side,
+                from_zone=closest_airbase,
+                group_name=new_group.name,
+                ai_task_type=ai_task_type
+            })
+            self:setINTERCEPTTask(new_group.name,ai_enroute_data)
+            return true
+
+        elseif AITaskTypes.SEAD == ai_task_type and to_zone then
+
+            local closest_airbase, template_gr_name = self:findClosestAirbaseWithAircraftInStock(to_zone,side,ai_task_type,2)
+            if not closest_airbase then
+                if user_requested then
+                    txt="SEAD unavailable for "..to_zone.name..", check aircraft availability."
+                    trigger.action.outTextForCoalition(side,txt,5)
+                end
+                return false
+            end
+
+            if prevent_duplicates and EnrouteManager:findByToZone(to_zone,side,{AITaskTypes.SEAD}) then
+                if user_requested then
+                    txt="SEAD already tasked for "..to_zone.name
+                    trigger.action.outTextForCoalition(side,txt,5)
+                end
+                return false
+            end
+
+            local airbase = Airbase.getByName(closest_airbase.airbase_name)
+            if not airbase then return false end
+
+            if airbase and not WarehouseManager:checkIfAIPayloadInStock(airbase,ai_task_type)
+            then sendText("SEAD required payload/armement not in warehouse.") return false end
+
+            local new_group = mist.cloneGroup(template_gr_name,true)
+            if not new_group then return false end
+
+            local ai_enroute_data = EnrouteManager:add({
+                to_zone = to_zone,
+                side=side,
+                from_zone=closest_airbase,
+                group_name=new_group.name,
+                ai_task_type=ai_task_type
+            })
+            self:setSEADTask(new_group.name,ai_enroute_data)
+            return true
+        elseif AITaskTypes.STRIKE == ai_task_type and to_zone then
+
+            local closest_airbase, template_gr_name = self:findClosestAirbaseWithAircraftInStock(to_zone,side,ai_task_type,2)
+            if not closest_airbase then
+                if user_requested then
+                    txt="STRIKE unavailable for "..to_zone.name..", check aircraft availability."
+                    trigger.action.outTextForCoalition(side,txt,5)
+                end
+                return false
+            end
+
+            if prevent_duplicates and EnrouteManager:findByToZone(to_zone,side,{AITaskTypes.STRIKE}) then
+                if user_requested then
+                    txt="STRIKE already tasked for "..to_zone.name
+                    trigger.action.outTextForCoalition(side,txt,5)
+                end
+                return false
+            end
+
+            local airbase = Airbase.getByName(closest_airbase.airbase_name)
+            if not airbase then return false end
+
+            if airbase and not WarehouseManager:checkIfAIPayloadInStock(airbase,ai_task_type)
+            then sendText("STRIKE required payload/armement not in warehouse.") return false end
+
+            local new_group = mist.cloneGroup(template_gr_name,true)
+            if not new_group then return false end
+
+            local ai_enroute_data = EnrouteManager:add({
+                to_zone = to_zone,
+                side=side,
+                from_zone=closest_airbase,
+                group_name=new_group.name,
+                ai_task_type=ai_task_type
+            })
+            local statics_in_zone = utils.getStaticsInZoneObj(to_zone)
+            if #statics_in_zone == 0 then
+                if user_requested then
+                    txt="STRIKE tasks can only be tasked to zones with structures/buildings."
+                    trigger.action.outTextForCoalition(side,txt,5)
+                end
+                return false
+            end
+            local strike_point = statics_in_zone[math.random(1,#statics_in_zone)]:getPoint()
+
+            self:setSTRIKETask(new_group.name,ai_enroute_data,strike_point)
+            return true
+        elseif AITaskTypes.JTAC == ai_task_type and to_zone then
+
+            local closest_airbase, template_gr_name = self:findClosestAirbaseWithAircraftInStock(to_zone,side,ai_task_type,1)
+            if not closest_airbase then
+                if user_requested then
+                txt="JTAC unavailable for "..to_zone.name..", check aircraft availability."
+                trigger.action.outTextForCoalition(side,txt,5)
+                end
+                return false
+            end
+        
+            if prevent_duplicates and EnrouteManager:findByToZone(to_zone,side,{AITaskTypes.JTAC}) then
+                if user_requested then
+                    txt="JTAC already tasked for "..to_zone.name
+                    trigger.action.outTextForCoalition(side,txt,5)
+                end
+                return false
+            end
+
+            local airbase = Airbase.getByName(closest_airbase.airbase_name)
+            if not airbase then return false end
+
+            local new_group = mist.cloneGroup(template_gr_name,true)
+            if not new_group then return false end
+
+            local ai_enroute_data = EnrouteManager:add({
+                to_zone = to_zone,
+                side=side,
+                from_zone=closest_airbase,
+                group_name=new_group.name,
+                ai_task_type=ai_task_type
+            })
+            self:setJTACTask(new_group.name,ai_enroute_data)
+            return true
+        elseif AITaskTypes.ATTACK_CONVOY == ai_task_type and from_zone then
+            -- Ground convoy
+            
+            
+            local convoy_template_gr_name
+            local enemy_side
+            
+            if side == coalition.side.BLUE then
+                convoy_template_gr_name = GroupData.COMMON_ASSETS.BLUE.attack_convoy
+                enemy_side = coalition.side.RED
+            elseif side == coalition.side.RED then
+                convoy_template_gr_name = GroupData.COMMON_ASSETS.RED.attack_convoy
+                enemy_side = coalition.side.BLUE
+                
+            end
+            to_zone, _ = from_zone:getClosestZone(enemy_side)
+            if to_zone and to_zone.side == enemy_side
+            and mist.utils.get2DDist(from_zone.zone.point, to_zone.zone.point) < Config.attack_convoy_range then
+                
+                if prevent_duplicates and EnrouteManager:findByToZone(to_zone,nil,{ai_task_type}) then 
+                    if user_requested then
+                        txt="Unable to task "..ai_task_type.." ,already tasked for this area"
+                        trigger.action.outTextForCoalition(side,txt,5)
+                    end
+                    return false
+                end
+
+                local convoy_sent = mist.cloneInZone(convoy_template_gr_name, from_zone.zone.name)
+                if not convoy_sent then MissionLogger:info("Attack Convoy spawn failed, no convoy sent") return false end
+              
+                self:setATTACKCONVOYTask(convoy_sent.name,side,to_zone,from_zone)
+                from_zone.attack_convoy = from_zone.attack_convoy - 1
+                from_zone:drawF10()
+                return true
+            end
+    
+        elseif ai_task_type == AITaskTypes.CAPTURE_CONVOY and to_zone and from_zone then
+            local convoy_sent
+            if side == coalition.side.RED then      --capture convoy
+                convoy_sent = mist.cloneInZone(GroupData.COMMON_ASSETS.RED.capture_convoy, from_zone.name)
+            elseif side == coalition.side.BLUE then -- capture convoy
+                convoy_sent = mist.cloneInZone(GroupData.COMMON_ASSETS.BLUE.capture_convoy, from_zone.name)
+            end
+    
+            if not convoy_sent then MissionLogger:info("Capture Convoy spawn failed, no convoy sent") return false end
+            self:setCAPTURECONVOYTask(convoy_sent.name,side,to_zone,from_zone)
+
+            from_zone.capture_convoy_avail = from_zone.capture_convoy_avail - 1
+            from_zone:drawF10()
+            has_capture_gr_been_sent = true
+            MissionLogger:info(utils.coalitionToString(side) .." convoy from " ..from_zone.name .. " sent to capture zone: " .. to_zone.name)
+            return true
+        elseif ai_task_type == AITaskTypes.CAPTURE_HELO and to_zone and from_zone then
+
+            --spawn the heli
+            local template_name
+            if side == coalition.side.RED then
+                template_name = GroupData.COMMON_ASSETS.RED.capture_helicopter
+            elseif side == coalition.side.BLUE then
+                template_name = GroupData.COMMON_ASSETS.BLUE.capture_helicopter
+            end
+            local HELO_LZ_TO_MAX_RADIUS_FROM_CENTER = 300
+            local zone_radius = from_zone.zone.radius or 30
+            local max_radius = zone_radius
+            if zone_radius > HELO_LZ_TO_MAX_RADIUS_FROM_CENTER then max_radius = HELO_LZ_TO_MAX_RADIUS_FROM_CENTER end
+
+            local safe_takeoff_point = utils.rndPointFromCenter(from_zone.zone.point,15,max_radius or 20)
+            for i=0,10 do
+                if from_zone:isPointClearOfUnits(safe_takeoff_point,30) then
+                    break
+                else safe_takeoff_point = utils.rndPointFromCenter(from_zone.zone.point,15,max_radius or 20) end
+            end
+
+            local helo_sent = mist.teleportToPoint({
+                groupName = template_name,
+                point = safe_takeoff_point,
+                action = "clone"
+            })
+
+            if not helo_sent then MissionLogger:info("Capture Heli spawn failed, no heli sent") return false end
+            self:setCAPTUREHELITask(helo_sent.name,side,to_zone,from_zone)
+
+            from_zone.capture_heli_avail = from_zone.capture_heli_avail - 1
+            from_zone:drawF10()
+            has_capture_gr_been_sent = true
+            MissionLogger:info(utils.coalitionToString(side) .." heli from " ..from_zone.name .. " sent to capture zone: " .. to_zone.name)
+            return true
+        end
+
+        return false
+    end
+
+
+    ---@param to_zone ZoneHandler
+    ---@param side coalition.side
+    ---@param aircraft_type string
+    ---@param aircraft_amount number
+    ---@return ZoneHandler|nil,string|nil -- closest airbase, group name
+    function TaskManager:findClosestAirbaseWithAircraftInStock(to_zone,side,aircraft_type, aircraft_amount)
+        local loop_prevention = 0
+
+        local unavail_airbases = {}
+        local closest_airbase = to_zone:getClosestZone(side,unavail_airbases,{ZoneTypes.AIRBASE})
+        while closest_airbase and closest_airbase.airbase_name and loop_prevention < 400 do
+            ---@diagnostic disable-next-line: undefined-field
+            local airbase = Airbase.getByName(closest_airbase.airbase_name)
+            if airbase and airbase:getCoalition() == side then
+                local airbase_warehouse = airbase:getWarehouse()
+
+                local aircraft_count = 0
+                local group_name
+
+                if AIRCRAFT_GROUP[closest_airbase.airbase_name]
+                and AIRCRAFT_GROUP[closest_airbase.airbase_name][side]
+                and AIRCRAFT_GROUP[closest_airbase.airbase_name][side][aircraft_type] then
+                    aircraft_count =airbase_warehouse:getItemCount(AIRCRAFT_GROUP[closest_airbase.airbase_name][side][aircraft_type].warehouse_name)
+                    group_name = AIRCRAFT_GROUP[closest_airbase.airbase_name][side][aircraft_type].group_name
+                end
+                MissionLogger:info("Airbase:" .. closest_airbase.airbase_name .. " has ".. aircraft_count .." ".. aircraft_type .." available.")  
+                if aircraft_count and aircraft_count>=aircraft_amount and group_name then
+                    return closest_airbase,group_name
+                end
+            end
+            table.insert(unavail_airbases,closest_airbase.name)
+            closest_airbase,_ = to_zone:getClosestZone(side,unavail_airbases,{ZoneTypes.AIRBASE})
+            loop_prevention = loop_prevention+1
+        end
+        if loop_prevention >395 then MissionLogger:warn("Loop prevention prevented crash") end
+        return nil,nil
+    end
+
+    ---@param intercept_group_name string
+    ---@param enroute_data EnrouteObj
+    function TaskManager:setINTERCEPTTask(intercept_group_name, enroute_data)
+        timer.scheduleFunction(function()
+            local intercept_gr = Group.getByName(intercept_group_name)
+            if not (intercept_gr and intercept_gr:isExist() and enroute_data.to_zone) then
+                MissionLogger:error("INTERCEPT task failed: group or to_zone missing.")
+                return false
+            end
+
+            local ctrl = intercept_gr:getController()
+
+            -- 1. Get the group's current position (at the airbase)
+            local startPos = mist.getLeadPos(intercept_group_name)
+            if not startPos then
+                MissionLogger:error("INTERCEPT task failed: could not get group position.")
+                return false
+            end
+            
+            -- 2. Define the CAP/Intercept tasks
+            
+            -- Task to engage any enemy aircraft
+            local engageTask = {
+                id = 'EngageTargets',
+                params = {
+                    targetTypes = {'Planes', 'Helicopters'},
+                    -- Search in a 100km radius around the orbit point
+                    maxDist = 100000 
+                }
+            }
+
+            -- Task to orbit over the target zone
+            local orbitTask = {
+                id = 'Orbit',
+                params = {
+                    pattern = 'Circle',
+                    point = {
+                        x = enroute_data.to_zone.zone.point.x,
+                        y = enroute_data.to_zone.zone.point.z
+                    },
+                    speed = 200, -- m/s
+                    altitude = 6096 -- 20k ft
+                }
+            }
+
+            -- Combine them so the AI orbits AND engages
+            local comboTask = {
+                id = 'ComboTask',
+                params = {
+                    tasks = { engageTask, orbitTask }
+                }
+            }
+
+            -- 3. Build the full 'Mission' wrapper
+            local missionTask = {
+                id = 'Mission',
+                params = {
+                    route = {
+                        airborne = true,
+                        points = {}
+                    }
+                }
+            }
+
+            -- Waypoint 1: TAKEOFF (from current position)
+            table.insert(missionTask.params.route.points, {
+                type = AI.Task.WaypointType.TAKEOFF,
+                x = startPos.x,
+                y = startPos.z,
+                action = AI.Task.TurnMethod.FIN_POINT,
+                alt_type = AI.Task.AltitudeType.RADIO
+            })
+
+            -- Waypoint 2: CAP ORBIT (Fly to target zone and execute the ComboTask)
+            table.insert(missionTask.params.route.points, {
+                type = AI.Task.WaypointType.TURNING_POINT,
+                x = enroute_data.to_zone.zone.point.x,
+                y = enroute_data.to_zone.zone.point.z,
+                speed = 257, -- m/s (approx 500 kts)
+                action = AI.Task.TurnMethod.FLY_OVER_POINT,
+                alt = 6096, -- 20k ft
+                alt_type = AI.Task.AltitudeType.BARO,
+                task = comboTask -- Attach the CAP/Engage task
+            })
+
+            -- Waypoint 3: LAND (Return to the starting position)
+            table.insert(missionTask.params.route.points, {
+                type = AI.Task.WaypointType.LAND,
+                x = startPos.x,
+                y = startPos.z,
+                action = AI.Task.TurnMethod.FIN_POINT,
+                alt_type = AI.Task.AltitudeType.RADIO
+            })
+            
+            -- 4. Set the complete mission
+            ctrl:setTask(missionTask)
+
+            -- 5. Set the correct AI options (based on Pretense 'setDefaultAA')
+            ctrl:setOption(AI.Option.Air.id.PROHIBIT_AG, true)
+            ctrl:setOption(AI.Option.Air.id.ROE, AI.Option.Air.val.ROE.WEAPON_FREE)
+
+            ctrl:setOption(AI.Option.Air.id.JETT_TANKS_IF_EMPTY, true)
+            ctrl:setOption(AI.Option.Air.id.PROHIBIT_JETT, true)
+            ctrl:setOption(AI.Option.Air.id.REACTION_ON_THREAT, AI.Option.Air.val.REACTION_ON_THREAT.EVADE_FIRE)
+            ctrl:setOption(AI.Option.Air.id.MISSILE_ATTACK, AI.Option.Air.val.MISSILE_ATTACK.HALF_WAY_RMAX_NEZ)
+
+            -- RTB on out of Air-to-Air missiles
+            local aa_weapons = 268402688  -- AnyMissile
+            ctrl:setOption(AI.Option.Air.id.RTB_ON_OUT_OF_AMMO, aa_weapons)
+            ctrl:setOption(AI.Option.Air.id.RTB_ON_BINGO, true)
+
+            trigger.action.outTextForCoalition(enroute_data.side, "CAP mission tasked for: "..enroute_data.to_zone.name, 10)
+            MissionLogger:info("CAP/INTERCEPT mission tasked, engaging targets near: "..enroute_data.to_zone.name)
+        end, {}, timer.getTime() + 12)
+    end
+
+    ---@param heli_gr_name string
+    ---@param side coalition.side
+    ---@param to_zone ZoneHandler
+    ---@param from_zone ZoneHandler
+    function TaskManager:setCAPTUREHELITask(heli_gr_name,side,to_zone,from_zone)
+        local helo_group = Group.getByName(heli_gr_name)
+        if not helo_group or not helo_group:isExist() then return end
+
+        -- prevents a potential crash, using delay
+        local function startMoving()
+
+            local HELO_LZ_TO_MAX_RADIUS_FROM_CENTER = 300
+            local max_radius_lz = to_zone.zone.radius or 20
+            if to_zone.zone.radius > HELO_LZ_TO_MAX_RADIUS_FROM_CENTER then max_radius_lz = HELO_LZ_TO_MAX_RADIUS_FROM_CENTER end
+
+            MissionLogger:info(to_zone.zone.point)
+
+            local safe_lz_pos = utils.rndPointFromCenter(to_zone.zone.point,15,max_radius_lz)
+            for i=0,10 do
+                if to_zone:isPointClearOfUnits(safe_lz_pos,30) then
+                    break
+                else safe_lz_pos = utils.rndPointFromCenter(to_zone.zone.point,15,max_radius_lz) end
+            end
+
+            local helo_controller = helo_group:getController()
+            helo_controller:setTask({
+                id = "Land",
+                params = {
+                    x = safe_lz_pos.x,
+                    y = safe_lz_pos.z
+                }
+            })
+
+            helo_controller:setOption(AI.Option.Air.id.REACTION_ON_THREAT,
+                AI.Option.Air.val.REACTION_ON_THREAT.PASSIVE_DEFENCE)
+
+            EnrouteManager:add({
+                group_name = heli_gr_name,
+                to_zone = to_zone,
+                from_zone = from_zone,
+                side = side,
+                ai_task_type = AITaskTypes.CAPTURE_HELO,
+                aborted = false
+            })
+        end
+        timer.scheduleFunction(startMoving, {}, timer.getTime() + 5)
+    end
+    ---@param convoy_gr_name string
+    ---@param side coalition.side
+    ---@param to_zone ZoneHandler
+    ---@param from_zone ZoneHandler
+    function TaskManager:setCAPTURECONVOYTask(convoy_gr_name,side,to_zone,from_zone)
+        timer.scheduleFunction(function ()
+            local convoy_gr = Group.getByName(convoy_gr_name)
+            if not convoy_gr or not convoy_gr:isExist() then MissionLogger:info("Capture Convoy spawn failed, no convoy sent") return end
+            
+            self:ConvoyToPoint(convoy_gr,to_zone.zone.point)
+
+            EnrouteManager:add({
+                group_name = convoy_gr_name,
+                to_zone = to_zone,
+                from_zone = from_zone,
+                side = side,
+                ai_task_type = AITaskTypes.CAPTURE_CONVOY
+            })
+
+            --- [ check if convoy is moving after 2 mins, if not, respawn it ]
+            timer.scheduleFunction(function ()
+                if not convoy_gr or not convoy_gr:isExist() then return end
+                if not UnitHandler.checkConvoyMoving(convoy_gr) then
+                    MissionLogger:info("Convoy:" .. convoy_gr_name .. " not moving, attempting respawn.")
+                    convoy_gr:destroy()
+
+                    from_zone.capture_convoy_avail = from_zone.capture_convoy_avail+1
+                    from_zone:drawF10()
+
+                    EnrouteManager:remove(convoy_gr_name)
+
+                end
+            end,{},timer.getTime()+120)
+
+        
+        end,{},timer.getTime()+15)
+    end
+
+    ---@param convoy_gr_name string
+    ---@param side coalition.side
+    ---@param to_zone ZoneHandler
+    ---@param from_zone ZoneHandler
+    function TaskManager:setATTACKCONVOYTask(convoy_gr_name,side,to_zone, from_zone)
+        timer.scheduleFunction(function ()
+            local convoy_gr = Group.getByName(convoy_gr_name)
+            if not convoy_gr or not convoy_gr:isExist() then MissionLogger:info("Capture Convoy spawn failed, no convoy sent") return end
+    
+            local enemy_units
+            if side == coalition.side.BLUE then
+                enemy_units = utils.getUnitsInZoneObj(to_zone, coalition.side.RED)
+            elseif side == coalition.side.RED then
+                enemy_units = utils.getUnitsInZoneObj(to_zone, coalition.side.BLUE)
+            end
+
+            local arrival_point
+            if enemy_units and #enemy_units > 0 then
+                arrival_point = enemy_units[1]:getPoint()
+            else
+                arrival_point= to_zone.zone.point
+            end
+            self:ConvoyToPoint(convoy_gr,arrival_point)
+
+            EnrouteManager:add({
+                group_name = convoy_gr_name,
+                to_zone = to_zone,
+                from_zone = from_zone,
+                side = side,
+                ai_task_type = AITaskTypes.ATTACK_CONVOY,
+                redirects_count = 0,
+            })
+
+            --- [ check if convoy is moving after 2 mins, if not, respawn it ]
+            timer.scheduleFunction(function ()
+                if not convoy_gr or not convoy_gr:isExist() then return end
+                if not UnitHandler.checkConvoyMoving(convoy_gr) then
+                    MissionLogger:info("Convoy:" .. convoy_gr_name .. " not moving, attempting respawn.")
+                    convoy_gr:destroy()
+
+                    from_zone.attack_convoy = from_zone.attack_convoy+1
+                    from_zone:drawF10()
+
+                    EnrouteManager:remove(convoy_gr_name)
+
+                end
+            end,{},timer.getTime()+120)
+
+        
+        end,{},timer.getTime()+5)
+    end
+
+    ---@param jtac_group_name string
+    ---@param enroute_data EnrouteObj
+    function TaskManager:setJTACTask(jtac_group_name,enroute_data)
+        timer.scheduleFunction(function()
+            local jtac_gr = Group.getByName(jtac_group_name)
+            if not (jtac_gr and jtac_gr:isExist() and enroute_data.to_zone) then return end
+            local ctrl = jtac_gr:getController()
+
+            ctrl:setOption(AI.Option.Air.id.ROE, AI.Option.Air.val.ROE.WEAPON_FREE) --has to be, return fire does not work
+            ctrl:setOption(AI.Option.Air.id.REACTION_ON_THREAT, AI.Option.Air.val.REACTION_ON_THREAT.PASSIVE_DEFENCE)
+            ctrl:setOption(AI.Option.Air.id.RTB_ON_BINGO, true)
+            ctrl:setCommand({
+                id = "EPLRS",
+                params = {
+                    value = true,
+                    groupId = jtac_gr:getID(),
+                }})
+
+            
+            ctrl:setTask({
+                id = 'Orbit',
+                params = {
+                    pattern = 'Circle',
+                    point = {
+                        x = enroute_data.to_zone.zone.point.x+math.random(-300,300),
+                        y = enroute_data.to_zone.zone.point.z+math.random(-300,300)},
+                    speed = 32, --in m/s
+                    altitude = 1000 --TO CHANGE 6096
+                }})
+
+            local jtac = JTAC:new({
+                jtac_gr_name = jtac_group_name,
+                side = enroute_data.side,
+                to_zone = enroute_data.to_zone,
+                smoke_count = 4,
+            })
+            table.insert(enroute_data,jtac)
+        end, {}, timer.getTime() + 12)
+    end
+
+    ---@param awacs_group_name string
+    ---@param enroute_data EnrouteObj
+    function TaskManager:setAWACSTask(awacs_group_name, enroute_data)
+        timer.scheduleFunction(function()
+            local awacs_gr = Group.getByName(awacs_group_name)
+            if not (awacs_gr and awacs_gr:isExist()) then return end
+
+            local ctrl = awacs_gr:getController()
+            local group_id = awacs_gr:getID()
+
+            -- 1. Get the group's current position (at the airbase)
+            local startPos = mist.getLeadPos(awacs_group_name)
+            if not startPos then return end
+            -- 2. Calculate Racetrack center point (5-15km from base)
+            local center_dist = math.random(5000, 12500)
+            local center_angle = math.random() * 2 * math.pi
+            local racetrack_center = {
+                x = startPos.x + center_dist * math.cos(center_angle),
+                z = startPos.z + center_dist * math.sin(center_angle)
+            }
+
+            -- 3. Calculate the two racetrack points (10km separation)
+            local leg_angle = math.random() * 2 * math.pi -- Random orientation for the racetrack
+            local distFromCenter = 5000 -- 10km / 2
+            local dx = distFromCenter * math.cos(leg_angle)
+            local dz = distFromCenter * math.sin(leg_angle)
+
+            local pos1 = { x = racetrack_center.x + dx, y = racetrack_center.z + dz }
+            local pos2 = { x = racetrack_center.x - dx, y = racetrack_center.z - dz }
+
+            -- 4. Define the AWACS tasks
+            local awacsTask = { id = 'AWACS' }
+            
+            local eplrsTask = {
+                id = "WrappedAction",
+                params = {
+                    action = {
+                        id = "EPLRS",
+                        params = { value = true, groupId = group_id }
+                    }
+                }
+            }
+
+            local orbitTask = {
+                id = 'Orbit',
+                params = {
+                    pattern = 'Race-Track',
+                    point = pos1,
+                    point2 = pos2,
+                    speed = 180, -- m/s (~350 kts)
+                    altitude = 9144 -- 30k ft
+                }
+            }
+            
+            -- Combine them so the AI orbits, enables AWACS, and enables EPLRS
+            local comboTask = {
+                id = 'ComboTask',
+                params = {
+                    tasks = { awacsTask, eplrsTask, orbitTask }
+                }
+            }
+
+            -- 5. Build the full 'Mission' wrapper
+            local missionTask = {
+                id = 'Mission',
+                params = {
+                    route = {
+                        airborne = true,
+                        points = {}
+                    }
+                }
+            }
+
+            -- Waypoint 1: TAKEOFF (from current position)
+            table.insert(missionTask.params.route.points, {
+                type = AI.Task.WaypointType.TAKEOFF,
+                x = startPos.x,
+                y = startPos.z,
+                action = AI.Task.TurnMethod.FIN_POINT,
+                alt_type = AI.Task.AltitudeType.RADIO
+            })
+
+            -- Waypoint 2: AWACS ORBIT (Fly to the first racetrack point)
+            table.insert(missionTask.params.route.points, {
+                type = AI.Task.WaypointType.TURNING_POINT,
+                x = pos1.x,
+                y = pos1.y,
+                speed = 257, -- m/s (approx 500 kts)
+                action = AI.Task.TurnMethod.FLY_OVER_POINT,
+                alt = 9144, -- 30k ft
+                alt_type = AI.Task.AltitudeType.BARO,
+                task = comboTask -- Attach the AWACS/Orbit/EPLRS combo task
+            })
+
+            -- Waypoint 3: LAND (Return to the starting position)
+            table.insert(missionTask.params.route.points, {
+                type = AI.Task.WaypointType.LAND,
+                x = startPos.x,
+                y = startPos.z,
+                action = AI.Task.TurnMethod.FIN_POINT,
+                alt_type = AI.Task.AltitudeType.RADIO
+            })
+            
+            -- 6. Set the complete mission
+            ctrl:setTask(missionTask)
+
+            -- 7. Set AI options for AWACS (run, don't fight)
+            ctrl:setOption(AI.Option.Air.id.PROHIBIT_AG, true)
+            ctrl:setOption(AI.Option.Air.id.PROHIBIT_AA, true)
+            ctrl:setOption(AI.Option.Air.id.REACTION_ON_THREAT, AI.Option.Air.val.REACTION_ON_THREAT.PASSIVE_DEFENCE)
+            ctrl:setOption(AI.Option.Air.id.RTB_ON_BINGO, true)
+            ctrl:setOption(AI.Option.Air.id.JETT_TANKS_IF_EMPTY, true)
+            ctrl:setOption(AI.Option.Air.id.PROHIBIT_JETT, true)
+
+            trigger.action.outTextForCoalition(enroute_data.side, "AWACS mission tasked, enroute to station.", 10)
+            MissionLogger:info("AWACS mission tasked, establishing orbit.")
+        end, {}, timer.getTime() + 12)
+    end
+
+
+    ---@param cas_group_name string
+    ---@param enroute_data EnrouteObj
+    function TaskManager:setCASTask(cas_group_name,enroute_data)
+        timer.scheduleFunction(function()
+            local units_to_attack
+            if enroute_data.side == coalition.side.BLUE then
+                units_to_attack = utils.getUnitsInZoneObj(enroute_data.to_zone, coalition.side.RED)
+            elseif enroute_data.side == coalition.side.RED then
+                units_to_attack = utils.getUnitsInZoneObj(enroute_data.to_zone, coalition.side.BLUE)
+            end
+            
+            local grp_to_attack_id
+            if units_to_attack and #units_to_attack > 0 then
+                grp_to_attack_id = units_to_attack[1]:getGroup():getID()
+            else
+                MissionLogger:error("Could not send CAS: No enemy units found in zone "..enroute_data.to_zone.name)
+                return false
+            end
+
+            local cas_gr = Group.getByName(cas_group_name)
+            if not (cas_gr and cas_gr:isExist() and grp_to_attack_id) then
+                MissionLogger:error("Could not send CAS: Group or target ID missing.")
+                return false
+            end
+            MissionLogger:info(cas_gr:getName())
+
+            local ctrl = cas_gr:getController()
+
+            -- 1. Get the group's current position (at the airbase)
+            local startPos = mist.getLeadPos(cas_group_name)
+            if not startPos then
+                MissionLogger:error("CAS task failed: could not get group position.")
+                return false
+            end
+
+            -- 2. Define the specific 'AttackGroup' task
+            local attackTask = {
+                id = 'AttackGroup',
+                params = {
+                    groupId = grp_to_attack_id,
+                    groupAttack = true,
+                    expend = AI.Task.WeaponExpend.ALL
+                }
+            }
+     
+            -- 3. Build the full 'Mission' wrapper
+            local missionTask = {
+                id = 'Mission',
+                params = {
+                    route = {
+                        airborne = true,
+                        points = {}
+                    }
+                }
+            }
+
+            -- Waypoint 1: TAKEOFF (from current position)
+            table.insert(missionTask.params.route.points, {
+                type = AI.Task.WaypointType.TAKEOFF,
+                x = startPos.x,
+                y = startPos.z,
+                action = AI.Task.TurnMethod.FIN_POINT,
+                alt_type = AI.Task.AltitudeType.RADIO
+            })
+
+            -- Waypoint 2: CAS ATTACK (Fly to target zone and execute the attack)
+            table.insert(missionTask.params.route.points, {
+                type = AI.Task.WaypointType.TURNING_POINT,
+                x = enroute_data.to_zone.zone.point.x,
+                y = enroute_data.to_zone.zone.point.z,
+                speed = 200, -- m/s (approx 400 kts)
+                action = AI.Task.TurnMethod.FLY_OVER_POINT,
+                alt = 4000, -- 13k ft
+                alt_type = AI.Task.AltitudeType.BARO,
+                task = attackTask -- Attach the AttackGroup task to this waypoint
+            })
+
+            -- Waypoint 3: LAND (Return to the starting position)
+            table.insert(missionTask.params.route.points, {
+                type = AI.Task.WaypointType.LAND,
+                x = startPos.x,
+                y = startPos.z,
+                action = AI.Task.TurnMethod.FIN_POINT,
+                alt_type = AI.Task.AltitudeType.RADIO
+            })
+            
+            -- 4. Set the complete mission
+            ctrl:setTask(missionTask)
+
+            -- 5. Set the correct AI options
+            -- (Based on Pretense 'setDefaultAG' / your setSTRIKETask)
+            ctrl:setOption(AI.Option.Air.id.REACTION_ON_THREAT, AI.Option.Air.val.REACTION_ON_THREAT.EVADE_FIRE)
+            -- ctrl:setOption(AI.Option.Air.id.PROHIBIT_AA, true) -- Prohibit Air-to-Air
+
+            -- Let's use the same options as setSTRIKETask for consistency
+            ctrl:setOption(AI.Option.Air.id.JETT_TANKS_IF_EMPTY, true)
+            ctrl:setOption(AI.Option.Air.id.PROHIBIT_JETT, true)
+
+            local ag_weapons = 2147485694 + 30720 + 4161536 -- AnyBomb + AnyRocket + AnyASM
+            ctrl:setOption(AI.Option.Air.id.RTB_ON_OUT_OF_AMMO, ag_weapons)
+            ctrl:setOption(AI.Option.Air.id.RTB_ON_BINGO, true)
+
+            trigger.action.outTextForCoalition(enroute_data.side, "CAS mission tasked, engaging: "..enroute_data.to_zone.name,10)
+            MissionLogger:info("CAS mission tasked, engaging: "..enroute_data.to_zone.name)
+        end, {}, timer.getTime() + 12)
+    end
+
+    --- Exactly the same as setCASTask
+    ---@param sead_group_name string
+    ---@param enroute_data EnrouteObj
+    function TaskManager:setSEADTask(sead_group_name,enroute_data)
+        timer.scheduleFunction(function()
+            local units_to_attack
+            if enroute_data.side == coalition.side.BLUE then units_to_attack = utils.getUnitsInZoneObj(enroute_data.to_zone, coalition.side.RED)
+            elseif enroute_data.side == coalition.side.RED then units_to_attack = utils.getUnitsInZoneObj(enroute_data.to_zone, coalition.side.BLUE) end
+            
+
+            if units_to_attack and #units_to_attack > 0 then grp_to_attack_id = units_to_attack[1]:getGroup():getID()
+            else MissionLogger:error("Could not send BLUE SEAD") return false end
+
+            local sead_gr = Group.getByName(sead_group_name)
+            if not (sead_gr and sead_gr:isExist() and grp_to_attack_id) then return false end
+            MissionLogger:info(sead_gr:getName())
+
+            local tgpos = units_to_attack[1]:getPoint()
+
+            local ctrl = sead_gr:getController()
+
+            ctrl:setTask({
+                id = 'AttackGroup',
+                params = {
+                    groupId = grp_to_attack_id,
+                    groupAttack = true,
+                    expend = AI.Task.WeaponExpend.ALL,
+                    altitudeEnabled = true,
+					altitude = 4000
+                }
+            })
+
+            -- Make sure they’re allowed to fight and won’t RTB immediately
+            -- ctrl:setOption(AI.Option.Air.id.ROE, AI.Option.Air.val.ROE.OPEN_FIRE_WEAPON_FREE) --has to be, return fire does not work
+            ctrl:setOption(AI.Option.Air.id.REACTION_ON_THREAT, AI.Option.Air.val.REACTION_ON_THREAT.EVADE_FIRE)
+            ctrl:setOption(AI.Option.Air.id.PROHIBIT_AA, false)
+            ctrl:setOption(0,1)
+
+
+            ctrl:setOption(AI.Option.Air.id.RTB_ON_OUT_OF_AMMO, true)
+            ctrl:setOption(AI.Option.Air.id.RTB_ON_BINGO, true)
+
+            trigger.action.outTextForCoalition(enroute_data.side, "SEAD mission tasked, engaging: "..enroute_data.to_zone.name,10)
+            MissionLogger:info("SEAD mission tasked, engaging: "..enroute_data.to_zone.name)
+        end, {}, timer.getTime() + 12)
+    end
+
+    --- Exactly the same as setCASTask
+    ---@param strike_group_name string
+    ---@param enroute_data EnrouteObj
+    ---@param target_p vec3
+    function TaskManager:setSTRIKETask(strike_group_name,enroute_data,target_p)
+        timer.scheduleFunction(function()
+
+            local strike_gr = Group.getByName(strike_group_name)
+            if not (strike_gr and strike_gr:isExist() and target_p) then return false end
+
+            local ctrl = strike_gr:getController()
+
+            -- 1. Get the takeoff position from the 'from_zone' (the airbase)
+            local startPos = enroute_data.from_zone.zone.point
+
+            -- 2. Calculate the 75% distance Initial Point (IP)
+            local diff_x = target_p.x - startPos.x
+            local diff_z = target_p.z - startPos.z
+            local ip_pos = {
+                x = startPos.x + diff_x * 0.75,
+                y = startPos.z + diff_z * 0.75
+            }
+
+
+            -- 2. Define the specific 'Bombing' task
+            local attackTask = {
+                id = 'Bombing',
+                params = {
+                    point = {
+                        x = target_p.x,
+                        y = target_p.z
+                    },
+                    attackQty = 1,
+                    -- Use the more general 'AnyBomb' flag from the Pretense file
+                    
+                    ---@diagnostic disable-next-line: undefined-field
+                    weaponType = Weapon.flag.AnyBomb, 
+
+                    expend = AI.Task.WeaponExpend.ALL,
+                    groupAttack = true,
+                    altitude = 5791, -- 19k ft
+                    altitudeEnabled = true,
+                }
+            }
+     
+            -- 3. Build the full 'Mission' wrapper (based on Pretense logic)
+            local missionTask = {
+                id = 'Mission',
+                params = {
+                    route = {
+                        airborne = true, -- The route is for an airborne group
+                        points = {}
+                    }
+                }
+            }
+
+            -- Waypoint 1: TAKEOFF (from the airbase)
+            table.insert(missionTask.params.route.points, {
+                type = AI.Task.WaypointType.TAKEOFF,
+                x = startPos.x,
+                y = startPos.z,
+                action = AI.Task.TurnMethod.FIN_POINT,
+                alt_type = AI.Task.AltitudeType.RADIO,
+                alt=5791
+            })
+
+            -- Waypoint 2: BOMBING RUN (Fly to target and execute the attack)
+            table.insert(missionTask.params.route.points, {
+                type = AI.Task.WaypointType.TURNING_POINT,
+                x = ip_pos.x,
+                y = ip_pos.y,
+                speed = 257, -- m/s (approx 500 kts)
+                action = AI.Task.TurnMethod.FLY_OVER_POINT,
+                alt = 5791, -- 19k ft
+                alt_type = AI.Task.AltitudeType.BARO,
+                task = attackTask -- *** This attaches the Bombing task to this waypoint ***
+            })
+
+            -- Waypoint 3: LAND (Return to the original airbase)
+            table.insert(missionTask.params.route.points, {
+                type = AI.Task.WaypointType.LAND,
+                x = startPos.x,
+                y = startPos.z,
+                action = AI.Task.TurnMethod.FIN_POINT,
+                alt_type = AI.Task.AltitudeType.RADIO
+            })
+
+            -- 4. Set the complete mission
+            ctrl:setTask(missionTask)
+
+            -- 5. Set the correct AI options (copied from Pretense 'setDefaultAG')
+            -- *** DO NOT SET ROE TO WEAPON_FREE ***
+            ctrl:setOption(AI.Option.Air.id.REACTION_ON_THREAT, AI.Option.Air.val.REACTION_ON_THREAT.EVADE_FIRE)
+            ctrl:setOption(AI.Option.Air.id.JETT_TANKS_IF_EMPTY, true)
+            ctrl:setOption(AI.Option.Air.id.PROHIBIT_JETT, true)
+
+            -- Set RTB on out of Air-to-Ground weapons
+            local ag_weapons = 2147485694 + 30720 + 4161536 -- AnyBomb + AnyRocket + AnyASM
+            ctrl:setOption(AI.Option.Air.id.RTB_ON_OUT_OF_AMMO, ag_weapons)
+            ctrl:setOption(AI.Option.Air.id.RTB_ON_BINGO, true)
+
+            MissionLogger:info(ctrl:hasTask())
+            trigger.action.outTextForCoalition(enroute_data.side, "STRIKE mission tasked, engaging: "..enroute_data.to_zone.name,10)
+            MissionLogger:info("STRIKE mission tasked, engaging: "..enroute_data.to_zone.name)
+
+            
+        end, {}, timer.getTime() + 12)
+    end
+
+    ---@param arrival_point vec3
+    ---@param convoy_group Group
+    function TaskManager:ConvoyToPoint(convoy_group,arrival_point)
+        local gr_pos = mist.getLeadPos(convoy_group)
+        local roadless = false
+        if mist.utils.get2DDist(gr_pos,arrival_point) < 2500 then roadless = true end
+
+        --closest point to closest zone
+        local arrival_road_x, arrival_road_y = land.getClosestPointOnRoads('roads', arrival_point.x,
+        arrival_point.z)
+
+        --closest to convoy
+        local start_road_x, start_road_y = land.getClosestPointOnRoads('roads', gr_pos.x, gr_pos.z)
+
+        local points = {
+            [1] = { type = AI.Task.WaypointType.TURNING_POINT, x = gr_pos.x, y = gr_pos.z, speed = 100, action = AI.Task.VehicleFormation.OFF_ROAD }
+        }
+        if not roadless and start_road_x and start_road_y and arrival_road_x and arrival_road_y then
+            points[2] = {
+                type = AI.Task.WaypointType.TURNING_POINT,
+                x = start_road_x,
+                y = start_road_y,
+                speed = 100,
+                action =
+                    AI.Task.VehicleFormation.ON_ROAD
+            }
+            points[3] = {
+                type = AI.Task.WaypointType.TURNING_POINT,
+                x = arrival_road_x,
+                y = arrival_road_y,
+                speed = 100,
+                action =
+                    AI.Task.VehicleFormation.ON_ROAD
+            }
+            points[4] = {
+                type = AI.Task.WaypointType.TURNING_POINT,
+                x = arrival_point.x,
+                y = arrival_point.z,
+                speed = 100,
+                action = AI.Task.VehicleFormation.OFF_ROAD
+            }
+        else
+            -- roadless fallback
+            points[2] = {
+                type = AI.Task.WaypointType.TURNING_POINT,
+                x = arrival_point.x,
+                y = arrival_point.z,
+                speed = 100,
+                action = AI.Task.VehicleFormation.OFF_ROAD
+            }
+        end
+
+        convoy_group:getController():setTask({ id = 'Mission', params = { route = { points = points } } })
+    end
+
+end

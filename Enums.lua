@@ -1,0 +1,89 @@
+---@enum Airbases
+Airbases = {
+    Caucasus = {
+        Anapa_Vityazevo = "Anapa-Vityazevo",
+        Batumi = "Batumi",
+        Beslan = "Beslan",
+        Gelendzhik = "Gelendzhik",
+        Gudauta = "Gudauta",
+        Kobuleti = "Kobuleti",
+        Krasnodar_Center = "Krasnodar-Center",
+        Krasnodar_Pashkovsky = "Krasnodar-Pashkovsky",
+        Krymsk = "Krymsk",
+        Kutaisi = "Kutaisi",
+        Maykop_Khanskaya = "Maykop-Khanskaya",
+        Mineralnye_Vody = "Mineralnye Vody",
+        Mozdok = "Mozdok",
+        Nalchik = "Nalchik",
+        Novorossiysk = "Novorossiysk",
+        Senaki_Kolkhi = "Senaki-Kolkhi",
+        Sochi_Adler = "Sochi-Adler",
+        Soganlug = "Soganlug",
+        Sukhumi_Babushara = "Sukhumi-Babushara",
+        Tbilisi_Lochini = "Tbilisi-Lochini",
+        Vaziani = "Vaziani"
+    }
+}
+
+
+
+---@enum SAM_TYPES
+SAM_TYPES = {
+    SHORT_RANGE = 1,
+    MEDIUM_RANGE = 2,
+    LONG_RANGE = 3
+}
+
+
+---@enum ScenarioDifficulty
+ScenarioDifficulty = {
+    Easy = 1,
+    Medium = 2,
+    Hard = 3,
+    Elite = 4
+}
+
+
+---@enum ZoneTypes
+ZoneTypes = {
+    AIRBASE = 1,
+    STRONGPOINT = 2,
+    FARP = 3,
+    SAMSITE = 4,
+    EWSITE = 5,
+    LOGISTICS = 6,
+    COMMS = 7
+}
+
+---@enum AITaskTypes
+AITaskTypes = {
+    JTAC = "JTAC",
+    CAS = "CAS",
+    INTERCEPT = "INTERCEPT",
+    AWACS = "AWACS",
+    SEAD = "SEAD",
+    STRIKE = "STRIKE",
+    ATTACK_CONVOY = "ATTACK CONVOY",
+    CAPTURE_HELO = "CAPTURE HELI",
+    CAPTURE_CONVOY = "CAPTURE CONVOY",
+    RESUPPLY_CARGO = "RESUPPLY CARGO"
+    
+}
+
+---@enum OperationTypes
+OperationTypes = {
+    CAP = "CAP",
+    STRIKE = "Strike",
+    SEAD = "SEAD",
+    DEAD = "DEAD",
+    CAS = "CAS",
+}
+
+
+---@enum OperationStatus
+OperationStatus = {
+    AVAILABLE = "available",
+    ACTIVE = "active",
+    COMPLETED = "completed",
+    FAILED = "failed"
+}
