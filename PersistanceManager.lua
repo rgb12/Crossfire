@@ -59,7 +59,9 @@ do
                 ammo_depot_intact = z.ammo_depot_intact,
                 ammo_depot_last_destroyed = z.ammo_depot_last_destroyed,
                 next_level_up_avail = z.next_level_up_avail,
-                linked_ammo_depot = z.linked_ammo_depot
+                linked_ammo_depot = z.linked_ammo_depot,
+                linked_groups = z.linked_groups,
+                linked_statics = z.linked_statics
             }
             PersistanceManager.data.zones[z.name] = zone_data
         end

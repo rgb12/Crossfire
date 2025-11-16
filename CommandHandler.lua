@@ -51,22 +51,32 @@ do
         end)
 
 
-        missionCommands.addCommand("destroy",master_submenu,function ( )
-            local units = utils.getUnitsInZoneObj(ZoneHandler.getFromName("ECHO"),coalition.side.RED)
-            for _, unit in ipairs(units) do
-                if unit and unit.isExist and unit:isExist() then
-                    MissionLogger:info("Destroying unit: " .. unit:getName())
-                    local p = unit:getPoint()
-                    if p then
-                        trigger.action.explosion(p, 100)
+        -- missionCommands.addCommand("destroy",master_submenu,function ( )
+        --     local units = utils.getUnitsInZoneObj(ZoneHandler.getFromName("ECHO"),coalition.side.RED)
+        --     for _, unit in ipairs(units) do
+        --         if unit and unit.isExist and unit:isExist() then
+        --             MissionLogger:info("Destroying unit: " .. unit:getName())
+        --             local p = unit:getPoint()
+        --             if p then
+        --                 trigger.action.explosion(p, 100)
+        --             end
+        --         end
+        --     end
+        -- end)
+
+
+
+        missionCommands.addCommand("destroy comms", nil, function()
+            for _,zone in ipairs(zones) do
+                if zone.zone_type == ZoneTypes.COMMS then
+                    local comms_tower = StaticObject.getByName(zone.linked_statics[1])
+                    if comms_tower and comms_tower:isExist() then
+                        trigger.action.explosion(comms_tower:getPoint(), 20000)
+                        break
                     end
                 end
             end
-        end)
 
-
-
-        missionCommands.addCommand("destroy ammodepot", nil, function()
         local ammo_depot = ZoneHandler.getFromName("LOGIS").linked_ammo_depot
 
         trigger.action.explosion(
@@ -279,9 +289,6 @@ do
             missionCommands.removeItemForCoalition(coalition.side.BLUE,jtac_task_submenu)
         end
 
-        if TheatreCommander.COMMS_towers[coalition.side.BLUE] < Config.comm_towers_required_for_jtac then
-            return
-        end
         jtac_task_submenu = missionCommands.addSubMenuForCoalition(coalition.side.BLUE,"Task JTAC",CommandHandler.jtac_main_submenu)
 
         for _,zone in ipairs(zones) do

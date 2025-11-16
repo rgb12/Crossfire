@@ -147,10 +147,13 @@ do
             disperse = disperse or false,
             initTasks = true
         })
+        if not new_group or not new_group.name then
+            return nil
+        end
+
+        table.insert(zone.linked_groups, new_group.name)
+        
         if new_group and new_group.name then return new_group.name end
-        new_group = mist.cloneInZone(group_name, zone.name)
-        if new_group  and new_group.name then return new_group.name end
-        return nil
     end
 
     ---@param group_name string
@@ -287,7 +290,11 @@ do
             end
 
             local sam_to_spawn = sam_options[math.random(1, #sam_options)]
-            mist.cloneInZone(sam_to_spawn.group_name,zone.name,true,150)
+            local grp = mist.cloneInZone(sam_to_spawn.group_name,zone.name,true,150)
+
+            if grp then
+                table.insert(zone.linked_groups, grp.name)
+            end
 
             if zone.side == coalition.side.RED then
                 stats.red_sam_sites = stats.red_sam_sites+1
@@ -357,6 +364,9 @@ do
             if ammo_depot then
                 zone.ammo_depot_intact = true
                 zone.linked_ammo_depot = ammo_depot.name
+                
+                table.insert(zone.linked_statics, ammo_depot.name)
+               
             else
                 MissionLogger:error("Could not spawn ammo depot for ".. zone.name)
             end
@@ -374,6 +384,10 @@ do
                 zone.comms_tower_intact = true
                 zone.linked_comms_tower = comms_tower.name
                 TheatreCommander.COMMS_towers[zone.side] = TheatreCommander.COMMS_towers[zone.side] +1
+                MissionLogger:info("spanwed comms tower")
+                table.insert(zone.linked_statics, comms_tower.name)
+                MissionLogger:info(zone.linked_statics)
+               
             else
                 MissionLogger:error("Could not spawn comms tower for ".. zone.name)
             end

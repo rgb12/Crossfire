@@ -13,6 +13,8 @@ end
 ---@field sam_classification string|nil
 ---@field zone ZoneObj
 ---@field zone_type ZoneTypes
+---@field linked_groups string[]
+---@field linked_statics string[]
 ---@field airbase_name string|nil
 ---@field acft_resupply_point vec3|nil
 ---@field comms_tower_intact boolean|nil
@@ -22,6 +24,9 @@ do
     function ZoneHandler:new(obj)
         obj = obj or {}
         obj.zone = ZoneHandler.findZoneInWorld(obj.name)
+        obj.linked_groups = obj.linked_groups or {}
+        obj.linked_statics = obj.linked_statics or {}
+
         if not obj.zone then 
             MissionLogger:error("ZoneHandler:new Could not find zone "..obj.name.." in mission triggers zones")
             trigger.action.outText("Error while initiating the mission. See logs",20)
@@ -435,12 +440,6 @@ do
     end
 
     function ZoneHandler:capture(side)
-        local side_str = "Neutral"
-        if side == 1 then     -- red
-            side_str = "Red"
-        elseif side == 2 then -- blue
-            side_str = "Blue"
-        end
 
         if self.side == coalition.side.NEUTRAL then
             stats.neutral_zones = stats.neutral_zones - 1
@@ -599,11 +598,13 @@ do
         end
 
         
-        MissionLogger:info("Zone " .. self.zone.name .. " captured by " .. side_str)
+        MissionLogger:info("Zone " .. self.zone.name .. " captured by " .. utils.coalitionToString(self.side))
+
+         -- Notify players
         if self.side == coalition.side.BLUE then
-            trigger.action.outText(self.zone.name .. " is now " .. side_str, 5) --TO CHANGE
+            trigger.action.outText(self.zone.name .. " is now Blue", 5) --TO CHANGE
         elseif self.side == coalition.side.RED then
-            trigger.action.outText(self.zone.name .. " is now " .. side_str, 5) --TO CHANGE
+            trigger.action.outText(self.zone.name .. " is now Red", 5) --TO CHANGE
         else
             trigger.action.outText(self.zone.name .. " is now neutral.", 5)
         end
@@ -623,6 +624,41 @@ do
     end
     function ZoneHandler:hasCaptureConvoyAvailable()
         return self.capture_convoy_avail > 0
+    end
+
+    function ZoneHandler:checkIfEmpty()
+
+        local units_count=0
+        for i = #self.linked_groups, 1, -1 do
+            local group = Group.getByName(self.linked_groups[i])
+            if group and group:isExist() then
+                units_count = units_count + group:getSize()
+            else 
+                table.remove(self.linked_groups, i)
+            end
+        end
+
+        local statics_count=0
+        for i = #self.linked_statics, 1, -1 do 
+            local static_name = self.linked_statics[i]
+            local static = StaticObject.getByName(static_name)
+
+            if static and static.isExist and static:isExist()
+            and static:getLife() > 1
+            then
+                statics_count = statics_count +1
+            else
+                table.remove(self.linked_statics, i)
+            end
+        end
+
+        if units_count + statics_count == 0 then
+            self.linked_statics = {}
+            self.linked_groups = {}
+            return true
+        else
+            return false
+        end
     end
 
     function ZoneHandler:checkIfEmptyAndCapture()
@@ -782,6 +818,7 @@ do
     end
 
     function ZoneHandler:checkCOMMSZone()
+        if self.side == coalition.side.NEUTRAL then return end
         if self.zone_type ~= ZoneTypes.COMMS then return end
 
         MissionLogger:info("Checking COMMS zone "..self.name)
@@ -792,7 +829,7 @@ do
         -- First, check the actual status of the depot
         local is_alive = comms_tower and comms_tower:isExist() and comms_tower:getLife() >= 1
         -- If the script thinks the depot is intact, but it's NOT alive, mark it as destroyed.
-        if not is_alive then
+        if not is_alive and not self.comms_tower_intact then
             self.comms_tower_intact = false
             self.comms_tower_last_destroyed = timer.getTime()
             TheatreCommander.COMMS_towers[self.side] = TheatreCommander.COMMS_towers[self.side] -1

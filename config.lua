@@ -22,6 +22,7 @@ Config = {
 
     std_resupply_time = 20*60, -- (seconds) respawn resupply aircraft delay
     cooldown_before_capture_attempt = 3*60, -- (seconds)
+    retry_capture_chance = 50, -- (%)
 
     allow_resupply = true, -- this will enable/disable resupply aircrafts, this will make the misison significantly harder
 
@@ -66,7 +67,7 @@ Config = {
     },
 
     capture_helicopter_max_range = 100*1000 , -- (meters)
-    capture_convoy_max_range = 25*1000, -- (meters)
+    capture_convoy_max_range = 100,--25*1000, -- (meters)
 
 
     max_ground_recon_range = 15000, -- (meters)

@@ -15,6 +15,7 @@ do
     ---@param side_sending_capture coalition.side
     ---@param from_zone ZoneHandler|nil
     function TheatreCommander.sendCapture(to_zone, side_sending_capture, from_zone)
+        MissionLogger:info(utils.coalitionToString(side_sending_capture).." attempting capture group for zone: " .. to_zone.name)
 
         ------------[check if game has been won]------------
         local zones_captured = nil
@@ -24,7 +25,7 @@ do
         if zones_captured == #zones then
             MISSION_ENDED = true
             world.removeEventHandler(ev)
-            return trigger.action.outText(utils.coalitionToString(side_sending_capture) .." coalition completed the operation.", 50)
+            return trigger.action.outText(utils.coalitionToString(side_sending_capture) .." coalition completed this scenario.", 50)
         end
 
         ------------[checks if capture group already enroute for side]------------
@@ -308,6 +309,32 @@ do
        
     end
 
+    ---@param zone ZoneHandler
+    function TheatreCommander.sendPotentialCapture(zone)
+        if zone.side == coalition.side.NEUTRAL then return end
+
+        local now = timer.getTime()
+        if not zone.last_capture_attempt then zone.last_capture_attempt = timer.getTime() end
+
+        -- cooldown before sending capture group
+        if now - zone.last_capture_attempt < Config.cooldown_before_capture_attempt then return end
+
+
+        if EnrouteManager:findByToZone(zone, nil, {AITaskTypes.CAPTURE_CONVOY, AITaskTypes.CAPTURE_HELO}) then return end
+
+        -- both sides have a chance to send capture group
+        if math.random(0,100) <= Config.retry_capture_chance then return end
+        local side_sending_capture = math.random(1,2)
+
+        MissionLogger:info(utils.coalitionToString(side_sending_capture).." attempting retry capture group for zone: " .. zone.name)
+        zone.last_capture_attempt = now
+        TheatreCommander.sendCapture(zone, side_sending_capture)
+        
+
+
+
+    end
+
     -- This function is executed every 15 seconds
     function TheatreCommander:tick()
         if MISSION_ENDED == true then return end
@@ -317,117 +344,21 @@ do
             MissionLogger:info("1 minute")
 
 
-            -- check all zones that suffered a kill in the last minute
-            for zone_name, zone_to_check in pairs(TheatreCommander.zones_to_check_for_capture) do
-                -- Check if the zone is still owned (wasn't already neutralized)
-                if zone_to_check.side ~= coalition.side.NEUTRAL then
-                    MissionLogger:info("Checking zone " .. zone_name .. " for capture due to unit kill.")
-                    
-                    -- This is the heavy function, now safely in the 1-minute loop
-                    if zone_to_check:checkIfEmptyAndCapture() then
-                        -- The zone was just neutralized
-                        MissionLogger:info("Zone " .. zone_name .. " was neutralized. Checking for capture groups.")
-                        
-                        -- This logic was in your S_EVENT_KILL, we move it here.
-                        -- It runs only *after* the zone is confirmed empty.
-                        UnitHandler.checkRedirectAbortedCaptureHeli(zone_to_check)
-
-                        if zone_to_check.last_attacked_by then
-                            zone_to_check.last_capture_attempt = timer.getTime()
-                            TheatreCommander.sendCapture(zone_to_check, zone_to_check.last_attacked_by)
-                        else 
-                            zone_to_check.last_capture_attempt = timer.getTime()
-                            TheatreCommander.sendCapture(zone_to_check, utils.getEnemyCoalition(zone_to_check.side))
-                        end
-                    end
-                end
-            end
-            
-            -- Clear the list for the next minute
-            TheatreCommander.zones_to_check_for_capture = {}
-            
-
-
-            -- [ checks if neutral zones have no capture groups ] --
-            -- if stats.neutral_zones == 0 then return end
+    
 
             for _, zone in ipairs(zones) do
-                if zone.side == coalition.side.NEUTRAL then
 
-                    MissionLogger:info("Zone " .. zone.name .. " is neutral, checking for capture groups.")
-
-                    local now = timer.getTime()
-                    if not zone.last_capture_attempt then zone.last_capture_attempt = timer.getTime() end
-
-                    -- cooldown before sending capture group
-                    if now - zone.last_capture_attempt > Config.cooldown_before_capture_attempt then
-
-                        -- [check if sides already have capture groups enroute] --
-                        local has_blue_capture_groups_enroute = EnrouteManager:findByToZone(zone, coalition.side.BLUE, {AITaskTypes.CAPTURE_CONVOY, AITaskTypes.CAPTURE_HELO})
-                        local has_red_capture_groups_enroute = EnrouteManager:findByToZone(zone, coalition.side.RED, {AITaskTypes.CAPTURE_CONVOY, AITaskTypes.CAPTURE_HELO})
-                        
-                        
-                        -- [ the coalition that neutralized the zone has retry priority] -- 
-                        local retry_capture = false
-
-                        if zone.last_attacked_by == coalition.side.BLUE and not has_blue_capture_groups_enroute then
-                            MissionLogger:info("Retried BLUE capture group for zone: " .. zone.name)
-                            if math.random(100) <= stats.blue_retry_capture_chance then -- 50
-                                MissionLogger:info("Attempting retry BLUE capture group for zone: " .. zone.name)
-                                zone.last_capture_attempt = now
-                                retry_capture = true
-                                TheatreCommander.sendCapture(zone, coalition.side.BLUE)
-                            end
-                        elseif zone.last_attacked_by == coalition.side.RED and not has_red_capture_groups_enroute then
-                            MissionLogger:info("Retried RED capture group for zone: " .. zone.name)
-
-                            if math.random(100) <= stats.red_retry_capture_chance then
-                                MissionLogger:info("Attempting retry RED capture group for zone: " .. zone.name)
-                                zone.last_capture_attempt = now
-                                retry_capture = true
-                                TheatreCommander.sendCapture(zone, coalition.side.RED)
-                            end
-                        end
-
-                        -- [ the coalition that lost the lost tries to recapture also (only if none already enroute)] -- 
-                        if zone.last_attacked_by and not retry_capture then
-                            local defender = utils.getEnemyCoalition(zone.last_attacked_by)
-                            MissionLogger:info(utils.coalitionToString(defender) .. " trying to capture lost zone: " .. zone.name)
-                            if defender == coalition.side.BLUE and not has_blue_capture_groups_enroute then
-                                if math.random(100) <= stats.blue_capture_lost_zone_chance then
-                                    zone.last_capture_attempt = now
-                                    TheatreCommander.sendCapture(zone, coalition.side.BLUE)
-                                end
-                            elseif defender == coalition.side.RED and not has_red_capture_groups_enroute then
-                                if math.random(100) <= stats.red_capture_lost_zone_chance then
-                                    zone.last_capture_attempt = now
-                                    TheatreCommander.sendCapture(zone, coalition.side.RED)
-                                end
-                            end
-                        elseif not zone.last_attacked_by then
-                            -- if no last neutralised by, both sides have a chance to capture
-                            local chosen_side = math.random(1,2)
-
-                            if chosen_side == 1 and not has_blue_capture_groups_enroute then
-                                if math.random(100) <= 30 then
-                                    zone.last_capture_attempt = now
-                                    TheatreCommander.sendCapture(zone, coalition.side.BLUE)
-                                end
-                            elseif chosen_side == 2 and not has_red_capture_groups_enroute then
-                                if math.random(100) <= 30 then
-                                    zone.last_capture_attempt = now
-                                    TheatreCommander.sendCapture(zone, coalition.side.RED)
-                                end
-                            end
-                        end
-                    end
-                else
+                    TheatreCommander.sendPotentialCapture(zone)
 
                     zone:checkLogisticsZone()
                     zone:checkCOMMSZone()
-
-                    -- zone:checkIfEmptyAndCapture()
+        
                     zone:addAIAssets(10) -- Supply chance every minute
+
+                    if zone:checkIfEmpty() then
+                        TheatreCommander.sendCapture(zone, utils.getEnemyCoalition(zone.side))
+                        zone:capture(coalition.side.NEUTRAL)
+                    end
 
                     -- [ this spawns an attack convoy from strongpoints periodically ] --
                     if math.random(1,100) <= 15 and zone.zone_type == ZoneTypes.STRONGPOINT
@@ -438,10 +369,9 @@ do
                     end
 
                     CommandHandler.refreshAvailZonesJTAC()
-
-                end
             end
         end
+
         local t5m_update = function()
             MissionLogger:info("5 mins")
 
@@ -471,8 +401,7 @@ do
         end
         if TheatreCommander.red_op_manager then
             TheatreCommander.red_op_manager:tick()
-        end
-
+        end 
         
         for i = #EnrouteManager.enroutes, 1, -1 do
             local enroute = EnrouteManager.enroutes[i]
@@ -567,7 +496,7 @@ do
                     end
                 end
             end -- end if enroute
-        end -- end for loop
+        end
     end
     
     timer.scheduleFunction(tsec_update, {}, timer.getTime() + 15)
