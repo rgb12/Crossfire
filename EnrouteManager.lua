@@ -82,7 +82,7 @@ do
 
             end
         end
-        if #results == 0 then return nil end
+        if #results == 0 then return nil end --WARN changing the return nil to {} will cause issues
         return results
     end
     

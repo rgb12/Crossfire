@@ -17,7 +17,11 @@ Config = {
         save_file = "mission.json",
 
         enable_user_data_persistance = true, --persistance.enable has authority over this
-        user_data_file = "user_data.json"
+        user_data_file = "user_data.json",
+
+        
+        random_scenario_selection = false,
+        scenario_selected = "Neptune Protocol",
     },  
 
     std_resupply_time = 20*60, -- (seconds) respawn resupply aircraft delay
@@ -63,8 +67,31 @@ Config = {
         comms_zones_required_for_sead = 3,
         comms_zones_required_for_strike = 2,
         comms_zones_required_for_intercept = 1,
-        comms_zones_required_for_awacs = 3
+        comms_zones_required_for_awacs = 3,
+        comms_zones_required_for_recon = 1
     },
+    comms_tower_respawn_time = 120,--TO CHANGE 20*60, -- (seconds), the timer decreases by 25% for every level
+    comms_tower_lost_penalty = 1.5, -- the respawn time is multiplied by this much when a comms tower is lost
+
+    tasking = {
+        enable = true,
+        dispatcher_interval = 5*60, -- (seconds)
+        max_tasks_per_airbase = 4,
+        max_jtac_per_airbase = 2,
+        max_cas_per_airbase = 2,
+        max_sead_per_airbase = 2,
+        max_strike_per_airbase = 2,
+        max_intercept_per_airbase = 2,
+        max_awacs_per_airbase = 1,
+        max_recon_per_airbase = 2,
+
+        max_awacs_theatre = 2,
+        
+
+        max_cas_range = 150*1000, -- (meters)
+        min_cleareance_dist_for_awacs = 70*1000 -- (meters) from the nearest enemy zone
+    },
+    tasking_max_groups_per_airbase = 4,
 
     capture_helicopter_max_range = 100*1000 , -- (meters)
     capture_convoy_max_range = 100,--25*1000, -- (meters)
@@ -79,15 +106,12 @@ Config = {
 
     jtac_smoke_stock = 4,
     ewrs_standard_refresh_time = 20, -- (seconds)
-    comms_tower_respawn_time = 20*60, -- (seconds), the timer decreases by 25% for every level
 
     logistics_upgrade_range = 30000, -- (meters)
     logistics_upgrade_chance = 100,--10, -- (%) every minute the dice is rolled
     logistics_level_up_interval = 5*60, -- (seconds) minimum time between level ups
     logistics_ammo_depot_respawn_time = 7*60, -- (seconds) time it takes for an ammo depot to respawn after being destroyed
 
-    random_scenario_selection = false,
-    scenario_selected = "Neptune Protocol",
 
     upgrade_tier_range = 50000,
 
@@ -500,6 +524,10 @@ AIRCRAFT_GROUP = {
                 group_name = "BLUE VAZIANI AWACS",
                 warehouse_name = "E-3A"
             },
+            [AITaskTypes.RECON] = {
+                group_name = "BLUE VAZIANI RECON",
+                warehouse_name = "F-16C_50"
+            }
         },
         -- [coalition.side.RED] = {
         --     [AITaskTypes.JTAC] = {

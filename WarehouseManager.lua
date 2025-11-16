@@ -103,6 +103,11 @@ do
             [WarehouseManager.Flags.HTS_POD] = 1 *2,
             [WarehouseManager.Flags.ALQ_184] = 1 *2,
         },
+        [AITaskTypes.RECON] = {
+            [WarehouseManager.Flags.AAQ_28_LITENING] = 1 *2,
+            [WarehouseManager.Flags.AIM_120C] = 2 *2,
+            [WarehouseManager.Flags.AIM_9X] = 2 *2,
+        },
         [AITaskTypes.AWACS] = {},
         [AITaskTypes.JTAC] = {},
     }

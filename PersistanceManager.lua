@@ -11,9 +11,11 @@ do
     local JSON = (loadfile("Scripts/JSON.lua"))()
     PersistanceManager.enabled = false
     PersistanceManager.data = {}
-    PersistanceManager.user_data = {}
 
     function PersistanceManager:isEnabled()
+        -- Safety check for Config
+        if not Config or not Config.persistance then return false end
+
         if Config.persistance.enable
         and lfs and io then
             PersistanceManager.enabled = true
@@ -43,8 +45,7 @@ do
         PersistanceManager.data.stats = stats
 
         -- 3. Save a simplified version of all zones
-        -- CHANGE: Use [z.name] as key instead of table.insert. 
-        -- This allows applyVirtualRefunds to find zones instantly.
+        -- *** CHANGE: Use zone.name as key for fast lookups ***
         PersistanceManager.data.zones = {}
         for _, z in ipairs(zones) do
             local zone_data = {
@@ -59,11 +60,9 @@ do
                 ammo_depot_intact = z.ammo_depot_intact,
                 ammo_depot_last_destroyed = z.ammo_depot_last_destroyed,
                 next_level_up_avail = z.next_level_up_avail,
-                linked_ammo_depot = z.linked_ammo_depot,
-                linked_groups = z.linked_groups,
-                linked_statics = z.linked_statics
+                linked_ammo_depot = z.linked_ammo_depot
             }
-            PersistanceManager.data.zones[z.name] = zone_data
+            PersistanceManager.data.zones[z.name] = zone_data -- Use name as key
         end
 
         -- 4. Save Warehouse Inventories
@@ -83,11 +82,12 @@ do
     end
 
     ---
+    --- *** NEW FUNCTION ***
     --- "Virtual Refund": Calculates enroute units and adds them to the SAVE DATA
     --- WITHOUT destroying the actual units in the live mission.
     ---
     function PersistanceManager:applyVirtualRefunds()
-        MissionLogger:info("Calculating refunds for save file...")
+        MissionLogger:info("Calculating virtual refunds for save file...")
         
         for _, enroute in ipairs(EnrouteManager.enroutes) do
             -- Find the zone data in our Save Table (not the live object)
@@ -116,7 +116,6 @@ do
                 
                 if enroute.from_zone and enroute.from_zone.airbase_name then
                     -- Find the warehouse data in our Save Table
-                    -- Note: getInventory returns structure like { ["weapon"] = { ... } }
                     local wh_root = PersistanceManager.data.warehouses[enroute.from_zone.airbase_name]
                     
                     if wh_root then
@@ -127,7 +126,7 @@ do
                         -- 1. Refund the Airframe
                         local side = enroute.side
                         if AIRCRAFT_GROUP[enroute.from_zone.airbase_name] 
-                        and AIRCRAFT_GROUP[enroute.from_zone.airbase_name][side]
+                        and AIRCRAFT_GROUP[enroute.from_zone.airbase_name][side] 
                         and AIRCRAFT_GROUP[enroute.from_zone.airbase_name][side][enroute.ai_task_type] then
                             
                             local acft_name = AIRCRAFT_GROUP[enroute.from_zone.airbase_name][side][enroute.ai_task_type].warehouse_name
@@ -151,13 +150,14 @@ do
         end
     end
 
+
     --- Create the folder if it doesn't exist
     function PersistanceManager:checkPath()
         if not PersistanceManager.enabled then return end
+        if not Config or not Config.persistance then return end -- Safety check
 
         lfs.mkdir(lfs.writedir()..Config.persistance.save_dir)
         PersistanceManager.save_file_path = lfs.writedir()..Config.persistance.save_dir .. Config.persistance.save_file
-        PersistanceManager.user_data_file_path = lfs.writedir()..Config.persistance.save_dir .. Config.persistance.user_data_file
     end
 
     ---
@@ -167,11 +167,11 @@ do
         if not PersistanceManager.enabled then return end
         PersistanceManager:checkPath()
 
-        -- CHANGE: Fetch state FIRST (to get the baseline)
+        -- *** CHANGE: NO LONGER DESTRUCTIVE ***
+        -- 1. Gather the current "at rest" state
         self:fetchState()
 
-        -- CHANGE: Apply refunds to the fetched state (virtual only)
-        -- This replaces the old self:refundEnrouteAI() call
+        -- 2. Apply virtual refunds (updates self.data only)
         self:applyVirtualRefunds()
 
         -- 3. Serialize and write to file
@@ -189,20 +189,6 @@ do
 
             end
 
-            -- Save user data
-            if Config.persistance.enable_user_data_persistance then
-                ---@diagnostic disable-next-line: undefined-field
-                local user_file_content = JSON:encode(PersistanceManager.user_data)
-                if user_file_content then
-                    local user_file= io.open(PersistanceManager.user_data_file_path, "w")
-                    if user_file then
-                        user_file:write(user_file_content)
-                        user_file:close()
-                        MissionLogger:info("User data saved to " .. PersistanceManager.user_data_file_path)
-                    end
-                end
-            end
-
     end
 
     ---
@@ -210,6 +196,9 @@ do
     ---
     function PersistanceManager:loadFromFile()
         if not PersistanceManager.enabled then return end
+        
+        -- Check path in case lfs isn't loaded yet
+        PersistanceManager:checkPath() 
 
         if not lfs.attributes(PersistanceManager.save_file_path) then
             MissionLogger:info("No save file found at " .. PersistanceManager.save_file_path)
@@ -229,28 +218,6 @@ do
                 return true
             end
         end
-
-        if Config.persistance.enable_user_data_persistance then
-            -- Load user data
-            if not lfs.attributes(PersistanceManager.user_data_file_path) then
-                MissionLogger:info("No user data file found at " .. PersistanceManager.user_data_file_path)
-                return false
-            end
-
-            local user_file = io.open(PersistanceManager.user_data_file_path, "r")
-            if user_file and JSON then
-                local user_file_data = user_file:read("*all")
-                ---@diagnostic disable-next-line: undefined-field
-                local user_data = JSON:decode(user_file_data)
-                user_file:close()
-
-                if user_data then
-                    PersistanceManager.user_data = user_data
-                    MissionLogger:info("Successfully loaded user data from " .. PersistanceManager.user_data_file_path)
-                end
-            end
-        end
-
     end
 
     ---
@@ -279,7 +246,7 @@ do
         MissionLogger:info("Stats table restored.")
 
         -- 3. Restore Zones
-        -- CHANGE: Use pairs() because 'zones' is now a dictionary [name]=data
+        -- *** CHANGE: Use pairs() to loop the dictionary ***
         for _, saved_zone in pairs(PersistanceManager.data.zones) do
             local zone = ZoneHandler.getFromName(saved_zone.name)
             if zone then
@@ -298,6 +265,12 @@ do
                 -- Spawn the correct units for the zone's side and level
                 UnitHandler.initZoneUnits(zone)
                 UnitHandler.initStatics(zone)
+                
+                -- Post-spawn check for destroyed statics
+                if not zone.ammo_depot_intact and zone.linked_ammo_depot then
+                    local depot = StaticObject.getByName(zone.linked_ammo_depot)
+                    if depot and depot:isExist() then depot:destroy() end
+                end
 
                 -- Set airbase coalition
                 if zone.zone_type == ZoneTypes.AIRBASE and zone.airbase_name then
@@ -321,15 +294,12 @@ do
                 local warehouse = airbase:getWarehouse()
                 if warehouse then
 
-                    MissionLogger:info("saved inventory for " .. airbase_name)
-                    
                     -- 1. Get current inventory to find what needs to be cleared
                     local current_inventory = warehouse:getInventory()
                     
                     -- 2. Clear existing stock (set everything to 0)
                     if current_inventory then
                         for category, items_table in pairs(current_inventory) do
-                            -- Only clear weapons and aircraft. Liquids use different functions.
                             if type(items_table) == "table" and category ~= "liquids" then
                                 for item_name, _ in pairs(items_table) do
                                     warehouse:setItem(item_name, 0)
@@ -359,7 +329,8 @@ do
     end
 
     function PersistanceManager:autoSave()
-        if not Config.persistance.save_interval then return  end
+        if not Config or not Config.persistance or not Config.persistance.save_interval then return end
+        
         MissionLogger:info("Auto-save enabled, saving every " .. tostring(Config.persistance.save_interval) .. " seconds.")    
 
         timer.scheduleFunction(function()

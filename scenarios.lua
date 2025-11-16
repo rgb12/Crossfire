@@ -135,8 +135,8 @@ zones = {}
 
 
 
-if not Config.random_scenario_selection then
-    Scenario = Scenarios[Config.scenario_selected]
+if not Config.persistance.random_scenario_selection then
+    Scenario = Scenarios[Config.persistance.scenario_selected]
     -- table.insert(zones,Scenario.zones)
     zones = mist.utils.deepCopy(Scenario.zones)
 

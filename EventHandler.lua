@@ -284,6 +284,14 @@ function ev:onEvent(event)
             end
 
         elseif desc.category == Unit.Category.AIRPLANE then
+
+            local enroute_task = EnrouteManager:findByGroup(group_name)
+            if enroute_task then
+                EnrouteManager:remove(group_name)
+                -- MissionLogger:info("Removed LANDED"..enroute_task.ai_task_type.." from enroutes: " .. group_name)
+                return
+            end
+
             -- for i, cargo in ipairs(stats.blue_enroute_resupply) do
             --     if cargo == unit:getGroup():getName() then
             --         MissionLogger:info("BLUE cargo landed, adding resources")
@@ -316,7 +324,7 @@ function ev:onEvent(event)
         end
     elseif event.id == world.event.S_EVENT_DEAD and event.initiator then
 
-        local unit = event.initiator 
+        local unit = event.initiator
         
         -- Check if the dead unit was a radar (ground or air)
         if unit.hasAttribute and (unit:hasAttribute("SAM SR") or unit:hasAttribute("EWR") or unit:hasAttribute("AWACS")) then

@@ -33,10 +33,14 @@ do
             local to_zone = ZoneHandler.getFromName("BRAVO")
             TaskManager:initiateAITask(AITaskTypes.INTERCEPT,coalition.side.BLUE,true,to_zone,nil,true)
         end)
-        missionCommands.addCommand("Send AWACS",master_submenu,function ()
-            local from_zone = ZoneHandler.getFromName("VAZIANI")
-            TaskManager:initiateAITask(AITaskTypes.AWACS,coalition.side.BLUE,true,nil,from_zone,true)
-        end)
+        -- missionCommands.addCommand("Send AWACS",master_submenu,function ()
+        --     local from_zone = ZoneHandler.getFromName("VAZIANI")
+        --     TaskManager:initiateAITask(AITaskTypes.AWACS,coalition.side.BLUE,true,nil,from_zone,true)
+        -- end)
+        -- missionCommands.addCommand("Send RECON",master_submenu,function ()
+        --     local to_zone = ZoneHandler.getFromName("BRAVO")
+        --     TaskManager:initiateAITask(AITaskTypes.INTERCEPT,coalition.side.BLUE,true,to_zone,nil,true)
+        -- end)
         missionCommands.addCommand("Give stock",master_submenu,function ()
             MissionLogger:info("Giving stock")
             WarehouseManager:handleIncomingSupplies(coalition.side.BLUE,
@@ -71,16 +75,17 @@ do
                 if zone.zone_type == ZoneTypes.COMMS then
                     local comms_tower = StaticObject.getByName(zone.linked_statics[1])
                     if comms_tower and comms_tower:isExist() then
-                        trigger.action.explosion(comms_tower:getPoint(), 20000)
+                        comms_tower:destroy()
+                        -- trigger.action.explosion(comms_tower:getPoint(), 20000)
                         break
                     end
                 end
             end
 
-        local ammo_depot = ZoneHandler.getFromName("LOGIS").linked_ammo_depot
+        -- local ammo_depot = ZoneHandler.getFromName("LOGIS").linked_ammo_depot
 
-        trigger.action.explosion(
-        StaticObject.getByName(ammo_depot):getPoint(),20000)
+        -- trigger.action.explosion(
+        -- StaticObject.getByName(ammo_depot):getPoint(),20000)
         end)
         -- missionCommands.addCommand("destroy kjtac",nil, function ()
         --     for i,jtac in ipairs(enroute_jtac) do
@@ -115,27 +120,20 @@ do
         end
         
         -- 3. (SPECIFIC) Define what to do when an item is clicked
+        ---@param zone ZoneHandler
         local function onDestroyZoneClick(zone)
             trigger.action.outTextForCoalition(coalition.side.BLUE, "Executing... Destroying all units in " .. zone.name, 5)
             
-            -- Get all units in the zone, regardless of side
-            local units_in_zone = utils.getUnitsInZoneObj(zone)
-            
-            if #units_in_zone == 0 then
-                trigger.action.outTextForCoalition(coalition.side.BLUE, "No units found in " .. zone.name, 5)
-                return
-            end
 
-            -- Loop and destroy with explosions
-            for _, unit in ipairs(units_in_zone) do
-                if unit and unit:isExist() then
-                    local p = unit:getPoint()
-                    if p then
-                        trigger.action.explosion(p, 100) 
-                    end
+
+            for _, group_name in ipairs(zone.linked_groups) do
+                local gr = Group.getByName(group_name)
+                if gr and gr:isExist() then
+                   gr:destroy()
                 end
             end
-            trigger.action.outTextForCoalition(coalition.side.BLUE, "Destroyed " .. #units_in_zone .. " units in " .. zone.name, 7)
+
+            -- trigger.action.outTextForCoalition(coalition.side.BLUE, "Destroyed " .. #units_in_zone .. " units in " .. zone.name, 7)
         end
 
         -- 4. (SPECIFIC) Define how to display an item

@@ -582,6 +582,28 @@ do
             end
         end
         
+
+        -- Notify players
+        if self.side == coalition.side.BLUE then
+            
+            --Add discovered zone to blue players
+            if not utils.tableContains(stats.blue_discovered_zones, self.name) then
+                table.insert(stats.blue_discovered_zones, self.name)
+            end
+
+            trigger.action.outText(self.name .. " is now Blue", 5) --TO CHANGE
+        elseif self.side == coalition.side.RED then
+            --Add discovered zone to blue players
+            if not utils.tableContains(stats.red_discovered_zones, self.name) then
+                table.insert(stats.red_discovered_zones, self.name)
+            end
+
+
+            trigger.action.outText(self.name .. " is now Red", 5) --TO CHANGE
+        else
+            trigger.action.outText(self.name .. " is now neutral.", 5)
+        end
+
         if self.side == coalition.side.NEUTRAL then
             self.last_capture_attempt = nil
             self:drawF10()
@@ -599,15 +621,6 @@ do
 
         
         MissionLogger:info("Zone " .. self.zone.name .. " captured by " .. utils.coalitionToString(self.side))
-
-         -- Notify players
-        if self.side == coalition.side.BLUE then
-            trigger.action.outText(self.zone.name .. " is now Blue", 5) --TO CHANGE
-        elseif self.side == coalition.side.RED then
-            trigger.action.outText(self.zone.name .. " is now Red", 5) --TO CHANGE
-        else
-            trigger.action.outText(self.zone.name .. " is now neutral.", 5)
-        end
 
     end
 
@@ -821,49 +834,70 @@ do
         if self.side == coalition.side.NEUTRAL then return end
         if self.zone_type ~= ZoneTypes.COMMS then return end
 
-        MissionLogger:info("Checking COMMS zone "..self.name)
+        MissionLogger:info("COMMS ZONES total for BLUE: "..TheatreCommander.COMMS_towers[coalition.side.BLUE]..", RED: "..TheatreCommander.COMMS_towers[coalition.side.RED])
+        
+        -- MissionLogger:info("Checking COMMS zone "..self.name)
 
         if not self.linked_comms_tower then return end
         local comms_tower = StaticObject.getByName(self.linked_comms_tower)
         
-        -- First, check the actual status of the depot
+        -- First, check the actual status of the tower
         local is_alive = comms_tower and comms_tower:isExist() and comms_tower:getLife() >= 1
-        -- If the script thinks the depot is intact, but it's NOT alive, mark it as destroyed.
-        if not is_alive and not self.comms_tower_intact then
+        
+        -- If the script thinks the tower is intact, but it's NOT alive, mark it as destroyed.
+        if self.comms_tower_intact and not is_alive then
             self.comms_tower_intact = false
             self.comms_tower_last_destroyed = timer.getTime()
-            TheatreCommander.COMMS_towers[self.side] = TheatreCommander.COMMS_towers[self.side] -1
+            TheatreCommander.COMMS_towers[self.side] = TheatreCommander.COMMS_towers[self.side] - 1
 
-            Config.comms_tower_respawn_time = math.floor(Config.comms_tower_respawn_time * 1.5)
             trigger.action.outTextForCoalition(self.side, "Comms zone "..self.name.." has lost its communications tower. EWRS system impaired, reports are 50% slower.",10)
 
-
-            timer.scheduleFunction(function ()
-
-                local country_name
-                if self.side == coalition.side.BLUE then country_name = country.id.CJTF_BLUE
-                else country_name = country.id.CJTF_RED end
-                
-                local pnt= mist.getRandomPointInZone(self.zone.name,40) or {x=self.zone.point.x-67, y=self.zone.point.z+42}
-    
-                local comms_tower_gr = mist.dynAddStatic({
-                    type = "Comms tower M",
-                    country = country_name,
-                    category = "Fortifications",
-                    x = pnt.x,
-                    y = pnt.y})
-                if comms_tower_gr then
-                    self.comms_tower_intact = true
-                    self.linked_comms_tower = comms_tower_gr.name
-                    TheatreCommander.COMMS_towers[self.side] = TheatreCommander.COMMS_towers[self.side] +1
-                else
-                    MissionLogger:error("Could not spawn comms tower for ".. self.name)
-                end
-
-            end, {}, timer.getTime() + Config.comms_tower_respawn_time * (1-0.25*self.level))
-
+            -- Destroy the "dead body"
+            if comms_tower and comms_tower:isExist() then
+                comms_tower:destroy()
+            end
         end
 
+        -- Check if the tower is pending respawn or ready to respawn
+        if self.comms_tower_last_destroyed and not self.comms_tower_intact
+        and self.comms_tower_last_destroyed + (Config.comms_tower_respawn_time) > timer.getTime() then
+            -- Not enough time has passed
+            MissionLogger:info(self.name .." comms tower pending respawn")
+            return
+            
+        elseif not self.comms_tower_intact and self.comms_tower_last_destroyed
+        and self.comms_tower_last_destroyed + (Config.comms_tower_respawn_time) <= timer.getTime() then
+            -- Time is up, respawn the tower
+            MissionLogger:info(self.name .." comms tower respawn")
+
+            local country_name
+            if self.side == coalition.side.BLUE then country_name = country.id.CJTF_BLUE
+            else country_name = country.id.CJTF_RED end
+            
+            local pnt= mist.getRandomPointInZone(self.zone.name,40) or {x=self.zone.point.x-67, y=self.zone.point.z+42}
+
+            local comms_tower_gr = mist.dynAddStatic({
+                type = "Comms tower M",
+                country = country_name,
+                category = "Fortifications",
+                x = pnt.x,
+                y = pnt.y})
+            
+            if comms_tower_gr then
+                self.comms_tower_intact = true
+                self.linked_comms_tower = comms_tower_gr.name
+                self.comms_tower_last_destroyed = nil
+                TheatreCommander.COMMS_towers[self.side] = TheatreCommander.COMMS_towers[self.side] + 1
+                
+                -- Increase future respawn times
+                Config.comms_tower_respawn_time = math.floor(Config.comms_tower_respawn_time * Config.comms_tower_lost_penalty)
+                MissionLogger:info("Comms tower respawn time is now "..Config.comms_tower_respawn_time)
+           
+                trigger.action.outTextForCoalition(self.side, "Comms zone "..self.name.." has reestablished its communications tower.",10)
+            else
+                MissionLogger:error("Could not spawn comms tower for ".. self.name)
+            end
+        end
     end
 
 end

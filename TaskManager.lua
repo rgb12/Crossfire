@@ -29,7 +29,7 @@ do
 
         if AITaskTypes.CAS == ai_task_type and to_zone then
         
-            local closest_airbase, template_gr_name = self:findClosestAirbaseWithAircraftInStock(to_zone,side,ai_task_type,2)
+            local closest_airbase, template_gr_name = self:findClosestAirbaseWithAircraftInStock(to_zone,side,ai_task_type,2,ai_task_type)
             if not closest_airbase then
                 if user_requested then
                     txt="CAS unavailable for "..to_zone.name..", check aircraft availability."
@@ -106,7 +106,7 @@ do
             return true
         elseif AITaskTypes.INTERCEPT == ai_task_type and to_zone then
 
-            local closest_airbase, template_gr_name = self:findClosestAirbaseWithAircraftInStock(to_zone,side,ai_task_type,2)
+            local closest_airbase, template_gr_name = self:findClosestAirbaseWithAircraftInStock(to_zone,side,ai_task_type,2,ai_task_type)
             if not closest_airbase then
                 if user_requested then
                     txt="INTERCEPT unavailable for "..to_zone.name..", check aircraft availability."
@@ -144,7 +144,7 @@ do
 
         elseif AITaskTypes.SEAD == ai_task_type and to_zone then
 
-            local closest_airbase, template_gr_name = self:findClosestAirbaseWithAircraftInStock(to_zone,side,ai_task_type,2)
+            local closest_airbase, template_gr_name = self:findClosestAirbaseWithAircraftInStock(to_zone,side,ai_task_type,2,ai_task_type)
             if not closest_airbase then
                 if user_requested then
                     txt="SEAD unavailable for "..to_zone.name..", check aircraft availability."
@@ -181,7 +181,7 @@ do
             return true
         elseif AITaskTypes.STRIKE == ai_task_type and to_zone then
 
-            local closest_airbase, template_gr_name = self:findClosestAirbaseWithAircraftInStock(to_zone,side,ai_task_type,2)
+            local closest_airbase, template_gr_name = self:findClosestAirbaseWithAircraftInStock(to_zone,side,ai_task_type,2,ai_task_type)
             if not closest_airbase then
                 if user_requested then
                     txt="STRIKE unavailable for "..to_zone.name..", check aircraft availability."
@@ -226,9 +226,47 @@ do
 
             self:setSTRIKETask(new_group.name,ai_enroute_data,strike_point)
             return true
+        elseif AITaskTypes.RECON == ai_task_type and to_zone then
+            local closest_airbase, template_gr_name = self:findClosestAirbaseWithAircraftInStock(to_zone,side,ai_task_type,2,ai_task_type)
+            if not closest_airbase then
+                if user_requested then
+                    txt="RECON unavailable for "..to_zone.name..", check aircraft availability."
+                    trigger.action.outTextForCoalition(side,txt,5)
+                end
+                return false
+            end
+
+            if prevent_duplicates and EnrouteManager:findByToZone(to_zone,side,{AITaskTypes.RECON}) then
+                if user_requested then
+                    txt="RECON already tasked for "..to_zone.name
+                    trigger.action.outTextForCoalition(side,txt,5)
+                end
+                return false
+            end
+
+            local airbase = Airbase.getByName(closest_airbase.airbase_name)
+            if not airbase then return false end
+
+            if airbase and not WarehouseManager:checkIfAIPayloadInStock(airbase,ai_task_type)
+            then sendText("RECON required payload/armement not in warehouse.") return false end
+
+            local new_group = mist.cloneGroup(template_gr_name,true)
+            if not new_group then return false end
+
+            local ai_enroute_data = EnrouteManager:add({
+                to_zone = to_zone,
+                side=side,
+                from_zone=closest_airbase,
+                group_name=new_group.name,
+                ai_task_type=ai_task_type
+            })
+            self:setRECONTask(new_group.name,ai_enroute_data)
+            return true
+
+
         elseif AITaskTypes.JTAC == ai_task_type and to_zone then
 
-            local closest_airbase, template_gr_name = self:findClosestAirbaseWithAircraftInStock(to_zone,side,ai_task_type,1)
+            local closest_airbase, template_gr_name = self:findClosestAirbaseWithAircraftInStock(to_zone,side,ai_task_type,1,ai_task_type)
             if not closest_airbase then
                 if user_requested then
                 txt="JTAC unavailable for "..to_zone.name..", check aircraft availability."
@@ -353,12 +391,59 @@ do
     end
 
 
+    --- Returns true if max tasks reached for airbase
+    ---@param airbase ZoneHandler
+    ---@param side coalition.side
+    ---@param ai_task_type AITaskTypes
+    ---@return boolean
+    function TaskManager:checkIfMaxTasksReached(airbase,side,ai_task_type)
+        local enroutes_from_airbase = EnrouteManager:findByFromZone(airbase,side,{AITaskTypes.CAS,AITaskTypes.INTERCEPT,AITaskTypes.SEAD,AITaskTypes.STRIKE,AITaskTypes.RECON,AITaskTypes.AWACS})
+        if not enroutes_from_airbase then return false end
+
+        if #enroutes_from_airbase >= Config.tasking.max_tasks_per_airbase then return true end
+
+        if ai_task_type == AITaskTypes.CAS then
+            local cas_enroutes = EnrouteManager:findByFromZone(airbase,side,{AITaskTypes.CAS})
+            if cas_enroutes and #cas_enroutes >= Config.tasking_max_cas_per_airbase then
+                return true
+            end
+        elseif ai_task_type == AITaskTypes.INTERCEPT then
+            local intercept_enroutes = EnrouteManager:findByFromZone(airbase,side,{AITaskTypes.INTERCEPT})
+            if intercept_enroutes and #intercept_enroutes >= Config.tasking.max_intercept_per_airbase then
+                return true
+            end
+        elseif ai_task_type == AITaskTypes.SEAD then
+            local sead_enroutes = EnrouteManager:findByFromZone(airbase,side,{AITaskTypes.SEAD})
+            if sead_enroutes and #sead_enroutes >= Config.tasking.max_sead_per_airbase then
+                return true
+            end
+        elseif ai_task_type == AITaskTypes.STRIKE then
+            local strike_enroutes = EnrouteManager:findByFromZone(airbase,side,{AITaskTypes.STRIKE})
+            if strike_enroutes and #strike_enroutes >= Config.tasking.max_strike_per_airbase then
+                return true
+            end
+        elseif ai_task_type == AITaskTypes.RECON then
+            local recon_enroutes = EnrouteManager:findByFromZone(airbase,side,{AITaskTypes.RECON})
+            if recon_enroutes and #recon_enroutes >= Config.tasking.max_recon_per_airbase then
+                return true
+            end
+        elseif ai_task_type == AITaskTypes.AWACS then
+            local awacs_enroutes = EnrouteManager:findByFromZone(airbase,side,{AITaskTypes.AWACS})
+            if awacs_enroutes and #awacs_enroutes >= Config.tasking.max_awacs_per_airbase then
+                return true
+            end
+        end
+
+        return false
+    end
+
     ---@param to_zone ZoneHandler
     ---@param side coalition.side
     ---@param aircraft_type string
     ---@param aircraft_amount number
+    ---@param ai_task_type AITaskTypes
     ---@return ZoneHandler|nil,string|nil -- closest airbase, group name
-    function TaskManager:findClosestAirbaseWithAircraftInStock(to_zone,side,aircraft_type, aircraft_amount)
+    function TaskManager:findClosestAirbaseWithAircraftInStock(to_zone,side,aircraft_type, aircraft_amount,ai_task_type)
         local loop_prevention = 0
 
         local unavail_airbases = {}
@@ -380,7 +465,10 @@ do
                 end
                 MissionLogger:info("Airbase:" .. closest_airbase.airbase_name .. " has ".. aircraft_count .." ".. aircraft_type .." available.")  
                 if aircraft_count and aircraft_count>=aircraft_amount and group_name then
-                    return closest_airbase,group_name
+                    
+                    if not self:checkIfMaxTasksReached(closest_airbase,side,ai_task_type) then
+                        return closest_airbase,group_name
+                    end
                 end
             end
             table.insert(unavail_airbases,closest_airbase.name)
@@ -1051,6 +1139,87 @@ do
             MissionLogger:info("STRIKE mission tasked, engaging: "..enroute_data.to_zone.name)
 
             
+        end, {}, timer.getTime() + 12)
+    end
+
+    ---@param recon_group_name string
+    ---@param enroute_data EnrouteObj
+    function TaskManager:setRECONTask(recon_group_name, enroute_data)
+        timer.scheduleFunction(function()
+            local recon_gr = Group.getByName(recon_group_name)
+            if not (recon_gr and recon_gr:isExist()) then return end
+
+            local ctrl = recon_gr:getController()
+            local group_id = recon_gr:getID()
+
+            -- 1. Get the group's current position (at the airbase)
+            local startPos = mist.getLeadPos(recon_group_name)
+            if not startPos then return end
+            
+            -- 2. Define the Orbit task
+            local orbitTask = {
+                id = 'Orbit',
+                params = {
+                    pattern = 'Circle',
+                    point = enroute_data.to_zone.zone.point,
+                    speed = 200, -- m/s (~390 kts)
+                    altitude = 7620 -- 25k ft
+                }
+            }
+            
+            -- 3. Build the full 'Mission' wrapper
+            local missionTask = {
+                id = 'Mission',
+                params = {
+                    route = {
+                        airborne = true,
+                        points = {}
+                    }
+                }
+            }
+
+            -- Waypoint 1: TAKEOFF (from current position)
+            table.insert(missionTask.params.route.points, {
+                type = AI.Task.WaypointType.TAKEOFF,
+                x = startPos.x,
+                y = startPos.z,
+                action = AI.Task.TurnMethod.FIN_POINT,
+                alt_type = AI.Task.AltitudeType.RADIO
+            })
+
+            -- Waypoint 2: RECON ORBIT (Fly to the target zone)
+            table.insert(missionTask.params.route.points, {
+                type = AI.Task.WaypointType.TURNING_POINT,
+                x = enroute_data.to_zone.zone.point.x,
+                y = enroute_data.to_zone.zone.point.z,
+                speed = 257, -- m/s (approx 500 kts)
+                action = AI.Task.TurnMethod.FLY_OVER_POINT,
+                alt = 7620, -- 25k ft
+                alt_type = AI.Task.AltitudeType.BARO,
+                --task = orbitTask -- Attach the Orbit task
+            })
+
+            -- Waypoint 3: LAND (Return to the starting position)
+            table.insert(missionTask.params.route.points, {
+                type = AI.Task.WaypointType.LAND,
+                x = startPos.x,
+                y = startPos.z,
+                action = AI.Task.TurnMethod.FIN_POINT,
+                alt = 7620, -- 25k ft
+                alt_type = AI.Task.AltitudeType.BARO,
+            })
+            
+            -- 4. Set the complete mission
+            ctrl:setTask(missionTask)
+
+            -- 5. Set AI options for RECON (run, don't fight)
+            ctrl:setOption(AI.Option.Air.id.PROHIBIT_AG, true)
+            ctrl:setOption(AI.Option.Air.id.PROHIBIT_AA, true)
+            ctrl:setOption(AI.Option.Air.id.REACTION_ON_THREAT, AI.Option.Air.val.REACTION_ON_THREAT.PASSIVE_DEFENCE)
+            ctrl:setOption(AI.Option.Air.id.RTB_ON_BINGO, true)
+
+            trigger.action.outTextForCoalition(enroute_data.side, "RECON mission tasked, enroute to " .. enroute_data.to_zone.name, 10)
+            MissionLogger:info("RECON mission tasked, orbiting " .. enroute_data.to_zone.name)
         end, {}, timer.getTime() + 12)
     end
 

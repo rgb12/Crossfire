@@ -187,6 +187,7 @@ do
             return
         end
 
+        
         local enemy_side = utils.getEnemyCoalition(side)
         local home_base
         
@@ -195,10 +196,46 @@ do
         else
             home_base = red_airbase
         end
-
+        
         if home_base == nil then return end
+
         -- Missions are decided upon the distance from the home airbase
         local closest_enemy_zone, closest_dist = home_base:getClosestZone(enemy_side,nil,nil,true)
+        local closest_friendly_zone, _ = home_base:getClosestZone(side,nil,nil,true)
+
+
+        -- 0. RECON CHECK
+        -- Check if we are already running a RECON mission
+        local recon_enroute = EnrouteManager:findByTaskType(AITaskTypes.RECON, side)
+        if recon_enroute and #recon_enroute < 1
+        and TheatreCommander.COMMS_towers[side] >= Config.tasking_requirements.comms_zones_required_for_recon
+        then
+            -- Find the closest *undiscovered* enemy zone
+            local closest_undiscovered_zone = nil
+            local closest_dist = 999999
+            local discovered_list = (side == coalition.side.BLUE) and stats.blue_discovered_zones or stats.red_discovered_zones
+            
+            for _, zone in ipairs(zones) do
+                if zone.side == enemy_side and not utils.tableContains(discovered_list, zone.name) then
+                    local dist = mist.utils.get2DDist(home_base.zone.point, zone.zone.point)
+                    if dist < closest_dist then
+                        closest_dist = dist
+                        closest_undiscovered_zone = zone
+                    end
+                end
+            end
+
+            if closest_undiscovered_zone then
+                -- Found one, check if a RECON mission is already going to it
+                if not EnrouteManager:findByToZone(closest_undiscovered_zone, side, {AITaskTypes.RECON}) then
+                    MissionLogger:info("AI Commander: Tasking RECON for " .. utils.coalitionToString(side) .. " to " .. closest_undiscovered_zone.name)
+                    local task_sent = TaskManager:initiateAITask(AITaskTypes.RECON, side, true, closest_undiscovered_zone, nil, false)
+                    if task_sent then return end -- Only launch one recon mission per 5-minute tick
+                end
+            end
+        end
+
+
 
         -- 1. AWACS CHECK
         -- Check if an AWACS is already airborne for this side
@@ -216,7 +253,7 @@ do
         local cas_enroute = EnrouteManager:findByTaskType(AITaskTypes.CAS, side)
         if #cas_enroute < 2 then -- Only allow 2 auto-CAS missions at a time
    
-            if closest_enemy_zone and closest_dist < 150000
+            if closest_enemy_zone and closest_dist < Config.tasking.max_cas_range
             and TheatreCommander.COMMS_towers[side] >= Config.tasking_requirements.comms_zones_required_for_cas then -- Only attack targets within 150km
                 -- Check if a CAS mission is ALREADY going to this specific zone
                 if not EnrouteManager:findByToZone(closest_enemy_zone, side, {AITaskTypes.CAS}) then
@@ -263,11 +300,11 @@ do
         then -- Only allow 3 auto-INTERCEPT mission
             -- Find a friendly frontline zone to patrol
             -- We'll pick the friendly zone closest to the ENEMY home base
-            if closest_enemy_zone then
+            if closest_friendly_zone then
                 -- Check if an INTERCEPT mission is already patrolling this zone
-                if not EnrouteManager:findByToZone(closest_enemy_zone, side, {AITaskTypes.INTERCEPT}) then
-                    MissionLogger:info("AI Commander: Tasking INTERCEPT for " .. utils.coalitionToString(side) .. " to patrol " .. closest_enemy_zone.name)
-                    local task_sent = TaskManager:initiateAITask(AITaskTypes.INTERCEPT, side, true, closest_enemy_zone, nil, false)
+                if not EnrouteManager:findByToZone(closest_friendly_zone, side, {AITaskTypes.INTERCEPT}) then
+                    MissionLogger:info("AI Commander: Tasking INTERCEPT for " .. utils.coalitionToString(side) .. " to patrol " .. closest_friendly_zone.name)
+                    local task_sent = TaskManager:initiateAITask(AITaskTypes.INTERCEPT, side, true, closest_friendly_zone, nil, false)
                     if task_sent then return end
                 end
             end
@@ -306,12 +343,11 @@ do
             end
         end
 
-       
     end
 
     ---@param zone ZoneHandler
     function TheatreCommander.sendPotentialCapture(zone)
-        if zone.side == coalition.side.NEUTRAL then return end
+        if zone.side ~= coalition.side.NEUTRAL then return end
 
         local now = timer.getTime()
         if not zone.last_capture_attempt then zone.last_capture_attempt = timer.getTime() end
@@ -355,7 +391,8 @@ do
         
                     zone:addAIAssets(10) -- Supply chance every minute
 
-                    if zone:checkIfEmpty() then
+                    if zone.side ~=coalition.side.NEUTRAL and zone:checkIfEmpty() then
+                        
                         TheatreCommander.sendCapture(zone, utils.getEnemyCoalition(zone.side))
                         zone:capture(coalition.side.NEUTRAL)
                     end
@@ -407,6 +444,8 @@ do
             local enroute = EnrouteManager.enroutes[i]
             if enroute then -- Check if enroute object is valid (can be nil if table is modified)
     
+                
+            
                 if enroute.ai_task_type == AITaskTypes.CAPTURE_CONVOY then
                     local capture_convoy_gr = Group.getByName(enroute.group_name)
                     if not capture_convoy_gr or not capture_convoy_gr:isExist() then
@@ -494,6 +533,25 @@ do
                         end
     
                     end
+
+                elseif enroute.ai_task_type == AITaskTypes.RECON then
+                    local recon_grp = Group.getByName(enroute.group_name)
+                    -- Check if group is alive and within 10km of the target
+                    if recon_grp and recon_grp:isExist() and mist.utils.get2DDist(recon_grp:getUnit(1):getPoint(), enroute.to_zone.zone.point) < 10000 then
+                        
+                        local discovered_list = (enroute.side == coalition.side.BLUE) and stats.blue_discovered_zones or stats.red_discovered_zones
+                        
+                        -- Check if it's not already discovered (in case two planes were sent)
+                        if not utils.tableContains(discovered_list, enroute.to_zone.name) then
+                            table.insert(discovered_list, enroute.to_zone.name)
+                            enroute.to_zone:drawF10()
+                            trigger.action.outTextForCoalition(enroute.side, "Recon flight has discovered new zone: " .. enroute.to_zone.name, 10)
+                            
+                            -- Refresh JTAC menu so the new zone appears
+                            CommandHandler.refreshAvailZonesJTAC() 
+                        end
+                    end
+
                 end
             end -- end if enroute
         end
