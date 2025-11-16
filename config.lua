@@ -86,12 +86,13 @@ Config = {
         max_recon_per_airbase = 2,
 
         max_awacs_theatre = 2,
-        
+
 
         max_cas_range = 150*1000, -- (meters)
         min_cleareance_dist_for_awacs = 70*1000 -- (meters) from the nearest enemy zone
     },
     tasking_max_groups_per_airbase = 4,
+
 
     capture_helicopter_max_range = 100*1000 , -- (meters)
     capture_convoy_max_range = 100,--25*1000, -- (meters)
@@ -101,7 +102,7 @@ Config = {
     --[[
         the range at which enemy zones will be discovered from friendly zones
     ]]
-    
+    stuck_convoy_timeout = 8*60, -- (seconds) time without movement after which a convoy is considered stuck and will be removed
     attack_convoy_range = 30000, -- (meters)
 
     jtac_smoke_stock = 4,

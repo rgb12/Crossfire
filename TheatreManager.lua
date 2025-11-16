@@ -442,116 +442,98 @@ do
         
         for i = #EnrouteManager.enroutes, 1, -1 do
             local enroute = EnrouteManager.enroutes[i]
-            if enroute then -- Check if enroute object is valid (can be nil if table is modified)
+            if enroute then -- Check if enroute object is valid
     
-                
-            
                 if enroute.ai_task_type == AITaskTypes.CAPTURE_CONVOY then
                     local capture_convoy_gr = Group.getByName(enroute.group_name)
+                    
                     if not capture_convoy_gr or not capture_convoy_gr:isExist() then
-                        -- remove convoy from enroute_convoys
-                        trigger.action.outTextForCoalition(enroute.side,
-                            "Convoy sent to capture " .. enroute.to_zone.zone.name .. " has been destroyed", 10)
-                        MissionLogger:info("Removed destroyed convoy from enroutes: " .. enroute.group_name)
-    
+                        -- SCENARIO 1: CONVOY DESTROYED
+                        trigger.action.outTextForCoalition(enroute.side, "Convoy sent to capture " .. enroute.to_zone.zone.name .. " has been destroyed", 10)
                         EnrouteManager:remove(enroute.group_name)
     
                     elseif TheatreCommander.checkIfCaptureGroupArrived(enroute) then
+                        -- SCENARIO 2: CONVOY FINISHED (ARRIVED)
                         trigger.action.setGroupAIOff(capture_convoy_gr)
-    
                         timer.scheduleFunction(function ()
-                            if capture_convoy_gr and capture_convoy_gr:isExist() then
-                                capture_convoy_gr:destroy()
-                            end
+                            if capture_convoy_gr and capture_convoy_gr:isExist() then capture_convoy_gr:destroy() end
                         end, {}, timer.getTime() + math.random(15, 25))
+                    
+                    elseif not UnitHandler.checkConvoyMoving(capture_convoy_gr) then
+                        -- SCENARIO 3: CONVOY STUCK
+                        if not enroute.stuck_since then
+                            -- First time we've seen it stuck, start the timer
+                            enroute.stuck_since = timer.getTime()
+                            MissionLogger:info("Capture convoy " .. enroute.group_name .. " detected as stuck, starting timer.")
+                        elseif (timer.getTime() - enroute.stuck_since) > Config.stuck_convoy_timeout then
+                            -- It's been stuck for over 2 minutes, remove it
+                            trigger.action.outTextForCoalition(enroute.side, "Capture convoy to " .. enroute.to_zone.zone.name .. " got stuck and was removed.", 10)
+                            capture_convoy_gr:destroy()
+                            EnrouteManager:remove(enroute.group_name)
+                        end
+                    else
+                        -- SCENARIO 4: CONVOY ALIVE AND MOVING
+                        -- It's moving, so clear any stuck timer
+                        enroute.stuck_since = nil
                     end
                 
                 
                 elseif enroute.ai_task_type == AITaskTypes.ATTACK_CONVOY then
-                    
                     local convoy_group = Group.getByName(enroute.group_name)
                     
-                    
                     if not convoy_group or not convoy_group:isExist() then
-                        -- Group is destroyed, log and remove it
-                        trigger.action.outTextForCoalition(enroute.side,
-                            "Convoy sent to attack " .. enroute.to_zone.zone.name .. " has been destroyed", 10)
+                        -- SCENARIO 1: CONVOY DESTROYED
+                        trigger.action.outTextForCoalition(enroute.side, "Convoy sent to attack " .. enroute.to_zone.zone.name .. " has been destroyed", 10)
                         EnrouteManager:remove(enroute.group_name)
-                    else   
-                        -- Group is alive
-                        if enroute.redirects_count and enroute.redirects_count > 10 then
-                            -- exceeded max redirects, delete convoy silently
-                            MissionLogger:info("Attack convoy exceed max redirects count: " .. enroute.group_name)
-                            EnrouteManager:remove(enroute.group_name)
-                            
-                            timer.scheduleFunction(function ()
-                                if convoy_group and convoy_group.isExist and convoy_group:isExist() then
-                                    convoy_group:destroy()
-                                end
-                            end, {}, timer.getTime() + math.random(5, 10))
-    
-                            return
-                        end
-    
-                        if enroute.redirects_count
-                        and enroute.to_zone:isPointInsideZone(mist.getLeadPos(convoy_group))
-                        and not UnitHandler.checkConvoyMoving(convoy_group) then
-                            MissionLogger:info("Attack convoy not moving, redirecting " .. enroute.group_name)
+
+                    elseif not UnitHandler.checkConvoyMoving(convoy_group) then
+                        -- SCENARIO 2: CONVOY STUCK (or at destination)
+                        if enroute.to_zone:isPointInsideZone(mist.getLeadPos(convoy_group)) then
+                            -- It's "stuck" but at the destination. This is the redirect logic.
+                            MissionLogger:info("Attack convoy not moving (at destination), redirecting " .. enroute.group_name)
                             
                             local enemy_units
-                            if enroute.side == coalition.side.BLUE then
-                                enemy_units = utils.getUnitsInZoneObj(enroute.to_zone, coalition.side.RED)
-                            elseif enroute.side == coalition.side.RED then
-                                enemy_units = utils.getUnitsInZoneObj(enroute.to_zone, coalition.side.BLUE)
-                            end
+                            if enroute.side == coalition.side.BLUE then enemy_units = utils.getUnitsInZoneObj(enroute.to_zone, coalition.side.RED)
+                            elseif enroute.side == coalition.side.RED then enemy_units = utils.getUnitsInZoneObj(enroute.to_zone, coalition.side.BLUE) end
     
-                            local arrival_point
                             if enemy_units and #enemy_units > 0 then
-                                arrival_point = enemy_units[1]:getPoint()
-                                if not enroute.redirects_count then
-                                    enroute.redirects_count = 0
-                                else
-                                    enroute.redirects_count = enroute.redirects_count +1
-                                end
+                                -- Enemies still exist, redirect to the next one
+                                local arrival_point = enemy_units[1]:getPoint()
+                                if not enroute.redirects_count then enroute.redirects_count = 0 else enroute.redirects_count = enroute.redirects_count + 1 end
                                 TaskManager:ConvoyToPoint(convoy_group,arrival_point)
                             else
-                                --  no enemies found, delete convoy
-                                trigger.action.outTextForCoalition(enroute.side,
-                                "Convoy sent to attack " .. enroute.to_zone.zone.name .. " has completed its mission", 10)
-                                MissionLogger:info("Attack convoy completed mission: " .. enroute.group_name)
+                                -- SCENARIO 3: CONVOY FINISHED (no enemies left)
+                                trigger.action.outTextForCoalition(enroute.side, "Convoy sent to attack " .. enroute.to_zone.zone.name .. " has completed its mission", 10)
                                 EnrouteManager:remove(enroute.group_name)
-                                
                                 timer.scheduleFunction(function ()
-                                    if convoy_group and convoy_group.isExist and convoy_group:isExist() then
-                                        convoy_group:destroy()
-                                    end
+                                    if convoy_group and convoy_group:isExist() then convoy_group:destroy() end
                                 end, {}, timer.getTime() + math.random(5, 10))
                             end
-    
-                   
-                            
+                        else
+                            -- It's stuck *en route* (not in the zone)
+                            if not enroute.stuck_since then
+                                enroute.stuck_since = timer.getTime()
+                                MissionLogger:info("Attack convoy " .. enroute.group_name .. " detected as stuck en route, starting timer.")
+                            elseif (timer.getTime() - enroute.stuck_since) > Config.stuck_convoy_timeout then
+                                -- It's been stuck for over 2 minutes, remove it
+                                trigger.action.outTextForCoalition(enroute.side, "Attack convoy to " .. enroute.to_zone.zone.name .. " got stuck en route and was removed.", 10)
+                                convoy_group:destroy()
+                                EnrouteManager:remove(enroute.group_name)
+                            end
                         end
-    
-                    end
-
-                elseif enroute.ai_task_type == AITaskTypes.RECON then
-                    local recon_grp = Group.getByName(enroute.group_name)
-                    -- Check if group is alive and within 10km of the target
-                    if recon_grp and recon_grp:isExist() and mist.utils.get2DDist(recon_grp:getUnit(1):getPoint(), enroute.to_zone.zone.point) < 10000 then
+                    else
+                        -- SCENARIO 4: CONVOY ALIVE AND MOVING
+                        -- It's moving, so clear any stuck timer
+                        enroute.stuck_since = nil
                         
-                        local discovered_list = (enroute.side == coalition.side.BLUE) and stats.blue_discovered_zones or stats.red_discovered_zones
-                        
-                        -- Check if it's not already discovered (in case two planes were sent)
-                        if not utils.tableContains(discovered_list, enroute.to_zone.name) then
-                            table.insert(discovered_list, enroute.to_zone.name)
-                            enroute.to_zone:drawF10()
-                            trigger.action.outTextForCoalition(enroute.side, "Recon flight has discovered new zone: " .. enroute.to_zone.name, 10)
-                            
-                            -- Refresh JTAC menu so the new zone appears
-                            CommandHandler.refreshAvailZonesJTAC() 
+                        -- Check for redirect loop
+                        if enroute.redirects_count and enroute.redirects_count > 10 then
+                            -- SCENARIO 5: CONVOY FINISHED (too many redirects)
+                            MissionLogger:info("Attack convoy exceeded max redirects count: " .. enroute.group_name)
+                            EnrouteManager:remove(enroute.group_name)
+                            if convoy_group and convoy_group:isExist() then convoy_group:destroy() end
                         end
                     end
-
                 end
             end -- end if enroute
         end

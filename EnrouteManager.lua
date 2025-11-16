@@ -8,6 +8,7 @@
 ---@field jtac JTAC|nil
 ---@field aborted boolean|nil for aboted heli
 ---@field redirects_count number|nil for attack convoy
+---@field stuck_since number|nil timestamp when the enroute got stuck
 
 ---@class EnrouteManager
 ---@field enroutes EnrouteObj[]
