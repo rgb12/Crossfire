@@ -313,7 +313,7 @@ do
                 enemy_side = coalition.side.BLUE
                 
             end
-            to_zone, _ = from_zone:getClosestZone(enemy_side)
+            to_zone, _ = from_zone:getClosestZone(enemy_side,nil,nil,true)
             if to_zone and to_zone.side == enemy_side
             and mist.utils.get2DDist(from_zone.zone.point, to_zone.zone.point) < Config.attack_convoy_range then
                 
