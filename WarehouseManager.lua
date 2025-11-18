@@ -57,10 +57,124 @@ do
         F_14A_135_GR = "F-14A-135-GR",
         A10C_TANK_KILLER_II = "A-10C_2",
         F15C = "F-15C",
-        C17A = "C-17A"
+        C17A = "C-17A",
+        MiG23MLD = "MiG-23MLD",
+        SU30 = "Su-30",
+        SU27 = "Su-27",
+        SU24M = "Su-24M",
+        SU34 = "Su-34",
+        SU33 = "Su-33",
+        MI8MT = "Mi-8MT",
+        TU_160 = "Tu-160",
+        TU_142 = "Tu-142",
+        MIG19P = "MiG-19P",
+        MIG25PD = "MiG-25PD",
+        MIG25RBT = "MiG-25RBT",
+        MIG29A = "MiG-29A",
+        MIG29G = "MiG-29G",
+        MIG31 = "MiG-31",
+        MIG21BIS = "MiG-21Bis",
+        MIG29S = "MiG-29S",
+        MIG29_FULCRUM = "MiG-29 Fulcrum",
+        TU_95MS = "Tu-95MS",
+        TU_22M3 = "Tu-22M3",
+        A50 = "A-50",
+
 
     }
    
+
+    WarehouseManager.AirbaseGroupData = {
+            [Airbases.Caucasus.Vaziani] = {
+                [coalition.side.BLUE] = {
+                    [AITaskTypes.JTAC] = {
+                        group_name = "BLUE VAZIANI JTAC",
+                        warehouse_name = WarehouseManager.AircraftFlags.RQ_1A_PREDATOR
+                    },
+                    [AITaskTypes.CAS] = {
+                        group_name = "BLUE VAZIANI CAS",
+                        warehouse_name = WarehouseManager.AircraftFlags.A10C_TANK_KILLER_II
+                    },
+                    [AITaskTypes.SEAD] = {
+                        group_name = "BLUE VAZIANI SEAD",
+                        warehouse_name = WarehouseManager.AircraftFlags.F16C_BL50
+                    },
+                    [AITaskTypes.STRIKE] = {
+                        group_name = "BLUE VAZIANI STRIKE",
+                        warehouse_name = WarehouseManager.AircraftFlags.F16C_BL50
+                    },
+                    [AITaskTypes.INTERCEPT] = {
+                        group_name = "BLUE VAZIANI INTERCEPT",
+                        warehouse_name = WarehouseManager.AircraftFlags.F15C
+                    },
+                    [AITaskTypes.AWACS] = {
+                        group_name = "BLUE VAZIANI AWACS",
+                        warehouse_name = WarehouseManager.AircraftFlags.E3A
+                    },
+                    [AITaskTypes.RECON] = {
+                        group_name = "BLUE VAZIANI RECON",
+                        warehouse_name = WarehouseManager.AircraftFlags.F16C_BL50
+                    }
+                },
+                -- [coalition.side.RED] = {
+                --     [AITaskTypes.JTAC] = {
+                --         group_name = "RED JTAC",--TO CHANGE
+                --         warehouse_name = "RQ-1A Predator"
+                --     }
+                -- },
+            },
+            [Airbases.Caucasus.Kutaisi] = {
+                [coalition.side.RED] = {
+                    [AITaskTypes.CAS] = {
+                        group_name = "RED KUTAISI CAS",
+                        warehouse_name = WarehouseManager.AircraftFlags.SU25T
+                    },
+                    [AITaskTypes.SEAD] = {
+                        group_name = "RED KUTAISI SEAD",
+                        warehouse_name = WarehouseManager.AircraftFlags.SU24M
+                    },
+                    [AITaskTypes.STRIKE] = {
+                        group_name = "RED KUTAISI STRIKE",
+                        warehouse_name = WarehouseManager.AircraftFlags.SU24M
+                    },
+                    [AITaskTypes.INTERCEPT] = {
+                        group_name = "RED KUTAISI INTERCEPT",
+                        warehouse_name = WarehouseManager.AircraftFlags.SU27
+                    },
+                    [AITaskTypes.AWACS] = {
+                        group_name = "RED KUTAISI AWACS",
+                        warehouse_name = WarehouseManager.AircraftFlags.A50
+                    },
+
+                    
+                }
+            },
+            [Airbases.Caucasus.Anapa_Vityazevo] = {
+                [coalition.side.RED] = {
+                    [AITaskTypes.CAS] = {
+                        group_name = "RED ANAPA CAS",
+                        warehouse_name = WarehouseManager.AircraftFlags.SU25T
+                    },
+                    [AITaskTypes.SEAD] = {
+                        group_name = "RED ANAPA SEAD",
+                        warehouse_name = WarehouseManager.AircraftFlags.SU24M
+                    },
+                    [AITaskTypes.STRIKE] = {
+                        group_name = "RED ANAPA STRIKE",
+                        warehouse_name = WarehouseManager.AircraftFlags.SU24M
+                    },
+                    [AITaskTypes.INTERCEPT] = {
+                        group_name = "RED ANAPA INTERCEPT",
+                        warehouse_name = WarehouseManager.AircraftFlags.SU27
+                    },
+                    [AITaskTypes.AWACS] = {
+                        group_name = "RED ANAPA AWACS",
+                        warehouse_name = WarehouseManager.AircraftFlags.A50
+                    },
+                }
+            }
+    }
+
     WarehouseManager.AIPayloads = {
         [coalition.side.BLUE] = {
             [AITaskTypes.CAS] = {
@@ -202,23 +316,52 @@ do
                 [WarehouseManager.AircraftFlags.F15C] = 12,
                 [WarehouseManager.AircraftFlags.RQ_1A_PREDATOR] = 3,
 
+            },
+            [coalition.side.RED] = {
+                [WarehouseManager.Flags.R73_AA_11_ARCHER] = math.random(80,90),
+                [WarehouseManager.Flags.S_8O0FP2_MPP] = math.random(400,600),
+                [WarehouseManager.Flags.VIKHR_M] = math.random(200,300),
+                [WarehouseManager.Flags.KH_29T] = math.random(20,35),
+                [WarehouseManager.Flags.KH25ML] = math.random(20,30),
+                [WarehouseManager.Flags.KH58U] = math.random(28,32),
+                [WarehouseManager.Flags.L081_FANTASMAGORIA] = math.random(4,6),
+                [WarehouseManager.Flags.R27ER] = math.random(42,68),
+                [WarehouseManager.Flags.R27ET] = math.random(28,32),
+                [WarehouseManager.Flags.L005_SORBSIYA_ECM_POD_LEFT] = math.random(3,5),
+                [WarehouseManager.Flags.L005_SORBSIYA_ECM_POD_RIGHT] = math.random(3,5),
+
+                [WarehouseManager.AircraftFlags.SU25T] = 18,
+                [WarehouseManager.AircraftFlags.SU27] = 8,
+                [WarehouseManager.AircraftFlags.SU24M] = 16,
+
             }
+                
         },
         [WarehouseManager.StockTypes.AIR_AIR_LONG_RANGE] = {
             [coalition.side.BLUE] = {
                 [WarehouseManager.Flags.AIM_120B] = math.random(8,14),
                 [WarehouseManager.Flags.AIM_120C] = math.random(6,10),
+            },
+            [coalition.side.RED] = {
+                [WarehouseManager.Flags.R27ER] = math.random(20,30),
+                [WarehouseManager.Flags.R27ET] = math.random(12,20),
             }
         },
         [WarehouseManager.StockTypes.AIR_AIR_SHORT_RANGE] = {
             [coalition.side.BLUE] = {
                 [WarehouseManager.Flags.AIM_9M] = math.random(8,14),
                 [WarehouseManager.Flags.AIM_9X] = math.random(6,10),
+            },
+            [coalition.side.RED] = {
+                [WarehouseManager.Flags.R73_AA_11_ARCHER] = math.random(40,60),
             }
         },
         [WarehouseManager.StockTypes.AIR_GROUND_BOMBS] = {
             [coalition.side.BLUE] = {
                 [WarehouseManager.Flags.MK_82] = math.random(12,18),
+            },
+            [coalition.side.RED] = {
+                [WarehouseManager.Flags.KAB_500KR] = math.random(10,15),
             }
         },
         [WarehouseManager.StockTypes.AIR_GROUND_GUIDED_BOMBS] = {
@@ -226,6 +369,9 @@ do
                 [WarehouseManager.Flags.GBU_38] = math.random(8,14),
                 [WarehouseManager.Flags.GBU_12] = math.random(6,10),
                 [WarehouseManager.Flags.GBU_31_V_3B] = math.random(6,10),
+            },
+            [coalition.side.RED] = {
+                [WarehouseManager.Flags.KH_29T] = math.random(10,15),
             }
         },
         [WarehouseManager.StockTypes.AIR_GROUND_GUIDED_MISSILES] = {
@@ -233,6 +379,10 @@ do
                 [WarehouseManager.Flags.AGM_65D] = math.random(12,16),
                 [WarehouseManager.Flags.AGM_65E] = math.random(6,10),
                 [WarehouseManager.Flags.AGM_88_HARM] = math.random(6,10),
+            },
+            [coalition.side.RED] = {
+                [WarehouseManager.Flags.KH25ML] = math.random(10,15),
+                [WarehouseManager.Flags.KH58U] = math.random(14,18),
             }
         },
         [WarehouseManager.StockTypes.AIR_GROUND_ROCKETS] = {
@@ -240,18 +390,28 @@ do
                 [WarehouseManager.Flags.HYDRA_70_M282_MPP_APKWS] = math.random(38,58),
                 [WarehouseManager.Flags.HYDRA_70_M151_HE] = math.random(60,100),
                 [WarehouseManager.Flags.HYDRA_70_MK5_HEAT] = math.random(60,100),
+            },
+            [coalition.side.RED] = {
+                [WarehouseManager.Flags.S_8O0FP2_MPP] = math.random(200,300),
+                [WarehouseManager.Flags.VIKHR_M] = math.random(100,150),
             }
         },
         [WarehouseManager.StockTypes.ECM] = {
             [coalition.side.BLUE] = {
                 [WarehouseManager.Flags.ALQ_184] = math.random(2,6),
+            },
+            [coalition.side.RED] = {
+                [WarehouseManager.Flags.L005_SORBSIYA_ECM_POD_LEFT] = math.random(3,5),
+                [WarehouseManager.Flags.L005_SORBSIYA_ECM_POD_RIGHT] = math.random(3,5),
+                [WarehouseManager.Flags.L081_FANTASMAGORIA] = math.random(2,4),
             }
         },
         [WarehouseManager.StockTypes.TGP] = {
             [coalition.side.BLUE] = {
                 [WarehouseManager.Flags.AAQ_28_LITENING] = math.random(5,8),
                 [WarehouseManager.Flags.AN_AAQ_33_SNIPER] = math.random(5,8),
-            }
+            },
+
         },
         [WarehouseManager.StockTypes.MISC] = {
             [coalition.side.BLUE] = {
@@ -265,6 +425,12 @@ do
                 [WarehouseManager.AircraftFlags.FA18C_HORNET] = 4,
                 [WarehouseManager.AircraftFlags.M2000C] = 2,
                 [WarehouseManager.AircraftFlags.F15E_SE] = 2,
+            },
+            [coalition.side.RED] = {
+                [WarehouseManager.AircraftFlags.MIG29S] = 6,
+                [WarehouseManager.AircraftFlags.SU27] = 4,
+                [WarehouseManager.AircraftFlags.SU30] = 2,
+                [WarehouseManager.AircraftFlags.SU25T] = 2,
             }
         },
         [WarehouseManager.StockTypes.AA_AIRCRAFT] = {
@@ -273,6 +439,12 @@ do
                 [WarehouseManager.AircraftFlags.FA18C_HORNET] = 4,
                 [WarehouseManager.AircraftFlags.M2000C] = 2,
                 [WarehouseManager.AircraftFlags.F15C] = 2,
+            },
+            [coalition.side.RED] = {
+                [WarehouseManager.AircraftFlags.MIG29S] = 6,
+                [WarehouseManager.AircraftFlags.SU27] = 4,
+                [WarehouseManager.AircraftFlags.MIG29A] = 2,
+                [WarehouseManager.AircraftFlags.MIG31] = 2,
             }
         },        
         [WarehouseManager.StockTypes.AG_AIRCRAFT] = {
@@ -282,6 +454,12 @@ do
                 [WarehouseManager.AircraftFlags.A10C_TANK_KILLER_II] = 4,
                 [WarehouseManager.AircraftFlags.F15E_SE] = 4,
                 [WarehouseManager.AircraftFlags.SU25T] = 4,
+            },
+            [coalition.side.RED] = {
+                [WarehouseManager.AircraftFlags.SU25T] = 4,
+                [WarehouseManager.AircraftFlags.SU24M] = 4,
+                [WarehouseManager.AircraftFlags.MIG29S] = 2,
+                [WarehouseManager.AircraftFlags.SU27] = 2,
             }
         },
         
@@ -309,6 +487,17 @@ do
                 [WarehouseManager.Flags.AIM_9X] = math.random(8,14),
                 [WarehouseManager.Flags.SUPER_530D] = math.random(2,4),
                 [WarehouseManager.Flags.MAGIC_II] = math.random(2,4),
+            },
+            [coalition.side.RED] = {
+                [WarehouseManager.Flags.R73_AA_11_ARCHER] = math.random(40,60),
+                [WarehouseManager.Flags.S_8O0FP2_MPP] = math.random(100,200),
+                [WarehouseManager.Flags.VIKHR_M] = math.random(100,150),
+                [WarehouseManager.Flags.KH_29T] = math.random(10,15),
+                [WarehouseManager.Flags.KH25ML] = math.random(10,15),
+                [WarehouseManager.Flags.KH58U] = math.random(14,18),
+                [WarehouseManager.Flags.L081_FANTASMAGORIA] = math.random(2,4),
+                [WarehouseManager.Flags.R27ER] = math.random(20,30),
+                [WarehouseManager.Flags.R27ET] = math.random(12,20),
             }
         },
      
@@ -516,14 +705,14 @@ do
         if not airbase:getCoalition() then return false end
         local side = airbase:getCoalition()
 
-        if AIRCRAFT_GROUP[airbase_name]
-        and AIRCRAFT_GROUP[airbase_name][side]
-        and AIRCRAFT_GROUP[airbase_name][side][ai_task_type]
+        if WarehouseManager.AirbaseGroupData[airbase_name]
+        and WarehouseManager.AirbaseGroupData[airbase_name][side]
+        and WarehouseManager.AirbaseGroupData[airbase_name][side][ai_task_type]
         then
             -- group_name = "BLUE JTAC VAZIANI",
             --warehouse_name =
-            local acft_name = AIRCRAFT_GROUP[airbase_name][side][ai_task_type].warehouse_name
-            local template_gr_name = AIRCRAFT_GROUP[airbase_name][side][ai_task_type].group_name
+            local acft_name = WarehouseManager.AirbaseGroupData[airbase_name][side][ai_task_type].warehouse_name
+            local template_gr_name = WarehouseManager.AirbaseGroupData[airbase_name][side][ai_task_type].group_name
             if warehouse:getItemCount(acft_name) > 0 then
                 return true, template_gr_name
             else

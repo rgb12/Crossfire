@@ -125,11 +125,11 @@ do
 
                         -- 1. Refund the Airframe
                         local side = enroute.side
-                        if AIRCRAFT_GROUP[enroute.from_zone.airbase_name] 
-                        and AIRCRAFT_GROUP[enroute.from_zone.airbase_name][side] 
-                        and AIRCRAFT_GROUP[enroute.from_zone.airbase_name][side][enroute.ai_task_type] then
+                        if WarehouseManager.AirbaseGroupData[enroute.from_zone.airbase_name] 
+                        and WarehouseManager.AirbaseGroupData[enroute.from_zone.airbase_name][side] 
+                        and WarehouseManager.AirbaseGroupData[enroute.from_zone.airbase_name][side][enroute.ai_task_type] then
                             
-                            local acft_name = AIRCRAFT_GROUP[enroute.from_zone.airbase_name][side][enroute.ai_task_type].warehouse_name
+                            local acft_name = WarehouseManager.AirbaseGroupData[enroute.from_zone.airbase_name][side][enroute.ai_task_type].warehouse_name
                             if acft_name then
                                 -- Add to "aircraft" category in save data
                                 wh_root["aircraft"][acft_name] = (wh_root["aircraft"][acft_name] or 0) + 1

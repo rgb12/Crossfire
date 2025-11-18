@@ -457,11 +457,11 @@ do
                 local aircraft_count = 0
                 local group_name
 
-                if AIRCRAFT_GROUP[closest_airbase.airbase_name]
-                and AIRCRAFT_GROUP[closest_airbase.airbase_name][side]
-                and AIRCRAFT_GROUP[closest_airbase.airbase_name][side][aircraft_type] then
-                    aircraft_count =airbase_warehouse:getItemCount(AIRCRAFT_GROUP[closest_airbase.airbase_name][side][aircraft_type].warehouse_name)
-                    group_name = AIRCRAFT_GROUP[closest_airbase.airbase_name][side][aircraft_type].group_name
+                if WarehouseManager.AirbaseGroupData[closest_airbase.airbase_name]
+                and WarehouseManager.AirbaseGroupData[closest_airbase.airbase_name][side]
+                and WarehouseManager.AirbaseGroupData[closest_airbase.airbase_name][side][aircraft_type] then
+                    aircraft_count =airbase_warehouse:getItemCount(WarehouseManager.AirbaseGroupData[closest_airbase.airbase_name][side][aircraft_type].warehouse_name)
+                    group_name = WarehouseManager.AirbaseGroupData[closest_airbase.airbase_name][side][aircraft_type].group_name
                 end
                 MissionLogger:info("Airbase:" .. closest_airbase.airbase_name .. " has ".. aircraft_count .." ".. aircraft_type .." available.")  
                 if aircraft_count and aircraft_count>=aircraft_amount and group_name then

@@ -498,60 +498,6 @@ GroupData = {
 
 
 
-AIRCRAFT_GROUP = {
-    [Airbases.Caucasus.Vaziani] = {
-        [coalition.side.BLUE] = {
-            [AITaskTypes.JTAC] = {
-                group_name = "BLUE VAZIANI JTAC",
-                warehouse_name = "RQ-1A Predator"
-            },
-            [AITaskTypes.CAS] = {
-                group_name = "BLUE VAZIANI CAS",
-                warehouse_name = "A-10C_2"
-            },
-            [AITaskTypes.SEAD] = {
-                group_name = "BLUE VAZIANI SEAD",
-                warehouse_name = "F-16C_50"
-            },
-            [AITaskTypes.STRIKE] = {
-                group_name = "BLUE VAZIANI STRIKE",
-                warehouse_name = "F-16C_50"
-            },
-            [AITaskTypes.INTERCEPT] = {
-                group_name = "BLUE VAZIANI INTERCEPT",
-                warehouse_name = "F-15C"
-            },
-            [AITaskTypes.AWACS] = {
-                group_name = "BLUE VAZIANI AWACS",
-                warehouse_name = "E-3A"
-            },
-            [AITaskTypes.RECON] = {
-                group_name = "BLUE VAZIANI RECON",
-                warehouse_name = "F-16C_50"
-            }
-        },
-        -- [coalition.side.RED] = {
-        --     [AITaskTypes.JTAC] = {
-        --         group_name = "RED JTAC",--TO CHANGE
-        --         warehouse_name = "RQ-1A Predator"
-        --     }
-        -- },
-    },
-    [Airbases.Caucasus.Beslan] = {
-        [coalition.side.BLUE] = {
-            [AITaskTypes.JTAC] = {
-                group_name = "BLUE JTAC BESLAN",
-                warehouse_name = "RQ-1A Predator" 
-            }
-        },
-        -- [coalition.side.RED] = {
-        --     [AITaskTypes.JTAC] = {
-        --         group_name = "RED JTAC",--TO CHANGE
-        --         warehouse_name = "RQ-1A Predator"
-        --     }
-        -- }    
-    }
-}
 
 
 
