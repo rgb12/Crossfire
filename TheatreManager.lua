@@ -193,11 +193,23 @@ do
         
         if side == coalition.side.BLUE then
             home_base = blue_airbase
-        else
+            if stats.blue_airbases == 0 then
+                trigger.action.outTextForCoalition(side,
+                    "No coalition airbases on the battlefield, AI tasking suspended.", 10)
+                return
+            end
+
+        elseif side == coalition.side.RED then
             home_base = red_airbase
+            if stats.red_airbases == 0 then
+                trigger.action.outTextForCoalition(side,
+                    "No coalition airbases on the battlefield, AI tasking suspended.", 10)
+                return
+            end
         end
         
         if home_base == nil then return end
+        if home_base.side ~= side then return end
 
         -- Missions are decided upon the distance from the home airbase
         local closest_enemy_zone, closest_dist = home_base:getClosestZone(enemy_side,nil,nil,true)
@@ -550,6 +562,7 @@ do
         local home_airbase     -- This will be the ZoneHandler object for the base
 
         if side == coalition.side.BLUE and blue_airbase.acft_resupply_point then
+            if stats.blue_airbases == 0 then return end
 
             cargo_sent_table = mist.teleportToPoint({
                 groupName = GroupData.COMMON_ASSETS.BLUE.resupply_aircraft,
@@ -568,6 +581,7 @@ do
             timer.scheduleFunction(TheatreCommander.sendWarehouseResupply, side, timer.getTime() + stats.blue_resupply_time)
         
         elseif side == coalition.side.RED and red_airbase.acft_resupply_point then
+            if stats.red_airbases == 0 then return end
 
             cargo_sent_table = mist.teleportToPoint({
                 groupName = GroupData.COMMON_ASSETS.RED.resupply_aircraft,
@@ -837,6 +851,12 @@ do
         world.addEventHandler(ev)
         world.addEventHandler(ExperienceManager.EventHandler)
         PersistanceManager:autoSave()
+
+        -- local airb = ZoneHandler.getFromName("ANAPA")
+        -- local wh = Airbase.getByName(airb.airbase_name):getWarehouse():getInventory()
+        -- MissionLogger:info("ANAPA INV")
+        -- MissionLogger:info(wh)
+
 
         -- trigger.action.outText("Theatre setup complete.", 5)
         MissionLogger:info("Mission Commander: Mission Setup Complete.")
