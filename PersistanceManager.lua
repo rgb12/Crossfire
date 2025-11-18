@@ -137,7 +137,7 @@ do
                         end
 
                         -- 2. Refund the Payload
-                        local payload_def = WarehouseManager.AIPayloads[enroute.ai_task_type]
+                        local payload_def = WarehouseManager.AIPayloads[enroute.side][enroute.ai_task_type]
                         if payload_def then
                             for wpn_id, amount in pairs(payload_def) do
                                 -- Add to "weapon" category in save data

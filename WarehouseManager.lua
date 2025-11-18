@@ -29,9 +29,18 @@ do
     ECLAIR_M_51 = "weapons.containers.{EclairM_51}",
     HYDRA_70_MK5_HEAT = "weapons.nurs.HYDRA_70_MK5",
     HYDRA_70_M151_HE = "weapons.nurs.HYDRA_70_M151",
-    
-
-
+    KAB_500KR = "weapons.bombs.KAB-500Kr",
+    R27ER = "weapons.missiles.P_27PE",
+    R27ET = "weapons.missiles.P_27TE",
+    R73_AA_11_ARCHER = "weapons.missiles.P_73",
+    S_8O0FP2_MPP = "weapons.nurs.C_8OFP2",
+    L081_FANTASMAGORIA = "weapons.containers.Fantasm",
+    R60M = "weapons.missiles.P_60",
+    KH_29T = "weapons.missiles.X_29T",
+    KH25ML = "weapons.missiles.X_25ML",
+    KH58U = "weapons.missiles.X_58",
+    L005_SORBSIYA_ECM_POD_LEFT = "weapons.containers.SORBCIJA_L",
+    L005_SORBSIYA_ECM_POD_RIGHT = "weapons.containers.SORBCIJA_R",
     }
     ---@enum WarehouseManager.AircraftFlags
     WarehouseManager.AircraftFlags = {
@@ -51,65 +60,85 @@ do
         C17A = "C-17A"
 
     }
-    --[[
-
-    ["weapons.containers.AN_AAQ_33"] = 6
-     ["weapons.containers.F-15E_AAQ-33_XR_ATP-SE"] = 5,
-      ["weapons.containers.{EclairM_51}"] = 6,
-
-      ["weapons.missiles.AGR_20_M282"] = 20,
-      ["weapons.missiles.P_73"] = 1, 
-      ["weapons.nurs.Zuni_127"] = 16, 
-     ["weapons.containers.LANTIRN-F14-TARGET"] = 1, 
-     ["weapons.containers.{F14-LANTIRN-TP}"] = 2, 
-     ["weapons.containers.{EclairM_60}"] = 8, 
-     ["weapons.containers.LANTIRN"] = 3,
-     ["aircraft"] = {
-        ["Su-25T"] = 3, ["E-3A"] = 2, ["MQ-9 Reaper"] = 2,
-        ["F-15ESE"] = 1, ["E-2C"] = 1, ["AH-64D_BLK_II"] = 1, 
-        ["RQ-1A Predator"] = 2, ["KC130"] = 1, ["F-16C_50"] = 3,
-        ["M-2000C"] = 3, ["FA-18C_hornet"] = 3, ["F-14A-135-GR"] = 3,
-        ["C-101EB"] = 2, ["KC135MPRS"] = 2, ["F-117A"] = 1, ["A-10C_2"] = 2
-        , ["AH-64D"] = 1, ["AH-64A"] = 2, ["F-16C bl.52d"] = 2, ["F-15C"] = 2, 
-        ["F-14B"] = 2, ["Christen Eagle II"] = 1, ["C-17A"] = 12, ["C-130"] = 3, }, }
-               
-         ]]
-
-
-
+   
     WarehouseManager.AIPayloads = {
-        [AITaskTypes.CAS] = {
-            [WarehouseManager.Flags.LAU_88] = 2 *2, -- accounts for both aircrafts
-            [WarehouseManager.Flags.AGM_65D] = 4 *2,
-            [WarehouseManager.Flags.AAQ_28_LITENING] = 1 *2,
-            [WarehouseManager.Flags.AIM_9M] = 1 *2,
-            [WarehouseManager.Flags.HYDRA_70_M282_MPP_APKWS] = 7 *2
-            --WARN Missing items
+        [coalition.side.BLUE] = {
+            [AITaskTypes.CAS] = {
+                [WarehouseManager.Flags.LAU_88] = 2 *2, -- accounts for both aircrafts
+                [WarehouseManager.Flags.AGM_65D] = 4 *2,
+                [WarehouseManager.Flags.AAQ_28_LITENING] = 1 *2,
+                [WarehouseManager.Flags.AIM_9M] = 1 *2,
+                [WarehouseManager.Flags.HYDRA_70_M282_MPP_APKWS] = 7 *2
+                --WARN Missing items
+            },
+            [AITaskTypes.INTERCEPT] = {
+                [WarehouseManager.Flags.AIM_120C] = 4 *2,
+                [WarehouseManager.Flags.AIM_9M] = 2 *2
+            },
+            [AITaskTypes.STRIKE] = {
+                [WarehouseManager.Flags.AIM_120B] = 2 *2,
+                [WarehouseManager.Flags.AIM_9X] = 2 *2,
+                [WarehouseManager.Flags.GBU_31_V_3B] = 2 *2,
+                [WarehouseManager.Flags.AAQ_28_LITENING] = 1 *2,
+            },
+            [AITaskTypes.SEAD] = {
+                [WarehouseManager.Flags.AIM_120B] = 2 *2,
+                [WarehouseManager.Flags.AIM_9X] = 2 *2,
+                [WarehouseManager.Flags.AGM_88_HARM] = 2 *2,
+                [WarehouseManager.Flags.HTS_POD] = 1 *2,
+                [WarehouseManager.Flags.ALQ_184] = 1 *2,
+            },
+            [AITaskTypes.RECON] = {
+                [WarehouseManager.Flags.AAQ_28_LITENING] = 1 *2,
+                [WarehouseManager.Flags.AIM_120C] = 2 *2,
+                [WarehouseManager.Flags.AIM_9X] = 2 *2,
+            },
+            [AITaskTypes.AWACS] = {},
+            [AITaskTypes.JTAC] = {},
         },
-        [AITaskTypes.INTERCEPT] = {
-            [WarehouseManager.Flags.AIM_120C] = 4 *2,
-            [WarehouseManager.Flags.AIM_9M] = 2 *2
-        },
-        [AITaskTypes.STRIKE] = {
-            [WarehouseManager.Flags.AIM_120B] = 2 *2,
-            [WarehouseManager.Flags.AIM_9X] = 2 *2,
-            [WarehouseManager.Flags.GBU_31_V_3B] = 2 *2,
-            [WarehouseManager.Flags.AAQ_28_LITENING] = 1 *2,
-        },
-        [AITaskTypes.SEAD] = {
-            [WarehouseManager.Flags.AIM_120B] = 2 *2,
-            [WarehouseManager.Flags.AIM_9X] = 2 *2,
-            [WarehouseManager.Flags.AGM_88_HARM] = 2 *2,
-            [WarehouseManager.Flags.HTS_POD] = 1 *2,
-            [WarehouseManager.Flags.ALQ_184] = 1 *2,
-        },
-        [AITaskTypes.RECON] = {
-            [WarehouseManager.Flags.AAQ_28_LITENING] = 1 *2,
-            [WarehouseManager.Flags.AIM_120C] = 2 *2,
-            [WarehouseManager.Flags.AIM_9X] = 2 *2,
-        },
-        [AITaskTypes.AWACS] = {},
-        [AITaskTypes.JTAC] = {},
+        [coalition.side.RED] = {
+            [AITaskTypes.CAS] = {
+                [WarehouseManager.Flags.R73_AA_11_ARCHER] = 2 *2,
+                [WarehouseManager.Flags.S_8O0FP2_MPP] = 2*20 *2,
+                [WarehouseManager.Flags.VIKHR_M] = 2*8 *2,
+                [WarehouseManager.Flags.KH_29T] = 2 *2,
+                -- 2 * R-73 AA 11 Archer
+                -- 2 * B-8M1 20*UnGd Rkts 80mm S-80FP2 MPP
+                -- 2 * APU-8 8* 9M127 Vikhr ATGM
+                -- 2 * Kh-29T AS-14 Kedge
+
+            },
+            [AITaskTypes.SEAD] = {
+                [WarehouseManager.Flags.KH25ML] = 2 *2,
+                [WarehouseManager.Flags.KH58U] = 2 *2,
+                [WarehouseManager.Flags.L081_FANTASMAGORIA] = 1 *2,
+                -- 2 * Kh-25ML AS 10 Karen 300 kg ASM Semi Act Laser
+                -- 2 * Kh-58U AS-11 Kilter ARM 
+                -- 1 * L-081 Fantasmagoria ELINT pod
+            },
+            [AITaskTypes.INTERCEPT] = {
+                [WarehouseManager.Flags.R73_AA_11_ARCHER] = 2 *2,
+                [WarehouseManager.Flags.R27ER] = 2 *2,
+                [WarehouseManager.Flags.R27ET] = 2 *2,
+                [WarehouseManager.Flags.L005_SORBSIYA_ECM_POD_LEFT] = 1 *2,
+                [WarehouseManager.Flags.L005_SORBSIYA_ECM_POD_RIGHT] = 1 *2,
+                -- 2 * R-73 AA 11 Archer
+                -- 2 * R-27 ER
+                -- 2 * R-27 ET
+                -- 2 * L005 Sorbtsiya ECM pod
+            },
+            [AITaskTypes.STRIKE] = {
+                [WarehouseManager.Flags.KAB_500KR] = 2 *2,
+                [WarehouseManager.Flags.KH_29T] = 2 *2,
+                [WarehouseManager.Flags.R60M] = 1 *2,
+                -- 2 * KAB-500Kr AS-5K 'KAB-500Kr' TV Guided Bomb
+                -- 2 * Kh-29T AS-14 Kedge
+                -- 1 * APU-60-1M with 1 * R-60M
+            },
+
+            
+            [AITaskTypes.AWACS] = {}
+        }
     }
 
 
@@ -427,7 +456,7 @@ do
 
         -- 4. Distribute items to warehouses with calculated amounts
 
-        -- Add to L4 bases
+        -- Add to tier 4 bases
         if mult_l4 > 0 then
             for _, warehouse in ipairs(level_4_bases) do
                 for id, base_amount in pairs(items_to_add) do
@@ -439,7 +468,7 @@ do
             end
         end
         
-        -- Add to L3 bases
+        -- Add to tier 3 bases
         if mult_l3 > 0 then
             for _, warehouse in ipairs(level_3_bases) do
                 for id, base_amount in pairs(items_to_add) do
@@ -458,13 +487,14 @@ do
     ---@param ai_task_type AITaskTypes
     ---@return boolean, string|nil
     function WarehouseManager:checkIfAIPayloadInStock(airbase, ai_task_type)
-        
-        if not (airbase or WarehouseManager.AIPayloads[ai_task_type]) then return false end
+        if not airbase or not airbase.getCoalition then return false end
+        local airbase_coalition = airbase:getCoalition()
+        if not WarehouseManager.AIPayloads[airbase_coalition][ai_task_type] then return false end
 
         local warehouse = airbase:getWarehouse()
         if not warehouse then return false end
 
-        for wpn_id,amount in pairs(WarehouseManager.AIPayloads[ai_task_type]) do
+        for wpn_id,amount in pairs(WarehouseManager.AIPayloads[airbase_coalition][ai_task_type]) do
             if warehouse:getItemCount(wpn_id) < amount then
                 MissionLogger:info("Checking warehouse for "..ai_task_type.." payloads, payload INSUFFICIENT")
                 return false
