@@ -7,10 +7,7 @@ do
     TheatreCommander.blue_op_manager = nil
     TheatreCommander.red_op_manager = nil
     TheatreCommander.zones_to_check_for_capture = {}
-    TheatreCommander.COMMS_towers = {
-        [coalition.side.BLUE] = 0,
-        [coalition.side.RED] = 0
-    }
+
     ---@param to_zone ZoneHandler
     ---@param side_sending_capture coalition.side
     ---@param from_zone ZoneHandler|nil
@@ -181,16 +178,21 @@ do
     function TheatreCommander:evaluateAITasks(side)
         MissionLogger:info("AI Commander checking tasks for: " .. utils.coalitionToString(side))
         
-        if TheatreCommander.COMMS_towers[side] == 0 then
+        local side_comms_towers = 0
+        if side == coalition.side.BLUE then
+            side_comms_towers = stats.blue_comms_zones
+        elseif side == coalition.side.RED then
+            side_comms_towers = stats.red_comms_zones
+        end
+
+        if side_comms_towers == 0 then
             trigger.action.outTextForCoalition(side,
-                "No coalition COMMS towers on the battlefield, tasking suspended.", 10)
+                "No coalition COMMS towers on the battlefield, AI tasking suspended.", 10)
             return
         end
 
-        
         local enemy_side = utils.getEnemyCoalition(side)
         local home_base
-        
         if side == coalition.side.BLUE then
             home_base = blue_airbase
             if stats.blue_airbases == 0 then
@@ -220,7 +222,7 @@ do
         -- Check if we are already running a RECON mission
         local recon_enroute = EnrouteManager:findByTaskType(AITaskTypes.RECON, side)
         if recon_enroute and #recon_enroute < 1
-        and TheatreCommander.COMMS_towers[side] >= Config.tasking_requirements.comms_zones_required_for_recon
+        and side_comms_towers >= Config.tasking_requirements.comms_zones_required_for_recon
         then
             -- Find the closest *undiscovered* enemy zone
             local closest_undiscovered_zone = nil
@@ -253,7 +255,7 @@ do
         -- Check if an AWACS is already airborne for this side
         local awacs_enroute = EnrouteManager:findByTaskType(AITaskTypes.AWACS, side)
         if #awacs_enroute == 0 and closest_dist < 75000
-        and TheatreCommander.COMMS_towers[side] >= Config.tasking_requirements.comms_zones_required_for_awacs then
+        and side_comms_towers >= Config.tasking_requirements.comms_zones_required_for_awacs then
             -- No AWACS is up, let's launch one from the home base
             MissionLogger:info("AI Commander: No AWACS found for " .. utils.coalitionToString(side) .. ". Tasking one.")
             local task_sent = TaskManager:initiateAITask(AITaskTypes.AWACS, side, true, nil, home_base, false)
@@ -266,7 +268,7 @@ do
         if #cas_enroute < 2 then -- Only allow 2 auto-CAS missions at a time
    
             if closest_enemy_zone and closest_dist < Config.tasking.max_cas_range
-            and TheatreCommander.COMMS_towers[side] >= Config.tasking_requirements.comms_zones_required_for_cas then -- Only attack targets within 150km
+            and side_comms_towers >= Config.tasking_requirements.comms_zones_required_for_cas then -- Only attack targets within 150km
                 -- Check if a CAS mission is ALREADY going to this specific zone
                 if not EnrouteManager:findByToZone(closest_enemy_zone, side, {AITaskTypes.CAS}) then
                     MissionLogger:info("AI Commander: Tasking CAS for " .. utils.coalitionToString(side) .. " to " .. closest_enemy_zone.name)
@@ -280,8 +282,8 @@ do
         -- 3. SEAD CHECK
         -- Check if we are already running the max number of SEAD missions
         local sead_enroute = EnrouteManager:findByTaskType(AITaskTypes.SEAD, side)
-        if sead_enroute and #sead_enroute < 3 
-        and TheatreCommander.COMMS_towers[side] >= Config.tasking_requirements.comms_zones_required_for_sead 
+        if sead_enroute and #sead_enroute < 3
+        and side_comms_towers >= Config.tasking_requirements.comms_zones_required_for_sead 
         then -- Only allow 3 auto-SEAD missions at a time
         
             -- Find a discovered enemy SAM site
@@ -308,7 +310,7 @@ do
         -- Check if we are already running the max number of INTERCEPT missions
         local intercept_enroute = EnrouteManager:findByTaskType(AITaskTypes.INTERCEPT, side)
         if intercept_enroute and #intercept_enroute < 3
-        and TheatreCommander.COMMS_towers[side] >= Config.tasking_requirements.comms_zones_required_for_intercept
+        and side_comms_towers >= Config.tasking_requirements.comms_zones_required_for_intercept
         then -- Only allow 3 auto-INTERCEPT mission
             -- Find a friendly frontline zone to patrol
             -- We'll pick the friendly zone closest to the ENEMY home base
@@ -326,7 +328,7 @@ do
         -- Check if we are already running the max number of STRIKE missions
         local strike_enroute = EnrouteManager:findByTaskType(AITaskTypes.STRIKE, side)
         if strike_enroute and #strike_enroute < 2 
-        and TheatreCommander.COMMS_towers[side] >= Config.tasking_requirements.comms_zones_required_for_strike
+        and side_comms_towers >= Config.tasking_requirements.comms_zones_required_for_strike
         then -- Only allow 2 auto-STRIKE missions
             
             -- Define high-value static targets
@@ -417,7 +419,7 @@ do
                         TaskManager:initiateAITask(AITaskTypes.ATTACK_CONVOY,zone.side,true,nil,zone,false)
                     end
 
-                    CommandHandler.refreshAvailZonesJTAC()
+                    CommandHandler.refreshJtacCmds()
             end
         end
 
@@ -539,7 +541,7 @@ do
                         enroute.stuck_since = nil
                         
                         -- Check for redirect loop
-                        if enroute.redirects_count and enroute.redirects_count > 10 then
+                        if enroute.redirects_count and enroute.redirects_count > 3 then
                             -- SCENARIO 5: CONVOY FINISHED (too many redirects)
                             MissionLogger:info("Attack convoy exceeded max redirects count: " .. enroute.group_name)
                             EnrouteManager:remove(enroute.group_name)
@@ -827,7 +829,8 @@ do
         
         -- 3. Start all services (these run in both cases)
         CommandHandler.init()
-        CommandHandler.initJTAC()
+        CommandHandler.refreshJtacCmds(coalition.side.BLUE)
+        CommandHandler.refreshJtacCmds(coalition.side.RED)
         
         -- Create Operation Managers for each coalition
         if blue_airbase and red_airbase then

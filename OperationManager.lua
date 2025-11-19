@@ -67,6 +67,12 @@ do
         end
 
         local zone_tgt = ZoneHandler.getFromName(active_mission.target_zone_name)
+        if not zone_tgt then
+            trigger.action.outTextForUnit(unit:getID(), "Target zone not found for this operation.", 10)
+            OperationManager:cancelOperation(unit)
+            return
+        end
+
         local lat, lon = coord.LOtoLL(zone_tgt.zone.point)
         local mgrs = coord.LLtoMGRS(lat, lon)
 
@@ -266,6 +272,7 @@ do
                     completed = false,
                     check = function()
                         local zone = ZoneHandler.getFromName(target_zone.name)
+                        if not zone then return false end
                         return zone.side ~= utils.getEnemyCoalition(zone.side) -- if it's neutral or friendly, it's cleared
                     end
                 }
@@ -290,6 +297,7 @@ do
                         -- Placeholder: check if specific units (SR/TR) are destroyed.
                         -- For now, we'll just check if the zone is neutralized.
                         local zone = ZoneHandler.getFromName(target_zone.name)
+                        if not zone then return false end
                         return zone.side == coalition.side.NEUTRAL
                     end
                 }
@@ -311,6 +319,7 @@ do
                     completed = false,
                     check = function()
                         local zone = ZoneHandler.getFromName(target_zone.name)
+                        if not zone then return false end
                         return zone.side == coalition.side.NEUTRAL
                     end
                 }
@@ -326,12 +335,14 @@ do
             target_desc = "Communications Tower"
             check_func = function()
                 local zone = ZoneHandler.getFromName(target_zone.name)
+                if not zone then return false end
                 return not zone.comms_tower_intact
             end
         elseif strike_type == "LOGISTICS" then
             target_desc = "Ammunition Depot"
             check_func = function()
                 local zone = ZoneHandler.getFromName(target_zone.name)
+                if not zone then return false end
                 return not zone.ammo_depot_intact
             end
         end
@@ -370,6 +381,8 @@ do
                     check = function(self, player_unit)
                         local player_pos = player_unit:getPoint()
                         local zone = ZoneHandler.getFromName(target_zone.name)
+                        if not zone then return false end
+
                         if not self.start_time then
 
                             if mist.utils.get2DDist(zone.zone.point,player_pos) <= self.radius then
@@ -465,6 +478,12 @@ do
             return
         end
 
+        local zone_tgt = ZoneHandler.getFromName(accepted_mission.target_zone_name)
+        if not zone_tgt then
+            trigger.action.outTextForUnit(unit:getID(), "Target zone not found for this operation.", 10)
+            return
+        end
+
         -- Move from available to active
         table.remove(self.available_operations, mission_index)
         accepted_mission.status = OperationStatus.ACTIVE
@@ -473,7 +492,6 @@ do
         table.insert(self.active_operations, accepted_mission)
 
         local outtxt = string.format("\n%s Operation %s Initiated", accepted_mission.type, accepted_mission.operation_name)
-        local zone_tgt = ZoneHandler.getFromName(accepted_mission.target_zone_name)
         local lat, lon = coord.LOtoLL(zone_tgt.zone.point)
         local mgrs = coord.LLtoMGRS(lat, lon)
         outtxt = outtxt .. "\n\nTarget area: " .. accepted_mission.target_zone_name

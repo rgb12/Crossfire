@@ -42,6 +42,7 @@ do
     L005_SORBSIYA_ECM_POD_LEFT = "weapons.containers.SORBCIJA_L",
     L005_SORBSIYA_ECM_POD_RIGHT = "weapons.containers.SORBCIJA_R",
     }
+
     ---@enum WarehouseManager.AircraftFlags
     WarehouseManager.AircraftFlags = {
         SU25T = "Su-25T",
@@ -574,6 +575,7 @@ do
     function WarehouseManager:handleIncomingSupplies(side,stock_types)
 
         --[[
+            tier = level
             75% of supplies go to airbases level 4, divided equally
             25% of supplies go to airbases level 3, divided equally
             0% for airbases level 1 and 2
@@ -668,6 +670,7 @@ do
                 end
             end
         end
+        trigger.action.outTextForCoalition(side, "Arriving supplies distributed to airbases.", 10)
 
         MissionLogger:info("HandleIncomingSupplies: Supply distribution complete for " .. (utils.coalitionToString(side) or "Unknown Side"))
     end

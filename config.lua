@@ -126,7 +126,7 @@ Config = {
 
 }
 
-stats = { --TO CHANGE Completety remove this
+stats = {
     neutral_zones = 0,
     red_zones = 0,
     blue_zones = 0,

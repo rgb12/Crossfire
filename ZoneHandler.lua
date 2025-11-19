@@ -431,12 +431,13 @@ do
             end
         end
 
-        -- draw zone
-        for _,zone in ipairs(zones) do
-            if utils.tableContains(updated_zones,zone.name) then zone:drawF10() end
+        for _,zone_name in ipairs(updated_zones) do
+            local zone = ZoneHandler.getFromName(zone_name)
+            if zone then 
+                zone:drawF10()
+                CommandHandler.refreshJtacCmds(zone.side)
+            end
         end
-
-
     end
 
     function ZoneHandler:capture(side)
@@ -479,10 +480,10 @@ do
 
             if self.side == coalition.side.RED then
                 UnitHandler.clone(GroupData.LOGISTICS_SITES.RED[self.level].group_name, self)
-                -- ... (rest of your RED logistics capture logic) ...
+                WarehouseManager:handleIncomingSupplies(self.side,{WarehouseManager.StockTypes.LOGISTICS_CAPTURE})
             elseif self.side == coalition.side.BLUE then
                 UnitHandler.clone(GroupData.LOGISTICS_SITES.BLUE[self.level].group_name, self)
-                WarehouseManager:attributeAirbaseStock(blue_airbase.airbase_name,blue_airbase.side,{WarehouseManager.StockTypes.LOGISTICS_CAPTURE})
+                WarehouseManager:handleIncomingSupplies(self.side,{WarehouseManager.StockTypes.LOGISTICS_CAPTURE})
             end
 
         elseif self.zone_type == ZoneTypes.COMMS and self.side ~= coalition.side.NEUTRAL then
@@ -553,14 +554,29 @@ do
                 if airbase then
                     airbase:autoCapture(false)
                     airbase:setCoalition(self.side)
+
+                    -- -- reset warehouse
+                    -- local wh = airbase:getWarehouse()
+                    -- if wh then
+                    --     local inv = wh:getInventory()
+                    --     for item_name, _ in pairs(inv) do
+                    --         wh:removeItem(item_name, inv[item_name])
+                    --     end
+                    -- end
                 end
             end
+            if red_airbase and self.airbase_name == red_airbase.airbase_name then
+                red_airbase.side = self.side
+            elseif blue_airbase and self.airbase_name == blue_airbase.airbase_name then
+                blue_airbase.side = self.side
+            end
+
             if self.side == coalition.side.RED then
-                UnitHandler.clone( GroupData.AIRBASE_SITES.RED[self.level].group_name , self)
+                UnitHandler.clone(GroupData.AIRBASE_SITES.RED[self.level].group_name , self)
                 stats.red_airbases = stats.red_airbases +1
                 stats.blue_airbases = stats.blue_airbases -1
             elseif self.side == coalition.side.BLUE then
-                UnitHandler.clone( GroupData.AIRBASE_SITES.BLUE[self.level].group_name , self)
+                UnitHandler.clone(GroupData.AIRBASE_SITES.BLUE[self.level].group_name , self)
                 stats.red_airbases = stats.red_airbases -1
                 stats.blue_airbases = stats.blue_airbases +1
             end
@@ -624,6 +640,8 @@ do
 
     end
 
+    ---@param zone_name string
+    ---@return ZoneHandler|nil
     function ZoneHandler.getFromName(zone_name)
         for _, search_zone in ipairs(zones) do
             if search_zone.name == zone_name then
