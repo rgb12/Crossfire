@@ -63,19 +63,22 @@ function ev:onEvent(event)
         
         local unit = event.initiator
         local group_name = unit:getGroup():getName()
-        if EnrouteManager:findByGroup(group_name) then EnrouteManager:remove(group_name) end
-
-
+        
+        
         -- checks if a capture heli aborted, if yes, remove it from enroute_capture_heli
         MissionLogger:info("AI unit aborted mission: " .. unit:getName())
-        
+        MissionLogger:info(EnrouteManager.enroutes)
+        for k,v in pairs(EnrouteManager.enroutes) do
+            MissionLogger:info("Enroute tracked: " .. v.group_name .. " for task type: " .. v.ai_task_type)
+        end
         local enroute_aborted = EnrouteManager:findByGroup(group_name)
+        MissionLogger:info(enroute_aborted)
         if enroute_aborted then
             if enroute_aborted.ai_task_type == AITaskTypes.CAPTURE_HELO then
-                 -- give the heli 2 minutes to land or be destroyed
+                -- give the heli 2 minutes to land or be destroyed
                 timer.scheduleFunction(function ()
                     local gr = Group.getByName(group_name)
-                      if gr and gr:isExist() then
+                    if gr and gr:isExist() then
                         trigger.action.explosion(gr:getUnit(1):getPoint(), 100)
                         EnrouteManager:remove(group_name)
                         MissionLogger:info("Removed damaged AI Heli from enroutes: " .. group_name)
@@ -84,9 +87,11 @@ function ev:onEvent(event)
             elseif enroute_aborted.ai_task_type == AITaskTypes.JTAC then
                 EnrouteManager:remove(group_name)
                 MissionLogger:info("Removed aborted JTAC from enroutes: " .. group_name)
+            else
+                EnrouteManager:remove(group_name)
             end
         end
-
+        
         -- -- check if capture heli, if yes, remove it from enroute_capture_heli
         -- for i, heli_aborted in ipairs(enroute_capture_heli) do
         --     if heli_aborted.group_name == group_name then

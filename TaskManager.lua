@@ -378,6 +378,16 @@ do
             })
 
             if not helo_sent then MissionLogger:info("Capture Heli spawn failed, no heli sent") return false end
+
+            EnrouteManager:add({
+                group_name = helo_sent.name,
+                to_zone = to_zone,
+                from_zone = from_zone,
+                side = side,
+                ai_task_type = AITaskTypes.CAPTURE_HELO,
+                aborted = false
+            })
+
             self:setCAPTUREHELITask(helo_sent.name,side,to_zone,from_zone)
 
             from_zone.capture_heli_avail = from_zone.capture_heli_avail - 1
@@ -618,15 +628,7 @@ do
             helo_controller:setOption(AI.Option.Air.id.REACTION_ON_THREAT,
                 AI.Option.Air.val.REACTION_ON_THREAT.PASSIVE_DEFENCE)
 
-            EnrouteManager:add({
-                group_name = heli_gr_name,
-                to_zone = to_zone,
-                from_zone = from_zone,
-                side = side,
-                ai_task_type = AITaskTypes.CAPTURE_HELO,
-                aborted = false
-            })
-        end
+            end
         timer.scheduleFunction(startMoving, {}, timer.getTime() + 5)
     end
     ---@param convoy_gr_name string

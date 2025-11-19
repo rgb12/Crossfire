@@ -383,8 +383,9 @@ do
             if comms_tower then
                 zone.comms_tower_intact = true
                 zone.linked_comms_tower = comms_tower.name
-                TheatreCommander.COMMS_towers[zone.side] = TheatreCommander.COMMS_towers[zone.side] +1
-                MissionLogger:info("spanwed comms tower")
+
+               
+                -- TheatreCommander.COMMS_towers[zone.side] = TheatreCommander.COMMS_towers[zone.side] +1
                 table.insert(zone.linked_statics, comms_tower.name)
                 MissionLogger:info(zone.linked_statics)
                

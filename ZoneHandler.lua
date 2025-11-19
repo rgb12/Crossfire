@@ -852,7 +852,7 @@ do
         if self.side == coalition.side.NEUTRAL then return end
         if self.zone_type ~= ZoneTypes.COMMS then return end
 
-        MissionLogger:info("COMMS ZONES total for BLUE: "..TheatreCommander.COMMS_towers[coalition.side.BLUE]..", RED: "..TheatreCommander.COMMS_towers[coalition.side.RED])
+        -- MissionLogger:info("COMMS ZONES total for BLUE: "..TheatreCommander.COMMS_towers[coalition.side.BLUE]..", RED: "..TheatreCommander.COMMS_towers[coalition.side.RED])
         
         -- MissionLogger:info("Checking COMMS zone "..self.name)
 
@@ -866,7 +866,7 @@ do
         if self.comms_tower_intact and not is_alive then
             self.comms_tower_intact = false
             self.comms_tower_last_destroyed = timer.getTime()
-            TheatreCommander.COMMS_towers[self.side] = TheatreCommander.COMMS_towers[self.side] - 1
+            -- TheatreCommander.COMMS_towers[self.side] = TheatreCommander.COMMS_towers[self.side] - 1
 
             trigger.action.outTextForCoalition(self.side, "Comms zone "..self.name.." has lost its communications tower. EWRS system impaired, reports are 50% slower.",10)
 
@@ -905,7 +905,7 @@ do
                 self.comms_tower_intact = true
                 self.linked_comms_tower = comms_tower_gr.name
                 self.comms_tower_last_destroyed = nil
-                TheatreCommander.COMMS_towers[self.side] = TheatreCommander.COMMS_towers[self.side] + 1
+                -- TheatreCommander.COMMS_towers[self.side] = TheatreCommander.COMMS_towers[self.side] + 1
                 
                 -- Increase future respawn times
                 Config.comms_tower_respawn_time = math.floor(Config.comms_tower_respawn_time * Config.comms_tower_lost_penalty)
