@@ -283,7 +283,6 @@ do
         end
 
         if current_comms_count < Config.tasking_requirements.comms_zones_required_for_jtac then
-            trigger.action.outTextForCoalition(side, "JTAC tasking requires " .. Config.tasking_requirements.comms_zones_required_for_jtac .. "/"..Config.max_comms_zones.." active COMMS antennas.", 10)
             return
         end
 
@@ -305,7 +304,7 @@ do
 
                     local live_comms = (side == coalition.side.BLUE) and stats.blue_comms_zones or stats.red_comms_zones
                     if live_comms < Config.tasking_requirements.comms_zones_required_for_jtac then
-                        trigger.action.outTextForCoalition(side, "Cannot task JTAC without any active COMMS antennas.", 10)
+                        trigger.action.outTextForCoalition(side, "JTAC tasking requires " .. Config.tasking_requirements.comms_zones_required_for_jtac .. "/"..Config.max_comms_zones.." active COMMS antennas.", 10)
                         return
                     end
 

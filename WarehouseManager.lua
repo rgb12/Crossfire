@@ -11,6 +11,7 @@ do
     AIM_9X = "weapons.missiles.AIM_9X",
     AIM_120C = "weapons.missiles.AIM_120C",
     AIM_120B = "weapons.missiles.AIM_120",
+    AIM_54 = "weapons.missiles.AIM_54C_Mk47",
     AGM_65D = "weapons.missiles.AGM_65D",
     AGM_65E = "weapons.missiles.AGM_65E",
     AGM_88_HARM = "weapons.missiles.AGM_88",
@@ -43,6 +44,20 @@ do
     L005_SORBSIYA_ECM_POD_RIGHT = "weapons.containers.SORBCIJA_R",
     }
 
+    ---@enum WarehouseManager.FuelTanks
+    WarehouseManager.FuelTanks = {
+        FPU_8A_330_GAL = "weapons.droptanks.FPU_8A",         -- FPU-8A fuel tank 330 gal for f18
+        RPL_552_1300L = "weapons.droptanks.M2KC_RPL_522",         -- RPL 522 1300L for M2000C
+        F15E_610_GAL = "weapons.droptanks.F-15E_Drop_Tank",
+        F14_DROPTANK = "weapons.droptanks.HB_F14_EXT_DROPTANK"
+        -- fuel tank 300 gal for F-16C
+        -- fuel tank 370 gal for F-16C
+
+        -- fuel tank 610 gal for f15e
+        -- Fuel tank FT600 for A10CII
+
+        -- Fuel tank 800L Wing for SU25T
+    }
     ---@enum WarehouseManager.AircraftFlags
     WarehouseManager.AircraftFlags = {
         SU25T = "Su-25T",
@@ -307,6 +322,11 @@ do
                 [WarehouseManager.Flags.AIM_9X] = math.random(8,14),
                 [WarehouseManager.Flags.SUPER_530D] = math.random(8,14),
                 [WarehouseManager.Flags.MAGIC_II] = math.random(8,14),
+
+                [WarehouseManager.FuelTanks.FPU_8A_330_GAL] = 200,
+                [WarehouseManager.FuelTanks.F14_DROPTANK] = 200,
+                [WarehouseManager.FuelTanks.F15E_610_GAL] = 200,
+                [WarehouseManager.FuelTanks.RPL_552_1300L] = 200,
 
                 [WarehouseManager.AircraftFlags.A10C_TANK_KILLER_II] = 14,
                 [WarehouseManager.AircraftFlags.E3A] = 2,
