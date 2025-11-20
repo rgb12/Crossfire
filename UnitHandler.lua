@@ -38,82 +38,9 @@ do
         return nil,nil
     end
 
-    -- Check if ground is flat enough for heli landing
-    -- center: vec3 {x=, y=, z=}
-    -- radius: distance around center to sample
-    -- maxSlopeDeg: maximum allowed slope in degrees (default 7°)
-    function UnitHandler.isFlatEnough(center, radius, maxSlopeDeg)
-        radius = radius or 10
-        maxSlopeDeg = maxSlopeDeg or 7
-        local slope_tol = math.tan(math.rad(maxSlopeDeg)) -- convert deg → slope ratio
-        local cx, cz = center.x, center.y
-        local h_center = land.getHeight({x = cx, y = cz})
-
-        -- Sample 8 compass points around center
-        local samples = {
-            {cx + radius, cz},
-            {cx - radius, cz},
-            {cx, cz + radius},
-            {cx, cz - radius},
-            {cx + radius, cz + radius},
-            {cx - radius, cz + radius},
-            {cx + radius, cz - radius},
-            {cx - radius, cz - radius}
-        }
-
-        for _, pt in ipairs(samples) do
-            local h = land.getHeight({x = pt[1], y = pt[2]})
-            local dist = mist.utils.get2DDist(center, {x = pt[1], y = pt[2]})
-            local slope = math.abs(h - h_center) / dist
-            if slope > slope_tol then
-                return false
-            end
-        end
-
-        return true
-    end
-
-    -- Main function: find a clear & flat point in a zone
-    -- spawn_zone_name: trigger zone name
-    -- max_tries: how many random picks
-    -- clear_radius: clearance radius from objects
-    -- flat_radius: radius checked for slope
-    -- maxSlopeDeg: maximum allowed slope (default 7°)
-    function UnitHandler.findFlatClearPoint(spawn_zone_name, max_tries, clear_radius, flat_radius, maxSlopeDeg, terrain_types)
-        max_tries = max_tries or 15
-        clear_radius = clear_radius or 30
-        flat_radius = flat_radius or 5
-        maxSlopeDeg = maxSlopeDeg or 7 -- in deg not rad
-        terrain_types = terrain_types or { 'LAND', 'ROAD' } -- default to land and road
-        local last
-
-        for i = 1, max_tries do
-            local candidate = mist.getRandomPointInZone(spawn_zone_name)
-            last = candidate
-
-            -- 1. Check if area is clear
-            local vol = { id = world.VolumeType.SPHERE, params = { point = candidate, radius = clear_radius } }
-            local area_clear_of_units = true
-            world.searchObjects(Object.Category.UNIT + Object.Category.STATIC, vol, function() area_clear_of_units = false end)
-
-            -- 2. Check if terain type is valid
-            local terrain_type_valid = false
-            if area_clear_of_units and mist.isTerrainValid(candidate, terrain_types) then
-                terrain_type_valid = true
-            end
-
-            -- 2. Check slope/flatness
-            if area_clear_of_units and terrain_type_valid and UnitHandler.isFlatEnough(candidate, flat_radius, maxSlopeDeg) then
-                return candidate
-            end
-        end
-
-        return nil -- fallback even if not ideal
-    end
-
     ---@param zone ZoneHandler
-    ---@param max_tries number
-    ---@param clear_radius number
+    ---@param max_tries number|nil
+    ---@param clear_radius number|nil
     ---@return vec2
     function UnitHandler.findClearPoint(zone, max_tries, clear_radius)
         max_tries = max_tries or 6
@@ -124,13 +51,17 @@ do
 
             if candidate and mist.isTerrainValid(candidate,{"LAND"}) then
                 last = candidate
-                local vol = { id = world.VolumeType.SPHERE, params = { point = candidate, radius = clear_radius } }
                 local found = false
-                world.searchObjects({Object.Category.UNIT,Object.Category.STATIC}, vol, function() found = true end)
+
+                if clear_radius then
+                    local vol = { id = world.VolumeType.SPHERE, params = { point = candidate, radius = clear_radius } }
+                    world.searchObjects({Object.Category.UNIT,Object.Category.STATIC}, vol, function() found = true end)
+                end
                 if not found then return candidate end
             end
         end
-        return last or mist.utils.makeVec2(zone.zone.point)-- fallback even if busy
+        if not last then return mist.utils.makeVec2(zone.zone.point) end
+        return mist.utils.makeVec2(last)
     end
 
     ---@param group_name string
@@ -138,7 +69,7 @@ do
     ---@param disperse boolean|nil
     ---@return string|nil -- group name
     function UnitHandler.clone(group_name, zone, disperse)
-        local clear_point = UnitHandler.findClearPoint(zone, 6, 60)
+        local clear_point = UnitHandler.findClearPoint(zone)
         local new_group
         new_group = mist.teleportToPoint({
             groupName = group_name,
@@ -398,7 +329,7 @@ do
 
 
         elseif zone.zone_type == ZoneTypes.AIRBASE then
-            local cmd_center_point = mist.getRandomPointInZone(zone.name) or {x=zone.zone.point.x+25,y=zone.zone.point.z-19}
+            local cmd_center_point = UnitHandler.findClearPoint(zone,50,500)
 
             local command_center = mist.dynAddStatic({
                 type = ".Command Center",

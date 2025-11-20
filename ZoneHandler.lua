@@ -959,7 +959,7 @@ do
             if self.side == coalition.side.BLUE then country_name = country.id.CJTF_BLUE
             else country_name = country.id.CJTF_RED end
             
-            local cmd_center_point = mist.getRandomPointInZone(self.name) or {x=self.zone.point.x+25,y=self.zone.point.z-19}
+            local cmd_center_point = UnitHandler.findClearPoint(self,50,500)
 
             local command_center = mist.dynAddStatic({
                 type = ".Command Center",

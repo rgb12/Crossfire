@@ -112,7 +112,7 @@ Config = {
     logistics_upgrade_chance = 100,--10, -- (%) every minute the dice is rolled
     logistics_level_up_interval = 5*60, -- (seconds) minimum time between level ups
     logistics_ammo_depot_respawn_time = 7*60, -- (seconds) time it takes for an ammo depot to respawn after being destroyed
-
+    airbase_command_center_respawn_time = 70, -- (seconds) time it takes for a command center to respawn after being destroyed
 
     upgrade_tier_range = 50000,
 
