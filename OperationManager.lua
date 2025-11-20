@@ -195,46 +195,79 @@ do
         local reference_pos = self.home_airbase.zone.point
         local friendly_coalition = self.side
         local enemy_coalition = utils.getEnemyCoalition(friendly_coalition)
+        -- STEP 1: MAINTENANCE
+        -- Remove operations from the 'available' list if they are now active (taken by someone else)
+        -- or if the target zone is no longer valid (e.g. destroyed by random event).
 
-        -- Clear old operations for this request
-        self.available_operations = {}
+        local discovered_zones = {}
+        if self.side == coalition.side.BLUE then
+            discovered_zones = stats.blue_discovered_zones
+        elseif self.side ==coalition.side.RED then
+            discovered_zones = stats.red_discovered_zones
+        end
 
-        -- Generate new operations based on proximity and zone types
-        local sorted_zones = ZoneHandler.sortZonesByDistance(reference_pos)
-
-        for _, zone in ipairs(sorted_zones) do
-            if zone.side == enemy_coalition then
-                -- CAS against a STRONGPOINT
-                if zone.zone_type == ZoneTypes.STRONGPOINT then
-                    local op = self:createCASOperation(zone)
-                    table.insert(self.available_operations, op)
-                end
-
-                -- SEAD/DEAD against a SAMSITE
-                if zone.zone_type == ZoneTypes.SAMSITE then
-                    local sead_op = self:createSEADOperation(zone)
-                    table.insert(self.available_operations, sead_op)
-                    local dead_op = self:createDEADOperation(zone)
-                    table.insert(self.available_operations, dead_op)
-                end
-
-                -- STRIKE against COMMS or LOGISTICS
-                if zone.zone_type == ZoneTypes.COMMS and zone.comms_tower_intact then
-                    local strike_op = self:createStrikeOperation(zone, "COMMS")
-                    table.insert(self.available_operations, strike_op)
-                end
-                if zone.zone_type == ZoneTypes.LOGISTICS and zone.ammo_depot_intact then
-                    local strike_op = self:createStrikeOperation(zone, "LOGISTICS")
-                    table.insert(self.available_operations, strike_op)
-                end
+        for i = #self.available_operations, 1, -1 do
+            local op = self.available_operations[i]
+            
+            -- If this zone is now Active (taken by a player), remove it from Available
+            if self:isZoneActive(op.target_zone_name) then
+                table.remove(self.available_operations, i)
+            end
+            
+            local zone = ZoneHandler.getFromName(op.target_zone_name)
+            if not zone then
+                table.remove(self.available_operations, i)
+            end
+            if zone and zone.side ~= self.side then
+                table.remove(self.available_operations, i)
             end
 
-            -- CAP over a friendly zone near the front
-            if zone.side == friendly_coalition then
-                local closest_enemy_zone, dist = zone:getClosestZone(enemy_coalition)
-                if closest_enemy_zone and dist and dist < 50000 then -- 50km
-                    local op = self:createCAPOperation(zone)
-                    table.insert(self.available_operations, op)
+            if not utils.tableContains(discovered_zones, op.target_zone_name) then
+                table.remove(self.available_operations, i)
+            end
+
+        end
+
+        local sorted_zones = ZoneHandler.sortZonesByDistance(reference_pos)
+        for _, zone in ipairs(sorted_zones) do
+
+            if not self:isZoneActive(zone.name) and not self:isMissionProposed(zone.name)
+            and utils.tableContains(discovered_zones, zone.name)
+            then
+                if zone.side == enemy_coalition then
+                    -- CAS against a STRONGPOINT
+                    if zone.zone_type == ZoneTypes.STRONGPOINT then
+                        local op = self:createCASOperation(zone)
+                        table.insert(self.available_operations, op)
+                    end
+
+                    -- SEAD/DEAD against a SAMSITE
+                    if zone.zone_type == ZoneTypes.SAMSITE then
+                        local sead_op = self:createSEADOperation(zone)
+                        table.insert(self.available_operations, sead_op)
+                        local dead_op = self:createDEADOperation(zone)
+                        table.insert(self.available_operations, dead_op)
+                    end
+
+                    -- STRIKE against COMMS or LOGISTICS
+                    if zone.zone_type == ZoneTypes.COMMS and zone.comms_tower_intact then
+                        local strike_op = self:createStrikeOperation(zone, "COMMS")
+                        table.insert(self.available_operations, strike_op)
+                    end
+
+                    if zone.zone_type == ZoneTypes.LOGISTICS and zone.ammo_depot_intact then
+                        local strike_op = self:createStrikeOperation(zone, "LOGISTICS")
+                        table.insert(self.available_operations, strike_op)
+                    end
+                end
+
+                -- CAP over a friendly zone
+                if zone.side == friendly_coalition then
+                    local closest_enemy_zone, dist = zone:getClosestZone(enemy_coalition)
+                    if closest_enemy_zone and dist and dist < 50000 then
+                        local op = self:createCAPOperation(zone)
+                        table.insert(self.available_operations, op)
+                    end
                 end
             end
         end
@@ -268,7 +301,7 @@ do
             operation_name = operations_name[math.random(#operations_name)],
             objectives = {
                 {
-                    description = "Destroy all units in Strongpoint: " .. target_zone.name,
+                    description = "Clear Strongpoint "..target_zone.name.." of all units.",
                     completed = false,
                     check = function()
                         local zone = ZoneHandler.getFromName(target_zone.name)
@@ -291,14 +324,29 @@ do
             operation_name = operations_name[math.random(#operations_name)],
             objectives = {
                 {
-                    description = "Destroy critical radar components at SAM site: " .. target_zone.name,
+                    description = "Take down critical radar components of SAM site situated near " .. target_zone.name,
                     completed = false,
                     check = function()
-                        -- Placeholder: check if specific units (SR/TR) are destroyed.
-                        -- For now, we'll just check if the zone is neutralized.
                         local zone = ZoneHandler.getFromName(target_zone.name)
                         if not zone then return false end
-                        return zone.side == coalition.side.NEUTRAL
+                        if #zone.linked_groups == 0 then return true end
+                        local sam_units_alive = false
+                        for _, gr in ipairs(zone.linked_groups) do
+                            local group_obj = Group.getByName(gr)
+                            if group_obj and group_obj:isExist() then
+                                local units = group_obj:getUnits()
+                                for _, unit in ipairs(units) do
+                                    if unit:hasAttribute('SAM SR') or unit:hasAttribute('SAM TR')
+                                     or unit:hasAttribute('IR Guided SAM') or unit:hasAttribute("EWR")
+                                     then
+                                        sam_units_alive = true
+                                        break
+                                    end
+                                end
+                            end
+                        end
+                        if not sam_units_alive then return true end
+                        return false
                     end
                 }
             }
@@ -315,7 +363,7 @@ do
             operation_name = operations_name[math.random(#operations_name)],
             objectives = {
                 {
-                    description = "Destroy all SAM units at site: " .. target_zone.name,
+                    description = "Clear " .. target_zone.name.. " of all SAM and support units.",
                     completed = false,
                     check = function()
                         local zone = ZoneHandler.getFromName(target_zone.name)
@@ -420,17 +468,24 @@ do
 
         self:generateOperations()
 
+        
         local outtext = "Recommended Operations"
         if #self.available_operations == 0 then
             outtext = "No operations available at this time."
         end
-
+        
+        local operations_displayed = 0
         for _, op in ipairs(self.available_operations) do
+            if operations_displayed >= 5 then
+                break
+            end
+
             outtext = outtext .. string.format("\n\n %s - %s", op.type, op.target_zone_name)
             for _, obj in ipairs(op.objectives) do
                 outtext = outtext .. "\n - " .. obj.description
             end
             outtext = outtext .. "\n Operation code: " .. op.code
+            operations_displayed = operations_displayed + 1
         end
         trigger.action.outTextForUnit(unit:getID(), outtext, 30)
     end
@@ -461,6 +516,16 @@ do
         return false
     end
 
+    ---@param zone_name string
+        function OperationManager:isMissionProposed(zone_name)
+            for _, op in ipairs(self.available_operations) do
+                if op.target_zone_name == zone_name then
+                    return true
+                end
+            end
+            return false
+        end
+
     function OperationManager:activateOperation(unit, code)
         if not unit then return end
         if not unit.getPlayerName then return end   
@@ -487,6 +552,8 @@ do
             trigger.action.outTextForUnit(unit:getID(), "Invalid operation code.", 10)
             return
         end
+
+        
 
         -- Check if the target zone was taken by someone else between the time the menu was generated and now.
         if self:isZoneActive(accepted_mission.target_zone_name) then
