@@ -78,6 +78,7 @@ OperationTypes = {
     SEAD = "SEAD",
     DEAD = "DEAD",
     CAS = "CAS",
+    RECON = "Recon",
 }
 
 

@@ -76,8 +76,14 @@ do
         local lat, lon = coord.LOtoLL(zone_tgt.zone.point)
         local mgrs = coord.LLtoMGRS(lat, lon)
 
-        local outtxt = string.format("ACTIVE OPERATION: %s\nType: %s\nTarget: %s", 
-            active_mission.operation_name, active_mission.type, active_mission.target_zone_name)
+        local outtxt = ""
+        if active_mission.type == OperationTypes.RECON then
+            outtxt = string.format("ACTIVE OPERATION: %s\nType: %s\nTarget: ????",
+            active_mission.operation_name, active_mission.type)
+        else     
+            outtxt = string.format("ACTIVE OPERATION: %s\nType: %s\nTarget: %s",
+                active_mission.operation_name, active_mission.type, active_mission.target_zone_name)
+        end
         
         outtxt = outtxt .. string.format("\n\nTarget Coordinates:\n%s\n%s\nMGRS: %s", 
             mist.tostringLL(lat, lon, 1), mist.tostringLL(lat, lon, 1, true), mist.tostringMGRS(mgrs, 3))
@@ -232,9 +238,8 @@ do
         for _, zone in ipairs(sorted_zones) do
 
             if not self:isZoneActive(zone.name) and not self:isMissionProposed(zone.name)
-            and utils.tableContains(discovered_zones, zone.name)
             then
-                if zone.side == enemy_coalition then
+                if zone.side == enemy_coalition and utils.tableContains(discovered_zones, zone.name) then
                     -- CAS against a STRONGPOINT
                     if zone.zone_type == ZoneTypes.STRONGPOINT then
                         local op = self:createCASOperation(zone)
@@ -262,13 +267,20 @@ do
                 end
 
                 -- CAP over a friendly zone
-                if zone.side == friendly_coalition then
+                if zone.side == friendly_coalition and utils.tableContains(discovered_zones, zone.name) then
                     local closest_enemy_zone, dist = zone:getClosestZone(enemy_coalition)
                     if closest_enemy_zone and dist and dist < 50000 then
                         local op = self:createCAPOperation(zone)
                         table.insert(self.available_operations, op)
                     end
                 end
+
+                -- RECON over enemy zones
+                if zone.side == enemy_coalition and not utils.tableContains(discovered_zones, zone.name) then
+                    local op = self:createRECONOperation(zone)
+                    table.insert(self.available_operations, op)
+                end
+
             end
         end
     end
@@ -462,6 +474,90 @@ do
         return op
     end
 
+    function OperationManager:createRECONOperation(target_zone)
+        local op = {
+            type = OperationTypes.RECON,
+            code = self:createOperationCode(),
+            status = OperationStatus.AVAILABLE,
+            target_zone_name = target_zone.name,
+            operation_name = operations_name[math.random(#operations_name)],
+            objectives = {
+                {
+                    description = "Conduct aerial reconnaissance near given coordinates",
+                    completed = false,
+                    start_time = nil,
+                    duration = Config.operations.recon_duration,
+                    radius = Config.operations.recon_distance_from_zone,
+                    check = function(self, player_unit)
+
+                        local player_pos = player_unit:getPoint()
+                        local zone = ZoneHandler.getFromName(target_zone.name)
+                        if not zone or not player_pos or not player_unit.getCoalition then return false end
+
+
+                        
+
+                        if not self.start_time then
+                            if mist.utils.get2DDist(zone.zone.point,player_pos) <= self.radius then
+
+                                self.start_time = timer.getTime()
+                            end
+
+                        else
+
+                            local lat, lon = coord.LOtoLL(target_zone.zone.point)
+                            local mgrs = coord.LLtoMGRS(lat, lon)
+                    
+                            local outtxt = ""
+                            outtxt = outtxt .. string.format("\n\n%s\n%s\nMGRS: %s", 
+                            mist.tostringLL(lat, lon, 1), mist.tostringLL(lat, lon, 1, true), mist.tostringMGRS(mgrs, 3))
+
+                            if mist.utils.get2DDist(zone.zone.point,player_pos) > self.radius then
+                                trigger.action.outTextForUnit(player_unit:getID(), "Recon aerial imagery lost, remain near:"..outtxt, 3)
+                                self.start_time = nil
+                                return false
+                            end
+
+                            if player_pos.y < Config.operations.recon_minimum_altitude then
+                                trigger.action.outTextForUnit(player_unit:getID(),"Recon operation: maintain alt above "..mist.utils.metersToFeet(Config.operations.recon_minimum_altitude).." ft", 5)
+                                self.start_time = nil
+                                return false
+                            end
+
+                            if timer.getTime() - self.start_time < self.duration then
+                                trigger.action.outTextForUnit(player_unit:getID(), "Recon in progress: "..math.floor(((timer.getTime() - self.start_time)/self.duration)*100).."%", 5)
+                                return false
+                            end
+
+                            if timer.getTime() - self.start_time >= self.duration then
+                                local player_coalition = player_unit:getCoalition()
+                                if player_coalition == coalition.side.BLUE and not utils.tableContains(stats.blue_discovered_zones,zone.name) then
+                                    table.insert(stats.blue_discovered_zones,zone.name)
+
+                                    zone:drawF10()
+                                    CommandHandler.refreshJtacCmds(player_coalition)
+                                    trigger.action.outTextForCoalition(player_coalition, "Recon reports detected targets near "..zone.name,15)
+                                elseif player_coalition == coalition.side.RED and not utils.tableContains(stats.red_discovered_zones,zone.name) then
+                                    table.insert(stats.red_discovered_zones,zone.name)
+
+                                    zone:drawF10()
+                                    CommandHandler.refreshJtacCmds(player_coalition)
+                                    trigger.action.outTextForCoalition(player_coalition, "Recon reports detected targets near "..zone.name,15)
+                                end
+
+
+                                return true
+                            end
+                        end
+
+                        return false
+                    end
+                }
+            }
+        }
+        return op
+    end
+
     ---@param unit Unit
     function OperationManager:showAvailableOperations(unit)
         if not unit or not unit:isExist() or not unit:getPlayerName() then return end
@@ -480,7 +576,12 @@ do
                 break
             end
 
-            outtext = outtext .. string.format("\n\n %s - %s", op.type, op.target_zone_name)
+            if op.type == OperationTypes.RECON then
+                outtext = outtext .. string.format("\n\n %s - ????", op.type)
+
+            else
+                outtext = outtext .. string.format("\n\n %s - %s", op.type, op.target_zone_name)
+            end
             for _, obj in ipairs(op.objectives) do
                 outtext = outtext .. "\n - " .. obj.description
             end
@@ -614,7 +715,7 @@ do
 
                     if all_objectives_complete then
                         op.status = OperationStatus.COMPLETED
-                        trigger.action.outTextForUnit(player_unit:getID(), "Operation " .. op.operation_name .. " completed.", 20)
+                        trigger.action.outTextForUnit(player_unit:getID(), "Operation " .. op.operation_name .. " completed !", 20)
                         local user = ExperienceManager:fetchUser(player_unit)
                         if user then
                             user.missions_completed = user.missions_completed + 1

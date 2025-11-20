@@ -9,11 +9,12 @@ do
     CommandHandler.destroy_page = 1
 
     function CommandHandler.init()
-        local function displayStats()
-            local out_txt = "SITMAP\n"
-            trigger.action.outTextForCoalition(coalition.side.BLUE,out_txt,10)
-        end
-        missionCommands.addCommand("Situation Map",nil,displayStats,{})
+
+        -- local function displayStats()
+        --     local out_txt = "SITMAP\n"
+        --     trigger.action.outTextForCoalition(coalition.side.BLUE,out_txt,10)
+        -- end
+        -- missionCommands.addCommand("Situation Map",nil,displayStats,{})
         local master_submenu = missionCommands.addSubMenu("Mission Commands",nil)
 
         local function sendCAScmd()
@@ -69,157 +70,9 @@ do
         end)
         -- destroy_main_submenu = missionCommands.addSubMenuForCoalition(coalition.side.BLUE, "Dev: Destroy Units", nil)
         -- Call the refresh function to build page 1.
-        CommandHandler.refreshDestroyZoneMenu()
     end
 
 
-    function CommandHandler.refreshDestroyZoneMenu()
-        -- 1. (SPECIFIC) Clear the old menu
-        if destroy_task_submenu then
-            missionCommands.removeItemForCoalition(coalition.side.BLUE, destroy_task_submenu)
-        end
-
-        -- 2. (SPECIFIC) Collect all valid zones to list
-        local valid_zones = {}
-        for _, zone in ipairs(zones) do
-            -- Add all zones to the list
-            table.insert(valid_zones, zone)
-        end
-        
-        -- 3. (SPECIFIC) Define what to do when an item is clicked
-        ---@param zone ZoneHandler
-        local function onDestroyZoneClick(zone)
-            trigger.action.outTextForCoalition(coalition.side.BLUE, "Executing... Destroying all units in " .. zone.name, 5)
-            
-
-
-            for _, group_name in ipairs(zone.linked_groups) do
-                local gr = Group.getByName(group_name)
-                if gr and gr:isExist() then
-                   gr:destroy()
-                end
-            end
-
-            -- trigger.action.outTextForCoalition(coalition.side.BLUE, "Destroyed " .. #units_in_zone .. " units in " .. zone.name, 7)
-        end
-
-        -- 4. (SPECIFIC) Define how to display an item
-        local function displayDestroyZone(item)
-            -- Show the zone name and its current side
-            return item.name .. " (" .. utils.coalitionToString(item.side) .. ")"
-        end
-
-        -- 5. (GENERIC) Call the builder
-        destroy_task_submenu = CommandHandler.buildPaginatedMenu({
-            coalition = coalition.side.BLUE,
-            parentMenu = nil,
-            submenuTitle = "Dev: Destroy Units",
-            itemList = valid_zones,
-            pageTrackerTable = CommandHandler,
-            pageTrackerKey = "destroy_page",
-            itemDisplayFunc = displayDestroyZone,
-            itemClickFunc = onDestroyZoneClick,
-            rebuildFunc = CommandHandler.refreshDestroyZoneMenu,
-            noItemsText = "(No Zones Found)"
-        })
-    end
-
-    ---
-    --- GENERIC FUNCTION: Builds a paginated F10 menu.
-    ---
-    ---@param config table Configuration table for the menu
-    ---  - coalition: (coalition.side) The coalition to show the menu to
-    ---  - parentMenu: (table) The parent menu handle (e.g., CommandHandler.jtac_main_submenu)
-    ---  - submenuTitle: (string) The title for the new submenu (e.g., "Task JTAC")
-    ---  - itemList: (table) The pre-filtered list of items to display (e.g., valid_zones)
-    ---  - pageTrackerTable: (table) The table holding the page variable (e.g., CommandHandler)
-    ---  - pageTrackerKey: (string) The key for the page variable (e.g., "jtac_page_blue")
-    ---  - itemDisplayFunc: (function) Takes one item, returns string to display (e.g., function(item) return item.name end)
-    ---  - itemClickFunc: (function) The function to call when an item is clicked
-    ---  - rebuildFunc: (function) The function to call to rebuild this menu (e.g., CommandHandler.refreshJtacCmds)
-    ---  - noItemsText: (string) (Optional) Text to show if itemList is empty
-    ---  - itemsPerPage: (number) (Optional) Max items per page
-    ---@return table The handle for the newly created submenu
-    function CommandHandler.buildPaginatedMenu(config)
-        -- 1. Unpack config and set defaults
-        local cfg = config
-        local items_per_page = cfg.itemsPerPage or 8
-        local no_items_text = cfg.noItemsText or "(No Items)"
-        local page_tracker_table = cfg.pageTrackerTable
-        local page_tracker_key = cfg.pageTrackerKey
-
-        -- 2. Initialize page tracker if it doesn't exist
-        if not page_tracker_table[page_tracker_key] then
-            page_tracker_table[page_tracker_key] = 1
-        end
-
-        -- 3. Calculate page numbers
-        local item_list = cfg.itemList
-        local total_items = #item_list
-        local total_pages = math.ceil(total_items / items_per_page)
-        if total_pages == 0 then total_pages = 1 end
-
-        -- 4. Validate current page (it might be out of bounds if items were removed)
-        if page_tracker_table[page_tracker_key] > total_pages then
-            page_tracker_table[page_tracker_key] = total_pages
-        end
-        if page_tracker_table[page_tracker_key] < 1 then
-            page_tracker_table[page_tracker_key] = 1
-        end
-        
-        local page = page_tracker_table[page_tracker_key]
-        local start_index = ((page - 1) * items_per_page) + 1
-        local end_index = math.min(page * items_per_page, total_items)
-
-        -- 5. Create the new submenu
-        local new_submenu = missionCommands.addSubMenuForCoalition(cfg.coalition, cfg.submenuTitle, cfg.parentMenu)
-
-        -- 6. Add the item commands for the current page
-        if total_items > 0 then
-            for i = start_index, end_index do
-                local item = item_list[i]
-                -- Get the display text from the provided function
-                local display_text = cfg.itemDisplayFunc(item)
-                
-                -- We must wrap the click function to pass the item
-                local function item_click_wrapper()
-                    cfg.itemClickFunc(item)
-                end
-                missionCommands.addCommandForCoalition(cfg.coalition, display_text, new_submenu, item_click_wrapper)
-            end
-        else
-            missionCommands.addCommandForCoalition(cfg.coalition, no_items_text, new_submenu, function() end)
-        end
-
-        -- 7. Add Page Navigation commands
-        local page_text = " (Page " .. page .. "/" .. total_pages .. ")"
-
-        if page > 1 then
-            local function prev_page()
-                page_tracker_table[page_tracker_key] = page_tracker_table[page_tracker_key] - 1
-                cfg.rebuildFunc() -- Rebuild the menu
-            end
-            missionCommands.addCommandForCoalition(cfg.coalition, "... (Previous)" .. page_text, new_submenu, prev_page)
-        end
-
-        if end_index < total_items then
-            local function next_page()
-                page_tracker_table[page_tracker_key] = page_tracker_table[page_tracker_key] + 1
-                cfg.rebuildFunc() -- Rebuild the menu
-            end
-            missionCommands.addCommandForCoalition(cfg.coalition, "... (Next)" .. page_text, new_submenu, next_page)
-        end
-        
-        if page > 1 and total_pages > 1 then
-            local function first_page()
-                page_tracker_table[page_tracker_key] = 1
-                cfg.rebuildFunc() -- Rebuild the menu
-            end
-            missionCommands.addCommandForCoalition(cfg.coalition, "... (Back to Page 1)", new_submenu, first_page)
-        end
-        
-        return new_submenu
-    end
 
     ---@param side coalition.side
     function CommandHandler.refreshJtacCmds(side)
