@@ -32,12 +32,7 @@ do
             return
         end
 
-        -- [Also prevent multiple capture tasks from leaving the same zone] --
-        if from_zone and EnrouteManager:findByFromZone(from_zone,side_sending_capture,{AITaskTypes.CAPTURE_CONVOY, AITaskTypes.CAPTURE_HELO}) then 
-            trigger.action.outText(utils.coalitionToString(side_sending_capture) ..
-                "Capture group already departing from: " .. from_zone.name, 10)
-            return
-        end
+
 
 
         ------------[friendly group instant spawn]------------
@@ -52,16 +47,9 @@ do
 
         for _, zone in ipairs(zones_to_check) do
             if zone.side == side_sending_capture and zone.zone_type == ZoneTypes.LOGISTICS then
-                local zones_distance = mist.utils.get2DDist(to_zone.zone.point,
-                        zone.zone.point)
+                local zones_distance = mist.utils.get2DDist(to_zone.zone.point,zone.zone.point)
 
-                -- checks if closest zone can deploy a convoy
-                if zone.capture_convoy_avail and zone.capture_convoy_avail>0 and zones_distance <= Config.capture_convoy_max_range
-                then
-                    -- send convoy
-                    TaskManager:initiateAITask(AITaskTypes.CAPTURE_CONVOY,side_sending_capture,true,to_zone,zone,false)
-                    break
-                end
+                if EnrouteManager:findByFromZone(zone,side_sending_capture,{AITaskTypes.CAPTURE_HELO}) then return end
 
                 -- checks if closest zone can deploy a heli
                 if zone.capture_heli_avail and zone.capture_heli_avail>0 and zones_distance <= Config.capture_helicopter_max_range then
@@ -419,7 +407,7 @@ do
                         TaskManager:initiateAITask(AITaskTypes.ATTACK_CONVOY,zone.side,true,nil,zone,false)
                     end
 
-                    CommandHandler.refreshJtacCmds()
+                    CommandHandler.refreshJtacCmds(zone.side)
             end
         end
 
@@ -428,6 +416,19 @@ do
 
             TheatreCommander:evaluateAITasks(coalition.side.BLUE)
             TheatreCommander:evaluateAITasks(coalition.side.RED)
+
+            timer.scheduleFunction(function () --caching and cleaning when other functions free up
+                for i = #EnrouteManager.enroutes, 1, -1 do
+                    local enroute = EnrouteManager.enroutes[i]
+                    if enroute then
+                        local grp = Group.getByName(enroute.group_name)
+                        if not grp then
+                            EnrouteManager:remove(enroute.group_name)
+                        end
+                    end
+                end
+                
+            end,{}, timer.getTime() + 22)
         end
 
     --This function is executed every 15s
@@ -853,6 +854,7 @@ do
         
         world.addEventHandler(ev)
         world.addEventHandler(ExperienceManager.EventHandler)
+        world.addEventHandler(Jupiter)
         PersistanceManager:autoSave()
 
         -- local airb = ZoneHandler.getFromName("ANAPA")
