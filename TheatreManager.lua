@@ -357,20 +357,15 @@ do
         -- cooldown before sending capture group
         if now - zone.last_capture_attempt < Config.cooldown_before_capture_attempt then return end
 
-
         if EnrouteManager:findByToZone(zone, nil, {AITaskTypes.CAPTURE_CONVOY, AITaskTypes.CAPTURE_HELO}) then return end
-
+        
         -- both sides have a chance to send capture group
-        if math.random(0,100) <= Config.retry_capture_chance then return end
+        if math.random(0,100) >= Config.retry_capture_chance then return end
         local side_sending_capture = math.random(1,2)
 
-        MissionLogger:info(utils.coalitionToString(side_sending_capture).." attempting retry capture group for zone: " .. zone.name)
+        MissionLogger:info(utils.coalitionToString(side_sending_capture).." attempting capture for zone: " .. zone.name)
         zone.last_capture_attempt = now
         TheatreCommander.sendCapture(zone, side_sending_capture)
-        
-
-
-
     end
 
     -- This function is executed every 15 seconds
@@ -453,7 +448,7 @@ do
         end
         if TheatreCommander.red_op_manager then
             TheatreCommander.red_op_manager:tick()
-        end 
+        end
         
         for i = #EnrouteManager.enroutes, 1, -1 do
             local enroute = EnrouteManager.enroutes[i]
@@ -857,10 +852,10 @@ do
         world.addEventHandler(Jupiter)
         PersistanceManager:autoSave()
 
-        -- local airb = ZoneHandler.getFromName("ANAPA")
-        -- local wh = Airbase.getByName(airb.airbase_name):getWarehouse():getInventory()
-        -- MissionLogger:info("ANAPA INV")
-        -- MissionLogger:info(wh)
+        local airb = ZoneHandler.getFromName("VAZIANI")
+        local wh = Airbase.getByName(airb.airbase_name):getWarehouse():getInventory()
+        MissionLogger:info("VAZIANI INV")
+        MissionLogger:info(wh)
 
 
         -- trigger.action.outText("Theatre setup complete.", 5)
