@@ -451,6 +451,16 @@ do
 
     end
 
+    ---@param zone_name any
+    function OperationManager:isZoneActive(zone_name)
+        for _, op in ipairs(self.active_operations) do
+            if op.target_zone_name == zone_name then
+                return true
+            end
+        end
+        return false
+    end
+
     function OperationManager:activateOperation(unit, code)
         if not unit then return end
         if not unit.getPlayerName then return end   
@@ -475,6 +485,15 @@ do
 
         if not accepted_mission then
             trigger.action.outTextForUnit(unit:getID(), "Invalid operation code.", 10)
+            return
+        end
+
+        -- Check if the target zone was taken by someone else between the time the menu was generated and now.
+        if self:isZoneActive(accepted_mission.target_zone_name) then
+            trigger.action.outTextForUnit(unit:getID(), "Operation Aborted: Target zone " .. accepted_mission.target_zone_name .. " is already being engaged by another unit.", 10)
+            
+            -- Optional: Remove it from available list so they don't try again immediately
+            table.remove(self.available_operations, mission_index)
             return
         end
 
