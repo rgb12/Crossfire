@@ -25,7 +25,7 @@ Config = {
     },  
 
     std_resupply_time = 20*60, -- (seconds) respawn resupply aircraft delay
-    cooldown_before_capture_attempt = 3*60, -- (seconds)
+    cooldown_before_capture_attempt = 12,--3*60, -- (seconds)
     retry_capture_chance = 100,--50, -- (%)
 
     allow_resupply = true, -- this will enable/disable resupply aircrafts, this will make the misison significantly harder
@@ -138,6 +138,7 @@ stats = {
     blue_ew_zones = 0,
     blue_strongpoints = 0,
 
+    blue_comms_antennas = 0,
     blue_retry_capture_chance = 50,
     blue_capture_lost_zone_chance = 30,
     blue_discovered_zones = {},
@@ -152,6 +153,7 @@ stats = {
     red_ew_zones = 0,
     red_strongpoints = 0,
 
+    red_comms_antennas = 0,
     red_retry_capture_chance = 50,
     red_capture_lost_zone_chance = 30,
     red_discovered_zones = {},

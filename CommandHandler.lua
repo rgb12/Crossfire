@@ -36,6 +36,17 @@ do
             local to_zone = ZoneHandler.getFromName("BRAVO")
             TaskManager:initiateAITask(AITaskTypes.INTERCEPT,coalition.side.BLUE,true,to_zone,nil,true)
         end)
+        missionCommands.addCommand("destroy enroute helo",master_submenu,function ()
+            for _,enroute in ipairs(EnrouteManager.enroutes) do
+                if enroute.ai_task_type == AITaskTypes.CAPTURE_HELO and enroute.side == coalition.side.RED then
+                    local gr = Group.getByName(enroute.group_name)
+                    if gr and gr:isExist() then
+                       trigger.action.explosion(gr:getUnit(1):getPoint(), 1000)
+                    end
+                    break
+                end
+            end
+        end)
         -- missionCommands.addCommand("Send AWACS",master_submenu,function ()
         --     local from_zone = ZoneHandler.getFromName("VAZIANI")
         --     TaskManager:initiateAITask(AITaskTypes.AWACS,coalition.side.BLUE,true,nil,from_zone,true)
@@ -56,56 +67,9 @@ do
             TheatreCommander.sendWarehouseResupply(coalition.side.BLUE)
             TheatreCommander.sendWarehouseResupply(coalition.side.RED)
         end)
-
-
-        -- missionCommands.addCommand("destroy",master_submenu,function ( )
-        --     local units = utils.getUnitsInZoneObj(ZoneHandler.getFromName("ECHO"),coalition.side.RED)
-        --     for _, unit in ipairs(units) do
-        --         if unit and unit.isExist and unit:isExist() then
-        --             MissionLogger:info("Destroying unit: " .. unit:getName())
-        --             local p = unit:getPoint()
-        --             if p then
-        --                 trigger.action.explosion(p, 100)
-        --             end
-        --         end
-        --     end
-        -- end)
-
-
-
-        missionCommands.addCommand("destroy comms", nil, function()
-            for _,zone in ipairs(zones) do
-                if zone.zone_type == ZoneTypes.COMMS then
-                    local comms_tower = StaticObject.getByName(zone.linked_statics[1])
-                    if comms_tower and comms_tower:isExist() then
-                        comms_tower:destroy()
-                        -- trigger.action.explosion(comms_tower:getPoint(), 20000)
-                        break
-                    end
-                end
-            end
-
-        -- local ammo_depot = ZoneHandler.getFromName("LOGIS").linked_ammo_depot
-
-        -- trigger.action.explosion(
-        -- StaticObject.getByName(ammo_depot):getPoint(),20000)
-        end)
-        -- missionCommands.addCommand("destroy kjtac",nil, function ()
-        --     for i,jtac in ipairs(enroute_jtac) do
-        --         local jtac_gr = Group.getByName(jtac.jtac_gr_name)
-        --         trigger.action.explosion(jtac_gr:getUnit(1):getPoint(), 1)
-
-        --         -- table.remove(enroute_jtac,i)
-        --     end
-        -- end,{})
-
-
         -- destroy_main_submenu = missionCommands.addSubMenuForCoalition(coalition.side.BLUE, "Dev: Destroy Units", nil)
         -- Call the refresh function to build page 1.
         CommandHandler.refreshDestroyZoneMenu()
-
-
-
     end
 
 
@@ -275,11 +239,11 @@ do
         if side == coalition.side.BLUE then
             enemy_side = coalition.side.RED
             discovered_zones = stats.blue_discovered_zones
-            current_comms_count = stats.blue_comms_zones
+            current_comms_count = stats.blue_comms_antennas
         else
             enemy_side = coalition.side.BLUE
             discovered_zones = stats.red_discovered_zones
-            current_comms_count = stats.red_comms_zones
+            current_comms_count = stats.red_comms_antennas
         end
 
         if current_comms_count < Config.tasking_requirements.comms_zones_required_for_jtac then

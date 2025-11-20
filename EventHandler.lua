@@ -377,17 +377,6 @@ function ev:onEvent(event)
         if unit and Object.getCategory(unit) == Object.Category.STATIC then
             MissionLogger:info("Static unit destroyed: " .. unit:getName())
 
-            -- -- WARN could store the ew sites in a variable
-            -- for _,zone in ipairs(zones) do
-            --     if zone.zone_type == ZoneTypes.EWSITE and zone.comms_tower_intact and zone.linked_comms_tower == unit:getName() then
-            --         MissionLogger:info("EW Site destroyed in zone: " .. zone.name)
-            --         zone.comms_tower_intact = false
-
-            --         break
-
-            --     end
-            -- end
-
         end
 
 
