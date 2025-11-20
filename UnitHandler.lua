@@ -390,10 +390,26 @@ do
                     stats.red_comms_antennas = stats.red_comms_antennas +1
                 end
                
-                -- TheatreCommander.COMMS_towers[zone.side] = TheatreCommander.COMMS_towers[zone.side] +1
                 table.insert(zone.linked_statics, comms_tower.name)
-                MissionLogger:info(zone.linked_statics)
                
+            else
+                MissionLogger:error("Could not spawn comms tower for ".. zone.name)
+            end
+
+
+        elseif zone.zone_type == ZoneTypes.AIRBASE then
+            local cmd_center_point = mist.getRandomPointInZone(zone.name) or {x=zone.zone.point.x+25,y=zone.zone.point.z-19}
+
+            local command_center = mist.dynAddStatic({
+                type = ".Command Center",
+                country = country_name, --81 = CJTF RED | 82= CJTF BLUE
+                category = "Fortifications",
+                x = cmd_center_point.x,
+                y = cmd_center_point.y
+            })
+            if command_center then
+
+                table.insert(zone.linked_statics, command_center.name)
             else
                 MissionLogger:error("Could not spawn comms tower for ".. zone.name)
             end

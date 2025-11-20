@@ -168,9 +168,9 @@ do
         
         local side_comms_towers = 0
         if side == coalition.side.BLUE then
-            side_comms_towers = stats.blue_comms_zones
+            side_comms_towers = stats.blue_comms_antennas
         elseif side == coalition.side.RED then
-            side_comms_towers = stats.red_comms_zones
+            side_comms_towers = stats.red_comms_antennas
         end
 
         if side_comms_towers == 0 then
@@ -385,7 +385,8 @@ do
 
                     zone:checkLogisticsZone()
                     zone:checkCOMMSZone()
-        
+                    zone:checkAirbaseZone()
+
                     zone:addAIAssets(10) -- Supply chance every minute
 
                     if zone.side ~=coalition.side.NEUTRAL and zone:checkIfEmpty() then

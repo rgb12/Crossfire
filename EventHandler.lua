@@ -67,12 +67,9 @@ function ev:onEvent(event)
         
         -- checks if a capture heli aborted, if yes, remove it from enroute_capture_heli
         MissionLogger:info("AI unit aborted mission: " .. unit:getName())
-        MissionLogger:info(EnrouteManager.enroutes)
         for k,v in pairs(EnrouteManager.enroutes) do
-            MissionLogger:info("Enroute tracked: " .. v.group_name .. " for task type: " .. v.ai_task_type)
         end
         local enroute_aborted = EnrouteManager:findByGroup(group_name)
-        MissionLogger:info(enroute_aborted)
         if enroute_aborted then
             if enroute_aborted.ai_task_type == AITaskTypes.CAPTURE_HELO then
                 -- give the heli 2 minutes to land or be destroyed
@@ -296,27 +293,6 @@ function ev:onEvent(event)
                 -- MissionLogger:info("Removed LANDED"..enroute_task.ai_task_type.." from enroutes: " .. group_name)
                 return
             end
-
-            -- for i, cargo in ipairs(stats.blue_enroute_resupply) do
-            --     if cargo == unit:getGroup():getName() then
-            --         MissionLogger:info("BLUE cargo landed, adding resources")
-            --         trigger.action.outTextForCoalition(unit:getGroup():getCoalition(), "Cargo aircraft has landed",10)
-            --         --TO CHANGE add items to home airbase as cargo landed
-
-
-
-            --         break
-            --     end
-            -- end
-            -- for i, cargo in ipairs(stats.red_enroute_resupply) do
-            --     if cargo == unit:getGroup():getName() then
-            --         MissionLogger:info("RED cargo landed, adding resources")
-            --         trigger.action.outTextForCoalition(unit:getGroup():getCoalition(), "Cargo aircraft has landed",10)
-            --         break
-            --         --TO CHANGE add items to red airbase as cargo landed
-
-            --     end
-            -- end
 
             for i,jtac in ipairs(enroute_jtac) do
                 if jtac.jtac_gr_name == unit:getGroup():getName() then

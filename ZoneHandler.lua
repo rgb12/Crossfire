@@ -873,7 +873,7 @@ do
             end
 
 
-            trigger.action.outTextForCoalition(self.side, "Comms zone "..self.name.." has lost its communications tower. EWRS system impaired, reports are 50% slower.",10)
+            trigger.action.outTextForCoalition(self.side,self.name.." has lost its communications tower. EWRS impaired, reports are 50% slower.",10)
 
             -- Destroy the "dead body"
             if comms_tower and comms_tower:isExist() then
@@ -924,6 +924,56 @@ do
                 trigger.action.outTextForCoalition(self.side, "Comms zone "..self.name.." has reestablished its communications tower.",10)
             else
                 MissionLogger:error("Could not spawn comms tower for ".. self.name)
+            end
+        end
+    end
+
+    function ZoneHandler:checkAirbaseZone()
+        if self.zone_type ~= ZoneTypes.AIRBASE then return end
+        if not self.airbase_name then return end
+
+        local cmdc = nil
+        if self.linked_statics[1] then
+            cmdc = StaticObject.getByName(self.linked_statics[1])
+         end
+        -- First, check the actual status of the depot
+        local is_alive = cmdc and cmdc:isExist() and cmdc:getLife() >= 1
+
+        -- If the script thinks the depot is intact, but it's NOT alive, mark it as destroyed.
+        if self.linked_statics[1] and not is_alive then
+            self.cmdc_last_destroyed = timer.getTime()
+            self.linked_statics[1] = nil
+        end
+
+ 
+        if not is_alive and self.cmdc_last_destroyed
+        and self.cmdc_last_destroyed + Config.airbase_command_center_respawn_time > timer.getTime() then
+            MissionLogger:info(self.name .." command center pending respawn")
+            return
+        elseif not is_alive and self.cmdc_last_destroyed
+        and self.cmdc_last_destroyed + Config.airbase_command_center_respawn_time <= timer.getTime() then
+
+            MissionLogger:info(self.name .." command center respawn")
+
+            local country_name
+            if self.side == coalition.side.BLUE then country_name = country.id.CJTF_BLUE
+            else country_name = country.id.CJTF_RED end
+            
+            local cmd_center_point = mist.getRandomPointInZone(self.name) or {x=self.zone.point.x+25,y=self.zone.point.z-19}
+
+            local command_center = mist.dynAddStatic({
+                type = ".Command Center",
+                country = country_name, --81 = CJTF RED | 82= CJTF BLUE
+                category = "Fortifications",
+                x = cmd_center_point.x,
+                y = cmd_center_point.y
+            })
+
+            if command_center then
+                table.insert(self.linked_statics, command_center.name)
+                trigger.action.outTextForCoalition(self.side, self.name.." has reestablished its command center.",10)
+            else
+                MissionLogger:error("Could not spawn command center for ".. self.name)
             end
         end
     end
