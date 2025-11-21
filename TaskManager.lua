@@ -473,7 +473,7 @@ do
                     aircraft_count =airbase_warehouse:getItemCount(WarehouseManager.AirbaseGroupData[closest_airbase.airbase_name][side][aircraft_type].warehouse_name)
                     group_name = WarehouseManager.AirbaseGroupData[closest_airbase.airbase_name][side][aircraft_type].group_name
                 end
-                MissionLogger:info("Airbase:" .. closest_airbase.airbase_name .. " has ".. aircraft_count .." ".. aircraft_type .." available.")  
+                -- MissionLogger:info("Airbase:" .. closest_airbase.airbase_name .. " has ".. aircraft_count .." ".. aircraft_type .." available.")  
                 if aircraft_count and aircraft_count>=aircraft_amount and group_name then
                     
                     if not self:checkIfMaxTasksReached(closest_airbase,side,ai_task_type) then
@@ -1152,7 +1152,6 @@ do
             if not (recon_gr and recon_gr:isExist()) then return end
 
             local ctrl = recon_gr:getController()
-            local group_id = recon_gr:getID()
 
             -- 1. Get the group's current position (at the airbase)
             local startPos = mist.getLeadPos(recon_group_name)
@@ -1220,8 +1219,8 @@ do
             ctrl:setOption(AI.Option.Air.id.REACTION_ON_THREAT, AI.Option.Air.val.REACTION_ON_THREAT.PASSIVE_DEFENCE)
             ctrl:setOption(AI.Option.Air.id.RTB_ON_BINGO, true)
 
-            trigger.action.outTextForCoalition(enroute_data.side, "RECON mission tasked, enroute to " .. enroute_data.to_zone.name, 10)
-            MissionLogger:info("RECON mission tasked, orbiting " .. enroute_data.to_zone.name)
+            trigger.action.outTextForCoalition(enroute_data.side, "RECON mission tasked, enroute to ????", 10)
+            MissionLogger:info("RECON mission tasked to " .. enroute_data.to_zone.name)
         end, {}, timer.getTime() + 12)
     end
 

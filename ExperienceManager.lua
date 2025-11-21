@@ -18,8 +18,11 @@ do
     function ExperienceManager.EventHandler:onEvent(event)
         if event.id == world.event.S_EVENT_PLAYER_ENTER_UNIT then
             if event.initiator and event.initiator.getPlayerName then
+
                 ExperienceManager:addUser(event.initiator)
-                local group_id = event.initiator:getGroup():getID()
+                local group = event.initiator:getGroup()
+                if not group then return end
+                local group_id = group:getID()
                 missionCommands.addCommandForGroup(group_id, "XP/Rank", nil, function()
                     local user = ExperienceManager:fetchUser(event.initiator)
                     if user then
@@ -37,12 +40,13 @@ do
                                 break
                             end
                         end
-                        local out_text = string.format("Pilot: %s\nRank: %s\nXP: %d\nMissions Completed: %d\nTokens: %d\nNext Rank: %s XP: %s",
+                        local out_text = string.format("Stats: %s\nRank: %s\nXP: %d\nMissions Completed: %d\nTokens: %d\nNext Rank: %s XP: %s",
                             user.name, rank_name, user.xp, user.missions_completed, user.tokens, next_rank, next_rank_xp)
                         trigger.action.outTextForGroup(group_id, out_text, 15)
                     end
                 end)
 
+                CommandHandler.initTaskingRequests(group)
             end
 
         elseif event.id == world.event.S_EVENT_KILL then
@@ -148,6 +152,10 @@ do
                 tokens = 0,
                 unclaimed_tokens = 0
             }
+        else 
+            if ExperienceManager.user_data[user_id].name ~= user_name then
+                ExperienceManager.user_data[user_id].name = user_name
+            end
         end
     end
 
@@ -164,6 +172,20 @@ do
         if not unit.getPlayerName then return nil end
         local user_id = unit:getID()
         return ExperienceManager.user_data[user_id]
+    end
+
+    function ExperienceManager:addTokens(unit, amount)
+        local user = ExperienceManager:fetchUser(unit)
+        if user then
+            user.tokens = user.tokens + amount
+        end
+    end
+
+    function ExperienceManager:deductTokens(unit, amount)
+        local user = ExperienceManager:fetchUser(unit)
+        if user then
+            user.tokens = math.max(0, user.tokens - amount)
+        end
     end
 
 end

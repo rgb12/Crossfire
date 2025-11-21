@@ -209,13 +209,13 @@ do
             fill_color   = red_palette[2]
             text_color   = red_palette[3]
             text_bg      = red_palette[4]
-            text_display = text_display .. " - Coalition RED"
+            -- text_display = text_display .. " - Coalition RED"
         elseif self.side == coalition.side.BLUE then
             border_color = blue_palette[1]
             fill_color   = blue_palette[2]
             text_color   = blue_palette[3]
             text_bg      = blue_palette[4]
-            text_display = text_display .. " - Coalition BLUE"
+            -- text_display = text_display .. " - Coalition BLUE"
         end
         
         -- 2. Build Display Text
@@ -225,7 +225,7 @@ do
         elseif self.zone_type == ZoneTypes.LOGISTICS then
             text_display = text_display .. "\nLOGISTICS"
             text_display = text_display .. "\nCapture Helicopters: " .. (self.capture_heli_avail or 0)
-            text_display = text_display .. "\nCapture Convoys: " .. (self.capture_convoy_avail or 0)
+            -- text_display = text_display .. "\nCapture Convoys: " .. (self.capture_convoy_avail or 0)
         elseif self.zone_type == ZoneTypes.SAMSITE then
             text_display = text_display .. "\nSAM SITE"
         elseif self.zone_type == ZoneTypes.FARP then
@@ -238,7 +238,7 @@ do
             text_display = text_display .. "\nCOMMS"
         end
     
-        text_display = text_display.."\nLevel: "..(self.level or 1).."/4"
+        text_display = text_display.."\nT:"..(self.level or 1).."/4"
     
         -- 3. Cleanup Old Marks
         self._markIds = self._markIds or {

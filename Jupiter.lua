@@ -66,6 +66,30 @@ function Jupiter:onEvent(event)
             trigger.action.outText("Jupiter: Flare deployed.", 5)
             cmd_executed = true
 
+        elseif command == "-addtokens" then
+            local tokens_to_add = tonumber(param1) or 10
+            -- Find all players within 500m of the marker
+            local volS = {
+                id = world.VolumeType.SPHERE,
+                params = { point = vec3, radius = 500 }
+            }
+            local players_found = 0
+            local function addTokensToPlayer(obj, val)
+                if obj and obj:isExist() and obj.getPlayerName then
+                    local user = ExperienceManager:fetchUser(obj)
+                    if user then
+                        user.tokens = user.tokens + tokens_to_add
+                        trigger.action.outTextForUnit(user.id, string.format("Jupiter: You have been awarded %d tokens!", tokens_to_add), 10)
+                        players_found = players_found + 1
+                    end
+                end
+                return true
+            end
+            
+            world.searchObjects({Object.Category.UNIT}, volS, addTokensToPlayer)
+            trigger.action.outText(string.format("Jupiter: Added %d tokens to %d players within 500m.", tokens_to_add, players_found), 5)
+            cmd_executed = true
+
         -- === COMMAND: DESTROY (Area of Effect) ===
         elseif command == "-destroy" then
             local radius = tonumber(param1) or 5000 -- Default 5000m radius

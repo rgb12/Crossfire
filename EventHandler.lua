@@ -67,8 +67,7 @@ function ev:onEvent(event)
         
         -- checks if a capture heli aborted, if yes, remove it from enroute_capture_heli
         MissionLogger:info("AI unit aborted mission: " .. unit:getName())
-        for k,v in pairs(EnrouteManager.enroutes) do
-        end
+
         local enroute_aborted = EnrouteManager:findByGroup(group_name)
         if enroute_aborted then
             if enroute_aborted.ai_task_type == AITaskTypes.CAPTURE_HELO then

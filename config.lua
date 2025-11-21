@@ -23,6 +23,13 @@ Config = {
         random_scenario_selection = false,
         scenario_selected = "Neptune Protocol",
     },  
+    operations = {
+        recon_minimum_altitude = 1524, -- (meters)
+        recon_duration = 120, -- (seconds)
+        recon_distance_from_zone = 10000, -- (meters)
+        cap_duration = 10*60, -- (seconds)
+        cap_max_radius_from_zone = 20*1000, -- (meters)
+   },
 
     std_resupply_time = 20*60, -- (seconds) respawn resupply aircraft delay
     cooldown_before_capture_attempt = 12,--3*60, -- (seconds)
@@ -68,7 +75,15 @@ Config = {
         comms_zones_required_for_strike = 2,
         comms_zones_required_for_intercept = 1,
         comms_zones_required_for_awacs = 3,
-        comms_zones_required_for_recon = 1
+        comms_zones_required_for_recon = 1,
+
+        tokens_required_for_jtac = 5,
+        tokens_required_for_cas = 10,
+        tokens_required_for_sead = 15,
+        tokens_required_for_strike = 10,
+        tokens_required_for_intercept = 5,
+        tokens_required_for_awacs = 20,
+        tokens_required_for_recon = 5,
     },
     comms_tower_respawn_time = 120,--TO CHANGE 20*60, -- (seconds), the timer decreases by 25% for every level
     comms_tower_lost_penalty = 1.5, -- the respawn time is multiplied by this much when a comms tower is lost
@@ -87,7 +102,7 @@ Config = {
 
         max_awacs_theatre = 2,
 
-
+        range_for_recon_to_discover_zone = 15*1000, -- (meters)
         max_cas_range = 150*1000, -- (meters)
         min_cleareance_dist_for_awacs = 70*1000 -- (meters) from the nearest enemy zone
     },

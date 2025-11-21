@@ -708,11 +708,11 @@ do
 
         for wpn_id,amount in pairs(WarehouseManager.AIPayloads[airbase_coalition][ai_task_type]) do
             if warehouse:getItemCount(wpn_id) < amount then
-                MissionLogger:info("Checking warehouse for "..ai_task_type.." payloads, payload INSUFFICIENT")
+                -- MissionLogger:info("Checking warehouse for "..ai_task_type.." payloads, payload INSUFFICIENT")
                 return false
             end
         end
-        MissionLogger:info("Checking warehouse for "..ai_task_type.." payloads, payload OK")
+        -- MissionLogger:info("Checking warehouse for "..ai_task_type.." payloads, payload OK")
         return true
 
     end

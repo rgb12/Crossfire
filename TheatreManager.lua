@@ -164,7 +164,7 @@ do
 
     ---@param side coalition.side
     function TheatreCommander:evaluateAITasks(side)
-        MissionLogger:info("AI Commander checking tasks for: " .. utils.coalitionToString(side))
+        -- MissionLogger:info("AI Commander checking tasks for: " .. utils.coalitionToString(side))
         
         local side_comms_towers = 0
         if side == coalition.side.BLUE then
@@ -363,7 +363,7 @@ do
         if math.random(0,100) >= Config.retry_capture_chance then return end
         local side_sending_capture = math.random(1,2)
 
-        MissionLogger:info(utils.coalitionToString(side_sending_capture).." attempting capture for zone: " .. zone.name)
+        -- MissionLogger:info(utils.coalitionToString(side_sending_capture).." attempting capture for zone: " .. zone.name)
         zone.last_capture_attempt = now
         TheatreCommander.sendCapture(zone, side_sending_capture)
     end
@@ -517,17 +517,21 @@ do
                         local pos = mist.getLeadPos(recon_gr)
                         if mist.utils.get2DDist(pos, enroute.to_zone.zone.point) <= Config.tasking.range_for_recon_to_discover_zone then
                             -- Zone is discovered
+                            local first_time_discovered = false
                             if enroute.side == coalition.side.BLUE and not utils.tableContains(stats.blue_discovered_zones, enroute.to_zone.name) then
                                 table.insert(stats.blue_discovered_zones, enroute.to_zone.name)
-                                enroute.to_zone:drawF10()
-                                CommandHandler.refreshJtacCmds(enroute.side)
+                                first_time_discovered = true
                             elseif enroute.side == coalition.side.RED and not utils.tableContains(stats.red_discovered_zones, enroute.to_zone.name) then
                                 table.insert(stats.red_discovered_zones, enroute.to_zone.name)
+                                first_time_discovered = true
+                            end
+
+                            if first_time_discovered then
                                 enroute.to_zone:drawF10()
                                 CommandHandler.refreshJtacCmds(enroute.side)
+                                trigger.action.outTextForCoalition(enroute.side,"Recon group " .. enroute.group_name .. " has discovered " .. enroute.to_zone.name.."\nCheck F10 map", 10)
+                                MissionLogger:info("Recon group " .. enroute.group_name .. " has discovered " .. enroute.to_zone.name.."\nCheck F10 map")
                             end
-                            trigger.action.outTextForCoalition(enroute.side,"Recon group " .. enroute.group_name .. " has discovered " .. enroute.to_zone.name.."\nCheck F10 map", 10)
-                            MissionLogger:info("Recon group " .. enroute.group_name .. " has discovered " .. enroute.to_zone.name.."\nCheck F10 map")
                         end
 
                     else
@@ -817,7 +821,7 @@ do
         CommandHandler.init()
         CommandHandler.refreshJtacCmds(coalition.side.BLUE)
         CommandHandler.refreshJtacCmds(coalition.side.RED)
-        
+
         -- Create Operation Managers for each coalition
         if blue_airbase and red_airbase then
             TheatreCommander.blue_op_manager = OperationManager:new(coalition.side.BLUE, blue_airbase)
