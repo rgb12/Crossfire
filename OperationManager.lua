@@ -342,6 +342,7 @@ do
                         local zone = ZoneHandler.getFromName(target_zone.name)
                         if not zone then return false end
                         if #zone.linked_groups == 0 then return true end
+
                         local sam_units_alive = false
                         for _, gr in ipairs(zone.linked_groups) do
                             local group_obj = Group.getByName(gr)
@@ -349,8 +350,7 @@ do
                                 local units = group_obj:getUnits()
                                 for _, unit in ipairs(units) do
                                     if unit:hasAttribute('SAM SR') or unit:hasAttribute('SAM TR')
-                                     or unit:hasAttribute('IR Guided SAM') or unit:hasAttribute("EWR")
-                                     then
+                                    or unit:hasAttribute('IR Guided SAM') or unit:hasAttribute("EWR") then
                                         sam_units_alive = true
                                         break
                                     end
@@ -436,8 +436,8 @@ do
                     description = "Patrol the airspace above " .. target_zone.name .. " for 5 minutes.",
                     completed = false,
                     start_time = nil,
-                    duration = 300, -- 5 minutes
-                    radius = 10000, -- 10km
+                    duration = Config.operations.cap_duration, 
+                    radius = Config.operations.cap_max_radius_from_zone, 
                     check = function(self, player_unit)
                         local player_pos = player_unit:getPoint()
                         local zone = ZoneHandler.getFromName(target_zone.name)

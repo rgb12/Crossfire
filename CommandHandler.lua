@@ -48,14 +48,14 @@ do
                 end
             end
         end)
-        -- missionCommands.addCommand("Send AWACS",master_submenu,function ()
-        --     local from_zone = ZoneHandler.getFromName("VAZIANI")
-        --     TaskManager:initiateAITask(AITaskTypes.AWACS,coalition.side.BLUE,true,nil,from_zone,true)
-        -- end)
-        -- missionCommands.addCommand("Send RECON",master_submenu,function ()
-        --     local to_zone = ZoneHandler.getFromName("BRAVO")
-        --     TaskManager:initiateAITask(AITaskTypes.INTERCEPT,coalition.side.BLUE,true,to_zone,nil,true)
-        -- end)
+        missionCommands.addCommand("Send AWACS",master_submenu,function ()
+            local from_zone = ZoneHandler.getFromName("VAZIANI")
+            TaskManager:initiateAITask(AITaskTypes.AWACS,coalition.side.BLUE,true,nil,from_zone,true)
+        end)
+        missionCommands.addCommand("Send RECON",master_submenu,function ()
+            local to_zone = ZoneHandler.getFromName("BRAVO")
+            TaskManager:initiateAITask(AITaskTypes.INTERCEPT,coalition.side.BLUE,true,to_zone,nil,true)
+        end)
         missionCommands.addCommand("Give stock",master_submenu,function ()
             MissionLogger:info("Giving stock")
             WarehouseManager:handleIncomingSupplies(coalition.side.BLUE,
@@ -68,10 +68,111 @@ do
             TheatreCommander.sendWarehouseResupply(coalition.side.BLUE)
             TheatreCommander.sendWarehouseResupply(coalition.side.RED)
         end)
+        missionCommands.addCommand("test",master_submenu,function ()
+            MissionLogger:info("test command")
+            -- TheatreCommander:spawnCommsTowerAtZone("ALPHA",coalition.side.BLUE)
+            -- CommandHandler.refreshJtacCmds(coalition.side.BLUE)
+        end)
+        missionCommands.addCommand("test1",master_submenu,function ()
+            MissionLogger:info("test command")
+            -- TheatreCommander:spawnCommsTowerAtZone("ALPHA",coalition.side.BLUE)
+            -- CommandHandler.refreshJtacCmds(coalition.side.BLUE)
+        end)
+        missionCommands.addCommand("test2",master_submenu,function ()
+            MissionLogger:info("test command")
+            -- TheatreCommander:spawnCommsTowerAtZone("ALPHA",coalition.side.BLUE)
+            -- CommandHandler.refreshJtacCmds(coalition.side.BLUE)
+        end)
         -- destroy_main_submenu = missionCommands.addSubMenuForCoalition(coalition.side.BLUE, "Dev: Destroy Units", nil)
         -- Call the refresh function to build page 1.
     end
 
+
+    ---@param gr Group
+    function CommandHandler.initTaskingRequests(gr)
+        if not gr or not gr.isExist or not gr:isExist() then return end
+        local gr_id = gr:getID()
+
+        CommandHandler.tasking_main_submenu = missionCommands.addSubMenuForGroup(gr_id,"Request Tasking",nil)
+
+        ---@param unit Unit
+        ---@param required_tokens number
+        ---@return boolean
+        local function checkTokens(unit,required_tokens)
+            if not unit or not unit.isExist or not unit:isExist() then return false end
+            local user = ExperienceManager:fetchUser(unit)
+            if not user then return false end
+            if user.tokens >= required_tokens then
+                return true
+            else
+                trigger.action.outTextForUnit(unit:getID(),"Insufficient tokens for tasking request.",5)
+                return false
+            end
+        end
+
+        missionCommands.addCommandForGroup(gr_id,"Request CAS",CommandHandler.tasking_main_submenu,function (group)
+
+            if not group or not group.isExist or not group:isExist() then return end
+
+            ---@type Unit
+            local unit = group:getUnit(1)
+            if not unit or not unit.isExist or not unit:isExist() or not unit.getCoalition then return end
+
+            local unit_coalition = unit:getCoalition()
+
+            if not checkTokens(unit,Config.tasking_requirements.tokens_required_for_cas) then return end
+
+            local home_base
+            if unit_coalition == coalition.side.BLUE then
+                home_base = blue_airbase
+            else
+                home_base = red_airbase
+            end
+            if not home_base then return end
+
+            local to_zone = home_base:getClosestZone(utils.getEnemyCoalition(unit_coalition),nil,nil,true)
+            if to_zone then
+                if TaskManager:initiateAITask(AITaskTypes.CAS,unit_coalition,false,to_zone,nil,true) then
+                    ExperienceManager:deductTokens(unit,Config.tasking_requirements.tokens_required_for_cas)
+                    trigger.action.outTextForUnit(unit:getID(),"CAS request initiated, -"..Config.tasking_requirements.tokens_required_for_cas.." tokens.",10)
+                else 
+                    trigger.action.outTextForUnit(unit:getID(),"CAS request could not be fulfilled.",10)
+                end
+            end
+        end,gr)
+
+
+    end
+
+    -- Helper function for GROUP menus
+    ---@param group_id number
+    ---@param parent_menu any
+    ---@param command_list table
+    ---@param start_index number|nil
+    function CommandHandler.buildPagedMenuForGroup(group_id, parent_menu, command_list, start_index)
+        start_index = start_index or 1
+        local total_items = #command_list
+        local remaining = total_items - start_index + 1
+        local max_per_page = 9 -- Reserve 1 slot for "Next Page"
+
+        -- If everything fits in 10 slots, just use 10
+        if remaining <= 10 then
+            max_per_page = 10
+        end
+
+        local end_index = math.min(start_index + max_per_page - 1, total_items)
+
+        for i = start_index, end_index do
+            local cmd = command_list[i]
+            missionCommands.addCommandForGroup(group_id, cmd.name, parent_menu, cmd.func, cmd.arg)
+        end
+
+        -- If there are items left, create a Next Page submenu and recurse
+        if end_index < total_items then
+            local next_menu = missionCommands.addSubMenuForGroup(group_id, "Next Page >>", parent_menu)
+            CommandHandler.buildPagedMenuForGroup(group_id, next_menu, command_list, end_index + 1)
+        end
+    end
 
 
     ---@param side coalition.side
@@ -131,8 +232,7 @@ do
                 missionCommands.addCommandForCoalition(side, zone.name, CommandHandler.jtac_main_submenu, send, zone)
             end
         end
-    end
-
+    end 
 
     ---@param u Unit
     function CommandHandler.tallyZone(u)
