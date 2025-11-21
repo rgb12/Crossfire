@@ -66,6 +66,27 @@ function Jupiter:onEvent(event)
             trigger.action.outText("Jupiter: Flare deployed.", 5)
             cmd_executed = true
 
+        elseif command == "-discover" then
+            -- Add all zones to discovered_zones within radius
+            local radius = tonumber(param1) or 10000 -- Default 10km radius
+            for _, zone in pairs(zones) do
+                if mist.utils.get2DDist(vec3, zone.zone.point) <= radius then
+                    if not utils.tableContains(stats.blue_discovered_zones,zone.name) then
+                        table.insert(stats.blue_discovered_zones,zone.name)
+                        zone:drawF10()
+                        CommandHandler.requestMenuRefresh(coalition.side.BLUE)
+                        -- CommandHandler.refreshJtacCmds(coalition.side.BLUE)
+                        -- trigger.action.outTextForCoalition(unit_coalition, "Recon reports newly detected targets in: "..zone.name,15)
+                    elseif not utils.tableContains(stats.red_discovered_zones,zone.name) then
+                        table.insert(stats.red_discovered_zones,zone.name)
+                        zone:drawF10()
+                        -- CommandHandler.refreshJtacCmds(coalition.side.RED)
+                        CommandHandler.requestMenuRefresh(coalition.side.RED)
+                        -- trigger.action.outTextForCoalition(unit_coalition, "Recon reports newly detected targets in: "..zone.name,15)
+                    end
+                end
+            end
+
         elseif command == "-addtokens" then
             local tokens_to_add = tonumber(param1) or 10
             -- Find all players within 500m of the marker
