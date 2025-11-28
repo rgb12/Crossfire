@@ -1,6 +1,5 @@
 --- Parts of this code belongs to Dzsek’s very well designed JTAC
 
-enroute_jtac = {} --TO CHANGE
 pending_jtac_zones = {} --TO CHANGE
 used_jtac_callsign_index = 1 --TO CHANGE
 

@@ -103,18 +103,6 @@ function ev:onEvent(event)
         --     end
         -- end
 
-        -- check it its a JTAC
-        -- for i,jtac in ipairs(enroute_jtac) do
-
-        --     if jtac.jtac_gr_name == group_name then
-        --         missionCommands.removeItemForCoalition(jtac.side, jtac.jtac_menu)
-        --         jtac.jtac_menu = nil
-        --         MissionLogger:info("Removed aborted JTAC from enroutes: " .. jtac.jtac_gr_name)
-        --         table.remove(enroute_jtac,i)
-        --     end
-            
-        -- end
-
 
         -- for i,recon_gr_name in ipairs(enroute_recon) do
         --     if recon_gr_name == group_name then
@@ -291,15 +279,6 @@ function ev:onEvent(event)
                 -- MissionLogger:info("Removed LANDED"..enroute_task.ai_task_type.." from enroutes: " .. group_name)
                 return
             end
-
-            for i,jtac in ipairs(enroute_jtac) do
-                if jtac.jtac_gr_name == unit:getGroup():getName() then
-                    table.remove(enroute_jtac,i)
-                    trigger.action.outTextForCoalition(jtac.side, jtac.callsign.." JTAC landed, end of task.",5)
-                    break
-                end
-            end
-
         end
     elseif event.id == world.event.S_EVENT_DEAD and event.initiator then
 
