@@ -75,18 +75,23 @@ function Jupiter:onEvent(event)
                         table.insert(stats.blue_discovered_zones,zone.name)
                         zone:drawF10()
                         CommandHandler.requestMenuRefresh(coalition.side.BLUE)
-                        -- CommandHandler.refreshJtacCmds(coalition.side.BLUE)
-                        -- trigger.action.outTextForCoalition(unit_coalition, "Recon reports newly detected targets in: "..zone.name,15)
+                        cmd_executed = true
                     elseif not utils.tableContains(stats.red_discovered_zones,zone.name) then
                         table.insert(stats.red_discovered_zones,zone.name)
                         zone:drawF10()
-                        -- CommandHandler.refreshJtacCmds(coalition.side.RED)
                         CommandHandler.requestMenuRefresh(coalition.side.RED)
+                        cmd_executed = true
                         -- trigger.action.outTextForCoalition(unit_coalition, "Recon reports newly detected targets in: "..zone.name,15)
                     end
                 end
             end
-
+            
+        elseif command == "-logzones" then
+            MissionLogger:info(zones)
+            cmd_executed = true
+        elseif command == "-logenroutes" then
+            MissionLogger:info(EnrouteManager.enroutes)
+            cmd_executed = true
         elseif command == "-addtokens" then
             local tokens_to_add = tonumber(param1) or 10
             -- Find all players within 500m of the marker

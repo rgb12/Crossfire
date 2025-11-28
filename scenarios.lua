@@ -96,18 +96,18 @@ Scenarios = {
                 name = "COMMS2",
                 zone_type = ZoneTypes.COMMS
             }),
-            ZoneHandler:new({
-                name = "COMMS3",
-                zone_type = ZoneTypes.COMMS
-            }),
-            ZoneHandler:new({
-                name = "COMMS4",
-                zone_type = ZoneTypes.COMMS
-            }),
-            ZoneHandler:new({
-                name = "COMMS5",
-                zone_type = ZoneTypes.COMMS
-            }),
+            -- ZoneHandler:new({
+            --     name = "COMMS3",
+            --     zone_type = ZoneTypes.COMMS
+            -- }),
+            -- ZoneHandler:new({
+            --     name = "COMMS4",
+            --     zone_type = ZoneTypes.COMMS
+            -- }),
+            -- ZoneHandler:new({
+            --     name = "COMMS5",
+            --     zone_type = ZoneTypes.COMMS
+            -- }),
             ZoneHandler:new({
                 name = "KUTAISI",
                 zone_type = ZoneTypes.AIRBASE,
