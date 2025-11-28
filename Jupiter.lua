@@ -85,6 +85,23 @@ function Jupiter:onEvent(event)
                     end
                 end
             end
+        
+        elseif command == "-additemwarehouse" then
+            local item_flag = param1
+            local quantity = tonumber(args[3]) or 10
+            if item_flag then
+                for _, zone in pairs(zones) do
+                    if mist.utils.get2DDist(vec3, zone.zone.point) <= 2000 and zone.zone_type == ZoneTypes.AIRBASE then
+                        local airbase = Airbase.getByName(zone.airbase_name)
+                        if airbase then
+                            local wh = airbase:getWarehouse()
+                            wh:addItem(item_flag, quantity)
+                        end
+                        trigger.action.outText("Jupiter: Added "..quantity.." of "..item_flag.." to "..zone.airbase_name.." warehouse.", 5)
+                        cmd_executed = true
+                    end
+                end
+            end
         elseif command == "-getwarehouse" then
             for _, zone in pairs(zones) do
                 if mist.utils.get2DDist(vec3, zone.zone.point) <= 2000 and zone.zone_type == ZoneTypes.AIRBASE then
