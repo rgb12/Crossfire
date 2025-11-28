@@ -175,8 +175,10 @@ do
     end
 
     function JTAC:setupCommands()
-
-        self.jtac_menu = missionCommands.addSubMenuForCoalition(self.side, self.callsign..' JTAC '..self.to_zone.name,nil)
+        if CommandHandler.jtac_submenu[self.side] == nil then
+            CommandHandler.jtac_submenu[self.side] = missionCommands.addSubMenuForCoalition(self.side,"JTAC", nil)
+        end
+        self.jtac_menu = missionCommands.addSubMenuForCoalition(self.side, self.callsign..' JTAC '..self.to_zone.name,CommandHandler.jtac_submenu[self.side])
 
         self.select_target_menu = missionCommands.addCommandForCoalition(self.side,"Select target / Start lasing",self.jtac_menu, function (jtac)
             local jtac_gr = Group.getByName(jtac.jtac_gr_name)

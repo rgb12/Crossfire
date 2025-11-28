@@ -93,13 +93,15 @@ Config = {
         dispatcher_interval = 5*60, -- (seconds)
         max_tasks_per_airbase = 4,
         max_jtac_per_airbase = 2,
-        max_cas_per_airbase = 2,
+        max_cas_per_airbase = 1,
         max_sead_per_airbase = 2,
         max_strike_per_airbase = 2,
         max_intercept_per_airbase = 2,
         max_awacs_per_airbase = 1,
         max_recon_per_airbase = 2,
 
+        max_capture_helicopters_per_logistics_zone = 4,
+        max_attack_convoys_per_strongpoint_zone = 2,
         max_awacs_theatre = 2,
 
         range_for_recon_to_discover_zone = 15*1000, -- (meters)

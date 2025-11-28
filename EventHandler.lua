@@ -230,15 +230,14 @@ function ev:onEvent(event)
                     WarehouseManager:handleIncomingSupplies(gr_coalition, restock_types)
 
                     -- 4. Remove the task from the manager
-                    EnrouteManager:remove(gr_name)
+
                 
                 end,{},timer.getTime()+10)
 
                 
+                EnrouteManager:remove(gr_name)
                 return
             end
-
-            
         end
     end
 

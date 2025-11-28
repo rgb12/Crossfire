@@ -311,6 +311,7 @@ do
                 self._markIds.red, self._markIds.redText = nil, nil
             end
         end
+        -- CommandHandler.requestMenuRefresh()
     end
 
     function ZoneHandler:isQuad()
@@ -738,10 +739,13 @@ do
         if math.random(1,100) > chance then return end
 
         if self.zone_type == ZoneTypes.LOGISTICS then
-            self.capture_convoy_avail = self.capture_convoy_avail +1
-            self.capture_heli_avail = self.capture_heli_avail +1
+            if self.capture_heli_avail < Config.tasking.max_capture_helicopters_per_logistics_zone then
+                self.capture_heli_avail = self.capture_heli_avail +1
+            end
         elseif self.zone_type == ZoneTypes.STRONGPOINT then
-            self.attack_convoy = self.attack_convoy +1
+            if self.attack_convoy < Config.tasking.max_attack_convoys_per_strongpoint_zone then
+                self.attack_convoy = self.attack_convoy +1
+            end
         end
         self:drawF10()
     end

@@ -32,7 +32,7 @@ do
             local closest_airbase, template_gr_name = self:findClosestAirbaseWithAircraftInStock(to_zone,side,ai_task_type,2,ai_task_type)
             if not closest_airbase then
                 if user_requested then
-                    txt="CAS unavailable for "..to_zone.name..", check aircraft availability."
+                    txt="CAS unavailable for "..to_zone.name..", check aircraft availability, warehouse stock and tasking limits."
                     trigger.action.outTextForCoalition(side,txt,5)
                 end
                 return false
@@ -76,7 +76,7 @@ do
             local in_stock, template_gr_name = WarehouseManager:checkAircraftInStock(from_zone.airbase_name,ai_task_type)
             if not in_stock then
                 if user_requested then
-                    txt="AWACS unavailable for "..from_zone.name..", check aircraft availability."
+                    txt="AWACS unavailable from "..from_zone.name..", check aircraft availability, warehouse stock and tasking limits."
                     trigger.action.outTextForCoalition(side,txt,5)
                 end
                 return false
@@ -109,7 +109,7 @@ do
             local closest_airbase, template_gr_name = self:findClosestAirbaseWithAircraftInStock(to_zone,side,ai_task_type,2,ai_task_type)
             if not closest_airbase then
                 if user_requested then
-                    txt="INTERCEPT unavailable for "..to_zone.name..", check aircraft availability."
+                    txt="INTERCEPT unavailable for "..to_zone.name..", check aircraft availability, warehouse stock and tasking limits."
                     trigger.action.outTextForCoalition(side,txt,5)
                 end
                 return false
@@ -147,7 +147,7 @@ do
             local closest_airbase, template_gr_name = self:findClosestAirbaseWithAircraftInStock(to_zone,side,ai_task_type,2,ai_task_type)
             if not closest_airbase then
                 if user_requested then
-                    txt="SEAD unavailable for "..to_zone.name..", check aircraft availability."
+                    txt="SEAD unavailable for "..to_zone.name..", check aircraft availability, warehouse stock and tasking limits."
                     trigger.action.outTextForCoalition(side,txt,5)
                 end
                 return false
@@ -184,7 +184,7 @@ do
             local closest_airbase, template_gr_name = self:findClosestAirbaseWithAircraftInStock(to_zone,side,ai_task_type,2,ai_task_type)
             if not closest_airbase then
                 if user_requested then
-                    txt="STRIKE unavailable for "..to_zone.name..", check aircraft availability."
+                    txt="STRIKE unavailable for "..to_zone.name..", check aircraft availability, warehouse stock and tasking limits."
                     trigger.action.outTextForCoalition(side,txt,5)
                 end
                 return false
@@ -230,7 +230,7 @@ do
             local closest_airbase, template_gr_name = self:findClosestAirbaseWithAircraftInStock(to_zone,side,ai_task_type,2,ai_task_type)
             if not closest_airbase then
                 if user_requested then
-                    txt="RECON unavailable for "..to_zone.name..", check aircraft availability."
+                    txt="RECON unavailable for "..to_zone.name..", check aircraft availability, warehouse stock and tasking limits."
                     trigger.action.outTextForCoalition(side,txt,5)
                 end
                 return false
@@ -269,13 +269,13 @@ do
             local closest_airbase, template_gr_name = self:findClosestAirbaseWithAircraftInStock(to_zone,side,ai_task_type,1,ai_task_type)
             if not closest_airbase then
                 if user_requested then
-                txt="JTAC unavailable for "..to_zone.name..", check aircraft availability."
+                    txt="JTAC unavailable for "..to_zone.name..", check aircraft availability, warehouse stock and tasking limits."
                 trigger.action.outTextForCoalition(side,txt,5)
                 end
                 return false
             end
         
-            if prevent_duplicates and EnrouteManager:findByToZone(to_zone,side,{AITaskTypes.JTAC}) then
+            if EnrouteManager:findByToZone(to_zone,side,{AITaskTypes.JTAC}) then
                 if user_requested then
                     txt="JTAC already tasked for "..to_zone.name
                     trigger.action.outTextForCoalition(side,txt,5)
@@ -414,7 +414,7 @@ do
 
         if ai_task_type == AITaskTypes.CAS then
             local cas_enroutes = EnrouteManager:findByFromZone(airbase,side,{AITaskTypes.CAS})
-            if cas_enroutes and #cas_enroutes >= Config.tasking_max_cas_per_airbase then
+            if cas_enroutes and #cas_enroutes >= Config.tasking.max_cas_per_airbase then
                 return true
             end
         elseif ai_task_type == AITaskTypes.INTERCEPT then
@@ -991,47 +991,115 @@ do
     --- Exactly the same as setCASTask
     ---@param sead_group_name string
     ---@param enroute_data EnrouteObj
-    function TaskManager:setSEADTask(sead_group_name,enroute_data)
+    function TaskManager:setSEADTask(sead_group_name, enroute_data)
         timer.scheduleFunction(function()
-            local units_to_attack
-            if enroute_data.side == coalition.side.BLUE then units_to_attack = utils.getUnitsInZoneObj(enroute_data.to_zone, coalition.side.RED)
-            elseif enroute_data.side == coalition.side.RED then units_to_attack = utils.getUnitsInZoneObj(enroute_data.to_zone, coalition.side.BLUE) end
-            
 
-            if units_to_attack and #units_to_attack > 0 then grp_to_attack_id = units_to_attack[1]:getGroup():getID()
-            else MissionLogger:error("Could not send BLUE SEAD") return false end
+            -- 1. Validation
+            if not enroute_data.to_zone or #enroute_data.to_zone.linked_groups == 0 then return false end 
+            local grp_to_attack = Group.getByName(enroute_data.to_zone.linked_groups[1])
+            if not grp_to_attack or not grp_to_attack:isExist() then return false end
+            local grp_to_attack_id = grp_to_attack:getID()
 
             local sead_gr = Group.getByName(sead_group_name)
             if not (sead_gr and sead_gr:isExist() and grp_to_attack_id) then return false end
-            MissionLogger:info(sead_gr:getName())
-
-            local tgpos = units_to_attack[1]:getPoint()
 
             local ctrl = sead_gr:getController()
 
-            ctrl:setTask({
+            -- 2. Calculate Positions
+            local startPos = mist.getLeadPos(sead_group_name) -- Current Airbase pos
+            local targetPos = enroute_data.to_zone.zone.point -- Enemy SAM pos
+            
+            -- Calculate vector from Start to Target
+            local vecX = targetPos.x - startPos.x
+            local vecZ = targetPos.z - startPos.z
+            local distance = math.sqrt(vecX^2 + vecZ^2)
+            
+            -- Define Standoff Distance (e.g., 25km / 25000 meters)
+            -- If the total distance is short (<30km), just go 75% of the way.
+            local standOffDist = 25000 
+            local ratio = 0.75
+            
+            if distance > standOffDist then
+                ratio = (distance - standOffDist) / distance
+            end
+
+            -- This is the "Launch Point" ~25km short of the SAM
+            local ipPos = {
+                x = startPos.x + (vecX * ratio),
+                y = startPos.z + (vecZ * ratio)
+            }
+
+            -- 3. Define the Attack Task
+            local attackTask = {
                 id = 'AttackGroup',
                 params = {
                     groupId = grp_to_attack_id,
                     groupAttack = true,
                     expend = AI.Task.WeaponExpend.ALL,
                     altitudeEnabled = true,
-					altitude = 4000
+                    altitude = mist.utils.feetToMeters(30000), -- stay high for HARMs
+                    weaponType = 4161536 -- Only allow ASM (Anti-Radiation/Anti-Ship) to prevent gun runs
                 }
+            }
+
+            -- 4. Build the Mission
+            local missionTask = {
+                id = 'Mission',
+                params = {
+                    route = {
+                        airborne = true,
+                        points = {}
+                    }
+                }
+            }
+
+            -- Waypoint 1: TAKEOFF
+            table.insert(missionTask.params.route.points, {
+                type = AI.Task.WaypointType.TAKEOFF,
+                x = startPos.x,
+                y = startPos.z,
+                action = AI.Task.TurnMethod.FIN_POINT,
+                alt_type = AI.Task.AltitudeType.RADIO
             })
 
-            -- Make sure they’re allowed to fight and won’t RTB immediately
-            -- ctrl:setOption(AI.Option.Air.id.ROE, AI.Option.Air.val.ROE.OPEN_FIRE_WEAPON_FREE) --has to be, return fire does not work
-            ctrl:setOption(AI.Option.Air.id.REACTION_ON_THREAT, AI.Option.Air.val.REACTION_ON_THREAT.EVADE_FIRE)
-            ctrl:setOption(AI.Option.Air.id.PROHIBIT_AA, false)
-            ctrl:setOption(0,1)
+            -- Waypoint 2: STANDOFF LAUNCH POINT
+            -- The AI flies here. Once reached (or enroute), they execute the 'task'.
+            table.insert(missionTask.params.route.points, {
+                type = AI.Task.WaypointType.TURNING_POINT,
+                x = ipPos.x,
+                y = ipPos.y,
+                speed = 257, 
+                action = AI.Task.TurnMethod.FLY_OVER_POINT,
+                alt = 4000, -- 13k ft (Good for HARM launch)
+                alt_type = AI.Task.AltitudeType.BARO,
+                task = attackTask -- **Task is attached here, 25km away from target**
+            })
 
+            -- Waypoint 3: LAND 
+            -- They will turn back after the attack (or if out of ammo)
+            table.insert(missionTask.params.route.points, {
+                type = AI.Task.WaypointType.LAND,
+                x = startPos.x,
+                y = startPos.z,
+                action = AI.Task.TurnMethod.FIN_POINT,
+                alt_type = AI.Task.AltitudeType.RADIO
+            })
 
-            ctrl:setOption(AI.Option.Air.id.RTB_ON_OUT_OF_AMMO, true)
+            -- 5. Set Task & Options
+            ctrl:setTask(missionTask)
+
+            -- IMPORTANT: Passive Defence allows them to pop flares but MAINTAIN course/lock. 
+            -- 'Evade Fire' makes them turn cold immediately, ruining the HARM shot.
+            ctrl:setOption(AI.Option.Air.id.REACTION_ON_THREAT, AI.Option.Air.val.REACTION_ON_THREAT.PASSIVE_DEFENCE)
+            
+            ctrl:setOption(AI.Option.Air.id.PROHIBIT_JETT, true)
+            
+            -- RTB if out of Anti-Radiation Missiles
+            ctrl:setOption(AI.Option.Air.id.RTB_ON_OUT_OF_AMMO, 4161536) 
             ctrl:setOption(AI.Option.Air.id.RTB_ON_BINGO, true)
 
-            trigger.action.outTextForCoalition(enroute_data.side, "SEAD mission tasked, engaging: "..enroute_data.to_zone.name,10)
-            MissionLogger:info("SEAD mission tasked, engaging: "..enroute_data.to_zone.name)
+            trigger.action.outTextForCoalition(enroute_data.side, "SEAD tasked. Engaging from standoff range: "..enroute_data.to_zone.name, 10)
+            MissionLogger:info("SEAD engaging " .. enroute_data.to_zone.name .. " from IP distance.")
         end, {}, timer.getTime() + 12)
     end
 
