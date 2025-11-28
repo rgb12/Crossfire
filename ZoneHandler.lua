@@ -556,14 +556,33 @@ do
                     airbase:autoCapture(false)
                     airbase:setCoalition(self.side)
 
-                    -- -- reset warehouse
-                    -- local wh = airbase:getWarehouse()
-                    -- if wh then
-                    --     local inv = wh:getInventory()
-                    --     for item_name, _ in pairs(inv) do
-                    --         wh:removeItem(item_name, inv[item_name])
-                    --     end
-                    -- end
+                    -- RESET WAREHOUSE
+                    local wh = airbase:getWarehouse()
+                    if wh then
+                        local inv = wh:getInventory()
+
+                        -- 1. Clear Weapons / Stores
+                        if inv.weapon then
+                            for item_name, count in pairs(inv.weapon) do
+                                wh:removeItem(item_name, count)
+                            end
+                        end
+
+                        -- 2. Clear Aircraft
+                        if inv.aircraft then
+                            for item_name, count in pairs(inv.aircraft) do
+                                wh:removeItem(item_name, count)
+                            end
+                        end
+
+                        -- 3. Clear Liquids (Fuel, etc.)
+                        -- The key (0,1,2,3) corresponds to the liquid type ID
+                        if inv.liquids then
+                            for liquid_type, _ in pairs(inv.liquids) do
+                                wh:setLiquidAmount(liquid_type, 0)
+                            end
+                        end
+                    end
                 end
             end
             if red_airbase and self.airbase_name == red_airbase.airbase_name then
