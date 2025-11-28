@@ -1287,7 +1287,7 @@ do
             ctrl:setOption(AI.Option.Air.id.REACTION_ON_THREAT, AI.Option.Air.val.REACTION_ON_THREAT.PASSIVE_DEFENCE)
             ctrl:setOption(AI.Option.Air.id.RTB_ON_BINGO, true)
 
-            trigger.action.outTextForCoalition(enroute_data.side, "RECON mission tasked, enroute to ????", 10)
+            trigger.action.outTextForCoalition(enroute_data.side, "RECON mission tasked.", 10)
             MissionLogger:info("RECON mission tasked to " .. enroute_data.to_zone.name)
         end, {}, timer.getTime() + 12)
     end
