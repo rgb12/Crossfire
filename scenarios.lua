@@ -129,6 +129,16 @@ Scenarios = {
                 }
             }),
             ZoneHandler:new({
+                name = "SENAKI",
+                zone_type = ZoneTypes.AIRBASE,
+                airbase_name = Airbases.Caucasus.Senaki_Kolkhi,
+                acft_resupply_point = { --TO CHANGE
+                    x = -00326782,
+                    y = 6096, --20k ft
+                    z = 00932890
+                }
+            }),
+            ZoneHandler:new({
                 name = "RED COMMS1",
                 zone_type = ZoneTypes.COMMS
             }),
