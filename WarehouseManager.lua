@@ -42,6 +42,48 @@ do
     KH58U = "weapons.missiles.X_58",
     L005_SORBSIYA_ECM_POD_LEFT = "weapons.containers.SORBCIJA_L",
     L005_SORBSIYA_ECM_POD_RIGHT = "weapons.containers.SORBCIJA_R",
+
+    BETAB_500 = "weapons.bombs.BetAB_500",
+    BETAB_500SHP = "weapons.bombs.BetAB_500ShP",
+    S13_OF_122MM = "weapons.nurs.C_13",
+    S24B_240MM_UnGd_Rkt = "weapons.nurs.C_24",
+    S25_OFM_340MM = "weapons.nurs.C_25",
+    S25_O_420MM_FRAG = "weapons.nurs.S-25-O",
+    S5_OFM_340MM = "weapons.nurs.C_5",
+    S8_KOM_80MM_HEAT = "weapons.nurs.C_8",
+    S8_TsM_SM_ORANGE = "weapons.nurs.C_8CM",
+    S8_TsM_SM_BLUE = "weapons.nurs.C_8CM_BU",
+    S8_TsM_SM_GREEN = "weapons.nurs.C_8CM_GN",
+    S8_TsM_SM_RED = "weapons.nurs.C_8CM_RD",
+    S8_TsM_SM_VIOLET = "weapons.nurs.C_8CM_VT",
+    S8_TsM_SM_WHITE = "weapons.nurs.C_8CM_WH",
+    S8_TsM_SM_YELLOW = "weapons.nurs.C_8CM_YE",
+    S8_OM_FP2_MPP = "weapons.nurs.C_8OM",
+    S5_KP_57MM_HEAT_FRAG = "weapons.nurs.S_5KP",
+    S5_M_HE = "weapons.nurs.S_5M",
+    S24A = "weapons.nurs.S-24A",
+    S24B = "weapons.nurs.S-24B",
+    FAB_100 = "weapons.bombs.FAB_100",
+    FAB_100M = "weapons.bombs.FAB_100M",
+    FAB_100SV = "weapons.bombs.FAB_100SV",
+    FAB_250 = "weapons.bombs.FAB_250",
+    FAB_250_M62 = "weapons.bombs.FAB-250-M62",
+    FAB_500 = "weapons.bombs.FAB_500",
+    KH25MP_PRGS1VP = "weapons.missiles.Kh25MP_PRGS1VP",
+    MERCURY_LLTV_POD = "weapons.containers.KINGAL",
+    MPS_410 = "weapons.containers.MPS-410",
+    RBK_250 = "weapons.bombs.RBK_250",
+    RBK_250_275_AO_1SCH = "weapons.bombs.RBK_250_275_AO_1SCH",
+    RBK_500AO = "weapons.bombs.RBK_500AO",
+    RBK_500U = "weapons.bombs.RBK_500U",
+    S25L = "weapons.missiles.S_25L",
+    SAB_100MN = "weapons.bombs.SAB_100MN",
+    SAB_250_200 = "weapons.bombs.SAB_250_200",
+    X_25MP = "weapons.missiles.X_25MP",
+    X_29L = "weapons.missiles.X_29L",
+    KAB_500KR_NEW = "weapons.bombs.KAB_500Kr", -- (Note: 'KAB-500Kr' vs 'KAB_500Kr')
+    R_60 = "weapons.missiles.R-60",
+    RBK_500U_OAB_2_5RT = "weapons.bombs.RBK_500U_OAB_2_5RT",
     }
 
     ---@enum WarehouseManager.FuelTanks
@@ -50,13 +92,7 @@ do
         RPL_552_1300L = "weapons.droptanks.M2KC_RPL_522",         -- RPL 522 1300L for M2000C
         F15E_610_GAL = "weapons.droptanks.F-15E_Drop_Tank",
         F14_DROPTANK = "weapons.droptanks.HB_F14_EXT_DROPTANK"
-        -- fuel tank 300 gal for F-16C
-        -- fuel tank 370 gal for F-16C
-
-        -- fuel tank 610 gal for f15e
-        -- Fuel tank FT600 for A10CII
-
-        -- Fuel tank 800L Wing for SU25T
+        -- Fuel tanks are not currently being used in the warehouse system due to their nature and complicated way of adding them here
     }
     ---@enum WarehouseManager.AircraftFlags
     WarehouseManager.AircraftFlags = {
@@ -78,6 +114,7 @@ do
         SU30 = "Su-30",
         SU27 = "Su-27",
         SU24M = "Su-24M",
+        SU24MR = "Su-24MR",
         SU34 = "Su-34",
         SU33 = "Su-33",
         MI8MT = "Mi-8MT",
@@ -187,6 +224,10 @@ do
                         group_name = "RED ANAPA AWACS",
                         warehouse_name = WarehouseManager.AircraftFlags.A50
                     },
+                    [AITaskTypes.RECON] = {
+                        group_name = "RED ANAPA RECON",
+                        warehouse_name = WarehouseManager.AircraftFlags.SU24MR
+                    }
                 }
             }
     }
@@ -292,10 +333,22 @@ do
         MULTIROLE_AIRCRAFT = 22,
         AA_AIRCRAFT = 22,
         RECON_AIRCRAFT = 23,
-        CARGO_AIRCRAFT = 24
+        CARGO_AIRCRAFT = 24,
+        SU25T_BLUEFOR = 25,
     }
 
     WarehouseManager.Stocks = {
+        [WarehouseManager.StockTypes.SU25T_BLUEFOR] = {
+            [coalition.side.BLUE] = {
+                [WarehouseManager.AircraftFlags.SU25T] = 6,
+                [WarehouseManager.Flags.R73_AA_11_ARCHER] = math.random(15,30),
+                [WarehouseManager.Flags.S_8O0FP2_MPP] = math.random(100,400),
+                [WarehouseManager.Flags.VIKHR_M] = math.random(100,200),
+                [WarehouseManager.Flags.KH_29T] = math.random(15,35),
+            },
+            [coalition.side.RED] = {}
+        },
+
         [WarehouseManager.StockTypes.INITIAL] = {
             [coalition.side.BLUE] = {
                 [WarehouseManager.Flags.AGM_65D] = math.random(14,18),
@@ -354,6 +407,8 @@ do
                 [WarehouseManager.AircraftFlags.SU25T] = 18,
                 [WarehouseManager.AircraftFlags.SU27] = 8,
                 [WarehouseManager.AircraftFlags.SU24M] = 16,
+                [WarehouseManager.AircraftFlags.A50] = 2,
+                [WarehouseManager.AircraftFlags.SU24MR] = 4,
 
             }
                 
@@ -452,6 +507,7 @@ do
                 [WarehouseManager.AircraftFlags.SU27] = 4,
                 [WarehouseManager.AircraftFlags.SU30] = 2,
                 [WarehouseManager.AircraftFlags.SU25T] = 2,
+                [WarehouseManager.AircraftFlags.SU24MR] = 4,
             }
         },
         [WarehouseManager.StockTypes.AA_AIRCRAFT] = {

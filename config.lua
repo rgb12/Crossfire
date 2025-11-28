@@ -31,6 +31,9 @@ Config = {
         cap_max_radius_from_zone = 20*1000, -- (meters)
    },
 
+   enabled_su25t_bluefor = true, -- adds the SU-25T to the bluefor warehouse inventory
+   estimated_users = 1, -- used to scale warehouse stocks and resupply quantities
+
     std_resupply_time = 20*60, -- (seconds) respawn resupply aircraft delay
     cooldown_before_capture_attempt = 12,--3*60, -- (seconds)
     retry_capture_chance = 100,--50, -- (%)

@@ -780,7 +780,11 @@ do
         -- assign airbase warehouses
         WarehouseManager:handleIncomingSupplies(home_base.side,
             {WarehouseManager.StockTypes.INITIAL}  )
-        
+        if Config.enabled_su25t_bluefor then
+            WarehouseManager:handleIncomingSupplies(home_base.side,
+                {WarehouseManager.StockTypes.SU25T_BLUEFOR}  )
+        end
+
         -- Also assign initial supplies for the RED base
         WarehouseManager:handleIncomingSupplies(red_base.side,
             {WarehouseManager.StockTypes.INITIAL}  )
