@@ -953,6 +953,7 @@ do
 
     function ZoneHandler:checkAirbaseZone()
         if self.zone_type ~= ZoneTypes.AIRBASE then return end
+        if self.side == coalition.side.NEUTRAL then return end
         if not self.airbase_name then return end
 
         local cmdc = nil
