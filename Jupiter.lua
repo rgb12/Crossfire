@@ -85,7 +85,23 @@ function Jupiter:onEvent(event)
                     end
                 end
             end
-            
+        elseif command == "-getwarehouse" then
+            for _, zone in pairs(zones) do
+                if mist.utils.get2DDist(vec3, zone.zone.point) <= 2000 and zone.zone_type == ZoneTypes.AIRBASE then
+                    local airbase = Airbase.getByName(zone.airbase_name)
+                    if airbase then
+                        local wh = airbase:getWarehouse():getInventory()
+                        MissionLogger:info("Warehouse inventory for "..zone.airbase_name..":")
+                        MissionLogger:info(wh)
+                        trigger.action.outText("Jupiter: .."..zone.name.." warehouse inventory", 5)
+                        trigger.action.outText(mist.utils.tableShow(wh),25)
+                        cmd_executed = true
+                    else
+                        trigger.action.outText("Jupiter: No airbase found for zone "..zone.name, 5)
+                    end
+                end
+            end
+
         elseif command == "-logzones" then
             MissionLogger:info(zones)
             cmd_executed = true
