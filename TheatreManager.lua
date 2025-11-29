@@ -411,8 +411,7 @@ do
         local t5m_update = function()
             MissionLogger:info("5 mins")
 
-            TheatreCommander:evaluateAITasks(coalition.side.BLUE)
-            TheatreCommander:evaluateAITasks(coalition.side.RED)
+
 
             timer.scheduleFunction(function () --caching and cleaning when other functions free up
                 for i = #EnrouteManager.enroutes, 1, -1 do
@@ -425,7 +424,7 @@ do
                     end
                 end
                 
-            end,{}, timer.getTime() + 22)
+            end,{}, timer.getTime() + 8)
         end
 
     --This function is executed every 15s
@@ -652,6 +651,16 @@ do
     end
 
 
+    -- AI DISPATCHER
+    function TheatreCommander.dispatchAI()
+            
+    timer.scheduleFunction(function ()
+        TheatreCommander:evaluateAITasks(coalition.side.BLUE)
+        TheatreCommander:evaluateAITasks(coalition.side.RED)
+        
+        TheatreCommander.dispatchAI()
+    end, nil, timer.getTime()+Config.tasking.dispatcher_interval)
+    end
 
     ---@return ZoneHandler,ZoneHandler
     function TheatreCommander.establishTheatre()
@@ -833,6 +842,10 @@ do
         
         TheatreCommander:tick()
         
+        -- AI DISPATCHER
+        TheatreCommander.dispatchAI()
+
+
         EWRS_coalition = {
             [coalition.side.BLUE] = EWRS:new(coalition.side.BLUE),
             [coalition.side.RED] = EWRS:new(coalition.side.RED),
