@@ -388,21 +388,21 @@ do
                 [WarehouseManager.Flags.AGM_65D] = math.random(14,18),
                 [WarehouseManager.Flags.AGM_65E] = math.random(8,10),
                 [WarehouseManager.Flags.AGM_88_HARM] = math.random(4,10),
-                [WarehouseManager.Flags.GBU_31_V_3B] = math.random(1,4),
+                [WarehouseManager.Flags.GBU_31_V_3B] = math.random(8,16),
                 [WarehouseManager.Flags.GBU_38] = math.random(15,20),
-                [WarehouseManager.Flags.GBU_12] = math.random(20,35),
+                [WarehouseManager.Flags.GBU_12] = math.random(32,50),
                 [WarehouseManager.Flags.GBU_10] = math.random(8,14),
                 [WarehouseManager.Flags.GBU_16] = math.random(8,14),
-                [WarehouseManager.Flags.GBU_24] = math.random(4,8),
+                [WarehouseManager.Flags.GBU_24] = math.random(5,10),
                 [WarehouseManager.Flags.GBU_32_V_2B] = math.random(6,10),
-                [WarehouseManager.Flags.MK_82] = math.random(30,50),
+                [WarehouseManager.Flags.MK_82] = math.random(20,50),
                 [WarehouseManager.Flags.MK_83] = math.random(12,18),
                 [WarehouseManager.Flags.MK_84] = math.random(8,14),
-                [WarehouseManager.Flags.MK82_SNAKEEYE] = math.random(8,16),
+                [WarehouseManager.Flags.MK82_SNAKEEYE] = math.random(20,50),
                 [WarehouseManager.Flags.MK_20_ROCKEYE] = math.random(6,12),
                 [WarehouseManager.Flags.LAU_88] = math.random(14,20),
                 
-                [WarehouseManager.Flags.HYDRA_70_M282_MPP_APKWS] = math.random(38,58),
+                [WarehouseManager.Flags.HYDRA_70_M282_MPP_APKWS] = math.random(60,90),
                 [WarehouseManager.Flags.HYDRA_70_M151_HE] = math.random(60,100),
                 [WarehouseManager.Flags.HYDRA_70_MK5_HEAT] = math.random(60,100),
                 [WarehouseManager.Flags.CBU_87] = math.random(6,12),
@@ -428,11 +428,6 @@ do
                 [WarehouseManager.Flags.AIM_54] = math.random(6,10),
                 [WarehouseManager.Flags.SUPER_530D] = math.random(8,14),
                 [WarehouseManager.Flags.MAGIC_II] = math.random(8,14),
-
-                [WarehouseManager.FuelTanks.FPU_8A_330_GAL] = 200,
-                [WarehouseManager.FuelTanks.F14_DROPTANK] = 200,
-                [WarehouseManager.FuelTanks.F15E_610_GAL] = 200,
-                [WarehouseManager.FuelTanks.RPL_552_1300L] = 200,
 
                 [WarehouseManager.AircraftFlags.A10C_TANK_KILLER_II] = 14,
                 [WarehouseManager.AircraftFlags.E3A] = 2,
@@ -656,11 +651,11 @@ do
         
         [WarehouseManager.StockTypes.LOGISTICS_CAPTURE] = {
             [coalition.side.BLUE] = {
-                [WarehouseManager.Flags.AGM_65D] = math.random(6,10),
+                [WarehouseManager.Flags.AGM_65D] = math.random(12,20),
                 [WarehouseManager.Flags.AGM_88_HARM] = math.random(2,6),
-                [WarehouseManager.Flags.GBU_31_V_3B] = math.random(1,2),
+                [WarehouseManager.Flags.GBU_31_V_3B] = math.random(4,8),
                 [WarehouseManager.Flags.GBU_38] = math.random(15,20),
-                [WarehouseManager.Flags.GBU_12] = math.random(16,22),
+                [WarehouseManager.Flags.GBU_12] = math.random(16,28),
                 [WarehouseManager.Flags.LAU_88] = math.random(4,10),
                 
                 [WarehouseManager.Flags.HYDRA_70_M282_MPP_APKWS] = math.random(20,40),
@@ -680,15 +675,15 @@ do
                 [WarehouseManager.Flags.MAGIC_II] = math.random(2,4),
             },
             [coalition.side.RED] = {
-                [WarehouseManager.Flags.R73_AA_11_ARCHER] = math.random(40,60),
+                [WarehouseManager.Flags.R73_AA_11_ARCHER] = math.random(10,20),
                 [WarehouseManager.Flags.S_8O0FP2_MPP] = math.random(100,200),
-                [WarehouseManager.Flags.VIKHR_M] = math.random(100,150),
-                [WarehouseManager.Flags.KH_29T] = math.random(10,15),
+                [WarehouseManager.Flags.VIKHR_M] = math.random(12,16),
+                [WarehouseManager.Flags.KH_29T] = math.random(6,10),
                 [WarehouseManager.Flags.KH25ML] = math.random(10,15),
-                [WarehouseManager.Flags.KH58U] = math.random(14,18),
+                [WarehouseManager.Flags.KH58U] = math.random(6,10),
                 [WarehouseManager.Flags.L081_FANTASMAGORIA] = math.random(2,4),
-                [WarehouseManager.Flags.R27ER] = math.random(20,30),
-                [WarehouseManager.Flags.R27ET] = math.random(12,20),
+                [WarehouseManager.Flags.R27ER] = math.random(6,10),
+                [WarehouseManager.Flags.R27ET] = math.random(4,10),
             }
         },
      
@@ -724,7 +719,17 @@ do
         }
     }
 
-
+    -- Compute a fair scaling factor based on estimated users.
+    -- Uses sqrt for diminishing returns:
+    -- users=1 -> 1.0, users=4 -> 2.0, users=9 -> 3.0 (before clamping)
+    function WarehouseManager:getStockScale()
+        local baseline = 1
+        local scale = math.sqrt(Config.estimated_users / baseline)
+        -- Clamp to reasonable bounds
+        if scale < 0.4 then scale = 0.4 end
+        if scale > 2.0 then scale = 2.0 end
+        return scale
+    end
 
     --- Warning: ensure the side is correctly set before execution
     ---@param airbase_name string
@@ -747,9 +752,11 @@ do
             for stock_type_n,stock_c in pairs(WarehouseManager.Stocks) do
                 if stock_type_n == stock_type then
                     local stock = stock_c[coalition]
+                    local user_scale = WarehouseManager:getStockScale()
                     for id,amount in pairs(stock) do
-                        warehouse:addItem(id,amount)
-                        table.insert(added_stuff_tbl, {id,amount})
+                        local scaled_amount = math.max(1, math.floor(amount * user_scale))
+                        warehouse:addItem(id, scaled_amount)
+                        table.insert(added_stuff_tbl, {id, scaled_amount})
                     end
                     break
                 end
@@ -824,27 +831,44 @@ do
 
         -- 3. Get the full list of items to add (pre-multiplication)
         local items_to_add = {}
+        local aircraft_to_add = {}
         for _, stock_type in ipairs(stock_types) do
             -- Find the correct stock definition
             if WarehouseManager.Stocks[stock_type] and WarehouseManager.Stocks[stock_type][side] then
                 local stock = WarehouseManager.Stocks[stock_type][side]
-                for id, amount in pairs(stock) do
-                    -- Use a table to merge items if they appear in multiple stock_types
-                    items_to_add[id] = (items_to_add[id] or 0) + amount
+
+                if utils.tableContains({
+                    WarehouseManager.StockTypes.AG_AIRCRAFT,
+                    WarehouseManager.StockTypes.AA_AIRCRAFT,
+                    WarehouseManager.StockTypes.MULTIROLE_AIRCRAFT,
+                }, stock_type) then
+                    -- Aircraft are handled separately, user multiplier not applied
+                    for id, amount in pairs(stock) do
+                        aircraft_to_add[id] = (aircraft_to_add[id] or 0) + amount
+                    end
+                else
+                    for id, amount in pairs(stock) do
+                        -- Use a table to merge items if they appear in multiple stock_types
+                        items_to_add[id] = (items_to_add[id] or 0) + amount
+                    end
                 end
             end
         end
 
         -- 4. Distribute items to warehouses with calculated amounts
+        local user_scale = WarehouseManager:getStockScale()
 
         -- Add to tier 4 bases
         if mult_l4 > 0 then
             for _, warehouse in ipairs(level_4_bases) do
                 for id, base_amount in pairs(items_to_add) do
-                    local final_amount = math.ceil(base_amount * mult_l4)
+                    local final_amount = math.ceil(base_amount * mult_l4 * user_scale)
                     if final_amount > 0 then
                         warehouse:addItem(id, final_amount)
                     end
+                end
+                for id, amount in pairs(aircraft_to_add) do
+                    warehouse:addItem(id, amount)
                 end
             end
         end
@@ -853,10 +877,13 @@ do
         if mult_l3 > 0 then
             for _, warehouse in ipairs(level_3_bases) do
                 for id, base_amount in pairs(items_to_add) do
-                    local final_amount = math.ceil(base_amount * mult_l3)
+                    local final_amount = math.ceil(base_amount * mult_l3 * user_scale)
                     if final_amount > 0 then
                         warehouse:addItem(id, final_amount)
                     end
+                end
+                for id, amount in pairs(aircraft_to_add) do
+                    warehouse:addItem(id, amount)
                 end
             end
         end
