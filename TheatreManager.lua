@@ -662,93 +662,252 @@ do
     end, nil, timer.getTime()+Config.tasking.dispatcher_interval)
     end
 
-    ---@return ZoneHandler,ZoneHandler
-    function TheatreCommander.establishTheatre()
+----------------------------------------------------------------------------------------------------
+    -- THEATRE GENERATION HELPERS
+    ----------------------------------------------------------------------------------------------------
+
+    -- Helper: Build Logistics Chain
+    -- Ensures a continuous chain of supplies from Home Base outwards
+    function TheatreCommander.assignLogisticsChain(zone_pool, home_base, max_logistics)
+        -- Safety defaults if config is missing
+        local chain_gap = Scenario.logistics_setup.chain_gap or 25000
         
-        for _,zone in ipairs(zones) do
-            if zone.name == Scenario.blue_airbase.name
-            and zone.zone_type == ZoneTypes.AIRBASE then
+        local current_node = home_base
+        local placed_count = 0
+        
+        -- Count existing fixed logistics first
+        for _, z in ipairs(zone_pool) do
+            if z.zone_type == ZoneTypes.LOGISTICS then placed_count = placed_count + 1 end
+        end
+
+        MissionLogger:info("Logistics Chain: Checking connectivity for " .. utils.coalitionToString(home_base.side))
+
+        -- We loop until we run out of budget or reach the edge of the territory
+        while placed_count < max_logistics do
+            
+            -- 1. Look ahead: Are there ANY zones in the "Gap" (e.g. 25km ring from current node)?
+            local candidates = {}
+            local existing_link_found = nil
+
+            for _, zone in ipairs(zone_pool) do
+                local dist = mist.utils.get2DDist(current_node.zone.point, zone.zone.point)
+                
+                -- Check if it's a valid next hop
+                if dist > 5000 and dist <= chain_gap then
+                    
+                    -- If we find a hard-coded LOGISTICS zone already in the gap, use it immediately
+                    if zone.zone_type == ZoneTypes.LOGISTICS then
+                        existing_link_found = zone
+                        -- We want the furthest one ideally, but finding any fixed one is good priority
+                    elseif zone.zone_type == nil then
+                        -- It's a candidate for assignment
+                        table.insert(candidates, zone)
+                    end
+                end
+            end
+
+            -- 2. Decide next node
+            if existing_link_found then
+                -- We found a pre-defined logistics zone, jump to it
+                current_node = existing_link_found
+                MissionLogger:info("  -> Linked existing Logistics: " .. current_node.name)
+            
+            elseif #candidates > 0 then
+                -- No existing link, we must create one. 
+                -- Sort by distance (Furthest from home base preferred to maximize range)
+                table.sort(candidates, function(a, b)
+                    local dist_a = mist.utils.get2DDist(home_base.zone.point, a.zone.point)
+                    local dist_b = mist.utils.get2DDist(home_base.zone.point, b.zone.point)
+                    return dist_a > dist_b -- Descending order
+                end)
+
+                local best_zone = candidates[1]
+                
+                -- Assign Type
+                best_zone.zone_type = ZoneTypes.LOGISTICS
+                best_zone.next_level_up_avail = timer.getTime()
+                best_zone.capture_heli_avail = 4
+                best_zone.capture_convoy_avail = 0
+                
+                current_node = best_zone
+                placed_count = placed_count + 1
+                MissionLogger:info("  -> Created new Logistics Link: " .. current_node.name)
+            else
+                -- Dead end (no zones in range)
+                break
+            end
+        end
+    end
+
+    ----------------------------------------------------------------------------------------------------
+    -- MAIN THEATRE GENERATION
+    ----------------------------------------------------------------------------------------------------
+
+---@return ZoneHandler, ZoneHandler
+    function TheatreCommander.establishTheatre()
+        MissionLogger:info("TheatreCommander: Generating Theatre Layout...")
+
+        -- 1. IDENTIFY HOME BASES & PREPARE POOL
+        local blue_base, red_base
+        local all_other_zones = {}
+
+        for _, zone in ipairs(zones) do
+            if zone.name == Scenario.blue_airbase.name and zone.zone_type == ZoneTypes.AIRBASE then
                 zone.side = coalition.side.BLUE
                 zone.level = 4
-                home_base = mist.utils.deepCopy(zone)
-            elseif zone.name == Scenario.red_airbase.name
-            and zone.zone_type == ZoneTypes.AIRBASE then
+                blue_base = zone 
+            elseif zone.name == Scenario.red_airbase.name and zone.zone_type == ZoneTypes.AIRBASE then
                 zone.side = coalition.side.RED
                 zone.level = 4
-                red_base = mist.utils.deepCopy(zone)
+                red_base = zone
+            else
+                -- Reset flags for a fresh generation
+                zone.side = coalition.side.NEUTRAL
+                table.insert(all_other_zones, zone)
             end
         end
-        if not (home_base and red_base) then return MissionLogger:error("Failed to initialize home airbases") end
 
+        if not (blue_base and red_base) then return MissionLogger:error("Failed to initialize home airbases") end
 
-        -- enables both coalitions to see the opposing main airbase
-        table.insert(stats.blue_discovered_zones,red_base.name)
-        table.insert(stats.blue_discovered_zones,home_base.name)
-        table.insert(stats.red_discovered_zones,red_base.name)
-        table.insert(stats.red_discovered_zones,home_base.name)
+        -- 2. APPLY DIFFICULTY (Zone Count) & REBUILD GLOBAL ZONES TABLE
+        local diff_setting = Scenario.difficulty
+        local diff_ratios = Config.theatre.zone_count_difficulty
+        local active_ratio = diff_ratios[diff_setting] or 0.75
 
-
-        if stats.blue_comms_zones+stats.red_comms_zones> Config.max_comms_zones then
-            return MissionLogger:error("Total COMMS Zones exceeded to max amount allowed")
-        end
-
-        -- increase capture spawn chance based on comms zone amount
-        stats.blue_capture_lost_zone_chance = stats.blue_capture_lost_zone_chance+(10*stats.blue_comms_zones)
-        stats.red_capture_lost_zone_chance = stats.red_capture_lost_zone_chance+(10*stats.red_comms_zones)
-        stats.blue_retry_capture_chance = stats.blue_retry_capture_chance+(10*stats.blue_comms_zones)
-        stats.red_retry_capture_chance = stats.red_retry_capture_chance+(10*stats.red_comms_zones)
+        utils.shuffleTable(all_other_zones)
         
-        -- reduce resupply time
-        stats.blue_resupply_time = Config.std_resupply_time *(1-(0.10*stats.blue_comms_zones))
-        stats.red_resupply_time = Config.std_resupply_time *(1-(0.10*stats.red_comms_zones))
+        local active_count = math.ceil(#all_other_zones * active_ratio)
+        
+        -- Overwrite zones table with only active zones
+        zones = {} 
+        table.insert(zones, blue_base)
+        table.insert(zones, red_base)
 
+        for i = 1, active_count do
+            table.insert(zones, all_other_zones[i])
+        end
 
-        --WARN the following need serious perfomance improvements
+        MissionLogger:info("Theatre Gen: Difficulty " .. diff_setting .. ". Total Zones Active: " .. #zones .. " (Includes 2 Bases). Removed " .. (#all_other_zones - active_count) .. " unused zones.")
 
-        -- get all zones within 50 km and turn them blue
-        MissionLogger:info("Initializing zones (Pass 1: Assigning Sides)...")
-        -- ### PASS 1: Assign Sides to all zones ###
-        if Scenario.coalition_setup.auto_coalition_designation then
-            for _, zone in ipairs(zones) do
-                if not (zone.name == home_base.name or zone.name == red_base.name) then
-                    -- Only assign a side if one isn't hard-coded
-                    if not zone.side then
-                        if mist.utils.get2DDist(home_base.zone.point, zone.zone.point)
-                         < Scenario.coalition_setup.initial_dist_blue_to_frontline then
-                            zone.side = coalition.side.BLUE
-                        else
-                            zone.side = coalition.side.RED
-                        end
-                    end
-                end
-                
-                if zone.zone_type == ZoneTypes.AIRBASE and zone.airbase_name then
-                    local airbase = Airbase.getByName(zone.airbase_name)
-                    if airbase then
-                        airbase:autoCapture(false)
-                        airbase:setCoalition(zone.side)
+        -- 3. ASSIGN COALITIONS (Frontline Logic)
+        local blue_pool = {}
+        local red_pool = {}
+
+        local frontline_dist = Scenario.coalition_setup.initial_dist_blue_to_frontline or 50000
+        local variance = Scenario.coalition_setup.dist_variance or 0
+        local actual_radius = frontline_dist + math.random(-variance, variance)
+
+        for _, zone in ipairs(zones) do
+            -- Skip home bases for pool assignment (they are already handled)
+            if zone ~= blue_base and zone ~= red_base then
+                if not zone.side or zone.side == coalition.side.NEUTRAL then
+                    local dist_to_blue = mist.utils.get2DDist(blue_base.zone.point, zone.zone.point)
+                    
+                    if dist_to_blue <= actual_radius then
+                        zone.side = coalition.side.BLUE
+                        table.insert(blue_pool, zone)
+                    else
+                        zone.side = coalition.side.RED
+                        table.insert(red_pool, zone)
                     end
                 end
             end
         end
 
-        MissionLogger:info("Initializing zones (Pass 2: Setting Levels and Spawning Units)...")
-        -- ### PASS 2: Assign Levels, Spawn Units, and Update Discovery ###
-        for _, zone in ipairs(zones) do
-            if not (zone.name == home_base.name or zone.name == red_base.name) then
-                -- Now that all sides are set, this call is safe
-                local _, dist = zone:getClosestZone(utils.getEnemyCoalition(zone.side), nil, nil, false)
+        -- 4. ASSIGN TYPES (Logistics & Randoms)
+        local function assignTypesToPool(pool, home)
+            if #pool == 0 then return end
+            
+            local weights = (Config.theatre and Config.theatre.zone_type_weights) or {
+                [ZoneTypes.STRONGPOINT] = 60,
+                [ZoneTypes.LOGISTICS] = 15,
+                [ZoneTypes.SAMSITE] = 15,
+                [ZoneTypes.COMMS] = 5,
+                [ZoneTypes.EWSITE] = 5
+            }
+            local total_w = 0
+            for _, w in pairs(weights) do total_w = total_w + w end
+            
+            local budget_logistics = math.ceil((weights[ZoneTypes.LOGISTICS]/total_w) * #pool)
+            local budget_sam       = math.ceil((weights[ZoneTypes.SAMSITE]/total_w) * #pool)
+            local budget_comms     = math.ceil((weights[ZoneTypes.COMMS]/total_w) * #pool)
+            local budget_ew        = math.ceil((weights[ZoneTypes.EWSITE]/total_w) * #pool)
 
-                if not zone.level then
-                    if dist and dist < Config.upgrade_tier_range then
-                        zone.level = math.random(2,4)
-                    else
-                        zone.level = 1
-                    end
+            -- A. Run Logistics Chain
+            TheatreCommander.assignLogisticsChain(pool, home, budget_logistics)
+
+            -- B. Assign Random Types
+            local unassigned = {}
+            for _, z in ipairs(pool) do
+                if z.zone_type == nil then
+                    table.insert(unassigned, z)
+                end
+            end
+            
+            utils.shuffleTable(unassigned)
+
+            for i, zone in ipairs(unassigned) do
+                if budget_sam > 0 then
+                    zone.zone_type = ZoneTypes.SAMSITE
+                    local r = math.random(1, 100)
+                    if r < 30 then zone.sam_classification = SAM_TYPES.SHORT_RANGE
+                    elseif r < 70 then zone.sam_classification = SAM_TYPES.MEDIUM_RANGE
+                    else zone.sam_classification = SAM_TYPES.LONG_RANGE end
+                    budget_sam = budget_sam - 1
+
+                elseif budget_comms > 0 then
+                    zone.zone_type = ZoneTypes.COMMS
+                    budget_comms = budget_comms - 1
+
+                elseif budget_ew > 0 then
+                    zone.zone_type = ZoneTypes.EWSITE
+                    budget_ew = budget_ew - 1
+                
+                else
+                    zone.zone_type = ZoneTypes.STRONGPOINT
+                    zone.attack_convoy = math.random(0,1)
+                end
+            end
+        end
+
+        MissionLogger:info("Theatre Gen: Processing Blue Pool...")
+        assignTypesToPool(blue_pool, blue_base)
+        MissionLogger:info("Theatre Gen: Processing Red Pool...")
+        assignTypesToPool(red_pool, red_base)
+
+
+        -- 5. FINAL SPAWN & DISCOVERY
+        table.insert(stats.blue_discovered_zones, red_base.name)
+        table.insert(stats.blue_discovered_zones, blue_base.name)
+        table.insert(stats.red_discovered_zones, red_base.name)
+        table.insert(stats.red_discovered_zones, blue_base.name)
+
+        if stats.blue_comms_zones + stats.red_comms_zones > Config.max_comms_zones then
+            MissionLogger:warn("Total COMMS Zones exceeded max allowed, but proceeding.")
+        end
+
+        for _, zone in ipairs(zones) do
+            
+            -- Handle Airbase ownership
+            if zone.zone_type == ZoneTypes.AIRBASE and zone.airbase_name then
+                local airbase = Airbase.getByName(zone.airbase_name)
+                if airbase and zone.side ~= coalition.side.NEUTRAL then
+                    airbase:autoCapture(false)
+                    airbase:setCoalition(zone.side)
                 end
             end
 
-            -- Update discovered list based on final side
+            -- Randomize level
+            if not zone.level then
+                local _, dist = zone:getClosestZone(utils.getEnemyCoalition(zone.side), nil, nil, false)
+                if dist and dist < Config.upgrade_tier_range then
+                    zone.level = math.random(2, 4)
+                else
+                    zone.level = 1
+                end
+            end
+
+            -- Discovery
             if zone.side == coalition.side.BLUE then
                 if not utils.tableContains(stats.blue_discovered_zones, zone.name) then
                     table.insert(stats.blue_discovered_zones, zone.name)
@@ -759,46 +918,25 @@ do
                 end
             end
 
-
-
-            -- Spawn units and statics
+            -- Spawn
             UnitHandler.initZoneUnits(zone)
             UnitHandler.initStatics(zone)
-        end
-
-        -- makes all zones under MAX_GRND_RECON_DIST added to the discoverd var
-        for _,zone in ipairs(zones) do
-            for _, other_zone in ipairs(zones) do
-                if zone.side ~= other_zone.side
-                and mist.utils.get2DDist(zone.zone.point, other_zone.zone.point) < Config.max_ground_recon_range then
-
-                    if not utils.tableContains(stats.blue_discovered_zones,other_zone.name) then
-                    table.insert(stats.blue_discovered_zones,other_zone.name) end
-
-                    if not utils.tableContains(stats.red_discovered_zones,other_zone.name) then
-                    table.insert(stats.red_discovered_zones,other_zone.name) end
-                end
-            end
-        end
-
-        -- draw zones
-        for _,zone in ipairs(zones) do
             zone:drawF10()
         end
 
-        -- assign airbase warehouses
-        WarehouseManager:handleIncomingSupplies(home_base.side,
-            {WarehouseManager.StockTypes.INITIAL}  )
-        if Config.enabled_su25t_bluefor then
-            WarehouseManager:handleIncomingSupplies(home_base.side,
-                {WarehouseManager.StockTypes.SU25T_BLUEFOR}  )
+        -- Update Ground Recon
+        for _, zone in ipairs(zones) do
+            zone:updateDiscoveredZones()
         end
 
-        -- Also assign initial supplies for the RED base
-        WarehouseManager:handleIncomingSupplies(red_base.side,
-            {WarehouseManager.StockTypes.INITIAL}  )
+        -- Initial Warehouses
+        WarehouseManager:handleIncomingSupplies(blue_base.side, {WarehouseManager.StockTypes.INITIAL})
+        if Config.enabled_su25t_bluefor then
+            WarehouseManager:handleIncomingSupplies(blue_base.side, {WarehouseManager.StockTypes.SU25T_BLUEFOR})
+        end
+        WarehouseManager:handleIncomingSupplies(red_base.side, {WarehouseManager.StockTypes.INITIAL})
 
-        return home_base, red_base
+        return blue_base, red_base
     end
 
     function TheatreCommander.startMission()

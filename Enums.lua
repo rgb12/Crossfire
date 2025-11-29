@@ -37,10 +37,10 @@ SAM_TYPES = {
 
 ---@enum ScenarioDifficulty
 ScenarioDifficulty = {
-    Easy = 1,
-    Medium = 2,
-    Hard = 3,
-    Elite = 4
+    EASY = 1,
+    MEDIUM = 2,
+    HARD = 3,
+    EXPERT = 4
 }
 
 

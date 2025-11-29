@@ -527,7 +527,7 @@ do
             for _, sam in pairs(GroupData.SAM_SITES) do
                 -- Spawn SAM based on matching side, classification, AND LEVEL (which is now 1)
                 if sam.side == self.side and sam.sam_classification == self.sam_classification and sam.level == self.level then
-                    mist.cloneInZone(sam.group_name,self.zone.name,false)
+                    mist.cloneInZone(sam.group_name,self.zone.name,true,300)
                     sam_spawned = true
                     break
                 end
@@ -844,7 +844,7 @@ do
                 local loop_prevention = 0
                 local level_zone, dist = self:getClosestZone(self.side,tried_zones)
 
-                while level_zone and dist < Config.logistics_upgrade_range
+                while level_zone and dist < Scenario.logistics_setup.upgrade_range
                 and loop_prevention < 400 do
 
                     if (not lowest_level_zone_nearby) or (level_zone.level < lowest_level_zone_nearby.level) then

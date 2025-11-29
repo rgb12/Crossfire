@@ -69,7 +69,28 @@ Config = {
         }
 
     },
+theatre = {
 
+        zone_count_difficulty = {
+            [ScenarioDifficulty.EASY] = 0.30, -- 30% of total zones active
+            [ScenarioDifficulty.MEDIUM] = 0.50,
+            [ScenarioDifficulty.HARD] = 0.70,
+            [ScenarioDifficulty.EXPERT] = 0.90,
+        },
+        
+        -- Weights for random generation (Airbases are excluded)
+        zone_type_weights = {
+            [ZoneTypes.STRONGPOINT] = 60,
+            [ZoneTypes.LOGISTICS]   = 15,
+            [ZoneTypes.SAMSITE]     = 15,
+            [ZoneTypes.COMMS]       = 5,
+            [ZoneTypes.EWSITE]      = 5,
+        },
+
+        -- Logistics Placement Logic
+        -- We place a logistics zone roughly every X meters to ensure connectivity
+        logistics_chain_gap = 25000, -- (meters) slightly less than 30k upgrade range to be safe
+    },
     max_comms_zones = 5,
     tasking_requirements = {
         comms_zones_required_for_jtac = 2,

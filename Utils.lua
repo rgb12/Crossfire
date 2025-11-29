@@ -25,6 +25,16 @@ do
         return nil
     end
 
+    -- Fisher-Yates Shuffle
+    ---@param t table
+    ---@return table
+    function utils.shuffleTable(t)
+        for i = #t, 2, -1 do
+            local j = math.random(i)
+            t[i], t[j] = t[j], t[i]
+        end
+        return t
+    end
     
     --- Get all alive units inside a ZoneHandler zone (circle or quad)
     -- Uses BOX for quads, SPHERE for circles

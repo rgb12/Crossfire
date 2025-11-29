@@ -6,22 +6,39 @@
 ---@class CoalSetup
 ---@field initial_dist_blue_to_frontline number
 ---@field auto_coalition_designation boolean
+---@field dist_variance number
+
+---@class LogisticsSetup
+---@field upgrade_range number
+---@field chain_gap number
+---@field heli_capture_range number
 
 ---@class Scenario
+---@field name string
+---@field difficulty ScenarioDifficulty
 ---@field description string
 ---@field coalition_setup CoalSetup
----@field red_airbase ZoneHandler
----@field blue_airbase ZoneHandler
+---@field red_airbase ZoneHandler|nil
+---@field blue_airbase ZoneHandler|nil
+---@field logistics_setup LogisticsSetup
 ---@field zones ZoneHandler[]
 
 ---@type Scenario[]
 Scenarios = {
-    ["Neptune Protocol"] = {
+    {
+        name = "Neptune Protocol",
         description = "A mission to regain control of lost Georgia.",
         coalition_setup = {
             initial_dist_blue_to_frontline = 55750, --meters
+            dist_variance = 5000, --meters
             auto_coalition_designation = true,
         },
+        logistics_setup = {
+            upgrade_range = 30000, --meters
+            heli_capture_range = 100000, --meters
+            chain_gap = 25000 --meters
+        },
+        difficulty = ScenarioDifficulty.HARD,
         red_airbase = ZoneHandler:new({
             name = "ANAPA",
             airbase_name = Airbases.Caucasus.Anapa_Vityazevo,
@@ -184,18 +201,33 @@ zones = {}
 
 
 
-if not Config.persistance.random_scenario_selection then
-    Scenario = Scenarios[Config.persistance.scenario_selected]
-    -- table.insert(zones,Scenario.zones)
-    zones = mist.utils.deepCopy(Scenario.zones)
+    ---@type Scenario|nil
+    Scenario = nil
+    for _,scenario in pairs(Scenarios) do
+        if scenario.name == Config.persistance.scenario_selected then
+            Scenario = scenario
+            break
+        end
+    end
+    if Config.persistance.random_scenario_selection == true then
+        Scenario = Scenarios[math.random(1,#Scenarios)]
+    end
 
-    ---@type ZoneHandler,ZoneHandler
-    blue_airbase = Scenario.blue_airbase
-    red_airbase = Scenario.red_airbase
-
-    table.insert(zones,blue_airbase)
-    table.insert(zones,red_airbase)
-end
+    if Scenario == nil then
+        trigger.action.outText("ERROR: Scenario '" .. Config.persistance.scenario_selected .. "' not found! Check your config.", 120)
+    elseif not Scenario.blue_airbase or not Scenario.red_airbase then
+        trigger.action.outText("ERROR: Scenario '" .. Config.persistance.scenario_selected .. "' is missing airbase definitions! Check your config.", 120)
+    else
+        -- table.insert(zones,Scenario.zones)
+        zones = mist.utils.deepCopy(Scenario.zones)
+    
+        ---@type ZoneHandler,ZoneHandler
+        blue_airbase = Scenario.blue_airbase
+        red_airbase = Scenario.red_airbase
+    
+        table.insert(zones,blue_airbase)
+        table.insert(zones,red_airbase)
+    end
 
 
 TheatreCommander.startMission()
