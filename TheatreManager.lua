@@ -748,26 +748,25 @@ do
         MissionLogger:info("TheatreCommander: Generating Theatre Layout...")
 
         -- 1. IDENTIFY HOME BASES & PREPARE POOL
-        local blue_base, red_base
         local all_other_zones = {}
 
+        blue_airbase.side = coalition.side.BLUE
+        blue_airbase.level = 4
+        red_airbase.side = coalition.side.RED
+        red_airbase.level = 4
+
         for _, zone in ipairs(zones) do
-            if zone.name == Scenario.blue_airbase.name and zone.zone_type == ZoneTypes.AIRBASE then
-                zone.side = coalition.side.BLUE
-                zone.level = 4
-                blue_base = zone 
-            elseif zone.name == Scenario.red_airbase.name and zone.zone_type == ZoneTypes.AIRBASE then
-                zone.side = coalition.side.RED
-                zone.level = 4
-                red_base = zone
-            else
+            if zone.name ~= Scenario.blue_airbase.name
+            and zone.name ~= Scenario.red_airbase.name then
                 -- Reset flags for a fresh generation
-                zone.side = coalition.side.NEUTRAL
+                if Scenario.coalition_setup.auto_coalition_designation then
+                    zone.side = coalition.side.NEUTRAL
+                end
                 table.insert(all_other_zones, zone)
             end
         end
 
-        if not (blue_base and red_base) then return MissionLogger:error("Failed to initialize home airbases") end
+        if not blue_airbase or not red_airbase then return MissionLogger:error("Failed to initialize home airbases") end
 
         -- 2. APPLY DIFFICULTY (Zone Count) & REBUILD GLOBAL ZONES TABLE
         local diff_setting = Scenario.difficulty
@@ -779,9 +778,9 @@ do
         local active_count = math.ceil(#all_other_zones * active_ratio)
         
         -- Overwrite zones table with only active zones
-        zones = {} 
-        table.insert(zones, blue_base)
-        table.insert(zones, red_base)
+        zones = {}
+        table.insert(zones, blue_airbase)
+        table.insert(zones, red_airbase)
 
         for i = 1, active_count do
             table.insert(zones, all_other_zones[i])
@@ -792,26 +791,37 @@ do
         -- 3. ASSIGN COALITIONS (Frontline Logic)
         local blue_pool = {}
         local red_pool = {}
+        if Scenario.coalition_setup.auto_coalition_designation then
 
-        local frontline_dist = Scenario.coalition_setup.initial_dist_blue_to_frontline or 50000
-        local variance = Scenario.coalition_setup.dist_variance or 0
-        local actual_radius = frontline_dist + math.random(-variance, variance)
+            local frontline_dist = Scenario.coalition_setup.initial_dist_blue_to_frontline or 50000
+            local variance = Scenario.coalition_setup.dist_variance or 0
+            local actual_radius = frontline_dist + math.random(-variance, variance)
 
-        for _, zone in ipairs(zones) do
-            -- Skip home bases for pool assignment (they are already handled)
-            if zone ~= blue_base and zone ~= red_base then
-                if not zone.side or zone.side == coalition.side.NEUTRAL then
-                    local dist_to_blue = mist.utils.get2DDist(blue_base.zone.point, zone.zone.point)
-                    
-                    if dist_to_blue <= actual_radius then
-                        zone.side = coalition.side.BLUE
-                        table.insert(blue_pool, zone)
-                    else
-                        zone.side = coalition.side.RED
-                        table.insert(red_pool, zone)
+            for _, zone in ipairs(zones) do
+                -- Skip home bases for pool assignment (they are already handled)
+                if zone.name ~= red_airbase.name and zone.name ~= blue_airbase.name then
+                    if not zone.side or zone.side == coalition.side.NEUTRAL then
+                        local dist_to_blue = mist.utils.get2DDist(blue_airbase.zone.point, zone.zone.point)
+                        
+                        if dist_to_blue <= actual_radius then
+                            zone.side = coalition.side.BLUE
+                            table.insert(blue_pool, zone)
+                        else
+                            zone.side = coalition.side.RED
+                            table.insert(red_pool, zone)
+                        end
                     end
                 end
             end
+        else
+            for _,zone in ipairs(zones) do
+                if not zone.side then
+                    MissionLogger:error("Zone " .. zone.name .. " has no side assigned and auto coalition designation is disabled.")
+                    trigger.action.outText("ERROR: Zone " .. zone.name .. " has no side assigned and auto coalition designation is disabled.", 30)
+                    break
+                end
+            end
+
         end
 
         -- 4. ASSIGN TYPES (Logistics & Randoms)
@@ -871,16 +881,16 @@ do
         end
 
         MissionLogger:info("Theatre Gen: Processing Blue Pool...")
-        assignTypesToPool(blue_pool, blue_base)
+        assignTypesToPool(blue_pool, blue_airbase)
         MissionLogger:info("Theatre Gen: Processing Red Pool...")
-        assignTypesToPool(red_pool, red_base)
+        assignTypesToPool(red_pool, red_airbase)
 
 
         -- 5. FINAL SPAWN & DISCOVERY
-        table.insert(stats.blue_discovered_zones, red_base.name)
-        table.insert(stats.blue_discovered_zones, blue_base.name)
-        table.insert(stats.red_discovered_zones, red_base.name)
-        table.insert(stats.red_discovered_zones, blue_base.name)
+        table.insert(stats.blue_discovered_zones, red_airbase.name)
+        table.insert(stats.blue_discovered_zones, blue_airbase.name)
+        table.insert(stats.red_discovered_zones, red_airbase.name)
+        table.insert(stats.red_discovered_zones, blue_airbase.name)
 
         if stats.blue_comms_zones + stats.red_comms_zones > Config.max_comms_zones then
             MissionLogger:warn("Total COMMS Zones exceeded max allowed, but proceeding.")
@@ -930,13 +940,12 @@ do
         end
 
         -- Initial Warehouses
-        WarehouseManager:handleIncomingSupplies(blue_base.side, {WarehouseManager.StockTypes.INITIAL})
+        WarehouseManager:handleIncomingSupplies(blue_airbase.side, {WarehouseManager.StockTypes.INITIAL})
         if Config.enabled_su25t_bluefor then
-            WarehouseManager:handleIncomingSupplies(blue_base.side, {WarehouseManager.StockTypes.SU25T_BLUEFOR})
+            WarehouseManager:handleIncomingSupplies(blue_airbase.side, {WarehouseManager.StockTypes.SU25T_BLUEFOR})
         end
-        WarehouseManager:handleIncomingSupplies(red_base.side, {WarehouseManager.StockTypes.INITIAL})
-
-        return blue_base, red_base
+        WarehouseManager:handleIncomingSupplies(red_airbase.side, {WarehouseManager.StockTypes.INITIAL})
+        return blue_airbase, red_airbase
     end
 
     function TheatreCommander.startMission()

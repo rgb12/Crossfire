@@ -27,11 +27,11 @@
 Scenarios = {
     {
         name = "Neptune Protocol",
-        description = "A mission to regain control of lost Georgia.",
+        description = "Regain control of lost Georgia.",
         coalition_setup = {
             initial_dist_blue_to_frontline = 55750, --meters
             dist_variance = 5000, --meters
-            auto_coalition_designation = true,
+            auto_coalition_designation = true, -- overrides the above
         },
         logistics_setup = {
             upgrade_range = 30000, --meters
