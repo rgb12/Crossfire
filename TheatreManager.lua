@@ -26,7 +26,7 @@ do
         end
 
         ------------[checks if capture group already enroute for side]------------
-        if EnrouteManager:findByToZone(to_zone,side_sending_capture,{AITaskTypes.CAPTURE_CONVOY, AITaskTypes.CAPTURE_HELO}) then 
+        if EnrouteManager:findByToZone(to_zone,side_sending_capture,{AITaskTypes.CAPTURE_CONVOY, AITaskTypes.CAPTURE_HELO}) then
             trigger.action.outText(utils.coalitionToString(side_sending_capture) ..
                 "Capture group already enroute to: " .. to_zone.name, 10)
             return

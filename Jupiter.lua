@@ -29,7 +29,7 @@ function Jupiter:onEvent(event)
         MissionLogger:info(text)
         -- 1. Validation: Must have text and start with "-"
         if not text or text:sub(1, 1) ~= "-" then
-            return 
+            return
         end
 
         -- 2. Parse command and arguments
