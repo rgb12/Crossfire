@@ -363,8 +363,8 @@ do
         TGP = 9,
         MISC = 10,
         
-        AG_AIRCRAFT = 21,
-        MULTIROLE_AIRCRAFT = 22,
+        AG_AIRCRAFT = 20,
+        MULTIROLE_AIRCRAFT = 21,
         AA_AIRCRAFT = 22,
         RECON_AIRCRAFT = 23,
         CARGO_AIRCRAFT = 24,
@@ -751,14 +751,28 @@ do
         for i,stock_type in ipairs(stock_types) do
             for stock_type_n,stock_c in pairs(WarehouseManager.Stocks) do
                 if stock_type_n == stock_type then
-                    local stock = stock_c[coalition]
-                    local user_scale = WarehouseManager:getStockScale()
-                    for id,amount in pairs(stock) do
-                        local scaled_amount = math.max(1, math.floor(amount * user_scale))
-                        warehouse:addItem(id, scaled_amount)
-                        table.insert(added_stuff_tbl, {id, scaled_amount})
+                    if utils.tableContains({
+                        WarehouseManager.StockTypes.AG_AIRCRAFT,
+                        WarehouseManager.StockTypes.AA_AIRCRAFT,
+                        WarehouseManager.StockTypes.MULTIROLE_AIRCRAFT,
+                    }, stock_type) then
+                        -- Aircraft are added without user scaling
+                        local stock = stock_c[coalition]
+                        for id,amount in pairs(stock) do
+                            warehouse:addItem(id, amount)
+                            table.insert(added_stuff_tbl, {id, amount})
+                        end
+                        break
+                    else
+                        local stock = stock_c[coalition]
+                        local user_scale = WarehouseManager:getStockScale()
+                        for id,amount in pairs(stock) do
+                            local scaled_amount = math.max(1, math.floor(amount * user_scale))
+                            warehouse:addItem(id, scaled_amount)
+                            table.insert(added_stuff_tbl, {id, scaled_amount})
+                        end
+                        break
                     end
-                    break
                 end
     
             end
