@@ -16,11 +16,9 @@ do
         -- Safety check for Config
         if not Config or not Config.persistance then return false end
 
-        if Config.persistance.enable
-        and lfs and io then
+        if Config.persistance.enable and lfs and io then
             PersistanceManager.enabled = true
             PersistanceManager:checkPath()
-
             return true
         end
         return false
@@ -60,7 +58,9 @@ do
                 ammo_depot_intact = z.ammo_depot_intact,
                 ammo_depot_last_destroyed = z.ammo_depot_last_destroyed,
                 next_level_up_avail = z.next_level_up_avail,
-                linked_ammo_depot = z.linked_ammo_depot
+                linked_ammo_depot = z.linked_ammo_depot,
+                linked_groups = z.linked_groups or {},
+                linked_statics = z.linked_statics or {},
             }
             PersistanceManager.data.zones[z.name] = zone_data -- Use name as key
         end
@@ -154,10 +154,11 @@ do
     --- Create the folder if it doesn't exist
     function PersistanceManager:checkPath()
         if not PersistanceManager.enabled then return end
-        if not Config or not Config.persistance then return end -- Safety check
+        if not Config or not Config.persistance then return end
 
         lfs.mkdir(lfs.writedir()..Config.persistance.save_dir)
-        PersistanceManager.save_file_path = lfs.writedir()..Config.persistance.save_dir .. Config.persistance.save_file
+        PersistanceManager.mission_save_file_path = lfs.writedir()..Config.persistance.save_dir .. Config.persistance.save_file
+        PersistanceManager.user_data_file_path = lfs.writedir()..Config.persistance.save_dir .. Config.persistance.user_data_file
     end
 
     ---
@@ -180,11 +181,11 @@ do
             local file_content = JSON:encode(PersistanceManager.data)
             if file_content then
 
-                local file= io.open(PersistanceManager.save_file_path, "w")
+                local file= io.open(PersistanceManager.mission_save_file_path, "w")
                 if file then
                     file:write(file_content)
                     file:close()
-                    MissionLogger:info("Mission state saved to " .. PersistanceManager.save_file_path)
+                    MissionLogger:info("Mission state saved to " .. PersistanceManager.mission_save_file_path)
                 end
 
             end
@@ -198,14 +199,14 @@ do
         if not PersistanceManager.enabled then return end
         
         -- Check path in case lfs isn't loaded yet
-        PersistanceManager:checkPath() 
+        PersistanceManager:checkPath()
 
-        if not lfs.attributes(PersistanceManager.save_file_path) then
-            MissionLogger:info("No save file found at " .. PersistanceManager.save_file_path)
+        if not lfs.attributes(PersistanceManager.mission_save_file_path) then
+            MissionLogger:info("No save file found at " .. PersistanceManager.mission_save_file_path)
             return false
         end
 
-        local file = io.open(PersistanceManager.save_file_path, "r")
+        local file = io.open(PersistanceManager.mission_save_file_path, "r")
         if file and JSON then
             local file_data = file:read("*all")
             ---@diagnostic disable-next-line: undefined-field
@@ -214,7 +215,7 @@ do
 
             if data then
                 PersistanceManager.data = data
-                MissionLogger:info("Successfully loaded data from " .. PersistanceManager.save_file_path)
+                MissionLogger:info("Successfully loaded data from " .. PersistanceManager.mission_save_file_path)
                 return true
             end
         end
@@ -253,7 +254,6 @@ do
                 zone.side = saved_zone.side
                 zone.level = saved_zone.level
                 zone.capture_heli_avail = saved_zone.capture_heli_avail
-                zone.capture_convoy_avail = saved_zone.capture_convoy_avail
                 zone.attack_convoy = saved_zone.attack_convoy
                 zone.last_attacked_by = saved_zone.last_attacked_by
                 zone.last_capture_attempt = saved_zone.last_capture_attempt
@@ -261,7 +261,8 @@ do
                 zone.ammo_depot_last_destroyed = saved_zone.ammo_depot_last_destroyed
                 zone.next_level_up_avail = saved_zone.next_level_up_avail
                 zone.linked_ammo_depot = saved_zone.linked_ammo_depot
-
+                zone.linked_groups = zone.linked_groups or {}
+                zone.linked_statics = zone.linked_statics or {}
                 -- Spawn the correct units for the zone's side and level
                 UnitHandler.initZoneUnits(zone)
                 UnitHandler.initStatics(zone)
@@ -294,21 +295,7 @@ do
                 local warehouse = airbase:getWarehouse()
                 if warehouse then
 
-                    -- 1. Get current inventory to find what needs to be cleared
-                    local current_inventory = warehouse:getInventory()
-                    
-                    -- 2. Clear existing stock (set everything to 0)
-                    if current_inventory then
-                        for category, items_table in pairs(current_inventory) do
-                            if type(items_table) == "table" and category ~= "liquids" then
-                                for item_name, _ in pairs(items_table) do
-                                    warehouse:setItem(item_name, 0)
-                                end
-                            end
-                        end
-                    end
-
-                    -- 3. Restore saved stock
+                    -- Restore saved stock
                     if saved_inventory then
                         for category, items_table in pairs(saved_inventory) do
                             if type(items_table) == "table" and category ~= "liquids" then
@@ -323,18 +310,63 @@ do
             end
         end
         
+        PersistanceManager:loadUserData()
+        
         MissionLogger:info("Mission state successfully restored.")
         trigger.action.outText("Mission state restored from last save.", 10)
         return true
     end
 
+function PersistanceManager:saveUserData()
+        if not PersistanceManager.enabled or not Config.persistance.enable_user_data_persistance then return end
+        if not PersistanceManager.user_data_file_path then return end
+        if not JSON then return end
+        
+        local file_content = JSON:encode(ExperienceManager.user_data)
+
+        if file_content then
+            local file = io.open(PersistanceManager.user_data_file_path, "w")
+            if file then
+                file:write(file_content)
+                file:close()
+            end
+        end
+    end
+
+    function PersistanceManager:loadUserData()
+        if not PersistanceManager.enabled then return end
+        if not PersistanceManager.user_data_file_path then return end
+
+        if not lfs.attributes(PersistanceManager.user_data_file_path) then
+            MissionLogger:info("No user data file found.")
+            return
+        end
+
+        local file = io.open(PersistanceManager.user_data_file_path, "r")
+        if file and JSON then
+            local file_data = file:read("*all")
+            local data = JSON:decode(file_data)
+            file:close()
+
+            if data then
+                ExperienceManager:restoreUserData(data)
+                return true
+            end
+        end
+    end
+
     function PersistanceManager:autoSave()
         if not Config or not Config.persistance or not Config.persistance.save_interval then return end
         
-        MissionLogger:info("Auto-save enabled, saving every " .. tostring(Config.persistance.save_interval) .. " seconds.")    
+        MissionLogger:info("Auto-save enabled.")
 
         timer.scheduleFunction(function()
+            -- Save Mission State
             PersistanceManager:saveToFile()
+            
+            -- Save User Data independently
+            PersistanceManager:saveUserData()
+
             return timer.getTime() + (Config.persistance.save_interval)
         end, {}, timer.getTime() + (Config.persistance.save_interval))
     end

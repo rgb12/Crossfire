@@ -188,4 +188,17 @@ do
         end
     end
 
+    --- Called by PersistanceManager to overwrite/merge loaded data
+    function ExperienceManager:restoreUserData(data)
+        if not data then return end
+        -- Merge loaded data. We overwrite existing keys.
+        for key, userData in pairs(data) do
+            ExperienceManager.user_data[key] = userData
+            -- Reset unclaimed on load to prevent exploits/confusion
+            ExperienceManager.user_data[key].unclaimed_xp = 0
+            ExperienceManager.user_data[key].unclaimed_tokens = 0
+        end
+        MissionLogger:info("User data restored for " .. #data .. " users.")
+    end
+
 end

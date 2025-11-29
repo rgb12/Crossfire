@@ -15,8 +15,6 @@ Config = {
         save_interval = 30,--5*60, -- (seconds) interval at which the mission state is saved
         save_dir = "Missions/Saves/",
         save_file = "mission.json",
-
-        enable_user_data_persistance = true, --persistance.enable has authority over this
         user_data_file = "user_data.json",
 
         
