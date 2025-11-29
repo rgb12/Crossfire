@@ -15,6 +15,8 @@ do
     AGM_65D = "weapons.missiles.AGM_65D",
     AGM_65E = "weapons.missiles.AGM_65E",
     AGM_88_HARM = "weapons.missiles.AGM_88",
+
+
     MK_82 = "weapons.bombs.Mk_82",
     GBU_38 = "weapons.bombs.GBU_38", --JDAM 500 lbs
     LAU_88 = "weapons.adapters.lau-88",
@@ -132,7 +134,15 @@ do
         TU_95MS = "Tu-95MS",
         TU_22M3 = "Tu-22M3",
         A50 = "A-50",
-
+        AH64D_BLKII = "AH-64D_BLK_II",
+        AH1W="AH-1W",
+        B1B_LANCER = "B-1B",
+        C130J_30= "C-130J-30",
+        IL78M = "IL-78M",
+        IL76MD = "IL-76MD",
+        KC135_MPRS = "KC135MPRS",
+        MIRAGE_2000_5 = "Mirage 2000-5",
+        S3_B_TANKER = "S-3B Tanker",
 
     }
    
