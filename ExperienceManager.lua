@@ -10,6 +10,7 @@ do
     ---@field xp number
     ---@field missions_completed number
     ---@field tokens number
+    ---@field rank string
     ---@field unclaimed_tokens number
     ---@field unclaimed_xp number
 
@@ -122,6 +123,20 @@ do
                                 out_text = out_text .. " +" .. user.unclaimed_tokens .. " Tokens"
                             end
 
+                            -- determine rank
+                            if user.unclaimed_xp > 0 then
+                                local rank_name = "Unranked"
+                                for i = #Config.reward_system.ranks, 1, -1 do
+                                    local rank = Config.reward_system.ranks[i]
+                                    if user.xp >= rank.xp_required then
+                                        user.rank = rank.name
+                                        rank_name = rank.name
+                                        break
+                                    end
+                                end
+                                out_text = out_text .. " | New Rank: " .. rank_name
+                            end
+
                             local coal = unit_check:getCoalition()
                             trigger.action.outTextForCoalition(coal, unit_check:getPlayerName() .. " RTB: " .. out_text,10)
                             -- trigger.action.outTextForUnit(user.id,out_text,10)
@@ -150,7 +165,8 @@ do
                 unclaimed_xp = 0,
                 missions_completed = 0,
                 tokens = 0,
-                unclaimed_tokens = 0
+                unclaimed_tokens = 0,
+                ranks = Config.reward_system.ranks[1].name,
             }
         else 
             if ExperienceManager.user_data[user_id].name ~= user_name then

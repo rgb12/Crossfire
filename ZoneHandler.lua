@@ -638,6 +638,7 @@ do
             trigger.action.outText(self.name .. " is now Red", 5) --TO CHANGE
         else
             trigger.action.outText(self.name .. " is now neutral.", 5)
+
         end
 
         if self.side == coalition.side.NEUTRAL then

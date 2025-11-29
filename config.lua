@@ -54,16 +54,28 @@ Config = {
         landing_time = 15, -- (seconds) the time the player has to stay on the ground to be rewarded
 
         ranks = {
-            [1] = { name = "Airman",       xp_required = 0 },
-            [2] = { name = "Sergeant",     xp_required = 1000 },
-            [3] = { name = "Lieutenant",   xp_required = 5000 },
-            [4] = { name = "Captain",      xp_required = 10000 },
-            [5] = { name = "Major",        xp_required = 20000 },
-            [6] = { name = "Colonel",      xp_required = 40000 },
-            [7] = { name = "General",      xp_required = 60000 },
-            [8] = { name = "Marshal",      xp_required = 100000 },
-            [9] = { name = "Field Marshal",xp_required = 150000 },
-            [10] = { name = "Commander", xp_required = 200000 }
+            [1]  = { name = "Airman Basic",      xp_required = 0 },
+            [2]  = { name = "Airman",            xp_required = 1000 },
+            [3]  = { name = "Airman First Class",xp_required = 3000 },
+            [4]  = { name = "Senior Airman",     xp_required = 6000 },
+            [5]  = { name = "Staff Sergeant",    xp_required = 10000 },
+            [6]  = { name = "Technical Sergeant",xp_required = 15000 },
+            [7]  = { name = "Master Sergeant",   xp_required = 20000 },
+            [8]  = { name = "Senior Master Sergeant", xp_required = 25000 },
+            [9]  = { name = "Chief Master Sergeant",  xp_required = 30000 },
+
+            -- Officer Ranks (Officiers)
+            [10] = { name = "Second Lieutenant", xp_required = 40000 },
+            [11] = { name = "First Lieutenant",  xp_required = 50000 },
+            [12] = { name = "Captain",           xp_required = 60000 },
+            [13] = { name = "Major",             xp_required = 90000 },
+            [14] = { name = "Lieutenant Colonel",xp_required = 100000 },
+            [15] = { name = "Colonel",          xp_required = 120000 },
+            [16] = { name = "Brigadier General",xp_required = 140000 },
+            [17] = { name = "Major General",    xp_required = 160000 },
+            [18] = { name = "Lieutenant General",xp_required = 200000 },
+            [19] = { name = "General",          xp_required = 300000 },
+            [20] = { name = "Commander",       xp_required = 1000000 },
         }
 
     },
