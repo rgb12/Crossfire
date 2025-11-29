@@ -221,7 +221,7 @@ do
             end
 
             local sam_to_spawn = sam_options[math.random(1, #sam_options)]
-            local grp = mist.cloneInZone(sam_to_spawn.group_name,zone.name,true,150)
+            local grp = mist.cloneInZone(sam_to_spawn.group_name,zone.name,sam_to_spawn.spawning.disperse,sam_to_spawn.spawning.disperse_radius)
 
             if grp then
                 table.insert(zone.linked_groups, grp.name)

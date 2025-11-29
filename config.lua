@@ -278,28 +278,44 @@ GroupData = {
             side = coalition.side.RED,
             sam_classification = SAM_TYPES.MEDIUM_RANGE,
             level = 1,
-            threat_dist = 45 --stands for the high threat radius in km
+            threat_dist = 45, --stands for the high threat radius in km
+            spawning = {
+                disperse = true,
+                disperse_radius = 300 --meters
+            }
         },
         SA2_LEVEL_2 = {
             group_name = "RED SAM SA2 TIER 2",
             side = coalition.side.RED,
             sam_classification = SAM_TYPES.MEDIUM_RANGE,
             level = 2,
-            threat_dist = 45
+            threat_dist = 45,
+            spawning = {
+                disperse = true,
+                disperse_radius = 300 --meters
+            }
         },
         SA2_LEVEL_3 = {
             group_name = "RED SAM SA2 TIER 3",
             side = coalition.side.RED,
             sam_classification = SAM_TYPES.MEDIUM_RANGE,
             level = 3,
-            threat_dist = 45
+            threat_dist = 45,
+            spawning = {
+                disperse = true,
+                disperse_radius = 300 --meters
+            }
         },
         SA2_LEVEL_4 = {
             group_name = "RED SAM SA2 TIER 4",
             side = coalition.side.RED,
             sam_classification = SAM_TYPES.MEDIUM_RANGE,
             level = 4,
-            threat_dist = 45
+            threat_dist = 45,
+            spawning = {
+                disperse = true,
+                disperse_radius = 300 --meters
+            }
         },
     
         HAWK_LEVEL_1 = {
@@ -307,28 +323,44 @@ GroupData = {
             side = coalition.side.BLUE,
             sam_classification = SAM_TYPES.MEDIUM_RANGE,
             level = 1,
-            threat_dist = 40 --stands for the high threat radius in km
+            threat_dist = 40, --stands for the high threat radius in km
+            spawning = {
+                disperse = true,
+                disperse_radius = 300 --meters
+            }
         },
         HAWK_LEVEL_2 = {
             group_name = "BLUE SAM HAWK TIER 2",
             side = coalition.side.BLUE,
             sam_classification = SAM_TYPES.MEDIUM_RANGE,
             level = 2,
-            threat_dist = 40 --stands for the high threat radius in km
+            threat_dist = 40, --stands for the high threat radius in km
+            spawning = {
+                disperse = true,
+                disperse_radius = 300 --meters
+            }
         },
         HAWK_LEVEL_3 = {
             group_name = "BLUE SAM HAWK TIER 3",
             side = coalition.side.BLUE,
             sam_classification = SAM_TYPES.MEDIUM_RANGE,
             level = 3,
-            threat_dist = 40 --stands for the high threat radius in km
+            threat_dist = 40, --stands for the high threat radius in km
+            spawning = {
+                disperse = true,
+                disperse_radius = 300 --meters
+            }
         },
         HAWK_LEVEL_4 = {
             group_name = "BLUE SAM HAWK TIER 4",
             side = coalition.side.BLUE,
             sam_classification = SAM_TYPES.MEDIUM_RANGE,
             level = 4,
-            threat_dist = 40 --stands for the high threat radius in km
+            threat_dist = 40, --stands for the high threat radius in km
+            spawning = {
+                disperse = true,
+                disperse_radius = 300 --meters
+            }
         },
         -- SA3 = {
         --     name = "SA3",

@@ -527,7 +527,7 @@ do
             for _, sam in pairs(GroupData.SAM_SITES) do
                 -- Spawn SAM based on matching side, classification, AND LEVEL (which is now 1)
                 if sam.side == self.side and sam.sam_classification == self.sam_classification and sam.level == self.level then
-                    mist.cloneInZone(sam.group_name,self.zone.name,true,300)
+                    mist.cloneInZone(sam.group_name,self.zone.name,sam.spawning.disperse,sam.spawning.disperse_radius)
                     sam_spawned = true
                     break
                 end
