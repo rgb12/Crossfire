@@ -684,7 +684,10 @@ do
         outtxt = outtxt .. "\n\nTarget area: " .. accepted_mission.target_zone_name
         outtxt = outtxt .. string.format("\n\nApproximate location coordinates:\n%s\n%s\nMGRS: %s", mist.tostringLL(lat, lon, 1), mist.tostringLL(lat, lon, 1, true), mist.tostringMGRS(mgrs, 3))
 
-        trigger.action.outTextForUnit(unit:getID(), outtxt, 25)
+        trigger.action.outTextForUnit(accepted_mission.assigned_player_id, outtxt, 25)
+
+        -- Text for coalition
+        trigger.action.outTextForCoalition(self.side, accepted_mission.type .. " Operation " .. accepted_mission.operation_name .. " has been initiated by " .. accepted_mission.assigned_unit_name, 15)
         -- Create briefing/markers if needed
     end
 
