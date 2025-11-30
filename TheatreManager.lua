@@ -546,7 +546,9 @@ do
     timer.scheduleFunction(tsec_update, {}, timer.getTime() + 15)
     end
 
-    function TheatreCommander.sendWarehouseResupply(side)
+    ---@param side coalition.side
+    ---@param repeat_tasking boolean|nil
+    function TheatreCommander.sendWarehouseResupply(side,repeat_tasking)
         -- this sends a cargo aircraft to the home airbase every BASE_RESUPPLY_TIME
 
         local cargo_sent_table -- This will be the table returned by mist
@@ -570,7 +572,9 @@ do
             new_group_name = cargo_sent_table.name
             home_airbase = blue_airbase
             
-            timer.scheduleFunction(TheatreCommander.sendWarehouseResupply, side, timer.getTime() + Config.std_resupply_time)
+            if repeat_tasking then
+                timer.scheduleFunction(TheatreCommander.sendWarehouseResupply, side, timer.getTime() + Config.std_resupply_time)
+            end
         
         elseif side == coalition.side.RED and red_airbase.acft_resupply_point then
             if stats.red_airbases == 0 then return end
@@ -589,7 +593,9 @@ do
             new_group_name = cargo_sent_table.name
             home_airbase = red_airbase
 
-            timer.scheduleFunction(TheatreCommander.sendWarehouseResupply, side, timer.getTime() + stats.red_resupply_time)
+            if repeat_tasking then
+                timer.scheduleFunction(TheatreCommander.sendWarehouseResupply, side, timer.getTime() + stats.red_resupply_time)
+            end
         else
             -- No cargo was spawned this cycle, just return
             return

@@ -1,4 +1,8 @@
--- This file allows easy dev commands to be run directly from DCS
+--[[
+    Jupiter is desiged to help missions admins and developers by implementing tools directly in game.
+
+
+]]
 Jupiter = {}
 
 -- Helper to get Color Enums safely
@@ -18,6 +22,20 @@ local function getFlareColor(colorStr)
     elseif c == "yellow" then return trigger.flareColor.YELLOW
     else return trigger.flareColor.RED end
 end
+
+local function getClosestZone(vec3)
+    local closest_zone = nil
+    local closest_dist = math.huge
+    for _, zone in pairs(zones) do
+        local dist = mist.utils.get2DDist(vec3, zone.zone.point)
+        if dist < closest_dist then
+            closest_dist = dist
+            closest_zone = zone
+        end
+    end
+    return closest_zone, closest_dist
+end
+
 
 function Jupiter:onEvent(event)
     -- Only handle Mark Added events
@@ -44,21 +62,18 @@ function Jupiter:onEvent(event)
         
         local cmd_executed = false
 
-        -- === COMMAND: EXPLOSION ===
         if command == "-explosion" then
             local power = tonumber(param1) or 100 -- Default 100kg HE
             trigger.action.explosion(vec3, power)
             trigger.action.outText(string.format("Jupiter: Boom! Power: %d", power), 5)
             cmd_executed = true
 
-        -- === COMMAND: SMOKE ===
         elseif command == "-smoke" then
             local color = getSmokeColor(param1)
             trigger.action.smoke(vec3, color)
             trigger.action.outText("Jupiter: Smoke marker deployed.", 5)
             cmd_executed = true
 
-        -- === COMMAND: FLARE ===
         elseif command == "-flare" then
             local color = getFlareColor(param1)
             local azimuth = 0
@@ -149,7 +164,6 @@ function Jupiter:onEvent(event)
             trigger.action.outText(string.format("Jupiter: Added %d tokens to %d players within 500m.", tokens_to_add, players_found), 5)
             cmd_executed = true
 
-        -- === COMMAND: DESTROY (Area of Effect) ===
         elseif command == "-destroy" then
             local radius = tonumber(param1) or 5000 -- Default 5000m radius
             local count = 0
@@ -173,8 +187,82 @@ function Jupiter:onEvent(event)
             
             trigger.action.outText(string.format("Jupiter: Destroyed %d objects in %dm radius.", count, radius), 5)
             cmd_executed = true
-        end
+        elseif command == "-sendcas" then
+            local closest_zone, dist = getClosestZone(vec3)
+            if closest_zone and dist <= 10000 then
+                TaskManager:initiateAITask(AITaskTypes.CAS,coalition.side.BLUE,true,closest_zone,nil,true)
+                cmd_executed = true
+            else
+                trigger.action.outText("Jupiter: No zone found within 10km for CAS tasking.", 5)
+            end
+        elseif command == "-sendjtac" then
+            local closest_zone, dist = getClosestZone(vec3)
+            if closest_zone and dist <= 10000 then
+                TaskManager:initiateAITask(AITaskTypes.JTAC,coalition.side.BLUE,true,closest_zone,nil,true)
+                cmd_executed = true
+            else
+                trigger.action.outText("Jupiter: No zone found within 10km for JTAC tasking.", 5)
+            end
+        elseif command == "-sendstrike" then
+            local closest_zone, dist = getClosestZone(vec3)
+            if closest_zone and dist <= 10000 then
+                TaskManager:initiateAITask(AITaskTypes.STRIKE,coalition.side.BLUE,true,closest_zone,nil,true)
+                cmd_executed = true
+            else
+                trigger.action.outText("Jupiter: No zone found within 10km for Strike tasking.", 5)
+            end
+        elseif command == "-sendsead" then
+            local closest_zone, dist = getClosestZone(vec3)
+            if closest_zone and dist <= 10000 then
+                TaskManager:initiateAITask(AITaskTypes.SEAD,coalition.side.BLUE,true,closest_zone,nil,true)
+                cmd_executed = true
+            else
+                trigger.action.outText("Jupiter: No zone found within 10km for SEAD tasking.", 5)
+            end
+        elseif command == "-sendintercept" then
+            local closest_zone, dist = getClosestZone(vec3)
+            if closest_zone and dist <= 10000 then
+                TaskManager:initiateAITask(AITaskTypes.INTERCEPT,coalition.side.BLUE,true,closest_zone,nil,true)
+                cmd_executed = true
+            else
+                trigger.action.outText("Jupiter: No zone found within 10km for Intercept tasking.", 5)
+            end
+        elseif command == "-sendawacs" then
+            local closest_zone, dist = getClosestZone(vec3)
+            if closest_zone and dist <= 10000 then
+                TaskManager:initiateAITask(AITaskTypes.AWACS,coalition.side.BLUE,true,nil,closest_zone,true)
+                cmd_executed = true
+            else
+                trigger.action.outText("Jupiter: No zone found within 10km for AWACS tasking.", 5)
+            end
+        elseif command == "-sendrecon" then
+            local closest_zone, dist = getClosestZone(vec3)
+            if closest_zone and dist <= 10000 then
+                TaskManager:initiateAITask(AITaskTypes.RECON,coalition.side.BLUE,true,closest_zone,nil,true)
+                cmd_executed = true
+            else
+                trigger.action.outText("Jupiter: No zone found within 10km for Recon tasking.", 5)
+            end
+        elseif command == "-sendresupply" then
+            TheatreCommander.sendWarehouseResupply(coalition.side.BLUE,false)
+            TheatreCommander.sendWarehouseResupply(coalition.side.RED,false)
+        elseif command == "-resupply" then
+            if param1 == "help" then 
+                trigger.action.outText(mist.utils.tableShow(WarehouseManager.StockTypes),25)
+                cmd_executed = true
+            else 
+                local stocktype_num = tonumber(param1) or 1
+                local closest_zone, dist = getClosestZone(vec3)
+                if closest_zone and dist <= 10000 and closest_zone.airbase_name then
+                    WarehouseManager:attributeAirbaseStock(closest_zone.airbase_name,coalition.side.BLUE,
+                        {stocktype_num})
+                    cmd_executed = true
+                else
+                    trigger.action.outText("Jupiter: No airbase found within 10km for giving stock.", 5)
+                end
+            end
 
+        end
         -- 3. Cleanup: Remove the map marker if a command was recognized
         timer.scheduleFunction(function()
             if cmd_executed then

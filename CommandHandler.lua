@@ -8,7 +8,6 @@ do
     -- Track group menus: group_menus[group_id] = { {path=..., type=...}, ... }
     CommandHandler.group_menus = {}
 
-    local destroy_task_submenu
     CommandHandler.destroy_page = 1
 
     CommandHandler.jtac_submenu = {
@@ -24,47 +23,7 @@ do
         -- end
         -- missionCommands.addCommand("Situation Map",nil,displayStats,{})
         local master_submenu = missionCommands.addSubMenu("Mission Commands",nil)
-        -- CommandHandler.jtac_main_submenu = missionCommands.addSubMenu("JTAC", nil)
 
-
-        local function sendCAScmd()
-            local to_zone = blue_airbase:getClosestZone(coalition.side.RED,nil,nil,true)
-            if to_zone then
-                TaskManager:initiateAITask(AITaskTypes.CAS,coalition.side.BLUE,true,to_zone,nil,true)
-            end
-        end
-        missionCommands.addCommand("Send CAS",master_submenu, sendCAScmd,{})
-        missionCommands.addCommand("Send SEAD",master_submenu,function ()
-            local to_zone = ZoneHandler.getFromName("FOXTROT")
-            TaskManager:initiateAITask(AITaskTypes.SEAD,coalition.side.BLUE,true,to_zone,nil,true)
-        end)
-        missionCommands.addCommand("Send Strike",master_submenu,function ()
-            local to_zone = ZoneHandler.getFromName("DELTA")
-            TaskManager:initiateAITask(AITaskTypes.STRIKE,coalition.side.BLUE,true,to_zone,nil,true)
-        end)
-        missionCommands.addCommand("Send Intercept",master_submenu,function ()
-            local to_zone = ZoneHandler.getFromName("BRAVO")
-            TaskManager:initiateAITask(AITaskTypes.INTERCEPT,coalition.side.BLUE,true,to_zone,nil,true)
-        end)
-        missionCommands.addCommand("destroy enroute helo",master_submenu,function ()
-            for _,enroute in ipairs(EnrouteManager.enroutes) do
-                if enroute.ai_task_type == AITaskTypes.CAPTURE_HELO and enroute.side == coalition.side.RED then
-                    local gr = Group.getByName(enroute.group_name)
-                    if gr and gr:isExist() then
-                       trigger.action.explosion(gr:getUnit(1):getPoint(), 1000)
-                    end
-                    break
-                end
-            end
-        end)
-        missionCommands.addCommand("Send AWACS",master_submenu,function ()
-            local from_zone = ZoneHandler.getFromName("VAZIANI")
-            TaskManager:initiateAITask(AITaskTypes.AWACS,coalition.side.BLUE,true,nil,from_zone,true)
-        end)
-        missionCommands.addCommand("Send RECON",master_submenu,function ()
-            local to_zone = ZoneHandler.getFromName("BRAVO")
-            TaskManager:initiateAITask(AITaskTypes.INTERCEPT,coalition.side.BLUE,true,to_zone,nil,true)
-        end)
         missionCommands.addCommand("Give stock",master_submenu,function ()
             MissionLogger:info("Giving stock")
             WarehouseManager:handleIncomingSupplies(coalition.side.BLUE,
@@ -72,11 +31,7 @@ do
             -- WarehouseManager:attributeAirbaseStock("VAZIANI",coalition.side.BLUE,
             --     {WarehouseManager.StockTypes.AIR_AIR_SHORT_RANGE})
         end)
-        missionCommands.addCommand("spawn resupply",master_submenu,function ()
-            MissionLogger:info("spawnign resupply")
-            TheatreCommander.sendWarehouseResupply(coalition.side.BLUE)
-            TheatreCommander.sendWarehouseResupply(coalition.side.RED)
-        end)
+ 
     end
 
     local refresh_timer = nil
