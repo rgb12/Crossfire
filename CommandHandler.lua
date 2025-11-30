@@ -108,6 +108,7 @@ do
         ---@param required_tokens number
         ---@return boolean
         local function checkTokens(unit,required_tokens)
+            if not Config.reward_system.enable then return true end
             if not unit or not unit.isExist or not unit:isExist() then return false end
             local user = ExperienceManager:fetchUser(unit)
             if not user then return false end
@@ -123,6 +124,7 @@ do
         ---@param ai_task_type AITaskTypes
         ---@return boolean
         local function checkRankRequirement(unit, ai_task_type)
+            if not Config.reward_system.enable then return true end
             if not unit or not unit.isExist or not unit:isExist() then return false end
             local user = ExperienceManager:fetchUser(unit)
             if not user then return false end

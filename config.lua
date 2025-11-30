@@ -1,23 +1,26 @@
 --[[
-    DCS CATALYST MISSION CONFIG FILE
+    DCS CROSSFIRE MISSION CONFIG FILE
+
+    This file allows you to edit how the mission responds, how AI behaved depending on multiple variables.
+
 
     do not remove the commas at the end of each line
-    make sure not to edit anything outside the config table below
+    Refer to documenation for details on each setting
 
 ]]
 
 
 Config = {
     persistance = {
-        enable = false,
+        enable = false, -- enables or not persistance, has authority over everything below in this section
         save_interval = 30,--5*60, -- (seconds) interval at which the mission state is saved
-        save_dir = "Missions/Saves/",
-        save_file = "mission.json",
-        user_data_file = "user_data.json",
+        save_dir = "Missions/Saves/", -- this is your saves directory in Saved Games
+        save_file = "mission.json", -- this is the name of the mission file
+        user_data_file = "user_data.json", -- this is the name of user data only file, note that this only records user xp, tokens ans rank
 
         
-        random_scenario_selection = false,
-        scenario_selected = "Neptune Protocol",
+        random_scenario_selection = false, -- allows the script to randomly choose a random scenario, authority over scenario selection
+        scenario_selected = "Neptune Protocol", -- subject to the field above, choose your own scenario 
     },
     operations = {
         recon_minimum_altitude = 1524, -- (meters)
@@ -38,7 +41,7 @@ Config = {
 
 
     reward_system = {
-        enable = true,
+        enable = true, -- completely enables/disables the reward system
         xp_per_mission_completed = 100,
         xp_per_aircraft_destroyed = 25,
         xp_per_helicopter_destroyed = 20,
@@ -291,6 +294,12 @@ GroupData = {
         }
     },
 
+    --[[
+        SAM Classifications:
+            SAM_TYPES.SHORT_RANGE
+            SAM_TYPES.MEDIUM_RANGE
+            SAM_TYPES.LONG_RANGE
+    ]]
     SAM_SITES = {
         SA2_LEVEL_1 = {
             group_name = "RED SAM SA2 TIER 1",

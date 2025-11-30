@@ -17,6 +17,8 @@ do
     ExperienceManager.user_data = {}
 
     function ExperienceManager.EventHandler:onEvent(event)
+        if not Config.reward_system.enable then return end
+
         if event.id == world.event.S_EVENT_PLAYER_ENTER_UNIT then
             if event.initiator and event.initiator.getPlayerName then
 
@@ -154,6 +156,9 @@ do
 
     ---@param unit Unit
     function ExperienceManager:addUser(unit)
+        if not Config.reward_system.enable then return end
+        if not unit.getPlayerName then return end
+
         local user_name = unit:getPlayerName()
         local user_id = unit:getID()
 
@@ -185,6 +190,7 @@ do
     ---@param unit Unit
     ---@return UserData|nil
     function ExperienceManager:fetchUser(unit)
+        if not Config.reward_system.enable then return nil end
         if not unit.getPlayerName then return nil end
         local user_id = unit:getID()
         return ExperienceManager.user_data[user_id]
@@ -233,6 +239,7 @@ do
 
     --- Called by PersistanceManager to overwrite/merge loaded data
     function ExperienceManager:restoreUserData(data)
+        if not Config.reward_system.enable then return end
         if not data then return end
         -- Merge loaded data. We overwrite existing keys.
         for key, userData in pairs(data) do
