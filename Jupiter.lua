@@ -247,7 +247,7 @@ function Jupiter:onEvent(event)
             TheatreCommander.sendWarehouseResupply(coalition.side.BLUE,false)
             TheatreCommander.sendWarehouseResupply(coalition.side.RED,false)
         elseif command == "-resupply" then
-            if param1 == "help" then 
+            if param1 == "help" then
                 trigger.action.outText(mist.utils.tableShow(WarehouseManager.StockTypes),25)
                 cmd_executed = true
             else 

@@ -51,6 +51,17 @@ Config = {
         token_per_mission_completed = 5,
         landing_time = 15, -- (seconds) the time the player has to stay on the ground to be rewarded
 
+        xp_required = {
+            [AITaskTypes.JTAC]           = 3000,
+            [AITaskTypes.RECON]          = 6000,
+            [AITaskTypes.INTERCEPT]      = 10000,
+            [AITaskTypes.CAS]            = 15000,
+            [AITaskTypes.STRIKE]         = 20000,
+            [AITaskTypes.SEAD]           = 25000,
+            [AITaskTypes.RESUPPLY_CARGO] = 50000,
+            [AITaskTypes.AWACS]          = 120000,
+        },
+
         ranks = {
             [1]  = { name = "Airman Basic",      xp_required = 0 },
             [2]  = { name = "Airman",            xp_required = 1000 },

@@ -133,6 +133,24 @@ do
             end
         end
 
+        ---@param unit Unit
+        ---@param ai_task_type AITaskTypes
+        ---@return boolean
+        local function checkRankRequirement(unit, ai_task_type)
+            if not unit or not unit.isExist or not unit:isExist() then return false end
+            local user = ExperienceManager:fetchUser(unit)
+            if not user then return false end
+            local required_xp = Config.reward_system.xp_required[ai_task_type]
+            if not required_xp then return true end -- No rank requirement
+            if user.xp >= required_xp then
+                return true
+            else
+                local rankreq = ExperienceManager:getRankByXP(required_xp) or "Unknown"
+                trigger.action.outTextForUnit(unit:getID(),"Insufficient rank for this tasking request. Required rank: "..rankreq..", ".. required_xp .." XP",5)
+                return false
+            end
+        end
+
         local unit = gr:getUnit(1)
         if not unit or not unit:isExist() or not unit.getCoalition then return end
         local side = unit:getCoalition()
@@ -157,6 +175,7 @@ do
                     func = function (args)
                         local u = args.u
                         local to_zone = args.z
+                        if not checkRankRequirement(u, AITaskTypes.CAS) then return end
                         if not checkTokens(u, Config.tasking_requirements.tokens_required_for_cas) then return end
                         
                         if TaskManager:initiateAITask(AITaskTypes.CAS, side, false, to_zone, nil, true) then
@@ -182,8 +201,9 @@ do
                     func = function (args)
                         local u = args.u
                         local to_zone = args.z
+                        if not checkRankRequirement(u, AITaskTypes.SEAD) then return end
                         if not checkTokens(u, Config.tasking_requirements.tokens_required_for_sead) then return end
-                        
+
                         if TaskManager:initiateAITask(AITaskTypes.SEAD, side, false, to_zone, nil, true) then
                             ExperienceManager:deductTokens(u, Config.tasking_requirements.tokens_required_for_sead)
                             trigger.action.outTextForUnit(u:getID(), "SEAD dispatched to " .. to_zone.name .. ", -" .. Config.tasking_requirements.tokens_required_for_sead .. " tokens.", 10)
@@ -205,6 +225,7 @@ do
                     func = function (args)
                         local u = args.u
                         local to_zone = args.z
+                        if not checkRankRequirement(u, AITaskTypes.JTAC) then return end
                         if not checkTokens(u, Config.tasking_requirements.tokens_required_for_jtac) then return end
                         if not u.getCoalition then return end
 
@@ -236,6 +257,7 @@ do
                     func = function (args)
                         local u = args.u
                         local to_zone = args.z
+                        if not checkRankRequirement(u, AITaskTypes.INTERCEPT) then return end
                         if not checkTokens(u, Config.tasking_requirements.tokens_required_for_intercept) then return end
                         
                         if TaskManager:initiateAITask(AITaskTypes.INTERCEPT, side, false, to_zone, nil, true) then
@@ -261,6 +283,7 @@ do
                     func = function (args)
                         local u = args.u
                         local to_zone = args.z
+                        if not checkRankRequirement(u, AITaskTypes.STRIKE) then return end
                         if not checkTokens(u, Config.tasking_requirements.tokens_required_for_strike) then return end
                         
                         if TaskManager:initiateAITask(AITaskTypes.STRIKE, side, false, to_zone, nil, true) then

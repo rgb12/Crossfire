@@ -204,6 +204,33 @@ do
         end
     end
 
+    ---@param xp number
+    ---@return string
+    function ExperienceManager:getRankfromXP(xp)
+        local rank_name = "Unranked"
+        for i = #Config.reward_system.ranks, 1, -1 do
+            local rank = Config.reward_system.ranks[i]
+            if xp >= rank.xp_required then
+                rank_name = rank.name
+
+                break
+            end
+        end
+        return rank_name
+    end
+
+    ---@param rank_name string
+    ---@return number
+    function ExperienceManager:getRequiredXPfromRank(rank_name)
+        for i = #Config.reward_system.ranks, 1, -1 do
+            local rank = Config.reward_system.ranks[i]
+            if rank.name == rank_name then
+                return rank.xp_required
+            end
+        end
+        return 0
+    end
+
     --- Called by PersistanceManager to overwrite/merge loaded data
     function ExperienceManager:restoreUserData(data)
         if not data then return end
