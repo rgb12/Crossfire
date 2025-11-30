@@ -8,8 +8,6 @@
 
 
 Config = {
-    fog_of_war = true,
-
     persistance = {
         enable = false,
         save_interval = 30,--5*60, -- (seconds) interval at which the mission state is saved
@@ -20,7 +18,7 @@ Config = {
         
         random_scenario_selection = false,
         scenario_selected = "Neptune Protocol",
-    },  
+    },
     operations = {
         recon_minimum_altitude = 1524, -- (meters)
         recon_duration = 120, -- (seconds)
@@ -82,10 +80,10 @@ Config = {
 theatre = {
 
         zone_count_difficulty = {
-            [ScenarioDifficulty.EASY] = 0.30, -- 30% of total zones active
-            [ScenarioDifficulty.MEDIUM] = 0.50,
-            [ScenarioDifficulty.HARD] = 0.70,
-            [ScenarioDifficulty.EXPERT] = 0.90,
+            [ScenarioDifficulty.EASY] = 0.90, -- 30% of total zones active
+            [ScenarioDifficulty.MEDIUM] = 0.80,
+            [ScenarioDifficulty.HARD] = 0.80,
+            [ScenarioDifficulty.EXPERT] = 0.70, -- there are more zones but they are more randomised
         },
         
         -- Weights for random generation (Airbases are excluded)
@@ -99,9 +97,8 @@ theatre = {
 
         -- Logistics Placement Logic
         -- We place a logistics zone roughly every X meters to ensure connectivity
-        logistics_chain_gap = 25000, -- (meters) slightly less than 30k upgrade range to be safe
+        logistics_chain_gap = 25000, -- (meters) slightly less than logistics_upgrade_range to be safe
     },
-    max_comms_zones = 5,
     tasking_requirements = {
         comms_zones_required_for_jtac = 2,
         comms_zones_required_for_cas = 2,
@@ -188,6 +185,7 @@ stats = {
     blue_airbases = 0,
     blue_ew_zones = 0,
     blue_strongpoints = 0,
+    blue_total_comms_zones = 0,
 
     blue_comms_antennas = 0,
     blue_retry_capture_chance = 50,
@@ -198,11 +196,11 @@ stats = {
 
     red_sam_sites = 0,
     red_logistics_zone = 0,
-    red_farp_zones = 0,
     red_comms_zones = 0,
     red_airbases = 0,
     red_ew_zones = 0,
     red_strongpoints = 0,
+    red_total_comms_zones = 0,
 
     red_comms_antennas = 0,
     red_retry_capture_chance = 50,

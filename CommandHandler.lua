@@ -254,8 +254,9 @@ do
                         if not u.getCoalition then return end
 
                         local live_comms = (u:getCoalition() == coalition.side.BLUE) and stats.blue_comms_zones or stats.red_comms_zones
+                        local total_comms = (u:getCoalition() == coalition.side.BLUE) and stats.blue_total_comms_zones or stats.red_total_comms_zones
                         if live_comms < Config.tasking_requirements.comms_zones_required_for_jtac then
-                        trigger.action.outTextForUnit(u:getID(), "JTAC tasking requires " .. Config.tasking_requirements.comms_zones_required_for_jtac .. "/"..Config.max_comms_zones.." active COMMS antennas.", 10)
+                        trigger.action.outTextForUnit(u:getID(), "JTAC tasking requires " .. Config.tasking_requirements.comms_zones_required_for_jtac .. "/"..total_comms.." active COMMS antennas.", 10)
                         return
                     end
 
@@ -478,8 +479,9 @@ do
                     end
 
                     local live_comms = (side == coalition.side.BLUE) and stats.blue_comms_zones or stats.red_comms_zones
+                    local total_comms = (side == coalition.side.BLUE) and stats.blue_total_comms_zones or stats.red_total_comms_zones
                     if live_comms < Config.tasking_requirements.comms_zones_required_for_jtac then
-                        trigger.action.outTextForCoalition(side, "JTAC tasking requires " .. Config.tasking_requirements.comms_zones_required_for_jtac .. "/"..Config.max_comms_zones.." active COMMS antennas.", 10)
+                        trigger.action.outTextForCoalition(side, "JTAC tasking requires " .. Config.tasking_requirements.comms_zones_required_for_jtac .. "/"..total_comms.." active COMMS antennas.", 10)
                         return
                     end
 

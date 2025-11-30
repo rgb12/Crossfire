@@ -570,7 +570,7 @@ do
             new_group_name = cargo_sent_table.name
             home_airbase = blue_airbase
             
-            timer.scheduleFunction(TheatreCommander.sendWarehouseResupply, side, timer.getTime() + stats.blue_resupply_time)
+            timer.scheduleFunction(TheatreCommander.sendWarehouseResupply, side, timer.getTime() + Config.std_resupply_time)
         
         elseif side == coalition.side.RED and red_airbase.acft_resupply_point then
             if stats.red_airbases == 0 then return end
@@ -662,11 +662,7 @@ do
     end, nil, timer.getTime()+Config.tasking.dispatcher_interval)
     end
 
-----------------------------------------------------------------------------------------------------
-    -- THEATRE GENERATION HELPERS
-    ----------------------------------------------------------------------------------------------------
 
-    -- Helper: Build Logistics Chain
     -- Ensures a continuous chain of supplies from Home Base outwards
     function TheatreCommander.assignLogisticsChain(zone_pool, home_base, max_logistics)
         -- Safety defaults if config is missing
@@ -682,7 +678,6 @@ do
 
         MissionLogger:info("Logistics Chain: Checking connectivity for " .. utils.coalitionToString(home_base.side))
 
-        -- We loop until we run out of budget or reach the edge of the territory
         while placed_count < max_logistics do
             
             -- 1. Look ahead: Are there ANY zones in the "Gap" (e.g. 25km ring from current node)?
@@ -739,11 +734,7 @@ do
         end
     end
 
-    ----------------------------------------------------------------------------------------------------
-    -- MAIN THEATRE GENERATION
-    ----------------------------------------------------------------------------------------------------
-
----@return ZoneHandler, ZoneHandler
+    ---@return ZoneHandler, ZoneHandler
     function TheatreCommander.establishTheatre()
         MissionLogger:info("TheatreCommander: Generating Theatre Layout...")
 
@@ -892,9 +883,8 @@ do
         table.insert(stats.red_discovered_zones, red_airbase.name)
         table.insert(stats.red_discovered_zones, blue_airbase.name)
 
-        if stats.blue_comms_zones + stats.red_comms_zones > Config.max_comms_zones then
-            MissionLogger:warn("Total COMMS Zones exceeded max allowed, but proceeding.")
-        end
+        stats.blue_total_comms_zones = stats.blue_comms_zones
+        stats.red_total_comms_zones = stats.red_comms_zones
 
         for _, zone in ipairs(zones) do
             
@@ -984,8 +974,8 @@ do
         end
 
         
-        timer.scheduleFunction(TheatreCommander.sendWarehouseResupply, coalition.side.BLUE, timer.getTime() + stats.blue_resupply_time)
-        timer.scheduleFunction(TheatreCommander.sendWarehouseResupply, coalition.side.RED, timer.getTime() + stats.red_resupply_time)
+        timer.scheduleFunction(TheatreCommander.sendWarehouseResupply, coalition.side.BLUE, timer.getTime() + Config.std_resupply_time)
+        timer.scheduleFunction(TheatreCommander.sendWarehouseResupply, coalition.side.RED, timer.getTime() + Config.std_resupply_time)
         
         TheatreCommander:tick()
         
@@ -1002,13 +992,6 @@ do
         world.addEventHandler(ExperienceManager.EventHandler)
         world.addEventHandler(Jupiter)
         PersistanceManager:autoSave()
-
-        -- local airb = ZoneHandler.getFromName("VAZIANI")
-        -- local wh = Airbase.getByName(airb.airbase_name):getWarehouse():getInventory()
-        -- MissionLogger:info("VAZIANI INV")
-        -- MissionLogger:info(wh)
-
-
         -- trigger.action.outText("Theatre setup complete.", 5)
         MissionLogger:info("Mission Commander: Mission Setup Complete.")
     end
