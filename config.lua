@@ -134,9 +134,10 @@ theatre = {
     comms_tower_lost_penalty = 1.5, -- the respawn time is multiplied by this much when a comms tower is lost
 
     tasking = {
-        enable = true,
+        enable = true, -- enables/disables AI tasking system, does not affect resupply and capture mechanics
         dispatcher_interval = 5*60, -- (seconds)
         max_tasks_per_airbase = 4,
+
         max_jtac_per_airbase = 2,
         max_cas_per_airbase = 1,
         max_sead_per_airbase = 2,
@@ -153,8 +154,6 @@ theatre = {
         max_cas_range = 150*1000, -- (meters)
         min_cleareance_dist_for_awacs = 70*1000 -- (meters) from the nearest enemy zone
     },
-    tasking_max_groups_per_airbase = 4,
-
 
     capture_helicopter_max_range = 100*1000 , -- (meters)
     capture_convoy_max_range = 100,--25*1000, -- (meters)
@@ -187,6 +186,8 @@ theatre = {
 
 }
 
+-- TO CHANGE dont leave this here
+-- Stats tracking table should not be edited
 stats = {
     neutral_zones = 0,
     red_zones = 0,
@@ -228,7 +229,7 @@ stats = {
 
 
 
-
+-- This table allows you to link the in-mission groups to the script logic
 -- Group names from the mission editor. They must be exactly the same.
 GroupData = {
     COMMON_ASSETS = {
@@ -603,5 +604,5 @@ GroupData = {
 
 
 
-
+-- TO CHANGE dont leave this here
 MissionLogger = mist.Logger:new("MissionLogger", 3)

@@ -49,6 +49,14 @@ do
             local airbase = Airbase.getByName(closest_airbase.airbase_name)
             if not airbase then return false end
 
+            local enroutes_from_airbase = EnrouteManager:findByFromZone(closest_airbase,side)
+            if enroutes_from_airbase and #enroutes_from_airbase >= Config.tasking.max_tasks_per_airbase then
+                if user_requested then
+                    txt="CAS unavailable from "..closest_airbase.name..", airbase cannot handle more tasks at the moment."
+                    trigger.action.outTextForCoalition(side,txt,5)
+                end
+                return false
+            end
 
             if airbase and not WarehouseManager:checkIfAIPayloadInStock(airbase,ai_task_type)
             then
@@ -72,6 +80,14 @@ do
             return true
         elseif AITaskTypes.AWACS == ai_task_type and from_zone and from_zone.zone_type == ZoneTypes.AIRBASE then
 
+            local enroutes_from_airbase = EnrouteManager:findByFromZone(from_zone,side)
+            if enroutes_from_airbase and #enroutes_from_airbase >= Config.tasking.max_tasks_per_airbase then
+                if user_requested then
+                    txt="AWACS unavailable from "..from_zone.name..", airbase cannot handle more tasks at the moment."
+                    trigger.action.outTextForCoalition(side,txt,5)
+                end
+                return false
+            end
 
             local in_stock, template_gr_name = WarehouseManager:checkAircraftInStock(from_zone.airbase_name,ai_task_type)
             if not in_stock then
@@ -109,7 +125,7 @@ do
             local closest_airbase, template_gr_name = self:findClosestAirbaseWithAircraftInStock(to_zone,side,ai_task_type,2,ai_task_type)
             if not closest_airbase then
                 if user_requested then
-                    txt="INTERCEPT unavailable for "..to_zone.name..", check aircraft availability, warehouse stock and tasking limits."
+                    txt="CAP unavailable for "..to_zone.name..", check aircraft availability, warehouse stock and tasking limits."
                     trigger.action.outTextForCoalition(side,txt,5)
                 end
                 return false
@@ -117,7 +133,7 @@ do
 
             if prevent_duplicates and EnrouteManager:findByToZone(to_zone,side,{AITaskTypes.INTERCEPT}) then
                 if user_requested then
-                    txt="INTERCEPT already tasked for "..to_zone.name
+                    txt="CAP already tasked for "..to_zone.name
                     trigger.action.outTextForCoalition(side,txt,5)
                 end
                 return false
@@ -126,8 +142,17 @@ do
             local airbase = Airbase.getByName(closest_airbase.airbase_name)
             if not airbase then return false end
 
+            local enroutes_from_airbase = EnrouteManager:findByFromZone(closest_airbase,side)
+            if enroutes_from_airbase and #enroutes_from_airbase >= Config.tasking.max_tasks_per_airbase then
+                if user_requested then
+                    txt="CAP unavailable from "..closest_airbase.name..", airbase cannot handle more tasks at the moment."
+                    trigger.action.outTextForCoalition(side,txt,5)
+                end
+                return false
+            end
+
             if airbase and not WarehouseManager:checkIfAIPayloadInStock(airbase,ai_task_type)
-            then sendText("INTERCEPT required payload/armement not in warehouse.") return false end
+            then sendText("CAP required payload/armement not in warehouse.") return false end
 
             local new_group = mist.cloneGroup(template_gr_name,true)
             if not new_group then return false end
@@ -163,6 +188,16 @@ do
 
             local airbase = Airbase.getByName(closest_airbase.airbase_name)
             if not airbase then return false end
+
+
+            local enroutes_from_airbase = EnrouteManager:findByFromZone(closest_airbase,side)
+            if enroutes_from_airbase and #enroutes_from_airbase >= Config.tasking.max_tasks_per_airbase then
+                if user_requested then
+                    txt="SEAD unavailable from "..closest_airbase.name..", airbase cannot handle more tasks at the moment."
+                    trigger.action.outTextForCoalition(side,txt,5)
+                end
+                return false
+            end
 
             if airbase and not WarehouseManager:checkIfAIPayloadInStock(airbase,ai_task_type)
             then sendText("SEAD required payload/armement not in warehouse.") return false end
@@ -200,6 +235,16 @@ do
 
             local airbase = Airbase.getByName(closest_airbase.airbase_name)
             if not airbase then return false end
+
+
+            local enroutes_from_airbase = EnrouteManager:findByFromZone(closest_airbase,side)
+            if enroutes_from_airbase and #enroutes_from_airbase >= Config.tasking.max_tasks_per_airbase then
+                if user_requested then
+                    txt="STRIKE unavailable from "..closest_airbase.name..", airbase cannot handle more tasks at the moment."
+                    trigger.action.outTextForCoalition(side,txt,5)
+                end
+                return false
+            end
 
             if airbase and not WarehouseManager:checkIfAIPayloadInStock(airbase,ai_task_type)
             then sendText("STRIKE required payload/armement not in warehouse.") return false end
@@ -247,6 +292,16 @@ do
             local airbase = Airbase.getByName(closest_airbase.airbase_name)
             if not airbase then return false end
 
+
+            local enroutes_from_airbase = EnrouteManager:findByFromZone(closest_airbase,side)
+            if enroutes_from_airbase and #enroutes_from_airbase >= Config.tasking.max_tasks_per_airbase then
+                if user_requested then
+                    txt="RECON unavailable from "..closest_airbase.name..", airbase cannot handle more tasks at the moment."
+                    trigger.action.outTextForCoalition(side,txt,5)
+                end
+                return false
+            end
+
             if airbase and not WarehouseManager:checkIfAIPayloadInStock(airbase,ai_task_type)
             then sendText("RECON required payload/armement not in warehouse.") return false end
 
@@ -285,6 +340,15 @@ do
 
             local airbase = Airbase.getByName(closest_airbase.airbase_name)
             if not airbase then return false end
+
+            local enroutes_from_airbase = EnrouteManager:findByFromZone(closest_airbase,side)
+            if enroutes_from_airbase and #enroutes_from_airbase >= Config.tasking.max_tasks_per_airbase then
+                if user_requested then
+                    txt="JTAC unavailable from "..closest_airbase.name..", airbase cannot handle more tasks at the moment."
+                    trigger.action.outTextForCoalition(side,txt,5)
+                end
+                return false
+            end
 
             local new_group = mist.cloneGroup(template_gr_name,true)
             if not new_group then return false end
@@ -347,7 +411,6 @@ do
 
             from_zone.capture_convoy_avail = from_zone.capture_convoy_avail - 1
             from_zone:drawF10()
-            has_capture_gr_been_sent = true
             MissionLogger:info(utils.coalitionToString(side) .." convoy from " ..from_zone.name .. " sent to capture zone: " .. to_zone.name)
             return true
         elseif ai_task_type == AITaskTypes.CAPTURE_HELO and to_zone and from_zone then
@@ -392,7 +455,6 @@ do
 
             from_zone.capture_heli_avail = from_zone.capture_heli_avail - 1
             from_zone:drawF10()
-            has_capture_gr_been_sent = true
             MissionLogger:info(utils.coalitionToString(side) .." heli from " ..from_zone.name .. " sent to capture zone: " .. to_zone.name)
             return true
         end
@@ -757,7 +819,7 @@ do
                 to_zone = enroute_data.to_zone,
                 smoke_count = 4,
             })
-            table.insert(enroute_data,jtac)
+            enroute_data.jtac = jtac
         end, {}, timer.getTime() + 12)
     end
 
@@ -1070,7 +1132,7 @@ do
                 y = ipPos.y,
                 speed = 257, 
                 action = AI.Task.TurnMethod.FLY_OVER_POINT,
-                alt = 4000, -- 13k ft (Good for HARM launch)
+                alt = mist.utils.feetToMeters(30000), -- 30k ft (Good for HARM launch)
                 alt_type = AI.Task.AltitudeType.BARO,
                 task = attackTask -- **Task is attached here, 25km away from target**
             })
@@ -1274,8 +1336,7 @@ do
                 x = startPos.x,
                 y = startPos.z,
                 action = AI.Task.TurnMethod.FIN_POINT,
-                alt = 7620, -- 25k ft
-                alt_type = AI.Task.AltitudeType.BARO,
+                alt_type = AI.Task.AltitudeType.RADIO,
             })
             
             -- 4. Set the complete mission

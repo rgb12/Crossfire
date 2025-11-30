@@ -164,6 +164,7 @@ do
 
     ---@param side coalition.side
     function TheatreCommander:evaluateAITasks(side)
+        if not Config.tasking.enable then return end
         -- MissionLogger:info("AI Commander checking tasks for: " .. utils.coalitionToString(side))
         
         -- 1. PRE-CHECKS (Global resources)
