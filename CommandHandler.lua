@@ -16,22 +16,8 @@ do
     }
 
     function CommandHandler.init()
+        -- SITMAP
 
-        -- local function displayStats()
-        --     local out_txt = "SITMAP\n"
-        --     trigger.action.outTextForCoalition(coalition.side.BLUE,out_txt,10)
-        -- end
-        -- missionCommands.addCommand("Situation Map",nil,displayStats,{})
-        local master_submenu = missionCommands.addSubMenu("Mission Commands",nil)
-
-        missionCommands.addCommand("Give stock",master_submenu,function ()
-            MissionLogger:info("Giving stock")
-            WarehouseManager:handleIncomingSupplies(coalition.side.BLUE,
-            {WarehouseManager.StockTypes.AIR_GROUND_BOMBS})
-            -- WarehouseManager:attributeAirbaseStock("VAZIANI",coalition.side.BLUE,
-            --     {WarehouseManager.StockTypes.AIR_AIR_SHORT_RANGE})
-        end)
- 
     end
 
     local refresh_timer = nil
@@ -487,8 +473,8 @@ do
 
             local gr = u:getGroup()
             if gr and gr.isExist and gr:isExist() and u.getCoalition then
-                if u:inAir() then
-                    trigger.action.outTextForUnit(u:getID(), "Recon report\n Cannot perform recon while airborne.",10)
+                if not u:inAir() then
+                    trigger.action.outTextForUnit(u:getID(), "Recon report\n Can only perform recon while airborne.",10)
                     return
                 end
                 
