@@ -595,7 +595,7 @@ do
             home_airbase = red_airbase
 
             if repeat_tasking then
-                timer.scheduleFunction(TheatreCommander.sendWarehouseResupply, side, timer.getTime() + stats.red_resupply_time)
+                timer.scheduleFunction(TheatreCommander.sendWarehouseResupply, side, timer.getTime() + Config.std_resupply_time)
             end
         else
             -- No cargo was spawned this cycle, just return
