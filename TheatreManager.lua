@@ -63,43 +63,6 @@ do
         
     end
 
-    ---@param zone_name string
-    ---@param ignore_airborne_units boolean|nil
-    ---@param ignore_statics boolean|nil
-    ---@param ignore_coaliation coalition.side|nil
-    function TheatreCommander.fetchUnitsInZone(zone_name, ignore_airborne_units, ignore_statics, ignore_coaliation)
-        ------ [Fetches all units, and filters them based on the zone name and coalition] ------
-        local all_units_in_capture_zone = nil
-        if ignore_coaliation and ignore_coaliation == coalition.side.RED then
-            all_units_in_capture_zone = mist.getUnitsInZones(mist.makeUnitTable({ '[blue]' }), { zone_name })
-        elseif ignore_coaliation and ignore_coaliation == coalition.side.BLUE then
-            all_units_in_capture_zone = mist.getUnitsInZones(mist.makeUnitTable({ '[red]' }), { zone_name })
-        else
-            all_units_in_capture_zone = mist.getUnitsInZones(mist.makeUnitTable({ '[all]' }), { zone_name })
-        end
-        if not all_units_in_capture_zone then return end
-
-        ------ [Filter out statics, friendlies, and airborne units] ------
-        for i = #all_units_in_capture_zone, 1, -1 do -- reverse loop so table.remove is safe
-            local unit = all_units_in_capture_zone[i]
-            -- local unit_desc = unit
-            -- ignore all statics
-
-
-            if unit:getCategory() == Object.Category.STATIC and ignore_statics then
-                table.remove(all_units_in_capture_zone, i)
-
-                -- ignore same-side units
-            elseif unit:getCoalition() == ignore_coaliation then
-                table.remove(all_units_in_capture_zone, i)
-
-                -- ignore airborne units
-            elseif unit:inAir() and ignore_airborne_units then
-                table.remove(all_units_in_capture_zone, i)
-            end
-        end
-        return all_units_in_capture_zone
-    end
     -- checks if a capture group has arrived
     --- func desc
     ---@param enroute_group EnrouteObj
@@ -165,7 +128,7 @@ do
     ---@param side coalition.side
     function TheatreCommander:evaluateAITasks(side)
         if not Config.tasking.enable then return end
-        -- MissionLogger:info("AI Commander checking tasks for: " .. utils.coalitionToString(side))
+        MissionLogger:info("Evaluating "..utils.coalitionToString(side) .." AI tasks..")
         
         -- 1. PRE-CHECKS (Global resources)
         local side_comms_towers = 0
@@ -213,28 +176,30 @@ do
         -- [TASK: RECON]
         table.insert(possible_tasks, function()
             local recon_enroute = EnrouteManager:findByTaskType(AITaskTypes.RECON, side)
-            if recon_enroute and #recon_enroute < 1
-            and side_comms_towers >= Config.tasking_requirements.comms_zones_required_for_recon
-            then
-                local closest_undiscovered_zone = nil
-                local current_closest_dist = 999999
-                local discovered_list = (side == coalition.side.BLUE) and stats.blue_discovered_zones or stats.red_discovered_zones
-                
-                for _, zone in ipairs(zones) do
-                    if zone.side == enemy_side and not utils.tableContains(discovered_list, zone.name) then
-                        local dist = mist.utils.get2DDist(home_base.zone.point, zone.zone.point)
-                        if dist < current_closest_dist then
-                            current_closest_dist = dist
-                            closest_undiscovered_zone = zone
-                        end
+            if recon_enroute and #recon_enroute >= Config.tasking.max_recon_theatre then
+                return false
+            end
+            if side_comms_towers < Config.tasking_requirements.comms_zones_required_for_recon then
+                return false
+            end
+
+            local closest_undiscovered_zone = nil
+            local current_closest_dist = 999999
+            local discovered_list = (side == coalition.side.BLUE) and stats.blue_discovered_zones or stats.red_discovered_zones
+            
+            for _, zone in ipairs(zones) do
+                if zone.side == enemy_side and not utils.tableContains(discovered_list, zone.name) then
+                    local dist = mist.utils.get2DDist(home_base.zone.point, zone.zone.point)
+                    if dist < current_closest_dist then
+                        current_closest_dist = dist
+                        closest_undiscovered_zone = zone
                     end
                 end
+            end
 
-                if closest_undiscovered_zone then
-                    if not EnrouteManager:findByToZone(closest_undiscovered_zone, side, {AITaskTypes.RECON}) then
-                        MissionLogger:info("AI Commander: Tasking RECON for " .. utils.coalitionToString(side) .. " to " .. closest_undiscovered_zone.name)
-                        return TaskManager:initiateAITask(AITaskTypes.RECON, side, true, closest_undiscovered_zone, nil, false)
-                    end
+            if closest_undiscovered_zone then
+                if not EnrouteManager:findByToZone(closest_undiscovered_zone, side, {AITaskTypes.RECON}) then
+                    return TaskManager:initiateAITask(AITaskTypes.RECON, side, true, closest_undiscovered_zone, nil, true)
                 end
             end
             return false
@@ -243,10 +208,9 @@ do
         -- [TASK: AWACS]
         table.insert(possible_tasks, function()
             local awacs_enroute = EnrouteManager:findByTaskType(AITaskTypes.AWACS, side)
-            if #awacs_enroute == 0 and closest_dist < 75000
+            if #awacs_enroute == 0 and closest_dist < Config.tasking.min_cleareance_dist_for_awacs
             and side_comms_towers >= Config.tasking_requirements.comms_zones_required_for_awacs then
-                MissionLogger:info("AI Commander: No AWACS found for " .. utils.coalitionToString(side) .. ". Tasking one.")
-                return TaskManager:initiateAITask(AITaskTypes.AWACS, side, true, nil, home_base, false)
+                return TaskManager:initiateAITask(AITaskTypes.AWACS, side, true, nil, home_base, true)
             end
             return false
         end)
@@ -254,12 +218,20 @@ do
         -- [TASK: CAS]
         table.insert(possible_tasks, function()
             local cas_enroute = EnrouteManager:findByTaskType(AITaskTypes.CAS, side)
-            if #cas_enroute < 2 then 
-                if closest_enemy_zone and closest_dist < Config.tasking.max_cas_range
-                and side_comms_towers >= Config.tasking_requirements.comms_zones_required_for_cas then
-                    if not EnrouteManager:findByToZone(closest_enemy_zone, side, {AITaskTypes.CAS}) then
-                        MissionLogger:info("AI Commander: Tasking CAS for " .. utils.coalitionToString(side) .. " to " .. closest_enemy_zone.name)
-                        return TaskManager:initiateAITask(AITaskTypes.CAS, side, true, closest_enemy_zone, nil, false)
+            if #cas_enroute >= Config.tasking.max_cas_theatre then
+                return false
+            end
+            if side_comms_towers < Config.tasking_requirements.comms_zones_required_for_cas then
+                return false
+            end
+
+            for _, zone in ipairs(zones) do
+                if zone.side == enemy_side and utils.tableContains(stats.blue_discovered_zones, zone.name)
+                and not EnrouteManager:findByToZone(zone, side, {AITaskTypes.CAS}) then
+                    
+                    local dist = mist.utils.get2DDist(home_base.zone.point, zone.zone.point)
+                    if dist < Config.tasking.max_cas_range then
+                        return TaskManager:initiateAITask(AITaskTypes.CAS, side, true, zone, nil, true)
                     end
                 end
             end
@@ -268,10 +240,14 @@ do
 
         -- [TASK: SEAD]
         table.insert(possible_tasks, function()
+
             local sead_enroute = EnrouteManager:findByTaskType(AITaskTypes.SEAD, side)
-            if sead_enroute and #sead_enroute < 3
-            and side_comms_towers >= Config.tasking_requirements.comms_zones_required_for_sead
-            then 
+            if sead_enroute and #sead_enroute >= Config.tasking.max_sead_theatre then
+                return false
+            end
+            if side_comms_towers < Config.tasking_requirements.comms_zones_required_for_sead then
+                return false
+            end
                 for _, zone in ipairs(zones) do
                     if zone.side == enemy_side and zone.zone_type == ZoneTypes.SAMSITE then
                         local discovered = (side == coalition.side.BLUE and utils.tableContains(stats.blue_discovered_zones, zone.name)) or
@@ -279,36 +255,38 @@ do
                         
                         if discovered then
                             if not EnrouteManager:findByToZone(zone, side, {AITaskTypes.SEAD}) then
-                                MissionLogger:info("AI Commander: Tasking SEAD for " .. utils.coalitionToString(side) .. " to " .. zone.name)
                                 return TaskManager:initiateAITask(AITaskTypes.SEAD, side, true, zone, nil, false)
                             end
                         end
                     end
                 end
-            end
             return false
         end)
 
         -- [TASK: INTERCEPT]
         table.insert(possible_tasks, function()
             local intercept_enroute = EnrouteManager:findByTaskType(AITaskTypes.INTERCEPT, side)
-            if intercept_enroute and #intercept_enroute < 3
-            and side_comms_towers >= Config.tasking_requirements.comms_zones_required_for_intercept
-            then 
-                if closest_friendly_zone then
-                    if not EnrouteManager:findByToZone(closest_friendly_zone, side, {AITaskTypes.INTERCEPT}) then
-                        MissionLogger:info("AI Commander: Tasking INTERCEPT for " .. utils.coalitionToString(side) .. " to patrol " .. closest_friendly_zone.name)
-                        return TaskManager:initiateAITask(AITaskTypes.INTERCEPT, side, true, closest_friendly_zone, nil, false)
+            if intercept_enroute and #intercept_enroute >= Config.tasking.max_intercept_theatre then
+                return false
+            end
+            if side_comms_towers < Config.tasking_requirements.comms_zones_required_for_intercept then
+                return false
+            end
+                for _, zone in ipairs(zones) do
+                    if zone.side == side and zone.zone_type ~= ZoneTypes.AIRBASE and utils.tableContains(stats.blue_discovered_zones, zone.name) then
+                        MissionLogger:info(zone.name)
+                        if not EnrouteManager:findByToZone(zone, side, {AITaskTypes.INTERCEPT}) then
+                            return TaskManager:initiateAITask(AITaskTypes.INTERCEPT, side, true, zone, nil, true)
+                        end
                     end
                 end
-            end
             return false
         end)
 
         -- [TASK: STRIKE]
         table.insert(possible_tasks, function()
             local strike_enroute = EnrouteManager:findByTaskType(AITaskTypes.STRIKE, side)
-            if strike_enroute and #strike_enroute < 2
+            if strike_enroute and #strike_enroute < Config.tasking.max_strike_theatre
             and side_comms_towers >= Config.tasking_requirements.comms_zones_required_for_strike
             then 
                 local valid_strike_targets = {
@@ -323,8 +301,7 @@ do
                         
                         if discovered then
                             if not EnrouteManager:findByToZone(zone, side, {AITaskTypes.STRIKE}) then
-                                MissionLogger:info("AI Commander: Tasking STRIKE for " .. utils.coalitionToString(side) .. " against " .. zone.name)
-                                return TaskManager:initiateAITask(AITaskTypes.STRIKE, side, true, zone, nil, false)
+                                return TaskManager:initiateAITask(AITaskTypes.STRIKE, side, true, zone, nil, true)
                             end
                         end
                     end
@@ -332,7 +309,6 @@ do
             end
             return false
         end)
-
         -- 3. SHUFFLE THE TASKS
         -- Fisher-Yates shuffle to randomize the order of checks
         for i = #possible_tasks, 2, -1 do
@@ -344,9 +320,11 @@ do
         -- Run through the shuffled list. As soon as ONE task spawns (returns true), we exit the whole function.
         for _, task_func in ipairs(possible_tasks) do
             if task_func() then
+                MissionLogger:info("Tasking succeeded for " .. utils.coalitionToString(side))
                 return -- Task spawned
             end
         end
+        MissionLogger:info("No tasks spawned for " .. utils.coalitionToString(side))
     end
 
     ---@param zone ZoneHandler
@@ -659,14 +637,13 @@ do
 
 
     -- AI DISPATCHER
-    function TheatreCommander.dispatchAI()
+    function TheatreCommander.dispatchAI()  
+        timer.scheduleFunction(function ()
+            TheatreCommander:evaluateAITasks(coalition.side.BLUE)
+            TheatreCommander:evaluateAITasks(coalition.side.RED)
             
-    timer.scheduleFunction(function ()
-        TheatreCommander:evaluateAITasks(coalition.side.BLUE)
-        TheatreCommander:evaluateAITasks(coalition.side.RED)
-        
-        TheatreCommander.dispatchAI()
-    end, nil, timer.getTime()+Config.tasking.dispatcher_interval)
+            TheatreCommander.dispatchAI()
+        end, nil, timer.getTime()+Config.tasking.dispatcher_interval)
     end
 
 
@@ -939,6 +916,7 @@ do
         -- Initial Warehouses
         WarehouseManager:handleIncomingSupplies(blue_airbase.side, {WarehouseManager.StockTypes.INITIAL})
         if Config.enabled_su25t_bluefor then
+            MissionLogger:info("Adding su25t stock")
             WarehouseManager:handleIncomingSupplies(blue_airbase.side, {WarehouseManager.StockTypes.SU25T_BLUEFOR})
         end
         WarehouseManager:handleIncomingSupplies(red_airbase.side, {WarehouseManager.StockTypes.INITIAL})

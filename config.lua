@@ -31,7 +31,7 @@ Config = {
    },
 
    enabled_su25t_bluefor = true, -- adds the SU-25T to the bluefor warehouse inventory
-   estimated_users = 1, -- used to scale warehouse stocks and resupply quantities
+   estimated_users = 10, -- used to scale warehouse stocks and resupply quantities
 
     std_resupply_time = 20*60, -- (seconds) respawn resupply aircraft delay
     cooldown_before_capture_attempt = 12,--3*60, -- (seconds)
@@ -135,8 +135,8 @@ theatre = {
 
     tasking = {
         enable = true, -- enables/disables AI tasking system, does not affect resupply and capture mechanics
-        dispatcher_interval = 5*60, -- (seconds)
-        max_tasks_per_airbase = 4,
+        dispatcher_interval = 56,--5*60, -- (seconds), avoid multiples of 15 to reduce lag spikes
+        max_tasks_per_airbase = 4, -- maximum number of concurrent tasks per airbase
 
         max_jtac_per_airbase = 2,
         max_cas_per_airbase = 1,
@@ -145,6 +145,14 @@ theatre = {
         max_intercept_per_airbase = 2,
         max_awacs_per_airbase = 1,
         max_recon_per_airbase = 2,
+
+        max_jtac_theatre = 4, -- per coalition, only for AI auto tasking
+        max_cas_theatre = 4,-- per coalition, only for AI auto tasking
+        max_sead_theatre = 4,-- per coalition , only for AI auto tasking
+        max_strike_theatre = 4,-- per coalition, only for AI auto tasking
+        max_intercept_theatre = 6,-- per coalition, only for AI auto tasking
+        max_recon_theatre = 4,-- per coalition, only for AI auto tasking
+        max_awacs_per_theatre = 2,-- per coalition, only for AI auto tasking
 
         max_capture_helicopters_per_logistics_zone = 4,
         max_attack_convoys_per_strongpoint_zone = 2,

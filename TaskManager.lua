@@ -62,8 +62,7 @@ do
             then
                 sendText("CAS required payload/armement not in warehouse.")
                 return false
-
-                end
+            end
 
             local new_group = mist.cloneGroup(template_gr_name,true)
 
@@ -381,7 +380,7 @@ do
             if to_zone and to_zone.side == enemy_side
             and mist.utils.get2DDist(from_zone.zone.point, to_zone.zone.point) < Config.attack_convoy_range then
                 
-                if prevent_duplicates and EnrouteManager:findByToZone(to_zone,nil,{ai_task_type}) then 
+                if prevent_duplicates and EnrouteManager:findByToZone(to_zone,nil,{ai_task_type}) then
                     if user_requested then
                         txt="Unable to task "..ai_task_type.." ,already tasked for this area"
                         trigger.action.outTextForCoalition(side,txt,5)
@@ -540,6 +539,8 @@ do
                     
                     if not self:checkIfMaxTasksReached(closest_airbase,side,ai_task_type) then
                         return closest_airbase,group_name
+                    else
+                        MissionLogger:info("Airbase:" .. closest_airbase.airbase_name .. " has reached max task limit.")
                     end
                 end
             end
@@ -1336,7 +1337,8 @@ do
                 x = startPos.x,
                 y = startPos.z,
                 action = AI.Task.TurnMethod.FIN_POINT,
-                alt_type = AI.Task.AltitudeType.RADIO,
+                alt = mist.utils.feetToMeters(21000),
+                alt_type = AI.Task.AltitudeType.BARO,
             })
             
             -- 4. Set the complete mission
