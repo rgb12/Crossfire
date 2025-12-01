@@ -719,15 +719,14 @@ do
         }
     }
 
-    -- Compute a fair scaling factor based on estimated users.
-    -- Uses sqrt for diminishing returns:
-    -- users=1 -> 1.0, users=4 -> 2.0, users=9 -> 3.0 (before clamping)
+    -- Compute a scaling factor based on estimated users.
+    -- Linear scaling as requested:
+    -- users=1 -> 1.0, users=4 -> 4.0 (before clamping)
     function WarehouseManager:getStockScale()
         local baseline = 1
-        local scale = math.sqrt(Config.estimated_users / baseline)
-        -- Clamp to reasonable bounds
-        if scale < 0.4 then scale = 0.4 end
-        if scale > 2.0 then scale = 2.0 end
+        local users = Config.estimated_users or 1
+        if users < 0 then users = 0 end
+        local scale = users / baseline
         return scale
     end
 
