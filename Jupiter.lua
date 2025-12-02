@@ -261,7 +261,37 @@ function Jupiter:onEvent(event)
                     trigger.action.outText("Jupiter: No airbase found within 10km for giving stock.", 5)
                 end
             end
-
+        elseif command == "-capture" then
+            local closest_zone, dist = getClosestZone(vec3)
+            if closest_zone and dist <= 10000 then
+                closest_zone:capture(param1 == "red" and coalition.side.RED or coalition.side.BLUE)
+                cmd_executed = true
+            else
+                trigger.action.outText("Jupiter: No zone found within 10km for capture.", 5)
+            end
+        elseif command == "-addxp" then
+            local xp_to_add = tonumber(param1) or 1000
+            -- Find all players within 500m of the marker
+            local volS = {
+                id = world.VolumeType.SPHERE,
+                params = { point = vec3, radius = 500 }
+            }
+            local players_found = 0
+            local function addXPToPlayer(obj, val)
+                if obj and obj:isExist() and obj.getPlayerName then
+                    local user = ExperienceManager:fetchUser(obj)
+                    if user then
+                        user.xp = user.xp + xp_to_add
+                        trigger.action.outTextForUnit(user.id, string.format("Jupiter: You have been awarded %d XP!", xp_to_add), 10)
+                        players_found = players_found + 1
+                    end
+                end
+                return true
+            end
+            
+            world.searchObjects({Object.Category.UNIT}, volS, addXPToPlayer)
+            trigger.action.outText(string.format("Jupiter: Added %d XP to %d players within 500m.", xp_to_add, players_found), 5)
+            cmd_executed = true
         end
         -- 3. Cleanup: Remove the map marker if a command was recognized
         timer.scheduleFunction(function()
