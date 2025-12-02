@@ -12,6 +12,7 @@ do
     ---@param side_sending_capture coalition.side
     ---@param from_zone ZoneHandler|nil
     function TheatreCommander.sendCapture(to_zone, side_sending_capture, from_zone)
+        if side_sending_capture == coalition.side.NEUTRAL then return end
         MissionLogger:info(utils.coalitionToString(side_sending_capture).." attempting capture group for zone: " .. to_zone.name)
 
         ------------[check if game has been won]------------
@@ -369,8 +370,8 @@ do
 
                     zone:addAIAssets(10) -- Supply chance every minute
 
-                    if zone.side ~=coalition.side.NEUTRAL and zone:checkIfEmpty() then
-                        
+                    -- Skip empty check for first 2 minutes after mission start (grace period for spawns)
+                    if timer.getTime() > Config.grace_period and zone.side ~=coalition.side.NEUTRAL and zone:checkIfEmpty() then
                         TheatreCommander.sendCapture(zone, utils.getEnemyCoalition(zone.side))
                         zone:capture(coalition.side.NEUTRAL)
                     end

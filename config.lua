@@ -12,9 +12,9 @@
 
 Config = {
     persistance = {
-        enable = false, -- enables or not persistance, has authority over everything below in this section
+        enable = true, -- enables or not persistance, has authority over everything below in this section
         save_interval = 30,--5*60, -- (seconds) interval at which the mission state is saved
-        save_dir = "Missions/Saves/", -- this is your saves directory in Saved Games
+        save_dir = "Missions/Saves/Crossfire/", -- this is your saves directory in Saved Games
         save_file = "mission.json", -- this is the name of the mission file
         user_data_file = "user_data.json", -- this is the name of user data only file, note that this only records user xp, tokens ans rank
 
@@ -28,10 +28,11 @@ Config = {
         recon_distance_from_zone = 10000, -- (meters)
         cap_duration = 10*60, -- (seconds)
         cap_max_radius_from_zone = 20*1000, -- (meters)
-   },
+    },
 
-   enabled_su25t_bluefor = true, -- adds the SU-25T to the bluefor warehouse inventory
-   estimated_users = 10, -- used to scale warehouse stocks and resupply quantities
+    grace_period = 5*60, -- (seconds) time at the start of the mission where no captures can occur
+    enabled_su25t_bluefor = true, -- adds the SU-25T to the bluefor warehouse inventory
+    estimated_users = 10, -- used to scale warehouse stocks and resupply quantities
 
     std_resupply_time = 20*60, -- (seconds) respawn resupply aircraft delay
     cooldown_before_capture_attempt = 12,--3*60, -- (seconds)

@@ -42,27 +42,31 @@ do
         -- 2. Save the entire stats table
         PersistanceManager.data.stats = stats
 
-        -- 3. Save a simplified version of all zones
-        -- *** CHANGE: Use zone.name as key for fast lookups ***
+        -- 3. Save only essential zone properties that cannot be reconstructed
         PersistanceManager.data.zones = {}
         for _, z in ipairs(zones) do
             local zone_data = {
+                -- Identity & Configuration
                 name = z.name,
                 side = z.side,
                 level = z.level,
+                zone_type = z.zone_type,
+                
+                -- Type-specific properties
+                airbase_name = z.airbase_name,  -- Only for airbases
+                sam_classification = z.sam_classification,  -- Only for SAM sites
+                
+                -- Dynamic counters (must save, can't reconstruct)
                 capture_heli_avail = z.capture_heli_avail or 0,
                 capture_convoy_avail = z.capture_convoy_avail or 0,
                 attack_convoy = z.attack_convoy or 0,
-                last_attacked_by = z.last_attacked_by,
-                last_capture_attempt = z.last_capture_attempt,
+                
+                -- State tracking
                 ammo_depot_intact = z.ammo_depot_intact,
                 ammo_depot_last_destroyed = z.ammo_depot_last_destroyed,
                 next_level_up_avail = z.next_level_up_avail,
-                linked_ammo_depot = z.linked_ammo_depot,
-                linked_groups = z.linked_groups or {},
-                linked_statics = z.linked_statics or {},
             }
-            PersistanceManager.data.zones[z.name] = zone_data -- Use name as key
+            PersistanceManager.data.zones[z.name] = zone_data
         end
 
         -- 4. Save Warehouse Inventories
@@ -247,22 +251,31 @@ do
         MissionLogger:info("Stats table restored.")
 
         -- 3. Restore Zones
-        -- *** CHANGE: Use pairs() to loop the dictionary ***
+        local new_zones = {}
         for _, saved_zone in pairs(PersistanceManager.data.zones) do
             local zone = ZoneHandler.getFromName(saved_zone.name)
             if zone then
+                -- Restore identity & configuration
                 zone.side = saved_zone.side
                 zone.level = saved_zone.level
-                zone.capture_heli_avail = saved_zone.capture_heli_avail
-                zone.attack_convoy = saved_zone.attack_convoy
-                zone.last_attacked_by = saved_zone.last_attacked_by
-                zone.last_capture_attempt = saved_zone.last_capture_attempt
+                zone.zone_type = saved_zone.zone_type
+                zone.airbase_name = saved_zone.airbase_name
+                zone.sam_classification = saved_zone.sam_classification
+                
+                -- Restore dynamic counters
+                zone.capture_heli_avail = saved_zone.capture_heli_avail or 0
+                zone.capture_convoy_avail = saved_zone.capture_convoy_avail or 0
+                zone.attack_convoy = saved_zone.attack_convoy or 0
+                
+                -- Restore state tracking
                 zone.ammo_depot_intact = saved_zone.ammo_depot_intact
                 zone.ammo_depot_last_destroyed = saved_zone.ammo_depot_last_destroyed
                 zone.next_level_up_avail = saved_zone.next_level_up_avail
-                zone.linked_ammo_depot = saved_zone.linked_ammo_depot
-                zone.linked_groups = zone.linked_groups or {}
-                zone.linked_statics = zone.linked_statics or {}
+                
+                -- Clear runtime tracking arrays - will be repopulated by spawn functions
+                zone.linked_groups = {}
+                zone.linked_statics = {}
+                
                 -- Spawn the correct units for the zone's side and level
                 UnitHandler.initZoneUnits(zone)
                 UnitHandler.initStatics(zone)
@@ -285,7 +298,9 @@ do
                 -- Redraw the F10 map
                 zone:drawF10()
             end
+            table.insert(new_zones, zone)
         end
+        zones = new_zones
         MissionLogger:info("Zone states and units restored.")
 
         -- 4. Restore Warehouses
@@ -318,7 +333,7 @@ do
     end
 
 function PersistanceManager:saveUserData()
-        if not PersistanceManager.enabled or not Config.persistance.enable_user_data_persistance then return end
+        if not PersistanceManager.enabled then return end
         if not PersistanceManager.user_data_file_path then return end
         if not JSON then return end
         
