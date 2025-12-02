@@ -829,13 +829,14 @@ do
         end
 
         local _,dist = self:getClosestZone(utils.getEnemyCoalition(self.side))
-        if dist and dist > Config.logistics_upgrade_range then return end
+        if dist and dist > Scenario.logistics_setup.upgrade_range then return end
 
 
         if math.random(1,100) > Config.logistics_upgrade_chance then return end
 
         -- levels up lowest level zones nearby
         -- allow level ups only of ammo depot intact (not destroyed)
+        MissionLogger:info("Checking logistics zone "..self.name.." for level up")
         if self.ammo_depot_intact and self.next_level_up_avail and timer.getTime() > self.next_level_up_avail then
             -- level up nearest zone at lowest level
             local lowest_level_zone_nearby = nil
@@ -864,6 +865,7 @@ do
             if lowest_level_zone_nearby and lowest_level_zone_nearby.level < 4 then
                 -- lowest nearby level zones has been found
                 lowest_level_zone_nearby.level = lowest_level_zone_nearby.level + 1
+                UnitHandler.updateZoneUnits(lowest_level_zone_nearby)
                 lowest_level_zone_nearby:drawF10()
                 self.next_level_up_avail = timer.getTime() + Config.logistics_level_up_interval
                 MissionLogger:info("Logistics zone "..self.name.." leveled up "..lowest_level_zone_nearby.name .. " to level "..lowest_level_zone_nearby.level.."/4")
