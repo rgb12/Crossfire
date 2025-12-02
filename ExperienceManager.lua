@@ -162,8 +162,8 @@ do
         local user_name = unit:getPlayerName()
         local user_id = unit:getID()
 
-        if not ExperienceManager.user_data[user_id] then
-            ExperienceManager.user_data[user_id] = {
+        if not ExperienceManager.user_data[user_name] then
+            ExperienceManager.user_data[user_name] = {
                 name = user_name,
                 id = user_id,
                 xp = 0,
@@ -173,18 +173,17 @@ do
                 unclaimed_tokens = 0,
                 ranks = Config.reward_system.ranks[1].name,
             }
-        else 
-            if ExperienceManager.user_data[user_id].name ~= user_name then
-                ExperienceManager.user_data[user_id].name = user_name
-            end
+        else
+            -- Update runtime ID when player rejoins
+            ExperienceManager.user_data[user_name].id = user_id
         end
     end
 
     ---@param unit Unit
     function ExperienceManager:delUser(unit)
         if not unit.getPlayerName then return end
-        local user_id = unit:getID()
-        ExperienceManager.user_data[user_id] = nil
+        local user_name = unit:getPlayerName()
+        ExperienceManager.user_data[user_name] = nil
     end
 
     ---@param unit Unit
@@ -192,8 +191,8 @@ do
     function ExperienceManager:fetchUser(unit)
         if not Config.reward_system.enable then return nil end
         if not unit.getPlayerName then return nil end
-        local user_id = unit:getID()
-        return ExperienceManager.user_data[user_id]
+        local user_name = unit:getPlayerName()
+        return ExperienceManager.user_data[user_name]
     end
 
     function ExperienceManager:addTokens(unit, amount)
@@ -242,13 +241,17 @@ do
         if not Config.reward_system.enable then return end
         if not data then return end
         -- Merge loaded data. We overwrite existing keys.
-        for key, userData in pairs(data) do
-            ExperienceManager.user_data[key] = userData
+        for playerName, userData in pairs(data) do
+            ExperienceManager.user_data[playerName] = userData
             -- Reset unclaimed on load to prevent exploits/confusion
-            ExperienceManager.user_data[key].unclaimed_xp = 0
-            ExperienceManager.user_data[key].unclaimed_tokens = 0
+            ExperienceManager.user_data[playerName].unclaimed_xp = 0
+            ExperienceManager.user_data[playerName].unclaimed_tokens = 0
+            -- ID will be updated when player joins (addUser)
+            ExperienceManager.user_data[playerName].id = nil
         end
-        MissionLogger:info("User data restored for " .. #data .. " users.")
+        local count = 0
+        for _ in pairs(data) do count = count + 1 end
+        MissionLogger:info("User data restored for " .. count .. " users.")
     end
 
 end
