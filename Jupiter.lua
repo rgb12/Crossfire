@@ -84,6 +84,9 @@ function Jupiter:onEvent(event)
         elseif command == "-discover" then
             -- Add all zones to discovered_zones within radius
             local radius = tonumber(param1) or 10000 -- Default 10km radius
+            if type(param1) == "string" and param1:lower() == "all" then
+                radius = math.huge
+            end
             for _, zone in pairs(zones) do
                 if mist.utils.get2DDist(vec3, zone.zone.point) <= radius then
                     if not utils.tableContains(stats.blue_discovered_zones,zone.name) then
@@ -139,6 +142,13 @@ function Jupiter:onEvent(event)
             cmd_executed = true
         elseif command == "-logenroutes" then
             MissionLogger:info(EnrouteManager.enroutes)
+            cmd_executed = true
+        elseif command == "-logtriggerzones" then
+            local zone_names = {}
+            for k, v in ipairs(env.mission.triggers.zones) do
+                table.insert(zone_names, v.name)
+            end
+            MissionLogger:info(zone_names)
             cmd_executed = true
         elseif command == "-addtokens" then
             local tokens_to_add = tonumber(param1) or 10
