@@ -12,7 +12,7 @@
 
 Config = {
     persistance = {
-        enable = true, -- enables or not persistance, has authority over everything below in this section
+        enable = false, -- enables or not persistance, has authority over everything below in this section
         save_interval = 30,--5*60, -- (seconds) interval at which the mission state is saved
         save_dir = "Missions/Saves/Crossfire/", -- this is your saves directory in Saved Games
         save_file = "mission.json", -- this is the name of the mission file
@@ -20,7 +20,7 @@ Config = {
 
         
         random_scenario_selection = false, -- allows the script to randomly choose a random scenario, authority over scenario selection
-        scenario_selected = "Neptune Protocol", -- subject to the field above, choose your own scenario 
+        scenario_selected = "Mercury Rising", -- subject to the field above, choose your own scenario 
     },
     operations = {
         recon_minimum_altitude = 1524, -- (meters)
@@ -136,7 +136,7 @@ theatre = {
 
     tasking = {
         enable = true, -- enables/disables AI tasking system, does not affect resupply and capture mechanics
-        dispatcher_interval = 56,--5*60, -- (seconds), avoid multiples of 15 to reduce lag spikes
+        dispatcher_interval = 5*60+8,--5*60, -- (seconds), avoid multiples of 15 to reduce lag spikes
         max_tasks_per_airbase = 4, -- maximum number of concurrent tasks per airbase
 
         max_jtac_per_airbase = 2,
@@ -178,7 +178,7 @@ theatre = {
     jtac_smoke_stock = 4,
     ewrs_standard_refresh_time = 20, -- (seconds)
 
-    logistics_upgrade_range = 30000, -- (meters)
+    -- logistics_upgrade_range = 30000, -- (meters)
     logistics_upgrade_chance = 100,--10, -- (%) every minute the dice is rolled
     logistics_level_up_interval = 5*60, -- (seconds) minimum time between level ups
     logistics_ammo_depot_respawn_time = 7*60, -- (seconds) time it takes for an ammo depot to respawn after being destroyed
@@ -563,22 +563,22 @@ GroupData = {
             [1] = {
                 level = 1,
                 side = coalition.side.BLUE,
-                group_name = "BLUE EWR"
+                group_name = "BLUE GRND TEST"
             },
             [2] = {
                 level = 2,
                 side = coalition.side.BLUE,
-                group_name = "BLUE EWR"
+                group_name = "BLUE GRND TEST"
             },
             [3] = {
                 level = 3,
                 side = coalition.side.BLUE,
-                group_name = "BLUE EWR"
+                group_name = "BLUE GRND TEST"
             },
             [4] = {
                 level = 4,
                 side = coalition.side.BLUE,
-                group_name = "BLUE EWR"
+                group_name = "BLUE GRND TEST"
             }
         },
         RED = {

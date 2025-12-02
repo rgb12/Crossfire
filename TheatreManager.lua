@@ -647,83 +647,11 @@ do
         end, nil, timer.getTime()+Config.tasking.dispatcher_interval)
     end
 
-
-    -- Ensures a continuous chain of supplies from Home Base outwards
-    function TheatreCommander.assignLogisticsChain(zone_pool, home_base, max_logistics)
-        -- Safety defaults if config is missing
-        local chain_gap = Scenario.logistics_setup.chain_gap or 25000
-        
-        local current_node = home_base
-        local placed_count = 0
-        
-        -- Count existing fixed logistics first
-        for _, z in ipairs(zone_pool) do
-            if z.zone_type == ZoneTypes.LOGISTICS then placed_count = placed_count + 1 end
-        end
-
-        MissionLogger:info("Logistics Chain: Checking connectivity for " .. utils.coalitionToString(home_base.side))
-
-        while placed_count < max_logistics do
-            
-            -- 1. Look ahead: Are there ANY zones in the "Gap" (e.g. 25km ring from current node)?
-            local candidates = {}
-            local existing_link_found = nil
-
-            for _, zone in ipairs(zone_pool) do
-                local dist = mist.utils.get2DDist(current_node.zone.point, zone.zone.point)
-                
-                -- Check if it's a valid next hop
-                if dist > 5000 and dist <= chain_gap then
-                    
-                    -- If we find a hard-coded LOGISTICS zone already in the gap, use it immediately
-                    if zone.zone_type == ZoneTypes.LOGISTICS then
-                        existing_link_found = zone
-                        -- We want the furthest one ideally, but finding any fixed one is good priority
-                    elseif zone.zone_type == nil then
-                        -- It's a candidate for assignment
-                        table.insert(candidates, zone)
-                    end
-                end
-            end
-
-            -- 2. Decide next node
-            if existing_link_found then
-                -- We found a pre-defined logistics zone, jump to it
-                current_node = existing_link_found
-                MissionLogger:info("  -> Linked existing Logistics: " .. current_node.name)
-            
-            elseif #candidates > 0 then
-                -- No existing link, we must create one. 
-                -- Sort by distance (Furthest from home base preferred to maximize range)
-                table.sort(candidates, function(a, b)
-                    local dist_a = mist.utils.get2DDist(home_base.zone.point, a.zone.point)
-                    local dist_b = mist.utils.get2DDist(home_base.zone.point, b.zone.point)
-                    return dist_a > dist_b -- Descending order
-                end)
-
-                local best_zone = candidates[1]
-                
-                -- Assign Type
-                best_zone.zone_type = ZoneTypes.LOGISTICS
-                best_zone.next_level_up_avail = timer.getTime()
-                best_zone.capture_heli_avail = 4
-                best_zone.capture_convoy_avail = 0
-                
-                current_node = best_zone
-                placed_count = placed_count + 1
-                MissionLogger:info("  -> Created new Logistics Link: " .. current_node.name)
-            else
-                -- Dead end (no zones in range)
-                break
-            end
-        end
-    end
-
     ---@return ZoneHandler, ZoneHandler
     function TheatreCommander.establishTheatre()
         MissionLogger:info("TheatreCommander: Generating Theatre Layout...")
 
-        -- 1. IDENTIFY HOME BASES & PREPARE POOL
+        -- All zones except home airbases
         local all_other_zones = {}
 
         blue_airbase.side = coalition.side.BLUE
@@ -818,9 +746,8 @@ do
             local budget_sam       = math.ceil((weights[ZoneTypes.SAMSITE]/total_w) * #pool)
             local budget_comms     = math.ceil((weights[ZoneTypes.COMMS]/total_w) * #pool)
             local budget_ew        = math.ceil((weights[ZoneTypes.EWSITE]/total_w) * #pool)
-
-            -- A. Run Logistics Chain
-            TheatreCommander.assignLogisticsChain(pool, home, budget_logistics)
+            MissionLogger:info("Theatre Gen: Assigning Types for " .. utils.coalitionToString(home.side) .. " Pool. Total Zones: " .. #pool ..
+                " | Logistics: " .. budget_logistics .. ", SAM: " .. budget_sam .. ", COMMS: " .. budget_comms .. ", EW: " .. budget_ew)
 
             -- B. Assign Random Types
             local unassigned = {}
@@ -833,22 +760,26 @@ do
             utils.shuffleTable(unassigned)
 
             for i, zone in ipairs(unassigned) do
-                if budget_sam > 0 then
+
+                if budget_comms > 0 then
+                    zone.zone_type = ZoneTypes.COMMS
+                    budget_comms = budget_comms - 1
+                elseif budget_logistics > 0 then
+                    zone.zone_type = ZoneTypes.LOGISTICS
+                    zone.next_level_up_avail = timer.getTime()
+                    zone.capture_heli_avail = 4
+                    zone.capture_convoy_avail = 0
+                    budget_logistics = budget_logistics - 1
+                elseif budget_ew > 0 then
+                    zone.zone_type = ZoneTypes.EWSITE
+                    budget_ew = budget_ew - 1
+                elseif budget_sam > 0 then
                     zone.zone_type = ZoneTypes.SAMSITE
                     local r = math.random(1, 100)
                     if r < 30 then zone.sam_classification = SAM_TYPES.SHORT_RANGE
                     elseif r < 70 then zone.sam_classification = SAM_TYPES.MEDIUM_RANGE
                     else zone.sam_classification = SAM_TYPES.LONG_RANGE end
                     budget_sam = budget_sam - 1
-
-                elseif budget_comms > 0 then
-                    zone.zone_type = ZoneTypes.COMMS
-                    budget_comms = budget_comms - 1
-
-                elseif budget_ew > 0 then
-                    zone.zone_type = ZoneTypes.EWSITE
-                    budget_ew = budget_ew - 1
-                
                 else
                     zone.zone_type = ZoneTypes.STRONGPOINT
                     zone.attack_convoy = math.random(0,1)

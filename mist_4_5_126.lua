@@ -1620,7 +1620,7 @@ do -- the main scope
                 if StaticObject.isExist(s) then
                     local name = s:getName()
                     if not mist.DBs.unitsByName[name] then
-                       dbLog:warn('$1 Not found in DB yet. ID: $2', name, StaticObject.getID(s))
+                    --    dbLog:warn('$1 Not found in DB yet. ID: $2', name, StaticObject.getID(s))
                        if string.len(name) > 0 then  -- because in this mission someone sent the name was returning as an empty string. Gotta be careful. 
                             tempSpawnedGroups[s:getName()] = {type = 'static'}
                             tempSpawnGroupsCounter = tempSpawnGroupsCounter + 1
