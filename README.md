@@ -1,16 +1,43 @@
 # Crossfire (Alpha), a DCS dynamic campaign
 
-Features:
+Crossfire is a DCS dynamic campaign offering users a simulated war, with ground, air (and later naval) units
+and objectives
+
+## Features
 - Countless Scenarios, randomised starts
 - Difficulty settings: hours to weeks of gameplay depending on scenario
 - Performance optimizations 
 - Easy config (mission and scripting)
-- Warehouse 
+- Warehouse dynamics
 - player operations
 - EWRS
 - Custom JTAC
 - XP, Ranks and player AI tasking
 
+## Supported modules
+- FA18C
+- F16C
+- SU25T
+- A10C Tank Killer II
+- F15E
+- Mirage 2000C
+
+## Zone categories
+- EW sites
+- SAM sites (short, medium and long range)
+- Strongpoints
+- Logistics
+- COMMS 
+- Airbases
+
+## Upcoming features
+- Cold War equivalent
+- Helicopter operations and integration into logistics/warehouse
+- Co-op operations
+- FARPs
+- Carrier OPS
+- Naval units
+- Adjusted weather and time to reflect mission
 
 This mission is inspired from Dzesk's Pretense and Foothold missions.
 Note: Most core features are implemented, but the mission is unstable due to limited large scale testing.
