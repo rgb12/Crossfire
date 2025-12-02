@@ -218,18 +218,19 @@ do
                 elseif zone.side == coalition.side.RED then
                 mist.cloneInZone("RED GRND TEST", zone.name,false)
                 end
+            else 
+                local sam_to_spawn = sam_options[math.random(1, #sam_options)]
+                local grp = mist.cloneInZone(sam_to_spawn.group_name,zone.name,sam_to_spawn.spawning.disperse,sam_to_spawn.spawning.disperse_radius)
+    
+                if grp then
+                    table.insert(zone.linked_groups, grp.name)
+                end
+    
+                if zone.side == coalition.side.RED then
+                    stats.red_sam_sites = stats.red_sam_sites+1
+                else stats.blue_sam_sites = stats.blue_sam_sites+1 end
             end
 
-            local sam_to_spawn = sam_options[math.random(1, #sam_options)]
-            local grp = mist.cloneInZone(sam_to_spawn.group_name,zone.name,sam_to_spawn.spawning.disperse,sam_to_spawn.spawning.disperse_radius)
-
-            if grp then
-                table.insert(zone.linked_groups, grp.name)
-            end
-
-            if zone.side == coalition.side.RED then
-                stats.red_sam_sites = stats.red_sam_sites+1
-            else stats.blue_sam_sites = stats.blue_sam_sites+1 end
 
         elseif zone.zone_type == ZoneTypes.FARP and zone.side ~= coalition.side.NEUTRAL then
             -- spawn red or blue ground logistics units
