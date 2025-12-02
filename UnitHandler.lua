@@ -170,8 +170,21 @@ do
             return false
     end
 
-    function UnitHandler.groupFindForSpawn(level, zone_type) --TO CHANGE
-    -- this function return the group to spawn depending on zone level and type
+    --- Update the units in the zone depending on tier and side
+    ---@param zone ZoneHandler
+    function UnitHandler.updateZoneUnits(zone)
+        -- first remove all existing units
+        for _, group_name in pairs(zone.linked_groups) do
+            local group = Group.getByName(group_name)
+            if group and group:isExist() then
+                group:destroy()
+            end
+        end
+        zone.linked_groups = {}
+
+        -- then respawn new units
+        UnitHandler.initZoneUnits(zone)
+
     end
 
     ---@param zone ZoneHandler
