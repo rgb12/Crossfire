@@ -828,8 +828,9 @@ do
             end
         end
 
-        local _,dist = self:getClosestZone(utils.getEnemyCoalition(self.side))
-        if dist and dist > Scenario.logistics_setup.upgrade_range then return end
+        local _,dist_to_enemy_zone = self:getClosestZone(utils.getEnemyCoalition(self.side))
+        if not dist_to_enemy_zone then return end
+        if dist_to_enemy_zone and dist_to_enemy_zone > Scenario.logistics_setup.max_dist_to_frontline then return end
 
 
         if math.random(1,100) > Config.logistics_upgrade_chance then return end

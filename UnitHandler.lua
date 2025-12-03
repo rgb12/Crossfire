@@ -227,11 +227,11 @@ do
             if #sam_options == 0 then
                 MissionLogger:warn("No SAM options found for zone: " .. zone.name .. " with classification: " ..tostring(zone.sam_classification))
                 if zone.side == coalition.side.BLUE then
-                    mist.cloneInZone("BLUE GRND TEST", zone.name,false)
+                    UnitHandler.clone("BLUE GRND TEST", zone, false)
                 elseif zone.side == coalition.side.RED then
-                mist.cloneInZone("RED GRND TEST", zone.name,false)
+                    UnitHandler.clone("RED GRND TEST", zone, false)
                 end
-            else 
+            else
                 local sam_to_spawn = sam_options[math.random(1, #sam_options)]
                 local grp = mist.cloneInZone(sam_to_spawn.group_name,zone.name,sam_to_spawn.spawning.disperse,sam_to_spawn.spawning.disperse_radius)
     

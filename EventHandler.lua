@@ -1,20 +1,19 @@
 ev = {}
 function ev:onEvent(event)
     if event.id == world.event.S_EVENT_BIRTH then
+        ---@type Unit
         local unit = event.initiator
-        if unit and unit:getCategory() == Object.Category.UNIT then
-
-            -- [player specific code]
-            if unit.getPlayerName and unit:getPlayerName() then
-                trigger.action.outText(unit:getTypeName() .. " entered", 10)
+        if unit and unit:getCategory() == Object.Category.UNIT and unit.getCoalition then
+            local unit_coalition = unit:getCoalition()
+                
                 --init commands
                 CommandHandler.tallyZone(unit)
     
-                local ew = EWRS_coalition[unit:getCoalition()]
+                local ew = EWRS_coalition[unit_coalition]
                 ew:addRadioMenuForUser(unit)
                 --  CommandHandler.initCommandsForGroup(unit:getGroup())
                 
-            end
+       
 
             -- Check if the spawned unit is a radar
             if unit:hasAttribute("SAM SR") or unit:hasAttribute("EWR") or unit:hasAttribute("AWACS") then
@@ -24,8 +23,31 @@ function ev:onEvent(event)
                     MissionLogger:info("EWRS: Added new radar unit " .. unit:getName() .. " to cache.")
                 end
             end
-
-
+        end
+    end
+    
+    if event.id == world.event.S_EVENT_PLAYER_ENTER_UNIT then
+        ---@type Unit
+        local unit = event.initiator
+        if unit and unit:getCategory() == Object.Category.UNIT and unit.getCoalition and unit.isExist
+        and unit:isExist() and unit.getPlayerName then
+            local unit_coalition = unit:getCoalition()
+            trigger.action.outText(unit:getTypeName() .. " entered", 10)
+            -- Checks if the player has the rigt to spawn in the airbase
+            for _,zone in ipairs(zones) do
+                if zone:isPointInsideZone(unit:getPoint()) then
+                    if zone.side ~= unit_coalition then
+                        -- not allowed, destroy the unit
+                        trigger.action.outTextForUnit(unit:getID(), "This slot is not allowed at the moment! Consult F10 map.", 10)
+                        timer.scheduleFunction(function ()
+                            if unit and unit:isExist() then
+                                unit:destroy()
+                            end
+                        end, {}, timer.getTime() + 2)
+                        return
+                    end
+                end
+            end
         end
     end
 

@@ -733,9 +733,9 @@ do
             if #pool == 0 then return end
             
             local weights = (Config.theatre and Config.theatre.zone_type_weights) or {
-                [ZoneTypes.STRONGPOINT] = 60,
-                [ZoneTypes.LOGISTICS] = 15,
-                [ZoneTypes.SAMSITE] = 15,
+                [ZoneTypes.STRONGPOINT] = 50,
+                [ZoneTypes.LOGISTICS] = 20,
+                [ZoneTypes.SAMSITE] = 10,
                 [ZoneTypes.COMMS] = 5,
                 [ZoneTypes.EWSITE] = 5
             }

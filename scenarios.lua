@@ -10,8 +10,8 @@
 
 ---@class LogisticsSetup
 ---@field upgrade_range number
----@field chain_gap number
 ---@field heli_capture_range number
+---@field max_dist_to_frontline number
 
 ---@class Scenario
 ---@field name string
@@ -34,9 +34,9 @@ Scenarios = {
             auto_coalition_designation = true, -- overrides the above
         },
         logistics_setup = {
-            upgrade_range = 30000, --meters
+            upgrade_range = 50000, --meters
             heli_capture_range = 100000, --meters
-            chain_gap = 25000 --meters
+            max_dist_to_frontline = 65000 --meters
         },
         difficulty = ScenarioDifficulty.HARD,
         red_airbase = ZoneHandler:new({
@@ -189,7 +189,7 @@ Scenarios = {
         logistics_setup = {
             upgrade_range = 40000, --meters
             heli_capture_range = 120000, --meters
-            chain_gap = 30000 --meters
+            max_dist_to_frontline = 65000 --meters
         },
         difficulty = ScenarioDifficulty.EXPERT,
         red_airbase = ZoneHandler:new({

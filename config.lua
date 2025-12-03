@@ -30,7 +30,7 @@ Config = {
         cap_max_radius_from_zone = 20*1000, -- (meters)
     },
 
-    grace_period = 5*60, -- (seconds) time at the start of the mission where no captures can occur
+    grace_period = 10,--5*60, -- (seconds) time at the start of the mission where no captures can occur
     enabled_su25t_bluefor = true, -- adds the SU-25T to the bluefor warehouse inventory
     estimated_users = 10, -- used to scale warehouse stocks and resupply quantities
 
@@ -110,9 +110,6 @@ theatre = {
             [ZoneTypes.EWSITE]      = 5,
         },
 
-        -- Logistics Placement Logic
-        -- We place a logistics zone roughly every X meters to ensure connectivity
-        logistics_chain_gap = 25000, -- (meters) slightly less than logistics_upgrade_range to be safe
     },
     tasking_requirements = {
         comms_zones_required_for_jtac = 2,
