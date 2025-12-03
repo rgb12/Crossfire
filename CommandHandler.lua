@@ -527,7 +527,8 @@ do
                     -- Add XP for intel report
                     local user = ExperienceManager:fetchUser(u)
                     if user then
-                        user.xp = user.xp + Config.reward_system.xp_per_intel_report
+                        ExperienceManager:addXP(user, Config.reward_system.xp_per_intel_report)
+                        
                         trigger.action.outTextForUnit(unit_id,"Intel report, +" .. Config.reward_system.xp_per_intel_report .. "XP",10)
                     end
                     trigger.action.outTextForCoalition(unit_coalition, "Recon report\n Newly detected ground targets displayed on your F10 map.",15)

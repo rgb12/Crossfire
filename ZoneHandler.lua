@@ -440,6 +440,9 @@ do
     end
 
     function ZoneHandler:capture(side)
+        if self.side == side then
+            return -- no change
+        end
 
         if self.side == coalition.side.NEUTRAL then
             stats.neutral_zones = stats.neutral_zones - 1
@@ -448,6 +451,8 @@ do
         elseif self.side == coalition.side.BLUE then
             stats.blue_zones = stats.blue_zones - 1
         end
+
+
 
         self.side = side
         self.level = 1
@@ -656,6 +661,19 @@ do
 
         trigger.action.outSound("transmission1.ogg")
         MissionLogger:info("Zone " .. self.zone.name .. " captured by " .. utils.coalitionToString(self.side))
+
+        timer.scheduleFunction(function ()
+            if stats.red_zones <= 0 then
+                MISSION_ENDED = true
+                world.removeEventHandler(ev)
+                trigger.action.outSound("ACDC Highway to Hell.ogg")
+                trigger.action.outText("************\n\n  BLUEFOR achieved total domination !\n\n************", 500)
+            elseif stats.blue_zones <= 0 then
+                world.removeEventHandler(ev)
+                trigger.action.outSound("ACDC Highway to Hell.ogg")
+                trigger.action.outText("************\n\n  REDFOR achieved total domination !\n\n************", 500)
+            end
+        end,nil,timer.getTime()+10)
 
     end
 

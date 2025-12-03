@@ -205,7 +205,8 @@ do
 
     function EWRS:startSearch()
         timer.scheduleFunction(function ()
-
+            if MISSION_ENDED then return end
+            
             self:searchTheatre()
             self:displayForUsers()
 

@@ -38,7 +38,9 @@ function ev:onEvent(event)
                 if zone:isPointInsideZone(unit:getPoint()) then
                     if zone.side ~= unit_coalition then
                         -- not allowed, destroy the unit
-                        trigger.action.outTextForUnit(unit:getID(), "This slot is not allowed at the moment! Consult F10 map.", 10)
+                        local unit_id = unit:getID()
+                        trigger.action.outSoundForUnit(unit_id, "error.ogg")
+                        trigger.action.outTextForUnit(unit_id, "****************\n\nThis slot is not allowed at the moment! Consult F10 map.\n\n****************", 20)
                         timer.scheduleFunction(function ()
                             if unit and unit:isExist() then
                                 unit:destroy()
@@ -53,7 +55,7 @@ function ev:onEvent(event)
 
     if event.id == world.event.S_EVENT_TAKEOFF then
         local unit = event.initiator
-        if unit and unit:getCategory() == Object.Category.UNIT then
+        if unit and unit.isExist and unit:isExist() and unit.getCategory and unit:getCategory() == Object.Category.UNIT then
             trigger.action.outText(unit:getTypeName() .. " took off", 10)
             -- MissionLogger:info("Event place:")
             -- MissionLogger:info(event.place:getName())
@@ -84,64 +86,33 @@ function ev:onEvent(event)
 
         
         local unit = event.initiator
-        local group_name = unit:getGroup():getName()
-        
-        
-        -- checks if a capture heli aborted, if yes, remove it from enroute_capture_heli
-        MissionLogger:info("AI unit aborted mission: " .. unit:getName())
+        if unit and unit.isExist and unit:isExist() and unit.getGroup then
+            local group_name = unit:getGroup():getName()
+            -- checks if a capture heli aborted, if yes, remove it from enroute_capture_heli
+            MissionLogger:info("AI unit aborted mission: " .. unit:getName())
 
-        local enroute_aborted = EnrouteManager:findByGroup(group_name)
-        if enroute_aborted then
-            if enroute_aborted.ai_task_type == AITaskTypes.CAPTURE_HELO then
-                -- give the heli 2 minutes to land or be destroyed
-                timer.scheduleFunction(function ()
-                    local gr = Group.getByName(group_name)
-                    if gr and gr:isExist() then
-                        trigger.action.explosion(gr:getUnit(1):getPoint(), 100)
-                        EnrouteManager:remove(group_name)
-                        MissionLogger:info("Removed damaged AI Heli from enroutes: " .. group_name)
-                    end
-                end, {}, timer.getTime() + 120)
-            elseif enroute_aborted.ai_task_type == AITaskTypes.JTAC then
-                EnrouteManager:remove(group_name)
-                MissionLogger:info("Removed aborted JTAC from enroutes: " .. group_name)
-            else
-                EnrouteManager:remove(group_name)
+            local enroute_aborted = EnrouteManager:findByGroup(group_name)
+            if enroute_aborted then
+                if enroute_aborted.ai_task_type == AITaskTypes.CAPTURE_HELO then
+                    -- give the heli 2 minutes to land or be destroyed
+                    timer.scheduleFunction(function ()
+                        local gr = Group.getByName(group_name)
+                        if gr and gr:isExist() then
+                            trigger.action.explosion(gr:getUnit(1):getPoint(), 100)
+                            EnrouteManager:remove(group_name)
+                            MissionLogger:info("Removed damaged AI Heli from enroutes: " .. group_name)
+                        end
+                    end, {}, timer.getTime() + 120)
+                elseif enroute_aborted.ai_task_type == AITaskTypes.JTAC then
+                    EnrouteManager:remove(group_name)
+                    MissionLogger:info("Removed aborted JTAC from enroutes: " .. group_name)
+                else
+                    EnrouteManager:remove(group_name)
+                end
             end
+            
         end
-        
-        -- -- check if capture heli, if yes, remove it from enroute_capture_heli
-        -- for i, heli_aborted in ipairs(enroute_capture_heli) do
-        --     if heli_aborted.group_name == group_name then
-        --         -- give the heli 2 minutes to land or be destroyed
-        --         local function destroy_heli()
-        --             if unit and unit:isExist() then
-        --                 trigger.action.explosion(unit:getPoint(), 100)
-        --                 table.remove(enroute_capture_heli, i)
-        --                 MissionLogger:info("Removed damaged AI Heli from enroutes: " .. heli_aborted.group_name)
-        --             end
-        --         end
-        --         mist.scheduleFunction(destroy_heli, {}, timer.getTime() + 120)
-        --     end
-        -- end
-
-
-        -- for i,recon_gr_name in ipairs(enroute_recon) do
-        --     if recon_gr_name == group_name then
-        --         -- give the recon aircraft 5 minutes to land or be destroyed
-        --         local function destroy_heli()
-        --             if unit and unit:isExist() then
-        --                 trigger.action.explosion(unit:getPoint(), 100)
-        --                 table.remove(enroute_recon, i)
-        --                 MissionLogger:info("Removed aborted recon aircraft from enroutes: " .. recon_gr_name)
-        --             end
-        --         end
-        --         mist.scheduleFunction(destroy_heli, {}, timer.getTime() + 5*60)
-        --     end
-        -- end
     end
-
-
 
 
     if event.id == world.event.S_EVENT_KILL and event.target and event.initiator then
@@ -307,16 +278,23 @@ function ev:onEvent(event)
         local unit = event.initiator
         
         -- Check if the dead unit was a radar (ground or air)
-        if unit.hasAttribute and (unit:hasAttribute("SAM SR") or unit:hasAttribute("EWR") or unit:hasAttribute("AWACS")) then
+        if unit.hasAttribute and (unit:hasAttribute("SAM SR") or unit:hasAttribute("EWR") or unit:hasAttribute("AWACS"))
+        and unit.getCoalition then
             local side = unit:getCoalition()
             if EWRS_coalition[side] then
                 local radar_list = EWRS_coalition[side].radars
                 -- Iterate backwards to safely remove
-                for i = #radar_list, 1, -1 do 
-                    if radar_list[i]:getID() == unit:getID() then
+                for i = #radar_list, 1, -1 do
+                    local radar = radar_list[i]
+                    if radar and radar.isExist and radar:isExist() and radar.getID then
+                        if radar:getID() == unit:getID() then
+                            table.remove(radar_list, i)
+                            MissionLogger:info("EWRS: Removed destroyed/dead radar unit " .. unit:getName() .. " from cache.")
+                            break -- Exit loop once found
+                        end
+                    else
+                        -- Clean up non-existing radar entries
                         table.remove(radar_list, i)
-                        MissionLogger:info("EWRS: Removed destroyed/dead radar unit " .. unit:getName() .. " from cache.")
-                        break -- Exit loop once found
                     end
                 end
             end

@@ -640,6 +640,7 @@ do
     -- AI DISPATCHER
     function TheatreCommander.dispatchAI()  
         timer.scheduleFunction(function ()
+            if MISSION_ENDED == true then return end
             TheatreCommander:evaluateAITasks(coalition.side.BLUE)
             TheatreCommander:evaluateAITasks(coalition.side.RED)
             

@@ -111,8 +111,7 @@ do
                     if unit_check and unit_check:isExist() and unit_check:getLife() > 0 and unit_check.getCoalition then
                         local user = ExperienceManager:fetchUser(unit_check)
                         if user and (user.unclaimed_xp>0 or user.unclaimed_tokens>0)then
-                            user.xp = user.xp + user.unclaimed_xp
-                            
+                            ExperienceManager:addXP(user, user.unclaimed_xp) -- to check for rank up
                             user.tokens = user.tokens + user.unclaimed_tokens
                             
 
@@ -209,6 +208,25 @@ do
         end
     end
 
+    ---@param user UserData
+    ---@param amount number
+    ---@return boolean
+    function ExperienceManager:addXP(user, amount)
+        if user then
+            user.xp = user.xp + amount
+            -- check for rank up
+            local new_rank = ExperienceManager:getRankfromXP(user.xp)
+            MissionLogger:info(user.rank.. " -> "..new_rank)
+            if new_rank ~= user.rank then
+                user.rank = new_rank
+                trigger.action.outSoundForUnit(user.id,"rank_up.ogg")
+                trigger.action.outTextForUnit(user.id,"Rank Up! New Rank: " .. new_rank,10)
+            end
+            return true
+        end
+        return false
+    end
+
     ---@param xp number
     ---@return string
     function ExperienceManager:getRankfromXP(xp)
@@ -217,7 +235,6 @@ do
             local rank = Config.reward_system.ranks[i]
             if xp >= rank.xp_required then
                 rank_name = rank.name
-
                 break
             end
         end

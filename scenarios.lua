@@ -26,6 +26,47 @@
 ---@type Scenario[]
 Scenarios = {
     {
+        name = "Neptune Protocol1",
+        description = "Regain control of lost Georgia.",
+        coalition_setup = {
+            initial_dist_blue_to_frontline = 55750, --meters
+            dist_variance = 5000, --meters
+            auto_coalition_designation = true, -- overrides the above
+        },
+        logistics_setup = {
+            upgrade_range = 50000, --meters
+            heli_capture_range = 100000, --meters
+            max_dist_to_frontline = 65000 --meters
+        },
+        difficulty = ScenarioDifficulty.HARD,
+        red_airbase = ZoneHandler:new({
+            name = "ANAPA",
+            airbase_name = Airbases.Caucasus.Anapa_Vityazevo,
+            zone_type = ZoneTypes.AIRBASE,
+            acft_resupply_point = {
+                x = 00006923,
+                y = 6096, 
+                z = 00079849
+            }}),
+        blue_airbase =  ZoneHandler:new({
+            name = "VAZIANI",
+            zone_type = ZoneTypes.AIRBASE,
+            airbase_name = Airbases.Caucasus.Vaziani,
+            acft_resupply_point = {
+                x = -00326782,
+                y = 6096, --20k ft
+                z = 00932890
+            }
+        }),
+        zones = {
+            ZoneHandler:new({
+                name = "ALPHA",
+                zone_type = ZoneTypes.STRONGPOINT
+            }),
+
+        }
+    },
+    {
         name = "Neptune Protocol",
         description = "Regain control of lost Georgia.",
         coalition_setup = {
@@ -94,7 +135,8 @@ Scenarios = {
             }),
             ZoneHandler:new({
                 name = "DELTA",
-                zone_type = ZoneTypes.STRONGPOINT,
+                zone_type = ZoneTypes.SAMSITE,
+                sam_classification = SAM_TYPES.LONG_RANGE,
             }),
             ZoneHandler:new({
                 name = "DELTA-1",
