@@ -654,7 +654,7 @@ do
             
         end
 
-        
+        trigger.action.outSound("transmission1.ogg")
         MissionLogger:info("Zone " .. self.zone.name .. " captured by " .. utils.coalitionToString(self.side))
 
     end
@@ -868,6 +868,7 @@ do
                 lowest_level_zone_nearby:drawF10()
                 self.next_level_up_avail = timer.getTime() + Config.logistics_level_up_interval
                 MissionLogger:info("Logistics zone "..self.name.." leveled up "..lowest_level_zone_nearby.name .. " to level "..lowest_level_zone_nearby.level.."/4")
+                trigger.action.outSoundForCoalition(self.side,"radio_beep.ogg")
                 trigger.action.outTextForCoalition(self.side, "Logistics zone "..self.name.." provided additional support for "..lowest_level_zone_nearby.name.."\nT: "..lowest_level_zone_nearby.level.."/4",10)
             end
         end
@@ -897,7 +898,7 @@ do
                 stats.red_comms_antennas = stats.red_comms_antennas - 1
             end
 
-
+            trigger.action.outSoundForCoalition(self.side,"chatter3.ogg")
             trigger.action.outTextForCoalition(self.side,self.name.." has lost its communications tower. EWRS impaired, reports are 50% slower.",10)
 
             -- Destroy the "dead body"
@@ -946,6 +947,7 @@ do
                 Config.comms_tower_respawn_time = math.floor(Config.comms_tower_respawn_time * Config.comms_tower_lost_penalty)
                 MissionLogger:info("Comms tower respawn time is now "..Config.comms_tower_respawn_time)
            
+                trigger.action.outSoundForCoalition(self.side,"radio_beep.ogg")
                 trigger.action.outTextForCoalition(self.side, "Comms zone "..self.name.." has reestablished its communications tower.",10)
             else
                 MissionLogger:error("Could not spawn comms tower for ".. self.name)
@@ -997,6 +999,7 @@ do
 
             if command_center then
                 table.insert(self.linked_statics, command_center.name)
+                trigger.action.outSoundForCoalition(self.side,"radio_beep.ogg")
                 trigger.action.outTextForCoalition(self.side, self.name.." has reestablished its command center.",10)
             else
                 MissionLogger:error("Could not spawn command center for ".. self.name)

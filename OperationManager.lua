@@ -78,7 +78,7 @@ do
 
         local outtxt = ""
         if active_mission.type == OperationTypes.RECON then
-            outtxt = string.format("ACTIVE OPERATION: %s\nType: %s\nTarget: ????",
+            outtxt = string.format("ACTIVE OPERATION: %s\nType: %s",
             active_mission.operation_name, active_mission.type)
         else     
             outtxt = string.format("ACTIVE OPERATION: %s\nType: %s\nTarget: %s",
@@ -577,7 +577,7 @@ do
             end
 
             if op.type == OperationTypes.RECON then
-                outtext = outtext .. string.format("\n\n %s - ????", op.type)
+                outtext = outtext .. string.format("\n\n %s", op.type)
 
             else
                 outtext = outtext .. string.format("\n\n %s - %s", op.type, op.target_zone_name)
@@ -600,6 +600,7 @@ do
             if active_op.assigned_player_id == unit:getID() then
 
                 table.remove(self.active_operations, i)
+                trigger.action.outSoundForUnit(unit:getID(),"chatter3.ogg")
                 trigger.action.outTextForUnit(unit:getID(), "Operation " .. active_op.operation_name .. " cancelled.", 10)
                 return
             end
@@ -687,6 +688,7 @@ do
         trigger.action.outTextForUnit(accepted_mission.assigned_player_id, outtxt, 25)
 
         -- Text for coalition
+        trigger.action.outSoundForCoalition(self.side,"chatter1.ogg")
         trigger.action.outTextForCoalition(self.side, accepted_mission.type .. " Operation " .. accepted_mission.operation_name .. " has been initiated by " .. accepted_mission.assigned_unit_name, 15)
         -- Create briefing/markers if needed
     end
@@ -719,6 +721,7 @@ do
                     if all_objectives_complete then
                         op.status = OperationStatus.COMPLETED
                         trigger.action.outTextForUnit(player_unit:getID(), "Operation " .. op.operation_name .. " completed !", 20)
+                        trigger.action.outSoundForUnit(player_unit:getID(),"chatter2.ogg")
                         local user = ExperienceManager:fetchUser(player_unit)
                         if user then
                             user.missions_completed = user.missions_completed + 1

@@ -664,6 +664,7 @@ do
             ctrl:setOption(AI.Option.Air.id.RTB_ON_BINGO, true)
 
             trigger.action.outTextForCoalition(enroute_data.side, "CAP mission tasked for: "..enroute_data.to_zone.name, 10)
+            trigger.action.outSoundForCoalition(enroute_data.side, "transmission1.ogg")
             MissionLogger:info("CAP/INTERCEPT mission tasked, engaging targets near: "..enroute_data.to_zone.name)
         end, {}, timer.getTime() + 12)
     end
@@ -939,6 +940,7 @@ do
             ctrl:setOption(AI.Option.Air.id.PROHIBIT_JETT, true)
 
             trigger.action.outTextForCoalition(enroute_data.side, "AWACS mission tasked, enroute to station.", 10)
+            trigger.action.outSoundForCoalition(enroute_data.side, "transmission1.ogg")
             MissionLogger:info("AWACS mission tasked, establishing orbit.")
         end, {}, timer.getTime() + 12)
     end
@@ -1047,6 +1049,7 @@ do
             ctrl:setOption(AI.Option.Air.id.RTB_ON_BINGO, true)
 
             trigger.action.outTextForCoalition(enroute_data.side, "CAS mission tasked, engaging: "..enroute_data.to_zone.name,10)
+            trigger.action.outSoundForCoalition(enroute_data.side, "transmission1.ogg")
             MissionLogger:info("CAS mission tasked, engaging: "..enroute_data.to_zone.name)
         end, {}, timer.getTime() + 12)
     end
@@ -1162,6 +1165,7 @@ do
             ctrl:setOption(AI.Option.Air.id.RTB_ON_BINGO, true)
 
             trigger.action.outTextForCoalition(enroute_data.side, "SEAD tasked. Engaging from standoff range: "..enroute_data.to_zone.name, 10)
+            trigger.action.outSoundForCoalition(enroute_data.side, "transmission1.ogg")
             MissionLogger:info("SEAD engaging " .. enroute_data.to_zone.name .. " from IP distance.")
         end, {}, timer.getTime() + 12)
     end
@@ -1269,6 +1273,7 @@ do
 
             MissionLogger:info(ctrl:hasTask())
             trigger.action.outTextForCoalition(enroute_data.side, "STRIKE mission tasked, engaging: "..enroute_data.to_zone.name,10)
+            trigger.action.outSoundForCoalition(enroute_data.side, "transmission1.ogg")
             MissionLogger:info("STRIKE mission tasked, engaging: "..enroute_data.to_zone.name)
 
             
@@ -1351,6 +1356,7 @@ do
             ctrl:setOption(AI.Option.Air.id.RTB_ON_BINGO, true)
 
             trigger.action.outTextForCoalition(enroute_data.side, "RECON mission tasked.", 10)
+            trigger.action.outSoundForCoalition(enroute_data.side, "transmission1.ogg")
             MissionLogger:info("RECON mission tasked to " .. enroute_data.to_zone.name)
         end, {}, timer.getTime() + 12)
     end
