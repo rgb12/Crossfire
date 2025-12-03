@@ -216,29 +216,19 @@ do
 
 
         elseif zone.zone_type == ZoneTypes.SAMSITE and zone.side ~= coalition.side.NEUTRAL then
-            -- choose a random sam from the classification
-            local sam_options = {}
-            for _, sam in pairs(GroupData.SAM_SITES) do
-                if sam.side == zone.side and sam.sam_classification == zone.sam_classification and sam.level == zone.level then
-                    table.insert(sam_options, sam)
+            
+            local grp = nil
+            local sam_spawn_options = {}
+            for _, sam_obj in pairs(GroupData.SAM_SITES_NG) do
+                if zone.side == sam_obj.side and zone.sam_classification == sam_obj.sam_classification then
+                    table.insert(sam_spawn_options, sam_obj.group_name)
                 end
             end
-
-            if #sam_options == 0 then
-                MissionLogger:warn("No SAM options found for zone: " .. zone.name .. " with classification: " ..tostring(zone.sam_classification))
-                if zone.side == coalition.side.BLUE then
-                    UnitHandler.clone("BLUE GRND TEST", zone, false)
-                elseif zone.side == coalition.side.RED then
-                    UnitHandler.clone("RED GRND TEST", zone, false)
-                end
-            else
-                local sam_to_spawn = sam_options[math.random(1, #sam_options)]
-                local grp = mist.cloneInZone(sam_to_spawn.group_name,zone.name,sam_to_spawn.spawning.disperse,sam_to_spawn.spawning.disperse_radius)
-    
-                if grp then
-                    table.insert(zone.linked_groups, grp.name)
-                end
-    
+            if #sam_spawn_options >0 then
+                local sam_choice_index = math.random(1,#sam_spawn_options)
+                grp = UnitHandler.clone(sam_spawn_options[sam_choice_index], zone, false)
+            end
+            if grp then
                 if zone.side == coalition.side.RED then
                     stats.red_sam_sites = stats.red_sam_sites+1
                 else stats.blue_sam_sites = stats.blue_sam_sites+1 end
@@ -282,10 +272,19 @@ do
             -- spawn red or blue ground logistics units
             if zone.side == coalition.side.RED then
                 UnitHandler.clone(GroupData.AIRBASE_SITES.RED[zone.level].group_name, zone,true)
+                for _,sam in pairs(GroupData.AIRBASE_SAMS.RED) do
+                    if sam.tier == zone.level then
+                        UnitHandler.clone(sam.group_name, zone,false)
+                    end
+                end
                 stats.red_airbases = stats.red_airbases +1
             elseif zone.side == coalition.side.BLUE then
-                
                 UnitHandler.clone(GroupData.AIRBASE_SITES.BLUE[zone.level].group_name, zone,true)
+                for _,sam in pairs(GroupData.AIRBASE_SAMS.BLUE) do
+                    if sam.tier == zone.level then
+                        UnitHandler.clone(sam.group_name, zone,false)
+                    end
+                end
                 stats.blue_airbases = stats.blue_airbases +1
             end
         end

@@ -194,7 +194,7 @@ do
             {0.4, 0.4, 0.4, 0.8},   -- Border: Solid gray
             {0.4, 0.4, 0.4, 0.2},   -- Fill: Translucent gray
             {1, 1, 1, 1},       -- Text: Solid white
-            {0, 0, 0, 0.3}        -- Text BG: Translucent black
+            {0, 0, 0, 0.2}        -- Text BG: Translucent black
         }
         
         -- Set default colors to neutral
@@ -420,13 +420,11 @@ do
 
                 if not utils.tableContains(stats.blue_discovered_zones,other_zone.name) then
                     table.insert(stats.blue_discovered_zones,other_zone.name)
-                    -- TO CHANGE other_zone:draw() here??
                     table.insert(updated_zones,other_zone.name)
                 end
 
                 if not utils.tableContains(stats.red_discovered_zones,other_zone.name) then
                     table.insert(stats.red_discovered_zones,other_zone.name)
-                    -- TO CHANGE other_zone:draw() here??
                     table.insert(updated_zones,other_zone.name)
                 end
             end
@@ -462,15 +460,14 @@ do
             stats.neutral_zones = stats.neutral_zones + 1
         end
 
-        -- [ all of these zones are level 1 ] --
         if self.zone_type == ZoneTypes.STRONGPOINT and self.side ~= coalition.side.NEUTRAL then
             if self.side == coalition.side.RED then
-                UnitHandler.clone(GroupData.STRONGPOINT_SITES.RED[self.level].group_name, self) -- level 1
+                UnitHandler.clone(GroupData.STRONGPOINT_SITES.RED[self.level].group_name, self,true) -- level 1
                 stats.red_strongpoints = stats.red_strongpoints +1
                 stats.blue_strongpoints = stats.blue_strongpoints -1
 
             elseif self.side == coalition.side.BLUE then
-                UnitHandler.clone(GroupData.STRONGPOINT_SITES.BLUE[self.level].group_name, self)
+                UnitHandler.clone(GroupData.STRONGPOINT_SITES.BLUE[self.level].group_name, self,true)
                 stats.red_strongpoints = stats.red_strongpoints -1
                 stats.blue_strongpoints = stats.blue_strongpoints +1
             end
@@ -480,64 +477,55 @@ do
             --TO CHANGE add looting capture logic
 
             if self.side == coalition.side.RED then
-                UnitHandler.clone(GroupData.LOGISTICS_SITES.RED[self.level].group_name, self)
+                UnitHandler.clone(GroupData.LOGISTICS_SITES.RED[self.level].group_name, self,true)
                 WarehouseManager:handleIncomingSupplies(self.side,{WarehouseManager.StockTypes.LOGISTICS_CAPTURE})
             elseif self.side == coalition.side.BLUE then
-                UnitHandler.clone(GroupData.LOGISTICS_SITES.BLUE[self.level].group_name, self)
+                UnitHandler.clone(GroupData.LOGISTICS_SITES.BLUE[self.level].group_name, self,true)
                 WarehouseManager:handleIncomingSupplies(self.side,{WarehouseManager.StockTypes.LOGISTICS_CAPTURE})
             end
 
         elseif self.zone_type == ZoneTypes.COMMS and self.side ~= coalition.side.NEUTRAL then
             if self.side == coalition.side.RED then
-                UnitHandler.clone(GroupData.COMMS_SITES.RED[self.level].group_name, self)
+                UnitHandler.clone(GroupData.COMMS_SITES.RED[self.level].group_name, self,true)
                 stats.red_comms_zones = stats.red_comms_zones +1
                 stats.blue_comms_zones = stats.blue_comms_zones -1
                 -- ... (rest of your comms stat logic) ...
             elseif self.side == coalition.side.BLUE then
-                UnitHandler.clone(GroupData.COMMS_SITES.BLUE[self.level].group_name, self)
+                UnitHandler.clone(GroupData.COMMS_SITES.BLUE[self.level].group_name, self,true)
                 stats.red_comms_zones = stats.red_comms_zones -1
                 stats.blue_comms_zones = stats.blue_comms_zones +1
                 -- ... (rest of your comms stat logic) ...
             end
-
-        elseif self.zone_type == ZoneTypes.FARP and self.side ~= coalition.side.NEUTRAL then
-            if self.side == coalition.side.RED then
-                UnitHandler.clone( "RED GRND TEST" , self) --TO CHANGE
-                stats.red_farp_zones = stats.red_farp_zones +1
-                stats.blue_farp_zones = stats.blue_farp_zones -1
-            elseif self.side == coalition.side.BLUE then
-                UnitHandler.clone( "BLUE GRND TEST" , self) --TO CHANGE
-                stats.red_farp_zones = stats.red_farp_zones -1
-                stats.blue_farp_zones = stats.blue_farp_zones +1
-            end
  
         elseif self.zone_type == ZoneTypes.EWSITE and self.side ~= coalition.side.NEUTRAL then
             if self.side == coalition.side.RED then
-                UnitHandler.clone(GroupData.EW_SITES.RED[self.level].group_name , self)
+                UnitHandler.clone(GroupData.EW_SITES.RED[self.level].group_name , self,true)
                 stats.red_ew_zones = stats.red_ew_zones +1
                 stats.blue_ew_zones = stats.blue_ew_zones -1
             elseif self.side == coalition.side.BLUE then
-                UnitHandler.clone(GroupData.EW_SITES.BLUE[self.level].group_name , self)
+                UnitHandler.clone(GroupData.EW_SITES.BLUE[self.level].group_name , self,true)
                 stats.red_ew_zones = stats.red_ew_zones -1
                 stats.blue_ew_zones = stats.blue_ew_zones +1
             end
 
         elseif self.zone_type == ZoneTypes.SAMSITE and self.side ~= coalition.side.NEUTRAL then
-            local sam_spawned = false
-            for _, sam in pairs(GroupData.SAM_SITES) do
-                -- Spawn SAM based on matching side, classification, AND LEVEL (which is now 1)
-                if sam.side == self.side and sam.sam_classification == self.sam_classification and sam.level == self.level then
-                    mist.cloneInZone(sam.group_name,self.zone.name,sam.spawning.disperse,sam.spawning.disperse_radius)
-                    sam_spawned = true
-                    break
+            local sam_spawned = nil
+            local sam_spawn_options = {}
+            for _, sam in pairs(GroupData.SAM_SITES_NG) do
+                if sam.side == self.side and sam.sam_classification == self.sam_classification then
+                    table.insert(sam_spawn_options, sam.group_name)
                 end
+            end
+            if #sam_spawn_options > 0 then
+                local chosen_sam_grname = sam_spawn_options[math.random(1, #sam_spawn_options)]
+                sam_spawned = UnitHandler.clone(chosen_sam_grname , self, false)
             end
             if not sam_spawned then
                 MissionLogger:warn("No SAM options found for zone: " .. self.name .. " with classification: " ..tostring(self.sam_classification))
                 if self.side == coalition.side.BLUE then
-                    mist.cloneInZone("BLUE INF", self.name,false)
+                    UnitHandler.clone("BLUE GRND TEST", self, false)
                 elseif self.side == coalition.side.RED then
-                    mist.cloneInZone("RED INF", self.name,false)
+                    UnitHandler.clone("RED GRND TEST", self, false)
                 end
             end
 
@@ -592,11 +580,21 @@ do
             end
 
             if self.side == coalition.side.RED then
-                UnitHandler.clone(GroupData.AIRBASE_SITES.RED[self.level].group_name , self)
+                UnitHandler.clone(GroupData.AIRBASE_SITES.RED[self.level].group_name , self,true)
+                for _,sam in pairs(GroupData.AIRBASE_SAMS.RED) do
+                    if sam.tier == self.level then
+                        UnitHandler.clone(sam.group_name , self,false)
+                    end
+                end
                 stats.red_airbases = stats.red_airbases +1
                 stats.blue_airbases = stats.blue_airbases -1
             elseif self.side == coalition.side.BLUE then
-                UnitHandler.clone(GroupData.AIRBASE_SITES.BLUE[self.level].group_name , self)
+                UnitHandler.clone(GroupData.AIRBASE_SITES.BLUE[self.level].group_name , self,true)
+                for _,sam in pairs(GroupData.AIRBASE_SAMS.BLUE) do
+                    if sam.tier == self.level then
+                        UnitHandler.clone(sam.group_name , self,false)
+                    end
+                end
                 stats.red_airbases = stats.red_airbases -1
                 stats.blue_airbases = stats.blue_airbases +1
             end

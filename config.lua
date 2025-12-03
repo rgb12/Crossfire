@@ -165,7 +165,7 @@ theatre = {
     capture_convoy_max_range = 100,--25*1000, -- (meters)
 
 
-    max_ground_recon_range = 15000, -- (meters)
+    max_ground_recon_range = 30000, -- (meters)
     --[[
         the range at which enemy zones will be discovered from friendly zones
     ]]
@@ -307,111 +307,83 @@ GroupData = {
             SAM_TYPES.MEDIUM_RANGE
             SAM_TYPES.LONG_RANGE
     ]]
-    SAM_SITES = {
-        SA2_LEVEL_1 = {
-            group_name = "RED SAM SA2 TIER 1",
+    SAM_SITES_NG = {
+        {
+            group_name= "RED SA5",
+            side = coalition.side.RED,
+            sam_classification = SAM_TYPES.LONG_RANGE,
+        },
+        {
+            group_name = "RED SA10",
+            side = coalition.side.RED,
+            sam_classification = SAM_TYPES.LONG_RANGE,
+        },
+        {
+            group_name = "RED SA11",
+            side = coalition.side.RED,
+            sam_classification = SAM_TYPES.LONG_RANGE,
+        },
+        {
+            group_name= "RED SA2",
             side = coalition.side.RED,
             sam_classification = SAM_TYPES.MEDIUM_RANGE,
-            level = 1,
-            threat_dist = 45, --stands for the high threat radius in km
-            spawning = {
-                disperse = true,
-                disperse_radius = 300 --meters
-            }
         },
-        SA2_LEVEL_2 = {
-            group_name = "RED SAM SA2 TIER 2",
+        {
+            group_name= "RED SA6",
             side = coalition.side.RED,
             sam_classification = SAM_TYPES.MEDIUM_RANGE,
-            level = 2,
-            threat_dist = 45,
-            spawning = {
-                disperse = true,
-                disperse_radius = 300 --meters
-            }
         },
-        SA2_LEVEL_3 = {
-            group_name = "RED SAM SA2 TIER 3",
+        {
+            group_name = "RED SA3",
             side = coalition.side.RED,
-            sam_classification = SAM_TYPES.MEDIUM_RANGE,
-            level = 3,
-            threat_dist = 45,
-            spawning = {
-                disperse = true,
-                disperse_radius = 300 --meters
-            }
+            sam_classification = SAM_TYPES.SHORT_RANGE,
         },
-        SA2_LEVEL_4 = {
-            group_name = "RED SAM SA2 TIER 4",
-            side = coalition.side.RED,
-            sam_classification = SAM_TYPES.MEDIUM_RANGE,
-            level = 4,
-            threat_dist = 45,
-            spawning = {
-                disperse = true,
-                disperse_radius = 300 --meters
-            }
+        {
+            group_name = "BLUE PATRIOT",
+            side = coalition.side.BLUE,
+            sam_classification = SAM_TYPES.LONG_RANGE,
         },
-    
-        HAWK_LEVEL_1 = {
-            group_name = "BLUE SAM HAWK TIER 1",
+        {
+            group_name = "BLUE HAWK",
             side = coalition.side.BLUE,
             sam_classification = SAM_TYPES.MEDIUM_RANGE,
-            level = 1,
-            threat_dist = 40, --stands for the high threat radius in km
-            spawning = {
-                disperse = true,
-                disperse_radius = 300 --meters
-            }
         },
-        HAWK_LEVEL_2 = {
-            group_name = "BLUE SAM HAWK TIER 2",
+        {
+            group_name = "BLUE IRIS-T",
             side = coalition.side.BLUE,
             sam_classification = SAM_TYPES.MEDIUM_RANGE,
-            level = 2,
-            threat_dist = 40, --stands for the high threat radius in km
-            spawning = {
-                disperse = true,
-                disperse_radius = 300 --meters
-            }
         },
-        HAWK_LEVEL_3 = {
-            group_name = "BLUE SAM HAWK TIER 3",
+        {
+            group_name = "BLUE NASAMS",
             side = coalition.side.BLUE,
-            sam_classification = SAM_TYPES.MEDIUM_RANGE,
-            level = 3,
-            threat_dist = 40, --stands for the high threat radius in km
-            spawning = {
-                disperse = true,
-                disperse_radius = 300 --meters
+            sam_classification = SAM_TYPES.SHORT_RANGE,
+        }
+
+
+
+    },
+
+    AIRBASE_SAMS = {
+        BLUE = {
+            {
+                tier = 3,
+                group_name = "BLUE AIRBASE SAM TIER 3"
+            },
+            {
+                tier = 4,
+                group_name = "BLUE AIRBASE SAM TIER 4"
             }
         },
-        HAWK_LEVEL_4 = {
-            group_name = "BLUE SAM HAWK TIER 4",
-            side = coalition.side.BLUE,
-            sam_classification = SAM_TYPES.MEDIUM_RANGE,
-            level = 4,
-            threat_dist = 40, --stands for the high threat radius in km
-            spawning = {
-                disperse = true,
-                disperse_radius = 300 --meters
+        RED = {
+            {
+                tier = 3,
+                group_name = "RED AIRBASE SAM TIER 3"
+            },
+            {
+                tier = 4,
+                group_name = "RED AIRBASE SAM TIER 4"
             }
-        },
-        -- SA3 = {
-        --     name = "SA3",
-        --     group_name = "SAM SA3",
-        --     threat_dist = 20
-        -- },
-        -- SA6 = {
-        --     name = "SA6",
-        --     group_name = "SAM SA6",
-        --     threat_dist = 26
-        -- },
-        -- SA5 = {
-        --     name = "SA5",
-        --     group_name = "SAM SA5",
-        --     threat_dist = 250
-        -- }
+        }
     },
 
     AIRBASE_SITES = {
@@ -419,44 +391,44 @@ GroupData = {
             [1] = {
                 level = 1,
                 side = coalition.side.BLUE,
-                group_name = "BLUE GRND TEST"
+                group_name = "BLUE AIRBASE TIER 1"
             },
             [2] = {
                 level = 2,
                 side = coalition.side.BLUE,
-                group_name = "BLUE GRND TEST"
+                group_name = "BLUE AIRBASE TIER 2"
             },
             [3] = {
                 level = 3,
                 side = coalition.side.BLUE,
-                group_name = "BLUE GRND TEST"
+                group_name = "BLUE AIRBASE TIER 3"
             },
             [4] = {
                 level = 4,
                 side = coalition.side.BLUE,
-                group_name = "BLUE GRND TEST"
+                group_name = "BLUE AIRBASE TIER 4"
             }
         },
         RED = {
             [1] = {
                 level = 1,
                 side = coalition.side.RED,
-                group_name = "RED GRND TEST"
+                group_name = "RED AIRBASE TIER 1"
             },
             [2] = {
                 level = 2,
                 side = coalition.side.RED,
-                group_name = "RED GRND TEST"
+                group_name = "RED AIRBASE TIER 2"
             },
             [3] = {
                 level = 3,
                 side = coalition.side.RED,
-                group_name = "RED GRND TEST"
+                group_name = "RED AIRBASE TIER 3"
             },
             [4] = {
                 level = 4,
                 side = coalition.side.RED,
-                group_name = "RED GRND TEST"
+                group_name = "RED AIRBASE TIER 4"
             }
         }
     },
@@ -466,44 +438,44 @@ GroupData = {
             [1] = {
                 level = 1,
                 side = coalition.side.BLUE,
-                group_name = "BLUE GRND TEST"
+                group_name = "BLUE LOGISTICS TIER 1"
             },
             [2] = {
                 level = 2,
                 side = coalition.side.BLUE,
-                group_name = "BLUE GRND TEST"
+                group_name = "BLUE LOGISTICS TIER 2"
             },
             [3] = {
                 level = 3,
                 side = coalition.side.BLUE,
-                group_name = "BLUE GRND TEST"
+                group_name = "BLUE LOGISTICS TIER 3"
             },
             [4] = {
                 level = 4,
                 side = coalition.side.BLUE,
-                group_name = "BLUE GRND TEST"
+                group_name = "BLUE LOGISTICS TIER 4"
             }
         },
         RED = {
             [1] = {
                 level = 1,
                 side = coalition.side.RED,
-                group_name = "RED GRND TEST"
+                group_name = "RED LOGISTICS TIER 1"
             },
             [2] = {
                 level = 2,
                 side = coalition.side.RED,
-                group_name = "RED GRND TEST"
+                group_name = "RED LOGISTICS TIER 2"
             },
             [3] = {
                 level = 3,
                 side = coalition.side.RED,
-                group_name = "RED GRND TEST"
+                group_name = "RED LOGISTICS TIER 3"
             },
             [4] = {
                 level = 4,
                 side = coalition.side.RED,
-                group_name = "RED GRND TEST"
+                group_name = "RED LOGISTICS TIER 4"
             }
         }
     },
@@ -513,44 +485,44 @@ GroupData = {
             [1] = {
                 level = 1,
                 side = coalition.side.BLUE,
-                group_name = "BLUE GRND TEST"
+                group_name = "BLUE COMMS TIER 1"
             },
             [2] = {
                 level = 2,
                 side = coalition.side.BLUE,
-                group_name = "BLUE GRND TEST"
+                group_name = "BLUE COMMS TIER 2"
             },
             [3] = {
                 level = 3,
                 side = coalition.side.BLUE,
-                group_name = "BLUE GRND TEST"
+                group_name = "BLUE COMMS TIER 3"
             },
             [4] = {
                 level = 4,
                 side = coalition.side.BLUE,
-                group_name = "BLUE GRND TEST"
+                group_name = "BLUE COMMS TIER 4"
             }
         },
         RED = {
             [1] = {
                 level = 1,
                 side = coalition.side.RED,
-                group_name = "RED GRND TEST"
+                group_name = "RED COMMS TIER 1"
             },
             [2] = {
                 level = 2,
                 side = coalition.side.RED,
-                group_name = "RED GRND TEST"
+                group_name = "RED COMMS TIER 2"
             },
             [3] = {
                 level = 3,
                 side = coalition.side.RED,
-                group_name = "RED GRND TEST"
+                group_name = "RED COMMS TIER 3"
             },
             [4] = {
                 level = 4,
                 side = coalition.side.RED,
-                group_name = "RED GRND TEST"
+                group_name = "RED COMMS TIER 4"
             }
         }
     },
@@ -560,44 +532,44 @@ GroupData = {
             [1] = {
                 level = 1,
                 side = coalition.side.BLUE,
-                group_name = "BLUE GRND TEST"
+                group_name = "BLUE EWR TIER 1"
             },
             [2] = {
                 level = 2,
                 side = coalition.side.BLUE,
-                group_name = "BLUE GRND TEST"
+                group_name = "BLUE EWR TIER 2"
             },
             [3] = {
                 level = 3,
                 side = coalition.side.BLUE,
-                group_name = "BLUE GRND TEST"
+                group_name = "BLUE EWR TIER 3"
             },
             [4] = {
                 level = 4,
                 side = coalition.side.BLUE,
-                group_name = "BLUE GRND TEST"
+                group_name = "BLUE EWR TIER 4"
             }
         },
         RED = {
             [1] = {
                 level = 1,
                 side = coalition.side.RED,
-                group_name = "RED GRND TEST"
+                group_name = "RED EWR TIER 1"
             },
             [2] = {
                 level = 2,
                 side = coalition.side.RED,
-                group_name = "RED GRND TEST"
+                group_name = "RED EWR TIER 2"
             },
             [3] = {
                 level = 3,
                 side = coalition.side.RED,
-                group_name = "RED GRND TEST"
+                group_name = "RED EWR TIER 3"
             },
             [4] = {
                 level = 4,
                 side = coalition.side.RED,
-                group_name = "RED GRND TEST"
+                group_name = "RED EWR TIER 4"
             }
         }
     }
