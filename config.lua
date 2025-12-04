@@ -20,7 +20,7 @@ Config = {
 
         
         random_scenario_selection = false, -- allows the script to randomly choose a random scenario, authority over scenario selection
-        scenario_selected = "Neptune Protocol1", -- subject to the field above, choose your own scenario 
+        scenario_selected = "Neptune Protocol", -- subject to the field above, choose your own scenario 
     },
     operations = {
         recon_minimum_altitude = 1524, -- (meters)
@@ -29,6 +29,7 @@ Config = {
         cap_duration = 10*60, -- (seconds)
         cap_max_radius_from_zone = 20*1000, -- (meters)
     },
+    jupiter_enabled = true, -- enables/disables the Jupiter command system
 
     grace_period = 10,--5*60, -- (seconds) time at the start of the mission where no captures can occur
     enabled_su25t_bluefor = true, -- adds the SU-25T to the bluefor warehouse inventory
@@ -162,7 +163,7 @@ theatre = {
         max_awacs_theatre = 2,
 
         range_for_recon_to_discover_zone = 15*1000, -- (meters)
-        max_cas_range = 150*1000, -- (meters)
+        max_cas_range = 200*1000, -- (meters)
         min_cleareance_dist_for_awacs = 70*1000 -- (meters) from the nearest enemy zone
     },
 

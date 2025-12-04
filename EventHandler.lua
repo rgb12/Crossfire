@@ -185,8 +185,10 @@ function ev:onEvent(event)
     if event.id == world.event.S_EVENT_LAND and event.initiator then
         -- checks if player landed
         local unit = event.initiator
-        local group_name = unit:getGroup():getName()
         if unit and unit.getPlayerName and unit:getPlayerName() then trigger.action.outText(unit:getTypeName() .. " landed", 10) end
+        
+        if not unit or not unit.isExist or not unit:isExist() then return end
+        local group_name = unit:getGroup():getName()
         
         local desc = unit:getDesc()
         
@@ -195,7 +197,8 @@ function ev:onEvent(event)
 
             -- ABORTED HELI
             local enroute_heli = EnrouteManager:findByGroup(group_name)
-            if enroute_heli and enroute_heli.aborted and enroute_heli.from_zone:isPointInsideZone(mist.getLeadPos(group_name)) then
+            local group_pos = mist.getLeadPos(group_name)
+            if enroute_heli and enroute_heli.aborted and group_pos and enroute_heli.from_zone:isPointInsideZone(group_pos) then
                 EnrouteManager:remove(group_name)
                 MissionLogger:info("Removed LANDED aborted heli from enroutes: " .. group_name)
                     timer.scheduleFunction(function ()
