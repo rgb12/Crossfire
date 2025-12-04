@@ -85,16 +85,11 @@ do
         MissionLogger:info("State successfully gathered.")
     end
 
-    ---
-    --- *** NEW FUNCTION ***
-    --- "Virtual Refund": Calculates enroute units and adds them to the SAVE DATA
-    --- WITHOUT destroying the actual units in the live mission.
-    ---
-    function PersistanceManager:applyVirtualRefunds()
+    --- Simply places enroutes back into warehouses for next mission
+    function PersistanceManager:enroutesRefund()
         MissionLogger:info("Calculating virtual refunds for save file...")
         
         for _, enroute in ipairs(EnrouteManager.enroutes) do
-            -- Find the zone data in our Save Table (not the live object)
             local zone_data = nil
             if enroute.from_zone then
                 zone_data = PersistanceManager.data.zones[enroute.from_zone.name]
@@ -104,8 +99,6 @@ do
                 -- Refund Asset Counts to the Save Data
                 if enroute.ai_task_type == AITaskTypes.CAPTURE_HELO then
                     zone_data.capture_heli_avail = (zone_data.capture_heli_avail or 0) + 1
-                elseif enroute.ai_task_type == AITaskTypes.CAPTURE_CONVOY then
-                    zone_data.capture_convoy_avail = (zone_data.capture_convoy_avail or 0) + 1
                 elseif enroute.ai_task_type == AITaskTypes.ATTACK_CONVOY then
                     zone_data.attack_convoy = (zone_data.attack_convoy or 0) + 1
                 end
@@ -113,9 +106,9 @@ do
 
             -- Refund Aircraft & Payloads to the Warehouse Data
             -- (Skip ground assets that don't use warehouses)
-            if enroute.ai_task_type ~= AITaskTypes.CAPTURE_HELO 
-            and enroute.ai_task_type ~= AITaskTypes.CAPTURE_CONVOY 
-            and enroute.ai_task_type ~= AITaskTypes.ATTACK_CONVOY 
+            if enroute.ai_task_type ~= AITaskTypes.CAPTURE_HELO
+            and enroute.ai_task_type ~= AITaskTypes.CAPTURE_CONVOY
+            and enroute.ai_task_type ~= AITaskTypes.ATTACK_CONVOY
             and enroute.ai_task_type ~= AITaskTypes.RESUPPLY_CARGO then
                 
                 if enroute.from_zone and enroute.from_zone.airbase_name then
@@ -165,21 +158,15 @@ do
         PersistanceManager.user_data_file_path = lfs.writedir()..Config.persistance.save_dir .. Config.persistance.user_data_file
     end
 
-    ---
     --- Serializes self.data and writes it to the save file.
-    ---
-    function PersistanceManager:saveToFile()
+    function PersistanceManager:saveMissionToFile()
         if not PersistanceManager.enabled then return end
         PersistanceManager:checkPath()
 
-        -- *** CHANGE: NO LONGER DESTRUCTIVE ***
-        -- 1. Gather the current "at rest" state
         self:fetchState()
 
-        -- 2. Apply virtual refunds (updates self.data only)
-        self:applyVirtualRefunds()
+        self:enroutesRefund()
 
-        -- 3. Serialize and write to file
         if not JSON then return end
             ---@diagnostic disable-next-line: undefined-field
             local file_content = JSON:encode(PersistanceManager.data)
@@ -301,6 +288,7 @@ do
             table.insert(new_zones, zone)
         end
         zones = new_zones
+        
         MissionLogger:info("Zone states and units restored.")
 
         -- 4. Restore Warehouses
@@ -332,7 +320,7 @@ do
         return true
     end
 
-function PersistanceManager:saveUserData()
+function PersistanceManager:saveUserDataToFile()
         if not PersistanceManager.enabled then return end
         if not PersistanceManager.user_data_file_path then return end
         if not JSON then return end
@@ -376,11 +364,9 @@ function PersistanceManager:saveUserData()
         MissionLogger:info("Auto-save enabled.")
 
         timer.scheduleFunction(function()
-            -- Save Mission State
-            PersistanceManager:saveToFile()
-            
-            -- Save User Data independently
-            PersistanceManager:saveUserData()
+
+            PersistanceManager:saveMissionToFile()
+            PersistanceManager:saveUserDataToFile()
 
             return timer.getTime() + (Config.persistance.save_interval)
         end, {}, timer.getTime() + (Config.persistance.save_interval))

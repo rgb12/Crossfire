@@ -6,7 +6,6 @@ do
 
     TheatreCommander.blue_op_manager = nil
     TheatreCommander.red_op_manager = nil
-    TheatreCommander.zones_to_check_for_capture = {}
 
     ---@param to_zone ZoneHandler
     ---@param side_sending_capture coalition.side
@@ -535,12 +534,12 @@ do
         local new_group_name   -- This will hold the string name
         local home_airbase     -- This will be the ZoneHandler object for the base
 
-        if side == coalition.side.BLUE and blue_airbase.acft_resupply_point then
+        if side == coalition.side.BLUE and Scenario.resupply.blue_point then
             if stats.blue_airbases == 0 then return end
 
             cargo_sent_table = mist.teleportToPoint({
                 groupName = GroupData.COMMON_ASSETS.BLUE.resupply_aircraft,
-                point = blue_airbase.acft_resupply_point,
+                point = Scenario.resupply.blue_point,
                 action = "clone",
                 radius = 3000
             })
@@ -556,12 +555,12 @@ do
                 timer.scheduleFunction(TheatreCommander.sendWarehouseResupply, side, timer.getTime() + Config.std_resupply_time)
             end
         
-        elseif side == coalition.side.RED and red_airbase.acft_resupply_point then
+        elseif side == coalition.side.RED and Scenario.resupply.red_point then
             if stats.red_airbases == 0 then return end
 
             cargo_sent_table = mist.teleportToPoint({
                 groupName = GroupData.COMMON_ASSETS.RED.resupply_aircraft,
-                point = red_airbase.acft_resupply_point,
+                point = Scenario.resupply.red_point,
                 action = "clone",
                 radius = 1500
             })
@@ -849,7 +848,6 @@ do
         -- Initial Warehouses
         WarehouseManager:handleIncomingSupplies(blue_airbase.side, {WarehouseManager.StockTypes.INITIAL})
         if Config.enabled_su25t_bluefor then
-            MissionLogger:info("Adding su25t stock")
             WarehouseManager:handleIncomingSupplies(blue_airbase.side, {WarehouseManager.StockTypes.SU25T_BLUEFOR})
         end
         WarehouseManager:handleIncomingSupplies(red_airbase.side, {WarehouseManager.StockTypes.INITIAL})

@@ -114,46 +114,6 @@ function ev:onEvent(event)
         end
     end
 
-
-    if event.id == world.event.S_EVENT_KILL and event.target and event.initiator then
-        MissionLogger:info("S_EVENT_KILL fired")
-
-        local target = event.target
-        local initiator = event.initiator
-        
-        if not target then return end
-        if not target.getCoalition then return end
-        if not initiator then return end
-        if not initiator.getCoalition then return end
-
-        -- Check if the target is a UNIT or STATIC
-        if target and (Object.getCategory(target) == Object.Category.UNIT or Object.getCategory(target) == Object.Category.STATIC) then
-            
-            -- Find what zone the unit died in
-            local zone_of_dead_unit = utils.getZoneOfUnitFromPosition(target:getPoint())
-            
-            if zone_of_dead_unit then
-                -- Check if the zone is not already neutral
-                if zone_of_dead_unit.side ~= coalition.side.NEUTRAL then
-                    
-                    -- if a bomb drops and kills a dozen, this prevents to fire world.searchObjects multiple times for the same zo
-
-                    -- Add this zone to our "to-do" list.
-                    -- Using the zone name as a key prevents duplicates.
-                    -- MissionLogger:info("Unit added to capture check: " .. zone_of_dead_unit.name)
-                    TheatreCommander.zones_to_check_for_capture[zone_of_dead_unit.name] = zone_of_dead_unit
-                end
-
-                if zone_of_dead_unit.side == coalition.side.BLUE then
-                    zone_of_dead_unit.last_attacked_by = coalition.side.RED
-                elseif zone_of_dead_unit.side == coalition.side.RED then
-                    zone_of_dead_unit.last_attacked_by = coalition.side.BLUE
-                end
-                
-            end
-        end
-    end
-
     if event.id == world.event.S_EVENT_ENGINE_SHUTDOWN and event.initiator then
         -- Make sure its AI
         local unit = event.initiator
@@ -297,33 +257,6 @@ function ev:onEvent(event)
                         table.remove(radar_list, i)
                     end
                 end
-            end
-        end
-
-        -- Check if the target is a UNIT or STATIC
-        if unit and (Object.getCategory(unit) == Object.Category.UNIT or Object.getCategory(unit) == Object.Category.STATIC) then
-            
-            -- Find what zone the unit died in
-            local zone_of_dead_unit = utils.getZoneOfUnitFromPosition(unit:getPoint())
-            
-            if zone_of_dead_unit then
-                -- Check if the zone is not already neutral
-                if zone_of_dead_unit.side ~= coalition.side.NEUTRAL then
-                    
-                    -- if a bomb drops and kills a dozen, this prevents to fire world.searchObjects multiple times for the same zo
-
-                    -- Add this zone to our "to-do" list.
-                    -- Using the zone name as a key prevents duplicates.
-                    -- MissionLogger:info("Unit added to capture check: " .. zone_of_dead_unit.name)
-                    TheatreCommander.zones_to_check_for_capture[zone_of_dead_unit.name] = zone_of_dead_unit
-                end
-
-                if zone_of_dead_unit.side == coalition.side.BLUE then
-                    zone_of_dead_unit.last_attacked_by = coalition.side.RED
-                elseif zone_of_dead_unit.side == coalition.side.RED then
-                    zone_of_dead_unit.last_attacked_by = coalition.side.BLUE
-                end
-                
             end
         end
 
