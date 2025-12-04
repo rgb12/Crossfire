@@ -118,9 +118,9 @@ function Jupiter:onEvent(event)
                 end
             end
         elseif command == "-dispatch" then
-            TheatreCommander:evaluateAITasks(coalition.side.BLUE)
+            -- TheatreCommander:evaluateAITasks(coalition.side.BLUE)
             TheatreCommander:evaluateAITasks(coalition.side.RED)
-
+            cmd_executed = true
         elseif command == "-additemwarehouse" then
             local item_flag = param1
             local quantity = tonumber(args[3]) or 10
@@ -176,7 +176,7 @@ function Jupiter:onEvent(event)
             }
             local players_found = 0
             local function addTokensToPlayer(obj, val)
-                if obj and obj:isExist() and obj.getPlayerName then
+                if obj and obj:isExist() and obj:getPlayerName() then
                     local user = ExperienceManager:fetchUser(obj)
                     if user then
                         user.tokens = user.tokens + tokens_to_add
@@ -215,9 +215,15 @@ function Jupiter:onEvent(event)
             trigger.action.outText(string.format("Jupiter: Destroyed %d objects in %dm radius.", count, radius), 5)
             cmd_executed = true
         elseif command == "-sendcas" then
+            local side_sending = coalition.side.BLUE
+            if param1 == "blue" then
+                side_sending = coalition.side.BLUE
+            elseif param1 == "red" then
+                side_sending = coalition.side.RED
+            end
             local closest_zone, dist = getClosestZone(vec3)
-            if closest_zone and dist <= 10000 then
-                TaskManager:initiateAITask(AITaskTypes.CAS,coalition.side.BLUE,true,closest_zone,nil,true)
+            if closest_zone and dist <= 10000 and side_sending ~= closest_zone.side then
+                TaskManager:initiateAITask(AITaskTypes.CAS,side_sending,true,closest_zone,nil,true)
                 cmd_executed = true
             else
                 trigger.action.outText("Jupiter: No zone found within 10km for CAS tasking.", 5)
@@ -304,14 +310,18 @@ function Jupiter:onEvent(event)
                 params = { point = vec3, radius = 500 }
             }
             local players_found = 0
+            local total_units = 0
             local function addXPToPlayer(obj, val)
+                total_units = total_units + 1
                 if obj and obj:isExist() and obj.getPlayerName then
-                    local user = ExperienceManager:fetchUser(obj)
-                    if user then
-                        if ExperienceManager:addXP(user, xp_to_add) then
-                            
-                            trigger.action.outTextForUnit(obj:getID(), string.format("Jupiter: You have been awarded %d XP!", xp_to_add), 10)
-                            players_found = players_found + 1
+                    local player_name = obj:getPlayerName()
+                    if player_name then
+                        local user = ExperienceManager:fetchUser(obj)
+                        if user then
+                            if ExperienceManager:addXP(user, xp_to_add) then
+                                trigger.action.outTextForUnit(obj:getID(), string.format("Jupiter: You have been awarded %d XP!", xp_to_add), 10)
+                                players_found = players_found + 1
+                            end
                         end
                     end
                 end
@@ -319,7 +329,8 @@ function Jupiter:onEvent(event)
             end
             
             world.searchObjects({Object.Category.UNIT}, volS, addXPToPlayer)
-            trigger.action.outText(string.format("Jupiter: Added %d XP to %d players within 500m.", xp_to_add, players_found), 5)
+            MissionLogger:info(string.format("Jupiter -addxp: Found %d units, %d were players", total_units, players_found))
+            trigger.action.outText(string.format("Jupiter: Added %d XP to %d players within 500m. (Found %d units total)", xp_to_add, players_found, total_units), 5)
             cmd_executed = true
         end
         -- 3. Cleanup: Remove the map marker if a command was recognized
