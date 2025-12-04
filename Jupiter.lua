@@ -36,6 +36,7 @@ local function getClosestZone(vec3)
     return closest_zone, closest_dist
 end
 
+Jupiter.user_ids = {}
 
 function Jupiter:onEvent(event)
     -- Only handle Mark Added events
@@ -49,7 +50,6 @@ function Jupiter:onEvent(event)
         if not text or text:sub(1, 1) ~= "-" then
             return
         end
-
         -- 2. Parse command and arguments
         -- e.g., "-explosion 300" becomes {"-explosion", "300"}
         local args = {}
@@ -117,7 +117,10 @@ function Jupiter:onEvent(event)
                     end
                 end
             end
-        
+        elseif command == "-dispatch" then
+            TheatreCommander:evaluateAITasks(coalition.side.BLUE)
+            TheatreCommander:evaluateAITasks(coalition.side.RED)
+
         elseif command == "-additemwarehouse" then
             local item_flag = param1
             local quantity = tonumber(args[3]) or 10
