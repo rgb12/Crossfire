@@ -93,22 +93,16 @@ function ev:onEvent(event)
 
             local enroute_aborted = EnrouteManager:findByGroup(group_name)
             if enroute_aborted then
-                if enroute_aborted.ai_task_type == AITaskTypes.CAPTURE_HELO then
-                    -- give the heli 2 minutes to land or be destroyed
-                    timer.scheduleFunction(function ()
-                        local gr = Group.getByName(group_name)
-                        if gr and gr:isExist() then
-                            trigger.action.explosion(gr:getUnit(1):getPoint(), 100)
-                            EnrouteManager:remove(group_name)
-                            MissionLogger:info("Removed damaged AI Heli from enroutes: " .. group_name)
-                        end
-                    end, {}, timer.getTime() + 120)
-                elseif enroute_aborted.ai_task_type == AITaskTypes.JTAC then
-                    EnrouteManager:remove(group_name)
-                    MissionLogger:info("Removed aborted JTAC from enroutes: " .. group_name)
-                else
-                    EnrouteManager:remove(group_name)
-                end
+
+                timer.scheduleFunction(function ()
+                    local gr = Group.getByName(group_name)
+                    if gr and gr.isExist and gr:isExist() then
+                        trigger.action.explosion(gr:getUnit(1):getPoint(), 200)
+                        EnrouteManager:remove(group_name)
+                        MissionLogger:info("Removed damaged AI "..enroute_aborted.ai_task_type.." from enroutes: " .. group_name)
+                    end
+
+                end, {}, timer.getTime() + math.random(30,120))
             end
             
         end

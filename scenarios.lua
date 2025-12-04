@@ -108,9 +108,16 @@ Scenarios = {
         }),
         zones = {
             ZoneHandler:new({
-                name = "LOGIS",
+                name = "LOG",
                 zone_type = ZoneTypes.LOGISTICS,
-        
+                next_level_up_avail = timer.getTime(),
+                capture_convoy_avail = 1,
+                capture_heli_avail = 2
+            }),
+            ZoneHandler:new({
+                name = "L2",
+                zone_type = ZoneTypes.LOGISTICS,
+                side = coalition.side.BLUE,
                 next_level_up_avail = timer.getTime(),
         
                 capture_convoy_avail = 1,
@@ -146,7 +153,7 @@ Scenarios = {
                 sam_classification = SAM_TYPES.LONG_RANGE,
             }),
             ZoneHandler:new({
-                name = "DELTA-1",
+                name = "STRONGHOLD-CHARLIE",
                 zone_type = ZoneTypes.LOGISTICS,
                 
                 next_level_up_avail = timer.getTime(),
@@ -312,7 +319,7 @@ Scenarios = {
             ZoneHandler:new({ name = "FIELDS" }),
             ZoneHandler:new({ name = "TEST" }),
             ZoneHandler:new({ name = "GOLD" }),
-            ZoneHandler:new({ name = "GUDATA" }),
+            ZoneHandler:new({ name = "GUDAUTA" }),
             ZoneHandler:new({ name = "ONI" }),
             ZoneHandler:new({ name = "AIRFIELD" }),
             ZoneHandler:new({ name = "FARM" }),
@@ -379,27 +386,7 @@ Scenarios = {
             ZoneHandler:new({ name = "ABISI" }),
             ZoneHandler:new({ name = "ALAGIR" }),
             ZoneHandler:new({ name = "TRAINING-AIRFIELD" }),
-            
-            -- Logistics
-            ZoneHandler:new({ name = "LOGIS" }),
-            ZoneHandler:new({ name = "DELTA-1" }),
-            
-            -- SAM Sites
-            ZoneHandler:new({ name = "SAMH" }),
-            
-            -- Comms
-            ZoneHandler:new({ name = "COMMS1" }),
-            ZoneHandler:new({ name = "COMMS2" }),
-            ZoneHandler:new({ name = "COMMS3" }),
-            ZoneHandler:new({ name = "COMMS4" }),
-            ZoneHandler:new({ name = "COMMS5" }),
-            ZoneHandler:new({ name = "RED COMMS1" }),
-            ZoneHandler:new({ name = "RED COMMS2" }),
-            ZoneHandler:new({ name = "RED COMMS3" }),
-            ZoneHandler:new({ name = "RED COMMS4" }),
-            ZoneHandler:new({ name = "RED COMMS5" }),
-            
-            -- Checkpoints
+            ZoneHandler:new({ name = "LOG" }),
             ZoneHandler:new({ name = "CHECKPOINT-NORTH" }),
             ZoneHandler:new({ name = "CHECKPOINT-EAST" }),
             ZoneHandler:new({ name = "CHECKPOINT-WEST" }),
@@ -430,8 +417,6 @@ Scenarios = {
             ZoneHandler:new({ name = "CHECKPOINT-XRAY" }),
             ZoneHandler:new({ name = "CHECKPOINT-YANKEE" }),
             ZoneHandler:new({ name = "CHECKPOINT-ZULU" }),
-            
-            -- Outposts
             ZoneHandler:new({ name = "OUTPOST-ALPHA" }),
             ZoneHandler:new({ name = "OUTPOST-BRAVO" }),
             ZoneHandler:new({ name = "OUTPOST-CHARLIE" }),
@@ -451,19 +436,83 @@ Scenarios = {
             ZoneHandler:new({ name = "OUTPOST-DECEMBER" }),
             ZoneHandler:new({ name = "OUTPOST-SEPTEMBER" }),
         }
+    },
+    {
+        name = "Georgia Liberation",
+        description = "Liberate Georgia from invading forces.",
+        coalition_setup = {
+            initial_dist_blue_to_frontline = 80000, --meters
+            dist_variance = 5000, --meters
+            auto_coalition_designation = true, -- overrides the above
+        },
+        logistics_setup = {
+            upgrade_range = 60000, --meters
+            heli_capture_range = 150000, --meters
+            max_dist_to_frontline = 80000 --meters
+        },
+        resupply = {
+            blue_point = { x = -00318568, y = 6096, z = 00991378 },
+            red_point = { x = -00290581, y = 6096, z = 00569411 }
+        },
+        difficulty = ScenarioDifficulty.MEDIUM,
+        red_airbase = ZoneHandler:new({
+            name = "SENAKI",
+            airbase_name = Airbases.Caucasus.Senaki_Kolkhi,
+            zone_type = ZoneTypes.AIRBASE}),
+        blue_airbase =  ZoneHandler:new({
+            name = "VAZIANI",
+            airbase_name = Airbases.Caucasus.Vaziani,
+            zone_type = ZoneTypes.AIRBASE}),
+        zones = {
+            ZoneHandler:new({name = "OUTPOST-SEPTEMBER"}),
+            ZoneHandler:new({name = "OUTPOST-NOVEMBER"}),
+            ZoneHandler:new({name = "OUTPOST-DECEMBER"}),
+            ZoneHandler:new({name = "JULIETT"}),
+            ZoneHandler:new({name = "FOXTROT"}),
+            ZoneHandler:new({name = "OUTPOST-OSCAR"}),
+            ZoneHandler:new({name = "STRONGHOLD-BRAVO"}),
+            ZoneHandler:new({name = "ALPHA"}),
+            ZoneHandler:new({name = "LOG"}),
+            ZoneHandler:new({name = "BRAVO"}),
+            ZoneHandler:new({name = "STRONGHOLD-CHARLIE"}),
+            ZoneHandler:new({name = "VICTOR"}),
+            ZoneHandler:new({name = "HEVSHA"}),
+            ZoneHandler:new({name = "WHISKEY"}),
+            ZoneHandler:new({name = "EDISA"}),
+            ZoneHandler:new({name = "GOLF"}),
+            ZoneHandler:new({name = "ONI"}),
+            ZoneHandler:new({name = "GLOLA"}),
+            ZoneHandler:new({name = "SACHHERE"}),
+            ZoneHandler:new({name = "LAKE"}),
+            ZoneHandler:new({name = "OSCAR"}),
+            ZoneHandler:new({name = "DEHVIRI"}),
+            ZoneHandler:new({name = "GVERKI"}),
+            ZoneHandler:new({name = "DELTA"}),
+            ZoneHandler:new({name = "OUTPOST-INDIA"}),
+            ZoneHandler:new({name = "AIRFIELD"}),
+            ZoneHandler:new({name = "SUBURBS"}),
+            ZoneHandler:new({name = "YANKEE"}),
+            ZoneHandler:new({name = "FARM"}),
+            ZoneHandler:new({name = "FIELDS"}),
+            ZoneHandler:new({name = "CHECKPOINT-PAPA"}),
+            ZoneHandler:new({name = "UNIFORM"}),
+            ZoneHandler:new({name = "GRIGOLISHI"}),
+            ZoneHandler:new({name = "NOVEMBER"}),
+            ZoneHandler:new({name = "KOKI"}),
+            ZoneHandler:new({name = "SEASIDE"}),
+            ZoneHandler:new({name = "TRAINING-AIRFIELD"}),
+            ZoneHandler:new({name = "CHECKPOINT-QUEBEC"}),
+            ZoneHandler:new({name = "TKVARCHELI"}),
+            ZoneHandler:new({name = "LABRA"}),
+
+            ZoneHandler:new({name = "GUDAUTA", zone_type = ZoneTypes.AIRBASE, airbase_name = Airbases.Caucasus.Gudauta}),
+            ZoneHandler:new({name = "SUKHUMI", zone_type = ZoneTypes.AIRBASE, airbase_name = Airbases.Caucasus.Sukhumi_Babushara}),
+            ZoneHandler:new({name = "BATUMI", zone_type = ZoneTypes.AIRBASE, airbase_name = Airbases.Caucasus.Batumi}),
+            ZoneHandler:new({name = "KOBULETI", zone_type = ZoneTypes.AIRBASE, airbase_name = Airbases.Caucasus.Kobuleti}),
+            ZoneHandler:new({name = "KUTAISI", zone_type = ZoneTypes.AIRBASE, airbase_name = Airbases.Caucasus.Kutaisi}),
+        }
     }
 }
-
--- ZoneHandler:new({
-    --     name = "JULIET",
-    --     side = coalition.side.NEUTRAL,
-    --     zone_type = ZoneTypes.SAMSITE,
-    --     sam_classification = SAM_TYPES.MEDIUM_RANGE,
-    --     level = 1
-    -- }),
-
-
-
 --[[
 ####################################################
     MISSION START SCRIPT

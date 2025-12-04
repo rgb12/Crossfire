@@ -548,7 +548,7 @@ do
                 groupName = GroupData.COMMON_ASSETS.BLUE.resupply_aircraft,
                 point = Scenario.resupply.blue_point,
                 action = "clone",
-                radius = 3000
+                radius = 10000
             })
             
             if not cargo_sent_table or not cargo_sent_table.name then
@@ -569,10 +569,10 @@ do
                 groupName = GroupData.COMMON_ASSETS.RED.resupply_aircraft,
                 point = Scenario.resupply.red_point,
                 action = "clone",
-                radius = 1500
+                radius = 10000
             })
 
-            if not cargo_sent_table or not cargo_sent_table.name then 
+            if not cargo_sent_table or not cargo_sent_table.name then
                 return MissionLogger:error("Could not send RED resupply cargo, spawn failed.")
             end
 
@@ -583,7 +583,6 @@ do
                 timer.scheduleFunction(TheatreCommander.sendWarehouseResupply, side, timer.getTime() + Config.std_resupply_time)
             end
         else
-            -- No cargo was spawned this cycle, just return
             return
         end
 
@@ -604,7 +603,7 @@ do
             if not cargo_group or not cargo_group:isExist() then
                 MissionLogger:error("Resupply task: Group " .. new_group_name .. " not found after 12s.")
                 EnrouteManager:remove(new_group_name) -- Clean up enroute task
-                return 
+                return
             end
             
             local cargo_ctr = cargo_group:getController()
@@ -638,7 +637,7 @@ do
 
             -- Assign the mission
             cargo_ctr:setTask(missionTask)
-            trigger.action.outTextForCoalition(side, "Resupply inbound", 10)
+            trigger.action.outTextForCoalition(side, "> RESUPPLY Cargo aircraft inbound for " .. home_airbase.name, 10)
         end, {}, timer.getTime() + 12) -- Wait 12 seconds for spawn to be stable
     end
 
@@ -670,7 +669,7 @@ do
             if zone.name ~= Scenario.blue_airbase.name
             and zone.name ~= Scenario.red_airbase.name then
                 -- Reset flags for a fresh generation
-                if Scenario.coalition_setup.auto_coalition_designation then
+                if Scenario.coalition_setup.auto_coalition_designation and not zone.side then
                     zone.side = coalition.side.NEUTRAL
                 end
                 table.insert(all_other_zones, zone)
@@ -682,7 +681,7 @@ do
         -- 2. APPLY DIFFICULTY (Zone Count) & REBUILD GLOBAL ZONES TABLE
         local diff_setting = Scenario.difficulty
         local diff_ratios = Config.theatre.zone_count_difficulty
-        local active_ratio = diff_ratios[diff_setting] or 0.75
+        local active_ratio = 1--diff_ratios[diff_setting] or 0.75
 
         utils.shuffleTable(all_other_zones)
         

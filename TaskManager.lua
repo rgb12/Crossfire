@@ -1204,10 +1204,8 @@ do
                         y = target_p.z
                     },
                     attackQty = 1,
-                    -- Use the more general 'AnyBomb' flag from the Pretense file
-                    
                     ---@diagnostic disable-next-line: undefined-field
-                    weaponType = Weapon.flag.AnyBomb, 
+                    weaponType = 3221225470 , -- Any weapon
 
                     expend = AI.Task.WeaponExpend.ALL,
                     groupAttack = true,

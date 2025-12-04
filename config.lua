@@ -20,7 +20,7 @@ Config = {
 
         
         random_scenario_selection = false, -- allows the script to randomly choose a random scenario, authority over scenario selection
-        scenario_selected = "Neptune Protocol", -- subject to the field above, choose your own scenario 
+        scenario_selected = "Georgia Liberation", -- subject to the field above, choose your own scenario 
     },
     operations = {
         recon_minimum_altitude = 1524, -- (meters)
