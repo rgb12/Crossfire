@@ -203,37 +203,31 @@ do
                         warehouse_name = WarehouseManager.AircraftFlags.F16C_BL50
                     }
                 },
-                -- [coalition.side.RED] = {
-                --     [AITaskTypes.JTAC] = {
-                --         group_name = "RED JTAC",--TO CHANGE
-                --         warehouse_name = "RQ-1A Predator"
-                --     }
-                -- },
-            },
-            [Airbases.Caucasus.Kutaisi] = {
                 [coalition.side.RED] = {
                     [AITaskTypes.CAS] = {
-                        group_name = "RED KUTAISI CAS",
+                        group_name = "RED VAZIANI CAS",
                         warehouse_name = WarehouseManager.AircraftFlags.SU25T
                     },
                     [AITaskTypes.SEAD] = {
-                        group_name = "RED KUTAISI SEAD",
+                        group_name = "RED VAZIANI SEAD",
                         warehouse_name = WarehouseManager.AircraftFlags.SU24M
                     },
                     [AITaskTypes.STRIKE] = {
-                        group_name = "RED KUTAISI STRIKE",
+                        group_name = "RED VAZIANI STRIKE",
                         warehouse_name = WarehouseManager.AircraftFlags.SU24M
                     },
                     [AITaskTypes.INTERCEPT] = {
-                        group_name = "RED KUTAISI INTERCEPT",
+                        group_name = "RED VAZIANI INTERCEPT",
                         warehouse_name = WarehouseManager.AircraftFlags.SU27
                     },
-                    [AITaskTypes.AWACS] = {
-                        group_name = "RED KUTAISI AWACS",
-                        warehouse_name = WarehouseManager.AircraftFlags.A50
+                    [AITaskTypes.RECON] = {
+                        group_name = "RED VAZIANI RECON",
+                        warehouse_name = WarehouseManager.AircraftFlags.SU24MR
                     },
-
-                    
+                    [AITaskTypes.AWACS] = {
+                        group_name = "RED VAZIANI AWACS",
+                        warehouse_name = WarehouseManager.AircraftFlags.A50
+                    }
                 }
             },
             [Airbases.Caucasus.Anapa_Vityazevo] = {
@@ -263,7 +257,221 @@ do
                         warehouse_name = WarehouseManager.AircraftFlags.SU24MR
                     }
                 }
-            }
+            },
+            [Airbases.Caucasus.Krymsk] = {
+                [coalition.side.RED] = {
+                    [AITaskTypes.CAS] = {
+                        group_name = "RED KRYMSK CAS",
+                        warehouse_name = WarehouseManager.AircraftFlags.SU25T
+                    },
+                    [AITaskTypes.SEAD] = {
+                        group_name = "RED KRYMSK SEAD",
+                        warehouse_name = WarehouseManager.AircraftFlags.SU24M
+                    },
+                    [AITaskTypes.STRIKE] = {
+                        group_name = "RED KRYMSK STRIKE",
+                        warehouse_name = WarehouseManager.AircraftFlags.SU24M
+                    },
+                    [AITaskTypes.INTERCEPT] = {
+                        group_name = "RED KRYMSK INTERCEPT",
+                        warehouse_name = WarehouseManager.AircraftFlags.SU27
+                    },
+                    [AITaskTypes.RECON] = {
+                        group_name = "RED KRYMSK RECON",
+                        warehouse_name = WarehouseManager.AircraftFlags.SU24MR
+                    }
+                }
+            },
+            [Airbases.Caucasus.Krasnodar_Pashkovsky] = {
+                [coalition.side.RED] = {
+                    [AITaskTypes.CAS] = {
+                        group_name = "RED KRASNODAR CAS",
+                        warehouse_name = WarehouseManager.AircraftFlags.SU25T
+                    },
+                    [AITaskTypes.SEAD] = {
+                        group_name = "RED KRASNODAR SEAD",
+                        warehouse_name = WarehouseManager.AircraftFlags.SU24M
+                    },
+                    [AITaskTypes.STRIKE] = {
+                        group_name = "RED KRASNODAR STRIKE",
+                        warehouse_name = WarehouseManager.AircraftFlags.SU24M
+                    },
+                    [AITaskTypes.INTERCEPT] = {
+                        group_name = "RED KRASNODAR INTERCEPT",
+                        warehouse_name = WarehouseManager.AircraftFlags.SU27
+                    },
+                    [AITaskTypes.RECON] = {
+                        group_name = "RED KRASNODAR RECON",
+                        warehouse_name = WarehouseManager.AircraftFlags.SU24MR
+                    }
+
+                }
+            },
+            [Airbases.Caucasus.Maykop_Khanskaya] = {
+                [coalition.side.RED] = {
+                    [AITaskTypes.CAS] = {
+                        group_name = "RED MAYKOP CAS",
+                        warehouse_name = WarehouseManager.AircraftFlags.SU25T
+                    },
+                    [AITaskTypes.SEAD] = {
+                        group_name = "RED MAYKOP SEAD",
+                        warehouse_name = WarehouseManager.AircraftFlags.SU24M
+                    },
+                    [AITaskTypes.STRIKE] = {
+                        group_name = "RED MAYKOP STRIKE",
+                        warehouse_name = WarehouseManager.AircraftFlags.SU24M
+                    },
+                    [AITaskTypes.INTERCEPT] = {
+                        group_name = "RED MAYKOP INTERCEPT",
+                        warehouse_name = WarehouseManager.AircraftFlags.SU27
+                    },
+                    [AITaskTypes.RECON] = {
+                        group_name = "RED MAYKOP RECON",
+                        warehouse_name = WarehouseManager.AircraftFlags.SU24MR
+                    },
+                    [AITaskTypes.AWACS] = {
+                        group_name = "RED MAYKOP AWACS",
+                        warehouse_name = WarehouseManager.AircraftFlags.A50
+                    },
+                }
+            },
+            [Airbases.Caucasus.Sochi_Adler] = {
+                [coalition.side.RED] = {
+                    [AITaskTypes.CAS] = {
+                        group_name = "RED SOCHI CAS",
+                        warehouse_name = WarehouseManager.AircraftFlags.SU25T
+                    },
+                    [AITaskTypes.SEAD] = {
+                        group_name = "RED SOCHI SEAD",
+                        warehouse_name = WarehouseManager.AircraftFlags.SU24M
+                    },
+                    [AITaskTypes.STRIKE] = {
+                        group_name = "RED SOCHI STRIKE",
+                        warehouse_name = WarehouseManager.AircraftFlags.SU24M
+                    },
+                    [AITaskTypes.INTERCEPT] = {
+                        group_name = "RED SOCHI INTERCEPT",
+                        warehouse_name = WarehouseManager.AircraftFlags.SU27
+                    },
+                    [AITaskTypes.RECON] = {
+                        group_name = "RED SOCHI RECON",
+                        warehouse_name = WarehouseManager.AircraftFlags.SU24MR
+                    },
+                    [AITaskTypes.AWACS] = {
+                        group_name = "RED SOCHI AWACS",
+                        warehouse_name = WarehouseManager.AircraftFlags.A50
+                    },
+                }
+            },
+            [Airbases.Caucasus.Gudauta] = {
+                [coalition.side.RED] = {
+                    [AITaskTypes.CAS] = {
+                        group_name = "RED GUDAUTA CAS",
+                        warehouse_name = WarehouseManager.AircraftFlags.SU25T
+                    },
+                    [AITaskTypes.INTERCEPT] = {
+                        group_name = "RED GUDAUTA INTERCEPT",
+                        warehouse_name = WarehouseManager.AircraftFlags.SU27
+                    },
+                    [AITaskTypes.RECON] = {
+                        group_name = "RED GUDAUTA RECON",
+                        warehouse_name = WarehouseManager.AircraftFlags.SU24MR
+                    }
+                }
+            },
+            [Airbases.Caucasus.Sukhumi_Babushara] = {
+                [coalition.side.RED] = {
+                    [AITaskTypes.RECON] = {
+                        group_name = "RED SUKHUMI RECON",
+                        warehouse_name = WarehouseManager.AircraftFlags.SU24MR
+                    }
+                }
+            },
+            [Airbases.Caucasus.Senaki_Kolkhi] = {
+                [coalition.side.RED] = {
+                    [AITaskTypes.CAS] = {
+                        group_name = "RED SENAKI CAS",
+                        warehouse_name = WarehouseManager.AircraftFlags.SU25T
+                    },
+                    [AITaskTypes.SEAD] = {
+                        group_name = "RED SENAKI SEAD",
+                        warehouse_name = WarehouseManager.AircraftFlags.SU24M
+                    },
+                    [AITaskTypes.STRIKE] = {
+                        group_name = "RED SENAKI STRIKE",
+                        warehouse_name = WarehouseManager.AircraftFlags.SU24M
+                    },
+                    [AITaskTypes.INTERCEPT] = {
+                        group_name = "RED SENAKI INTERCEPT",
+                        warehouse_name = WarehouseManager.AircraftFlags.SU27
+                    },
+                    [AITaskTypes.RECON] = {
+                        group_name = "RED SENAKI RECON",
+                        warehouse_name = WarehouseManager.AircraftFlags.SU24MR
+                    },
+                    [AITaskTypes.AWACS] = {
+                        group_name = "RED SENAKI AWACS",
+                        warehouse_name = WarehouseManager.AircraftFlags.A50
+                    },
+                }
+            },
+            [Airbases.Caucasus.Kutaisi] = {
+                [coalition.side.RED] = {
+                    [AITaskTypes.CAS] = {
+                        group_name = "RED KUTAISI CAS",
+                        warehouse_name = WarehouseManager.AircraftFlags.SU25T
+                    },
+                    [AITaskTypes.SEAD] = {
+                        group_name = "RED KUTAISI SEAD",
+                        warehouse_name = WarehouseManager.AircraftFlags.SU24M
+                    },
+                    [AITaskTypes.STRIKE] = {
+                        group_name = "RED KUTAISI STRIKE",
+                        warehouse_name = WarehouseManager.AircraftFlags.SU24M
+                    },
+                    [AITaskTypes.INTERCEPT] = {
+                        group_name = "RED KUTAISI INTERCEPT",
+                        warehouse_name = WarehouseManager.AircraftFlags.SU27
+                    },
+                    [AITaskTypes.AWACS] = {
+                        group_name = "RED KUTAISI AWACS",
+                        warehouse_name = WarehouseManager.AircraftFlags.A50
+                    },
+                    [AITaskTypes.RECON] = {
+                        group_name = "RED KUTAISI RECON",
+                        warehouse_name = WarehouseManager.AircraftFlags.SU24MR
+                    }
+                }
+            },
+            [Airbases.Caucasus.Kobuleti] = {
+                [coalition.side.RED] = {
+                    [AITaskTypes.RECON] = {
+                        group_name = "RED KOBULETI RECON",
+                        warehouse_name = WarehouseManager.AircraftFlags.SU24MR
+                    },
+                    [AITaskTypes.CAS] = {
+                        group_name = "RED KOBULETI CAS",
+                        warehouse_name = WarehouseManager.AircraftFlags.SU25T
+                    },
+                    [AITaskTypes.INTERCEPT] = {
+                        group_name = "RED KOBULETI INTERCEPT",
+                        warehouse_name = WarehouseManager.AircraftFlags.SU27
+                    },
+                    [AITaskTypes.AWACS] = {
+                        group_name = "RED KOBULETI AWACS",
+                        warehouse_name = WarehouseManager.AircraftFlags.A50
+                    },
+                    
+                }
+            },
+            [Airbases.Caucasus.Batumi] = {
+                [coalition.side.RED] = {
+                    [AITaskTypes.RECON] = {
+                        group_name = "RED BATUMI RECON",
+                        warehouse_name = WarehouseManager.AircraftFlags.SU24MR
+                    }
+                }
+            },
     }
 
     WarehouseManager.AIPayloads = {
@@ -340,7 +548,7 @@ do
                 -- 2 * Kh-29T AS-14 Kedge
                 -- 1 * APU-60-1M with 1 * R-60M
             },
-
+            [AITaskTypes.RECON] = {},
             
             [AITaskTypes.AWACS] = {}
         }
@@ -470,6 +678,8 @@ do
                 [WarehouseManager.Flags.S25_O_420MM_FRAG] = math.random(6,12),
                 [WarehouseManager.Flags.S5_M_HE] = math.random(60,120),
                 [WarehouseManager.Flags.S5_KP_57MM_HEAT_FRAG] = math.random(60,120),
+                [WarehouseManager.Flags.R60M] = math.random(20,30),
+                [WarehouseManager.Flags.KAB_500KR] = math.random(20,30),
 
                 [WarehouseManager.AircraftFlags.SU25T] = 18,
                 [WarehouseManager.AircraftFlags.SU27] = 8,
@@ -786,15 +996,18 @@ do
 
         --[[
             tier = level
-            75% of supplies go to airbases level 4, divided equally
-            25% of supplies go to airbases level 3, divided equally
-            0% for airbases level 1 and 2
+            15% of supplies go to airbases level 1, divided equally
+            25% of supplies go to airbases level 2, divided equally
+            30% of supplies go to airbases level 3, divided equally
+            30% of supplies go to airbases level 4, divided equally
             
-            If no bases of one level exist, the other level gets its share.
+            If no bases of one level exist, the other levels share proportionally.
         ]]
 
-        local level_4_bases = {}
+        local level_1_bases = {}
+        local level_2_bases = {}
         local level_3_bases = {}
+        local level_4_bases = {}
 
         -- 1. Find all eligible airbases and their warehouses
         for _, zone in ipairs(zones) do
@@ -803,44 +1016,76 @@ do
                 if airbase then
                     local warehouse = airbase:getWarehouse()
                     if warehouse then
-                        if zone.level == 4 then
-                            table.insert(level_4_bases, warehouse)
+                        if zone.level == 1 then
+                            table.insert(level_1_bases, warehouse)
+                        elseif zone.level == 2 then
+                            table.insert(level_2_bases, warehouse)
                         elseif zone.level == 3 then
                             table.insert(level_3_bases, warehouse)
+                        elseif zone.level == 4 then
+                            table.insert(level_4_bases, warehouse)
                         end
                     end
                 end
             end
         end
 
-        local count_l4 = #level_4_bases
+        local count_l1 = #level_1_bases
+        local count_l2 = #level_2_bases
         local count_l3 = #level_3_bases
+        local count_l4 = #level_4_bases
         
-        local mult_l4 = 0
+        local mult_l1 = 0
+        local mult_l2 = 0
         local mult_l3 = 0
+        local mult_l4 = 0
         
-        local share_l4 = 0.75
-        local share_l3 = 0.25
+        local share_l1 = 0.15
+        local share_l2 = 0.25
+        local share_l3 = 0.30
+        local share_l4 = 0.30
 
         -- 2. Calculate supply multipliers based on distribution logic
-        if count_l4 == 0 and count_l3 > 0 then
-            -- No L4 bases, L3 bases get 100% of the supplies, divided equally
-            mult_l3 = 1.0 / count_l3
-            MissionLogger:info("HandleIncomingSupplies: No tier 4 bases found. Distributing 100% to " .. count_l3 .. " tier 3 bases.")
-        elseif count_l3 == 0 and count_l4 > 0 then
-            -- No L3 bases, L4 bases get 100% of the supplies, divided equally
-            mult_l4 = 1.0 / count_l4
-            MissionLogger:info("HandleIncomingSupplies: No tier 3 bases found. Distributing 100% to " .. count_l4 .. " tier 4 bases.")
-        elseif count_l4 > 0 and count_l3 > 0 then
-            -- Standard split: 75% to L4, 25% to L3
-            mult_l4 = share_l4 / count_l4
-            mult_l3 = share_l3 / count_l3
-            MissionLogger:info("HandleIncomingSupplies: Splitting 75% to " .. count_l4 .. " tier 4 bases, 25% to " .. count_l3 .. " tier 3 bases.")
-        else
-            -- No L3 or L4 bases found for this side.
-            MissionLogger:info("WarehouseManager:handleIncomingSupplies: No tier 3 or tier 4 airbases found for " .. (utils.coalitionToString(side) or "Unknown Side"))
+        -- Calculate total available share and redistribute if any level has no bases
+        local total_bases = count_l1 + count_l2 + count_l3 + count_l4
+        
+        if total_bases == 0 then
+            MissionLogger:info("WarehouseManager:handleIncomingSupplies: No airbases found for " .. (utils.coalitionToString(side) or "Unknown Side"))
             return
         end
+        
+        -- Redistribute shares proportionally if any level is missing
+        local available_share = 1.0
+        local levels_with_bases = {}
+        
+        if count_l1 > 0 then table.insert(levels_with_bases, {count = count_l1, share = share_l1, level = 1}) else available_share = available_share - share_l1 end
+        if count_l2 > 0 then table.insert(levels_with_bases, {count = count_l2, share = share_l2, level = 2}) else available_share = available_share - share_l2 end
+        if count_l3 > 0 then table.insert(levels_with_bases, {count = count_l3, share = share_l3, level = 3}) else available_share = available_share - share_l3 end
+        if count_l4 > 0 then table.insert(levels_with_bases, {count = count_l4, share = share_l4, level = 4}) else available_share = available_share - share_l4 end
+        
+        -- Calculate base share sum for redistribution
+        local base_share_sum = 0
+        for _, level_info in ipairs(levels_with_bases) do
+            base_share_sum = base_share_sum + level_info.share
+        end
+        
+        -- Distribute supplies
+        for _, level_info in ipairs(levels_with_bases) do
+            local adjusted_share = (level_info.share / base_share_sum) * (1.0)
+            local multiplier = adjusted_share / level_info.count
+            
+            if level_info.level == 1 then
+                mult_l1 = multiplier
+            elseif level_info.level == 2 then
+                mult_l2 = multiplier
+            elseif level_info.level == 3 then
+                mult_l3 = multiplier
+            elseif level_info.level == 4 then
+                mult_l4 = multiplier
+            end
+        end
+        
+        MissionLogger:info("HandleIncomingSupplies: Distributing to L1: " .. count_l1 .. " bases, L2: " .. count_l2 .. " bases, L3: " .. count_l3 .. " bases, L4: " .. count_l4 .. " bases.")
 
         -- 3. Get the full list of items to add (pre-multiplication)
         local items_to_add = {}
@@ -871,6 +1116,51 @@ do
         -- 4. Distribute items to warehouses with calculated amounts
         local user_scale = WarehouseManager:getStockScale()
 
+        -- Add to tier 1 bases
+        if mult_l1 > 0 then
+            for _, warehouse in ipairs(level_1_bases) do
+                for id, base_amount in pairs(items_to_add) do
+                    local final_amount = math.ceil(base_amount * mult_l1 * user_scale)
+                    if final_amount > 0 then
+                        warehouse:addItem(id, final_amount)
+                    end
+                end
+                for id, amount in pairs(aircraft_to_add) do
+                    warehouse:addItem(id, amount)
+                end
+            end
+        end
+
+        -- Add to tier 2 bases
+        if mult_l2 > 0 then
+            for _, warehouse in ipairs(level_2_bases) do
+                for id, base_amount in pairs(items_to_add) do
+                    local final_amount = math.ceil(base_amount * mult_l2 * user_scale)
+                    if final_amount > 0 then
+                        warehouse:addItem(id, final_amount)
+                    end
+                end
+                for id, amount in pairs(aircraft_to_add) do
+                    warehouse:addItem(id, amount)
+                end
+            end
+        end
+
+        -- Add to tier 3 bases
+        if mult_l3 > 0 then
+            for _, warehouse in ipairs(level_3_bases) do
+                for id, base_amount in pairs(items_to_add) do
+                    local final_amount = math.ceil(base_amount * mult_l3 * user_scale)
+                    if final_amount > 0 then
+                        warehouse:addItem(id, final_amount)
+                    end
+                end
+                for id, amount in pairs(aircraft_to_add) do
+                    warehouse:addItem(id, amount)
+                end
+            end
+        end
+        
         -- Add to tier 4 bases
         if mult_l4 > 0 then
             for _, warehouse in ipairs(level_4_bases) do
@@ -886,20 +1176,6 @@ do
             end
         end
         
-        -- Add to tier 3 bases
-        if mult_l3 > 0 then
-            for _, warehouse in ipairs(level_3_bases) do
-                for id, base_amount in pairs(items_to_add) do
-                    local final_amount = math.ceil(base_amount * mult_l3 * user_scale)
-                    if final_amount > 0 then
-                        warehouse:addItem(id, final_amount)
-                    end
-                end
-                for id, amount in pairs(aircraft_to_add) do
-                    warehouse:addItem(id, amount)
-                end
-            end
-        end
         trigger.action.outTextForCoalition(side, "Arriving supplies distributed to airbases.", 10)
 
         MissionLogger:info("HandleIncomingSupplies: Supply distribution complete for " .. (utils.coalitionToString(side) or "Unknown Side"))
@@ -909,20 +1185,51 @@ do
     ---@param ai_task_type AITaskTypes
     ---@return boolean, string|nil
     function WarehouseManager:checkIfAIPayloadInStock(airbase, ai_task_type)
-        if not airbase or not airbase.getCoalition then return false end
+        if not airbase or not airbase.getCoalition then 
+            MissionLogger:info("[PAYLOAD CHECK] Airbase or coalition check failed")
+            return false 
+        end
         local airbase_coalition = airbase:getCoalition()
-        if not WarehouseManager.AIPayloads[airbase_coalition][ai_task_type] then return false end
+        
+        -- Check if payload definition exists for this coalition and task type
+        if not WarehouseManager.AIPayloads[airbase_coalition] then
+            MissionLogger:error("[PAYLOAD CHECK] No payload definitions for coalition "..airbase_coalition)
+            return false
+        end
+        
+        if not WarehouseManager.AIPayloads[airbase_coalition][ai_task_type] then
+            MissionLogger:info("[PAYLOAD CHECK] No payload definition for "..ai_task_type.." (coalition "..airbase_coalition..") - treating as NO PAYLOAD REQUIRED")
+            return true  -- If no payload is defined, treat as "no requirements" = OK
+        end
 
         local warehouse = airbase:getWarehouse()
-        if not warehouse then return false end
+        if not warehouse then 
+            MissionLogger:error("[PAYLOAD CHECK] No warehouse for airbase")
+            return false 
+        end
 
+        -- Check if the payload table is empty (no requirements)
+        local has_requirements = false
+        for _ in pairs(WarehouseManager.AIPayloads[airbase_coalition][ai_task_type]) do
+            has_requirements = true
+            break
+        end
+        
+        if not has_requirements then
+            MissionLogger:info("[PAYLOAD CHECK] Empty payload table for "..ai_task_type.." - treating as NO PAYLOAD REQUIRED")
+            return true  -- Empty payload table = no requirements
+        end
+
+        -- Check each weapon requirement
         for wpn_id,amount in pairs(WarehouseManager.AIPayloads[airbase_coalition][ai_task_type]) do
-            if warehouse:getItemCount(wpn_id) < amount then
-                -- MissionLogger:info("Checking warehouse for "..ai_task_type.." payloads, payload INSUFFICIENT")
+            local current_count = warehouse:getItemCount(wpn_id)
+            if current_count < amount then
+                MissionLogger:info("[PAYLOAD CHECK] "..ai_task_type.." payload INSUFFICIENT: need "..amount.." of "..wpn_id..", have "..current_count)
                 return false
             end
         end
-        -- MissionLogger:info("Checking warehouse for "..ai_task_type.." payloads, payload OK")
+        
+        MissionLogger:info("[PAYLOAD CHECK] "..ai_task_type.." payload OK")
         return true
 
     end

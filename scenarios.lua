@@ -44,8 +44,8 @@ Scenarios = {
             max_dist_to_frontline = 65000 --meters
         },
         resupply = {
-            blue_point = { x = 00006923, y = 6096, z = 00079849 },
-            red_point = { x = -00326782, y = 6096, z = 00932890 }
+            red_point = { x = 00006923, y = 6096, z = 00079849 },
+            blue_point = { x = -00326782, y = 6096, z = 00932890 }
         },
         difficulty = ScenarioDifficulty.HARD,
         red_airbase = ZoneHandler:new({
@@ -60,6 +60,11 @@ Scenarios = {
             ZoneHandler:new({
                 name = "ALPHA",
                 zone_type = ZoneTypes.STRONGPOINT
+            }),
+            ZoneHandler:new({
+                name = "KUTAISI",
+                zone_type = ZoneTypes.AIRBASE,
+                airbase_name = Airbases.Caucasus.Kutaisi,
             }),
 
         }

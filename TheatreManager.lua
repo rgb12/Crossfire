@@ -14,17 +14,6 @@ do
         if side_sending_capture == coalition.side.NEUTRAL then return end
         MissionLogger:info(utils.coalitionToString(side_sending_capture).." attempting capture group for zone: " .. to_zone.name)
 
-        ------------[check if game has been won]------------
-        local zones_captured = nil
-        if side_sending_capture == coalition.side.BLUE then zones_captured = stats.blue_zones
-        else zones_captured = stats.red_zones end
-
-        if zones_captured == #zones then
-            MISSION_ENDED = true
-            world.removeEventHandler(ev)
-            return trigger.action.outText(utils.coalitionToString(side_sending_capture) .." coalition completed this scenario.", 50)
-        end
-
         ------------[checks if capture group already enroute for side]------------
         if EnrouteManager:findByToZone(to_zone,side_sending_capture,{AITaskTypes.CAPTURE_CONVOY, AITaskTypes.CAPTURE_HELO}) then
             trigger.action.outText(utils.coalitionToString(side_sending_capture) ..
@@ -55,7 +44,7 @@ do
                 if zone.capture_heli_avail and zone.capture_heli_avail>0 and zones_distance <= Config.capture_helicopter_max_range then
                     -- send heli
                     TaskManager:initiateAITask(AITaskTypes.CAPTURE_HELO,side_sending_capture,true,to_zone,zone,false)
-                    break
+                    return
                 end
             end
 
@@ -210,7 +199,7 @@ do
             local awacs_enroute = EnrouteManager:findByTaskType(AITaskTypes.AWACS, side)
             if #awacs_enroute == 0 and closest_dist < Config.tasking.min_cleareance_dist_for_awacs
             and side_comms_towers >= Config.tasking_requirements.comms_zones_required_for_awacs then
-                return TaskManager:initiateAITask(AITaskTypes.AWACS, side, true, nil, home_base, true)
+                return TaskManager:initiateAITask(AITaskTypes.AWACS, side, true, nil, home_base, false)
             end
             return false
         end)
@@ -226,12 +215,14 @@ do
             end
 
             for _, zone in ipairs(zones) do
-                if zone.side == enemy_side and utils.tableContains(stats.blue_discovered_zones, zone.name)
-                and not EnrouteManager:findByToZone(zone, side, {AITaskTypes.CAS}) then
-                    
-                    local dist = mist.utils.get2DDist(home_base.zone.point, zone.zone.point)
-                    if dist < Config.tasking.max_cas_range then
-                        return TaskManager:initiateAITask(AITaskTypes.CAS, side, true, zone, nil, true)
+                if zone.side == enemy_side then
+                    local discovered = (side == coalition.side.BLUE and utils.tableContains(stats.blue_discovered_zones, zone.name)) or
+                                       (side == coalition.side.RED and utils.tableContains(stats.red_discovered_zones, zone.name))
+                    if discovered and not EnrouteManager:findByToZone(zone, side, {AITaskTypes.CAS}) then
+                        local dist = mist.utils.get2DDist(home_base.zone.point, zone.zone.point)
+                        if dist < Config.tasking.max_cas_range then
+                            return TaskManager:initiateAITask(AITaskTypes.CAS, side, true, zone, nil, false)
+                        end
                     end
                 end
             end
@@ -273,10 +264,13 @@ do
                 return false
             end
                 for _, zone in ipairs(zones) do
-                    if zone.side == side and zone.zone_type ~= ZoneTypes.AIRBASE and utils.tableContains(stats.blue_discovered_zones, zone.name) then
-                        MissionLogger:info(zone.name)
-                        if not EnrouteManager:findByToZone(zone, side, {AITaskTypes.INTERCEPT}) then
-                            return TaskManager:initiateAITask(AITaskTypes.INTERCEPT, side, true, zone, nil, true)
+                    if zone.side == enemy_side and zone.zone_type ~= ZoneTypes.AIRBASE then
+                        local discovered = (side == coalition.side.BLUE and utils.tableContains(stats.blue_discovered_zones, zone.name)) or
+                                           (side == coalition.side.RED and utils.tableContains(stats.red_discovered_zones, zone.name))
+                        if discovered then
+                            if not EnrouteManager:findByToZone(zone, side, {AITaskTypes.INTERCEPT}) then
+                                return TaskManager:initiateAITask(AITaskTypes.INTERCEPT, side, true, zone, nil, false)
+                            end
                         end
                     end
                 end
@@ -286,6 +280,8 @@ do
         -- [TASK: STRIKE]
         table.insert(possible_tasks, function()
             local strike_enroute = EnrouteManager:findByTaskType(AITaskTypes.STRIKE, side)
+            MissionLogger:info(string.format("[STRIKE] %s checking STRIKE tasks. Current enroute: %d, max: %d", 
+                utils.coalitionToString(side), strike_enroute and #strike_enroute or 0, Config.tasking.max_strike_theatre))
             if strike_enroute and #strike_enroute < Config.tasking.max_strike_theatre
             and side_comms_towers >= Config.tasking_requirements.comms_zones_required_for_strike
             then 
@@ -301,12 +297,22 @@ do
                         
                         if discovered then
                             if not EnrouteManager:findByToZone(zone, side, {AITaskTypes.STRIKE}) then
-                                return TaskManager:initiateAITask(AITaskTypes.STRIKE, side, true, zone, nil, true)
+                                MissionLogger:info(string.format("[STRIKE] %s: Attempting to initiate STRIKE task to %s", 
+                                    utils.coalitionToString(side), zone.name))
+                                return TaskManager:initiateAITask(AITaskTypes.STRIKE, side, true, zone, nil, false)
                             end
                         end
                     end
                 end
+            else
+                if strike_enroute and #strike_enroute >= Config.tasking.max_strike_theatre then
+                    MissionLogger:info(string.format("[STRIKE] %s: Max STRIKE tasks reached", utils.coalitionToString(side)))
+                elseif side_comms_towers < Config.tasking_requirements.comms_zones_required_for_strike then
+                    MissionLogger:info(string.format("[STRIKE] %s: Not enough COMMS towers (%d < %d)", 
+                        utils.coalitionToString(side), side_comms_towers, Config.tasking_requirements.comms_zones_required_for_strike))
+                end
             end
+            MissionLogger:info(string.format("[STRIKE] %s: No valid STRIKE targets found", utils.coalitionToString(side)))
             return false
         end)
         -- 3. SHUFFLE THE TASKS
@@ -443,7 +449,8 @@ do
 
                     elseif not UnitHandler.checkConvoyMoving(convoy_group) then
                         -- SCENARIO 2: CONVOY STUCK (or at destination)
-                        if enroute.to_zone:isPointInsideZone(mist.getLeadPos(convoy_group)) then
+                        local convoy_pos = mist.getLeadPos(convoy_group)
+                        if convoy_pos and enroute.to_zone:isPointInsideZone(convoy_pos) then
                             -- It's "stuck" but at the destination. This is the redirect logic.
                             MissionLogger:info("Attack convoy not moving (at destination), redirecting " .. enroute.group_name)
                             
@@ -494,7 +501,7 @@ do
                     local recon_gr = Group.getByName(enroute.group_name)
                     if recon_gr and recon_gr:isExist() then
                         local pos = mist.getLeadPos(recon_gr)
-                        if mist.utils.get2DDist(pos, enroute.to_zone.zone.point) <= Config.tasking.range_for_recon_to_discover_zone then
+                        if pos and mist.utils.get2DDist(pos, enroute.to_zone.zone.point) <= Config.tasking.range_for_recon_to_discover_zone then
                             -- Zone is discovered
                             local first_time_discovered = false
                             if enroute.side == coalition.side.BLUE and not utils.tableContains(stats.blue_discovered_zones, enroute.to_zone.name) then
@@ -710,9 +717,11 @@ do
                         if dist_to_blue <= actual_radius then
                             zone.side = coalition.side.BLUE
                             table.insert(blue_pool, zone)
+                            stats.blue_zones = stats.blue_zones + 1
                         else
                             zone.side = coalition.side.RED
                             table.insert(red_pool, zone)
+                            stats.red_zones = stats.red_zones + 1
                         end
                     end
                 end
@@ -906,7 +915,10 @@ do
         
         world.addEventHandler(ev)
         world.addEventHandler(ExperienceManager.EventHandler)
-        world.addEventHandler(Jupiter)
+
+        if Config.jupiter_enabled then
+            world.addEventHandler(Jupiter)
+        end
         PersistanceManager:autoSave()
         -- trigger.action.outText("Theatre setup complete.", 5)
         MissionLogger:info("Mission Commander: Mission Setup Complete.")

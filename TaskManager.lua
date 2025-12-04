@@ -1073,6 +1073,7 @@ do
 
             -- 2. Calculate Positions
             local startPos = mist.getLeadPos(sead_group_name) -- Current Airbase pos
+            if not startPos then return false end
             local targetPos = enroute_data.to_zone.zone.point -- Enemy SAM pos
             
             -- Calculate vector from Start to Target
@@ -1365,6 +1366,7 @@ do
     ---@param convoy_group Group
     function TaskManager:ConvoyToPoint(convoy_group,arrival_point)
         local gr_pos = mist.getLeadPos(convoy_group)
+        if not gr_pos then return end
         local roadless = false
         if mist.utils.get2DDist(gr_pos,arrival_point) < 2500 then roadless = true end
 

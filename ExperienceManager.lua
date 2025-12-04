@@ -171,7 +171,7 @@ do
                 missions_completed = 0,
                 tokens = 0,
                 unclaimed_tokens = 0,
-                ranks = Config.reward_system.ranks[1].name,
+                rank = Config.reward_system.ranks[1].name,
             }
         else
             -- Update runtime ID when player rejoins

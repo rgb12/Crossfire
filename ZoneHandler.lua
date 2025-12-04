@@ -87,15 +87,6 @@ do
 
         end
 
-        if obj.side == coalition.side.NEUTRAL then
-            stats.neutral_zones = stats.neutral_zones + 1
-        elseif obj.side == coalition.side.RED then
-            -- table.insert(stats.red_discovered_zones,obj.name)
-            stats.red_zones = stats.red_zones + 1
-        elseif obj.side == coalition.side.BLUE then
-            -- table.insert(stats.blue_discovered_zones,obj.name)
-            stats.blue_zones = stats.blue_zones + 1
-        end
 
         return obj
     end
@@ -654,15 +645,16 @@ do
         MissionLogger:info("Zone " .. self.zone.name .. " captured by " .. utils.coalitionToString(self.side))
 
         timer.scheduleFunction(function ()
-            if stats.red_zones <= 0 then
+            if stats.blue_zones == 0 and stats.red_zones > 0 then
+                MISSION_ENDED = true
+                world.removeEventHandler(ev)
+                trigger.action.outSound("ACDC Highway to Hell.ogg")
+                trigger.action.outText("************\n\n  REDFOR achieved total domination !\n\n************", 500)
+            elseif stats.red_zones == 0 and stats.blue_zones > 0 then
                 MISSION_ENDED = true
                 world.removeEventHandler(ev)
                 trigger.action.outSound("ACDC Highway to Hell.ogg")
                 trigger.action.outText("************\n\n  BLUEFOR achieved total domination !\n\n************", 500)
-            elseif stats.blue_zones <= 0 then
-                world.removeEventHandler(ev)
-                trigger.action.outSound("ACDC Highway to Hell.ogg")
-                trigger.action.outText("************\n\n  REDFOR achieved total domination !\n\n************", 500)
             end
         end,nil,timer.getTime()+10)
 
