@@ -50,6 +50,7 @@ do
                 end)
 
                 CommandHandler.initTaskingRequests(group)
+                CommandHandler.resourcesRequests(group)
             end
 
         elseif event.id == world.event.S_EVENT_KILL then
@@ -260,15 +261,12 @@ do
         -- Merge loaded data. We overwrite existing keys.
         for playerName, userData in pairs(data) do
             ExperienceManager.user_data[playerName] = userData
-            -- Reset unclaimed on load to prevent exploits/confusion
             ExperienceManager.user_data[playerName].unclaimed_xp = 0
             ExperienceManager.user_data[playerName].unclaimed_tokens = 0
             -- ID will be updated when player joins (addUser)
             ExperienceManager.user_data[playerName].id = nil
         end
-        local count = 0
-        for _ in pairs(data) do count = count + 1 end
-        MissionLogger:info("User data restored for " .. count .. " users.")
+        MissionLogger:info("User data restored for " .. #data .. " users.")
     end
 
 end

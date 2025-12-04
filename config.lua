@@ -41,6 +41,11 @@ Config = {
     allow_resupply = true, -- this will enable/disable resupply aircrafts, this will make the misison significantly harder
 
 
+    zone_upgrade_costs_tokens = {
+        [1] = 20, -- cost to upgrade from tier 1 to tier 2
+        [2] = 40, -- cost to upgrade from tier 2 to tier 3
+        [3] = 60, -- cost to upgrade from tier 3 to tier 4
+    },
     reward_system = {
         enable = true, -- completely enables/disables the reward system
         xp_per_mission_completed = 100,

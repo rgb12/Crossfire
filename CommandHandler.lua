@@ -25,7 +25,97 @@ do
         [coalition.side.RED] = false,
         [coalition.side.BLUE] = false
     }
-    
+
+    ---@param gr Group
+    function CommandHandler.resourcesRequests(gr)
+
+        if not gr or not gr.isExist or not gr:isExist() then return end
+                local gr_id = gr:getID()
+
+        if CommandHandler.group_menus[gr_id] then
+            -- Remove existing menus. 
+            for i = #CommandHandler.group_menus[gr_id], 1, -1 do
+                if CommandHandler.group_menus[gr_id][i].type == "resources_main" then
+                    missionCommands.removeItemForGroup(gr_id, CommandHandler.group_menus[gr_id][i].path)
+                    table.remove(CommandHandler.group_menus[gr_id], i)
+                end
+            end
+        else
+            CommandHandler.group_menus[gr_id] = {}
+        end
+
+          -- Create the root menu for this update
+        local resources_main_submenu = missionCommands.addSubMenuForGroup(gr_id,"Resources",nil)
+        table.insert(CommandHandler.group_menus[gr_id], {path=resources_main_submenu, type="resources_main"})
+
+        local resources = {}
+
+        -- UPGRADE ZONES LOGIC
+        local unit = gr:getUnit(1)
+        if unit and unit:isExist() and unit.getCoalition then
+            local side = unit:getCoalition()
+
+            ---@param target_unit Unit
+            ---@param required_tokens number
+            ---@return boolean
+            local function checkTokens(target_unit, required_tokens)
+                if not Config.reward_system.enable then return true end
+                if not target_unit or not target_unit.isExist or not target_unit:isExist() then return false end
+                local user = ExperienceManager:fetchUser(target_unit)
+                if not user then return false end
+                if user.tokens >= required_tokens then
+                    return true
+                else
+                    trigger.action.outTextForUnit(target_unit:getID(), "Insufficient tokens for zone upgrade. " .. user.tokens .. "/" .. required_tokens .. " tokens required.", 5)
+                    return false
+                end
+            end
+
+            local upgrade_zone_list = {}
+
+            -- Build list of friendly zones that can be upgraded
+            for _, zone in ipairs(zones) do
+                if zone.side == side and zone.level and zone.level < 4 then
+                    local upgrade_cost = Config.zone_upgrade_costs_tokens and Config.zone_upgrade_costs_tokens[zone.level] or 100
+                    
+                    table.insert(upgrade_zone_list, {
+                        name = zone.name .. " (T:" .. zone.level .. "/4) - Cost: " .. upgrade_cost .. " tokens",
+                        func = function (args)
+                            local u = args.u
+                            local target_zone = args.z
+                            
+                            if not checkTokens(u, upgrade_cost) then return end
+
+                            if target_zone.level < 4 then
+                                target_zone.level = target_zone.level + 1
+                                UnitHandler.updateZoneUnits(target_zone)
+                                target_zone:drawF10()
+                                
+                                ExperienceManager:deductTokens(u, upgrade_cost)
+                                trigger.action.outTextForUnit(u:getID(), target_zone.name .. " upgraded to Tier " .. target_zone.level .. "/4, -" .. upgrade_cost .. " tokens.", 10)
+                                trigger.action.outTextForCoalition(side, target_zone.name .. " upgraded to Tier " .. target_zone.level .. "/4", 10)
+                                trigger.action.outSoundForCoalition(side,"radio_beep.ogg")
+                                
+                                -- Refresh menus for all players in the coalition
+                                CommandHandler.requestMenuRefresh(side)
+                            else
+                                trigger.action.outTextForUnit(u:getID(), target_zone.name .. " is already at maximum tier (4/4).", 10)
+                            end
+                        end,
+                        arg = {u = unit, z = zone}
+                    })
+                end
+            end
+
+            if #upgrade_zone_list > 0 then
+                CommandHandler.buildPagedMenuForGroup(gr_id, resources_main_submenu, upgrade_zone_list, 1)
+            else
+                missionCommands.addCommandForGroup(gr_id, "No Zones Available", resources_main_submenu, function() end, nil)
+            end
+        end
+
+    end
+
     ---@param side coalition.side|nil
     function CommandHandler.requestMenuRefresh(side)
         -- Mark this side as needing a refresh
@@ -89,7 +179,6 @@ do
 
         if CommandHandler.group_menus[gr_id] then
             -- Remove existing menus. 
-            -- FIX: Access the array element [i]
             for i = #CommandHandler.group_menus[gr_id], 1, -1 do
                 if CommandHandler.group_menus[gr_id][i].type == "tasking_main" then
                     missionCommands.removeItemForGroup(gr_id, CommandHandler.group_menus[gr_id][i].path)
