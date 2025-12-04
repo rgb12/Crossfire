@@ -16,7 +16,6 @@ end
 ---@field linked_groups string[]
 ---@field linked_statics string[]
 ---@field airbase_name string|nil
----@field acft_resupply_point vec3|nil
 ---@field comms_tower_intact boolean|nil
 ---@field linked_comms_tower string|nil
 ZoneHandler = {}
@@ -32,15 +31,7 @@ do
             trigger.action.outText("Error while initiating the mission. See logs",20)
             return 
         end
-        -- obj.side = obj.side or coalition.side.NEUTRAL
 
-        -- if obj.zone_type == ZoneTypes.AIRBASE then
-        --     if not obj.airbase_name or not obj.acft_resupply_point then 
-        --         MissionLogger:error("ZoneHandler:new Missing/Incorrect fields - AIRBASE zone "..obj.name)
-        --         trigger.action.outText("Error while initiating the mission. See logs",20)
-        --         return
-        --     end
-        -- end
         if obj.zone_type == ZoneTypes.SAMSITE then
             if not obj.sam_classification then 
                 MissionLogger:error("ZoneHandler:new Missing/Incorrect fields - SAMSITE zone "..obj.name)

@@ -304,11 +304,12 @@ function Jupiter:onEvent(event)
             local function addXPToPlayer(obj, val)
                 if obj and obj:isExist() and obj.getPlayerName then
                     local user = ExperienceManager:fetchUser(obj)
-                    if not user then return true end
-                    if ExperienceManager:addXP(user, xp_to_add) then
-                        
-                        trigger.action.outTextForUnit(obj:getID(), string.format("Jupiter: You have been awarded %d XP!", xp_to_add), 10)
-                        players_found = players_found + 1
+                    if user then
+                        if ExperienceManager:addXP(user, xp_to_add) then
+                            
+                            trigger.action.outTextForUnit(obj:getID(), string.format("Jupiter: You have been awarded %d XP!", xp_to_add), 10)
+                            players_found = players_found + 1
+                        end
                     end
                 end
                 return true

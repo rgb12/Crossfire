@@ -3,7 +3,7 @@ function ev:onEvent(event)
     if event.id == world.event.S_EVENT_BIRTH then
         ---@type Unit
         local unit = event.initiator
-        if unit and unit:getCategory() == Object.Category.UNIT and unit.getCoalition then
+        if unit and unit.getCategory and unit:getCategory() == Object.Category.UNIT and unit.getCoalition then
             local unit_coalition = unit:getCoalition()
                 
                 --init commands
@@ -29,7 +29,7 @@ function ev:onEvent(event)
     if event.id == world.event.S_EVENT_PLAYER_ENTER_UNIT then
         ---@type Unit
         local unit = event.initiator
-        if unit and unit:getCategory() == Object.Category.UNIT and unit.getCoalition and unit.isExist
+        if unit and unit.getCategory and unit:getCategory() == Object.Category.UNIT and unit.getCoalition and unit.isExist
         and unit:isExist() and unit.getPlayerName then
             local unit_coalition = unit:getCoalition()
             trigger.action.outText(unit:getTypeName() .. " entered", 10)

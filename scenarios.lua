@@ -13,6 +13,10 @@
 ---@field heli_capture_range number
 ---@field max_dist_to_frontline number
 
+---@class Resupply
+---@field blue_point vec3
+---@field red_point vec3
+
 ---@class Scenario
 ---@field name string
 ---@field difficulty ScenarioDifficulty
@@ -21,6 +25,7 @@
 ---@field red_airbase ZoneHandler|nil
 ---@field blue_airbase ZoneHandler|nil
 ---@field logistics_setup LogisticsSetup
+---@field resupply Resupply
 ---@field zones ZoneHandler[]
 
 ---@type Scenario[]
@@ -38,26 +43,19 @@ Scenarios = {
             heli_capture_range = 100000, --meters
             max_dist_to_frontline = 65000 --meters
         },
+        resupply = {
+            blue_point = { x = 00006923, y = 6096, z = 00079849 },
+            red_point = { x = -00326782, y = 6096, z = 00932890 }
+        },
         difficulty = ScenarioDifficulty.HARD,
         red_airbase = ZoneHandler:new({
             name = "ANAPA",
             airbase_name = Airbases.Caucasus.Anapa_Vityazevo,
-            zone_type = ZoneTypes.AIRBASE,
-            acft_resupply_point = {
-                x = 00006923,
-                y = 6096, 
-                z = 00079849
-            }}),
+            zone_type = ZoneTypes.AIRBASE}),
         blue_airbase =  ZoneHandler:new({
             name = "VAZIANI",
             zone_type = ZoneTypes.AIRBASE,
-            airbase_name = Airbases.Caucasus.Vaziani,
-            acft_resupply_point = {
-                x = -00326782,
-                y = 6096, --20k ft
-                z = 00932890
-            }
-        }),
+            airbase_name = Airbases.Caucasus.Vaziani,}),
         zones = {
             ZoneHandler:new({
                 name = "ALPHA",
@@ -78,6 +76,10 @@ Scenarios = {
             upgrade_range = 50000, --meters
             heli_capture_range = 100000, --meters
             max_dist_to_frontline = 65000 --meters
+        },
+        resupply = {
+            blue_point = { x = 00006923, y = 6096, z = 00079849 },
+            red_point = { x = -00326782, y = 6096, z = 00932890 }
         },
         difficulty = ScenarioDifficulty.HARD,
         red_airbase = ZoneHandler:new({
@@ -232,6 +234,10 @@ Scenarios = {
             upgrade_range = 40000, --meters
             heli_capture_range = 120000, --meters
             max_dist_to_frontline = 65000 --meters
+        },
+        resupply = {
+            blue_point = { x = 00006923, y = 6096, z = 00079849 },
+            red_point = { x = -00326782, y = 6096, z = 00932890 }
         },
         difficulty = ScenarioDifficulty.EXPERT,
         red_airbase = ZoneHandler:new({

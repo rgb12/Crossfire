@@ -32,14 +32,15 @@ and objectives
 
 ## Upcoming features
 - Cold War equivalent
-- Helicopter operations and integration into logistics/warehouse
+- Helicopter custom operations and integration into mission logistics/warehouse
+- C130 custom operations and support
 - Co-op operations
 - FARPs
 - Carrier OPS
 - Naval units
-- Adjusted weather and time to reflect mission
+- Realistic weather
 
-This mission is inspired from Dzesk's Pretense and Foothold missions.
+This mission is inspired from Dzsekeb's Pretense and Foothold missions.
 Note: Most core features are implemented, but the mission is unstable due to limited large scale testing.
 Version: 1.0.0
 
