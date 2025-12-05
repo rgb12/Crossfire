@@ -66,7 +66,7 @@ do
                 if user.tokens >= required_tokens then
                     return true
                 else
-                    trigger.action.outTextForUnit(target_unit:getID(), "Insufficient tokens for zone upgrade. " .. user.tokens .. "/" .. required_tokens .. " tokens required.", 5)
+                    trigger.action.outTextForUnit(target_unit:getID(), "Insufficient tokens: " .. user.tokens .. "/" .. required_tokens .. " tokens required.", 5)
                     return false
                 end
             end
@@ -107,8 +107,16 @@ do
                 end
             end
 
+            missionCommands.addCommandForGroup(gr_id, "Request Resupply - Cost:"..Config.resupply_tokens_cost.." tokens", resources_main_submenu, function()
+                if not checkTokens(unit, Config.resupply_tokens_cost) then return end
+                
+                trigger.action.outTextForGroup(gr_id, "> Resupply requested", 10)
+                TheatreCommander.sendWarehouseResupply(side, false)
+            end, nil)
+
+            local  upgrade_submenu = missionCommands.addSubMenuForGroup(gr_id, "Request Upgrade", resources_main_submenu)
             if #upgrade_zone_list > 0 then
-                CommandHandler.buildPagedMenuForGroup(gr_id, resources_main_submenu, upgrade_zone_list, 1)
+                CommandHandler.buildPagedMenuForGroup(gr_id, upgrade_submenu, upgrade_zone_list, 1)
             else
                 missionCommands.addCommandForGroup(gr_id, "No Zones Available", resources_main_submenu, function() end, nil)
             end
@@ -222,7 +230,7 @@ do
             if user.xp >= required_xp then
                 return true
             else
-                local rankreq = ExperienceManager:getRankByXP(required_xp) or "Unknown"
+                local rankreq = ExperienceManager:getRankfromXP(required_xp) or "Unknown"
                 trigger.action.outTextForUnit(unit:getID(),"Insufficient rank for this tasking request. Required rank: "..rankreq..", ".. required_xp .." XP",5)
                 return false
             end
@@ -308,8 +316,9 @@ do
 
                         local live_comms = (u:getCoalition() == coalition.side.BLUE) and stats.blue_comms_zones or stats.red_comms_zones
                         local total_comms = (u:getCoalition() == coalition.side.BLUE) and stats.blue_total_comms_zones or stats.red_total_comms_zones
+                        
                         if live_comms < Config.tasking_requirements.comms_zones_required_for_jtac then
-                        trigger.action.outTextForUnit(u:getID(), "JTAC tasking requires " .. Config.tasking_requirements.comms_zones_required_for_jtac .. "/"..total_comms.." active COMMS antennas.", 10)
+                            trigger.action.outTextForUnit(u:getID(), "JTAC tasking requires " .. total_comms .. "/"..Config.tasking_requirements.comms_zones_required_for_jtac.." active COMMS antennas.", 10)
                         return
                     end
 
@@ -536,7 +545,7 @@ do
                     local live_comms = (side == coalition.side.BLUE) and stats.blue_comms_zones or stats.red_comms_zones
                     local total_comms = (side == coalition.side.BLUE) and stats.blue_total_comms_zones or stats.red_total_comms_zones
                     if live_comms < Config.tasking_requirements.comms_zones_required_for_jtac then
-                        trigger.action.outTextForCoalition(side, "JTAC tasking requires " .. Config.tasking_requirements.comms_zones_required_for_jtac .. "/"..total_comms.." active COMMS antennas.", 10)
+                        trigger.action.outTextForCoalition(side, "JTAC tasking requires " .. total_comms .. "/"..Config.tasking_requirements.comms_zones_required_for_jtac.." active COMMS antennas.", 10)
                         return
                     end
 

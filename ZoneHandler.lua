@@ -90,6 +90,7 @@ do
 
         return obj
     end
+    --- Finds a zone in the mission triggers by name and returns a ZoneObj
     ---@class ZoneObj
     ---@field name string
     ---@field id number
@@ -138,15 +139,8 @@ do
         end
 
         -- Converts the mission's file Vec2 points into Vec3
-        --[[ Vec3
-            x is directed to the north
-            z is directed to the east
-            y is directed up
-
-            Vec2
-            x is directed to the east?
-            y is directed to the north?
-        --]]
+        -- Vec2: {x,y}  --> Vec3: {x, land height at (x,y), y}
+        -- Be careful DCS uses Z as Y axis in 3D space (vec3)
         obj.point = {
             x = zone_find.x,
             y = land.getHeight({x=zone_find.x,y=zone_find.y}),
@@ -156,10 +150,8 @@ do
     end
 
     function ZoneHandler:drawF10()
-        -- MissionLogger:info("Drawing zone "..self.name)
-
         -- 1. Define Color Palettes
-        -- [Border, Fill, Text, Text Background]
+        -- [Area Border, Area Fill, Text, Text Background]
         local red_palette = {
             {0.7, 0, 0, 0.9},   -- Border: Dark, solid red
             {0.7, 0, 0, 0.25},  -- Fill: Translucent red
@@ -191,13 +183,11 @@ do
             fill_color   = red_palette[2]
             text_color   = red_palette[3]
             text_bg      = red_palette[4]
-            -- text_display = text_display .. " - Coalition RED"
         elseif self.side == coalition.side.BLUE then
             border_color = blue_palette[1]
             fill_color   = blue_palette[2]
             text_color   = blue_palette[3]
             text_bg      = blue_palette[4]
-            -- text_display = text_display .. " - Coalition BLUE"
         end
         
         -- 2. Build Display Text
@@ -207,11 +197,8 @@ do
         elseif self.zone_type == ZoneTypes.LOGISTICS then
             text_display = text_display .. "\nLOGISTICS"
             text_display = text_display .. "\nCapture Helicopters: " .. (self.capture_heli_avail or 0)
-            -- text_display = text_display .. "\nCapture Convoys: " .. (self.capture_convoy_avail or 0)
         elseif self.zone_type == ZoneTypes.SAMSITE then
             text_display = text_display .. "\nSAM SITE"
-        elseif self.zone_type == ZoneTypes.FARP then
-            text_display = text_display .. "\nFARP"
         elseif self.zone_type == ZoneTypes.EWSITE then
             text_display = text_display .. "\nEW SITE"
         elseif self.zone_type == ZoneTypes.AIRBASE then
@@ -293,7 +280,6 @@ do
                 self._markIds.red, self._markIds.redText = nil, nil
             end
         end
-        -- CommandHandler.requestMenuRefresh()
     end
 
     function ZoneHandler:isQuad()
@@ -313,22 +299,10 @@ do
         local closestDistance = math.huge
         local distance = 0
 
-        if not zone_types then
-            zone_types = { --WARN if new zone type add it here
-                ZoneTypes.AIRBASE,
-                ZoneTypes.COMMS,
-                ZoneTypes.EWSITE,
-                ZoneTypes.FARP,
-                ZoneTypes.LOGISTICS,
-                ZoneTypes.SAMSITE,
-                ZoneTypes.STRONGPOINT
-            }
-        end
-
         for _, current_zone in ipairs(zones) do
             if current_zone.name ~= self.name
             and not utils.tableContains(ignore_zone_names or {}, current_zone.name)
-            and utils.tableContains(zone_types,current_zone.zone_type) then
+            and (not zone_types or utils.tableContains(zone_types, current_zone.zone_type)) then
             
                 local allow_discovered = false
                 if discovered then
@@ -414,7 +388,7 @@ do
 
         for _,zone_name in ipairs(updated_zones) do
             local zone = ZoneHandler.getFromName(zone_name)
-            if zone then 
+            if zone then
                 zone:drawF10()
                 CommandHandler.refreshJtacCmds(zone.side)
             end
@@ -769,15 +743,16 @@ do
         self:drawF10()
     end
 
+    ---@return boolean --true if zone was upgraded
     function ZoneHandler:checkLogisticsZone()
-        if self.side == coalition.side.NEUTRAL then return end
-        if self.zone_type ~= ZoneTypes.LOGISTICS then return end
+        if self.side == coalition.side.NEUTRAL then return false end
+        if self.zone_type ~= ZoneTypes.LOGISTICS then return false end
 
 
 
         -- MissionLogger:info("Checking logistcs zone "..self.name)
 
-        if not self.linked_ammo_depot then return end
+        if not self.linked_ammo_depot then return false end
         local ammo_depot = StaticObject.getByName(self.linked_ammo_depot)
         
         -- First, check the actual status of the depot
@@ -798,7 +773,7 @@ do
         if self.ammo_depot_last_destroyed and not self.ammo_depot_intact
         and self.ammo_depot_last_destroyed + Config.logistics_ammo_depot_respawn_time > timer.getTime() then
             MissionLogger:info(self.name .." ammo depot pending respawn")
-            return
+            return false
         elseif not self.ammo_depot_intact and self.ammo_depot_last_destroyed
         and self.ammo_depot_last_destroyed + Config.logistics_ammo_depot_respawn_time <= timer.getTime() then
             MissionLogger:info(self.name .." ammo depot respawn")
@@ -828,11 +803,11 @@ do
         end
 
         local _,dist_to_enemy_zone = self:getClosestZone(utils.getEnemyCoalition(self.side))
-        if not dist_to_enemy_zone then return end
-        if dist_to_enemy_zone and dist_to_enemy_zone > Scenario.logistics_setup.max_dist_to_frontline then return end
+        if not dist_to_enemy_zone then return false end
+        if dist_to_enemy_zone and dist_to_enemy_zone > Scenario.logistics_setup.max_dist_to_frontline then return false end
 
 
-        if math.random(1,100) > Config.logistics_upgrade_chance then return end
+        if math.random(1,100) > Config.logistics_upgrade_chance then return false end
 
         -- levels up lowest level zones nearby
         -- allow level ups only of ammo depot intact (not destroyed)
@@ -871,8 +846,10 @@ do
                 MissionLogger:info("Logistics zone "..self.name.." leveled up "..lowest_level_zone_nearby.name .. " to level "..lowest_level_zone_nearby.level.."/4")
                 trigger.action.outSoundForCoalition(self.side,"radio_beep.ogg")
                 trigger.action.outTextForCoalition(self.side, "Logistics zone "..self.name.." provided additional support for "..lowest_level_zone_nearby.name.."\nT: "..lowest_level_zone_nearby.level.."/4",10)
+                return true
             end
         end
+        return false
     end
 
     function ZoneHandler:checkCOMMSZone()

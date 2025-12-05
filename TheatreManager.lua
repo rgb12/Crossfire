@@ -364,12 +364,14 @@ do
 
 
     
-
+            local upgraded_zone = false
             for _, zone in ipairs(zones) do
 
                     TheatreCommander.sendPotentialCapture(zone)
 
-                    zone:checkLogisticsZone()
+                    if not upgraded_zone then
+                        upgraded_zone = zone:checkLogisticsZone()
+                    end
                     zone:checkCOMMSZone()
                     zone:checkAirbaseZone()
 

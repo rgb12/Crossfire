@@ -57,6 +57,7 @@ do
 		self.__index = self
         
         used_jtac_callsign_index = (used_jtac_callsign_index % #JTAC.callsigns) + 1
+        trigger.action.outSoundForCoalition(obj.side, "transmission1.ogg")
         trigger.action.outTextForCoalition(obj.side, obj.callsign.." JTAC tasked, enroute to "..obj.to_zone.name,10)
         obj:setupCommands()
 

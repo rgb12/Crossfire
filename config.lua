@@ -47,6 +47,8 @@ Config = {
         [2] = 40, -- cost to upgrade from tier 2 to tier 3
         [3] = 60, -- cost to upgrade from tier 3 to tier 4
     },
+    resupply_tokens_cost = 50, -- cost in tokens to request a resupply aircraft
+
     reward_system = {
         enable = true, -- completely enables/disables the reward system
         xp_per_mission_completed = 100,

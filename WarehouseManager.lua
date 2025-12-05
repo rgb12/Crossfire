@@ -377,6 +377,24 @@ do
                         group_name = "RED GUDAUTA RECON",
                         warehouse_name = WarehouseManager.AircraftFlags.SU24MR
                     }
+                },
+                [coalition.side.BLUE] = {
+                    [AITaskTypes.RECON] = {
+                        group_name = "BLUE GUDAUTA RECON",
+                        warehouse_name = WarehouseManager.AircraftFlags.F16C_BL50
+                    },
+                    [AITaskTypes.CAS] = {
+                        group_name = "BLUE GUDAUTA CAS",
+                        warehouse_name = WarehouseManager.AircraftFlags.A10C_TANK_KILLER_II
+                    },
+                    [AITaskTypes.INTERCEPT] = {
+                        group_name = "BLUE GUDAUTA INTERCEPT",
+                        warehouse_name = WarehouseManager.AircraftFlags.F15C
+                    },
+                    [AITaskTypes.JTAC] = {
+                        group_name = "BLUE GUDAUTA JTAC",
+                        warehouse_name = WarehouseManager.AircraftFlags.RQ_1A_PREDATOR
+                    }
                 }
             },
             [Airbases.Caucasus.Sukhumi_Babushara] = {
@@ -384,6 +402,12 @@ do
                     [AITaskTypes.RECON] = {
                         group_name = "RED SUKHUMI RECON",
                         warehouse_name = WarehouseManager.AircraftFlags.SU24MR
+                    }
+                },
+                [coalition.side.BLUE] = {
+                    [AITaskTypes.RECON] = {
+                        group_name = "BLUE SUKHUMI RECON",
+                        warehouse_name = WarehouseManager.AircraftFlags.F16C_BL50
                     }
                 }
             },
@@ -413,6 +437,37 @@ do
                         group_name = "RED SENAKI AWACS",
                         warehouse_name = WarehouseManager.AircraftFlags.A50
                     },
+                },
+                [coalition.side.BLUE] = {
+                    [AITaskTypes.JTAC] = {
+                        group_name = "BLUE SENAKI JTAC",
+                        warehouse_name = WarehouseManager.AircraftFlags.RQ_1A_PREDATOR
+                    },
+                    [AITaskTypes.CAS] = {
+                        group_name = "BLUE SENAKI CAS",
+                        warehouse_name = WarehouseManager.AircraftFlags.A10C_TANK_KILLER_II
+                    },
+                    [AITaskTypes.SEAD] = {
+                        group_name = "BLUE SENAKI SEAD",
+                        warehouse_name = WarehouseManager.AircraftFlags.F16C_BL50
+                    },
+                    [AITaskTypes.STRIKE] = {
+                        group_name = "BLUE SENAKI STRIKE",
+                        warehouse_name = WarehouseManager.AircraftFlags.F16C_BL50
+                    },
+                    [AITaskTypes.INTERCEPT] = {
+                        group_name = "BLUE SENAKI INTERCEPT",
+                        warehouse_name = WarehouseManager.AircraftFlags.F15C
+                    },
+                    [AITaskTypes.AWACS] = {
+                        group_name = "BLUE SENAKI AWACS",
+                        warehouse_name = WarehouseManager.AircraftFlags.E3A
+                    },
+                    [AITaskTypes.RECON] = {
+                        group_name = "BLUE SENAKI RECON",
+                        warehouse_name = WarehouseManager.AircraftFlags.F16C_BL50
+                    }
+
                 }
             },
             [Airbases.Caucasus.Kutaisi] = {
@@ -441,6 +496,37 @@ do
                         group_name = "RED KUTAISI RECON",
                         warehouse_name = WarehouseManager.AircraftFlags.SU24MR
                     }
+                },
+                [coalition.side.BLUE] = {
+                    [AITaskTypes.JTAC] = {
+                        group_name = "BLUE KUTAISI JTAC",
+                        warehouse_name = WarehouseManager.AircraftFlags.RQ_1A_PREDATOR
+                    },
+                    [AITaskTypes.CAS] = {
+                        group_name = "BLUE KUTAISI CAS",
+                        warehouse_name = WarehouseManager.AircraftFlags.A10C_TANK_KILLER_II
+                    },
+                    [AITaskTypes.SEAD] = {
+                        group_name = "BLUE KUTAISI SEAD",
+                        warehouse_name = WarehouseManager.AircraftFlags.F16C_BL50
+                    },
+                    [AITaskTypes.STRIKE] = {
+                        group_name = "BLUE KUTAISI STRIKE",
+                        warehouse_name = WarehouseManager.AircraftFlags.F16C_BL50
+                    },
+                    [AITaskTypes.INTERCEPT] = {
+                        group_name = "BLUE KUTAISI INTERCEPT",
+                        warehouse_name = WarehouseManager.AircraftFlags.F15C
+                    },
+                    [AITaskTypes.AWACS] = {
+                        group_name = "BLUE KUTAISI AWACS",
+                        warehouse_name = WarehouseManager.AircraftFlags.E3A
+                    },
+                    [AITaskTypes.RECON] = {
+                        group_name = "BLUE KUTAISI RECON",
+                        warehouse_name = WarehouseManager.AircraftFlags.F16C_BL50
+                    }
+
                 }
             },
             [Airbases.Caucasus.Kobuleti] = {
@@ -462,6 +548,29 @@ do
                         warehouse_name = WarehouseManager.AircraftFlags.A50
                     },
                     
+                },
+                [coalition.side.BLUE] = {
+                    [AITaskTypes.RECON] = {
+                        group_name = "BLUE KOBULETI RECON",
+                        warehouse_name = WarehouseManager.AircraftFlags.F16C_BL50
+                    },
+                    [AITaskTypes.CAS] = {
+                        group_name = "BLUE KOBULETI CAS",
+                        warehouse_name = WarehouseManager.AircraftFlags.A10C_TANK_KILLER_II
+                    },
+                    [AITaskTypes.INTERCEPT] = {
+                        group_name = "BLUE KOBULETI INTERCEPT",
+                        warehouse_name = WarehouseManager.AircraftFlags.F15C
+                    },
+                    [AITaskTypes.AWACS] = {
+                        group_name = "BLUE KOBULETI AWACS",
+                        warehouse_name = WarehouseManager.AircraftFlags.E3A
+                    },
+                    [AITaskTypes.JTAC] = {
+                        group_name = "BLUE KOBULETI JTAC",
+                        warehouse_name = WarehouseManager.AircraftFlags.RQ_1A_PREDATOR
+                    },
+                    
                 }
             },
             [Airbases.Caucasus.Batumi] = {
@@ -469,6 +578,12 @@ do
                     [AITaskTypes.RECON] = {
                         group_name = "RED BATUMI RECON",
                         warehouse_name = WarehouseManager.AircraftFlags.SU24MR
+                    }
+                },
+                [coalition.side.BLUE] = {
+                    [AITaskTypes.RECON] = {
+                        group_name = "BLUE BATUMI RECON",
+                        warehouse_name = WarehouseManager.AircraftFlags.F16C_BL50
                     }
                 }
             },
