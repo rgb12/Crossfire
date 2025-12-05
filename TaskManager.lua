@@ -259,6 +259,16 @@ do
                 ai_task_type=ai_task_type
             })
             local statics_in_zone = utils.getStaticsInZoneObj(to_zone)
+            --Backup check
+            if #statics_in_zone == 0 then
+                for _,static_name in pairs(to_zone.linked_statics) do
+                    local static_obj = StaticObject.getByName(static_name)
+                    if static_obj and static_obj:isExist() then
+                        table.insert(statics_in_zone,static_obj)
+                    end
+                end
+            end
+
             if #statics_in_zone == 0 then
                 if user_requested then
                     txt="STRIKE tasks can only be tasked to zones with structures/buildings."

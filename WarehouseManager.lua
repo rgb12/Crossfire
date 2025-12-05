@@ -1085,9 +1085,10 @@ do
     -- Compute a scaling factor based on estimated users.
     -- Linear scaling as requested:
     -- users=1 -> 1.0, users=4 -> 4.0 (before clamping)
-    function WarehouseManager:getStockScale()
+    ---@param users_estimate number|nil
+    function WarehouseManager:getStockScale(users_estimate)
         local baseline = 1
-        local users = Config.estimated_users or 1
+        local users = users_estimate or Config.estimated_users or 1
         if users < 0 then users = 0 end
         local scale = users / baseline
         return scale
@@ -1095,9 +1096,9 @@ do
 
     --- Warning: ensure the side is correctly set before execution
     ---@param airbase_name string
-    ---@param coalition coalition.side
+    ---@param side coalition.side
     ---@param stock_types WarehouseManager.StockTypes[]
-    function WarehouseManager:attributeAirbaseStock(airbase_name,coalition,stock_types)
+    function WarehouseManager:attributeAirbaseStock(airbase_name,side,stock_types)
 
         local airbase = Airbase.getByName(airbase_name)
         if not airbase then MissionLogger:warn("No airbase") return false end
@@ -1119,15 +1120,19 @@ do
                         WarehouseManager.StockTypes.MULTIROLE_AIRCRAFT,
                     }, stock_type) then
                         -- Aircraft are added without user scaling
-                        local stock = stock_c[coalition]
+                        local stock = stock_c[side]
                         for id,amount in pairs(stock) do
                             warehouse:addItem(id, amount)
                             table.insert(added_stuff_tbl, {id, amount})
                         end
                         break
                     else
-                        local stock = stock_c[coalition]
+                        local stock = stock_c[side]
                         local user_scale = WarehouseManager:getStockScale()
+                        if side == coalition.side.RED and Config.red_stock_multiplier then
+                            user_scale = user_scale * Config.red_stock_multiplier
+                        end
+
                         for id,amount in pairs(stock) do
                             local scaled_amount = math.max(1, math.floor(amount * user_scale))
                             warehouse:addItem(id, scaled_amount)
@@ -1267,7 +1272,11 @@ do
         end
 
         -- 4. Distribute items to warehouses with calculated amounts
+
         local user_scale = WarehouseManager:getStockScale()
+        if side == coalition.side.RED and Config.red_stock_multiplier then
+            user_scale = user_scale * Config.red_stock_multiplier
+        end
 
         -- Add to tier 1 bases
         if mult_l1 > 0 then

@@ -53,15 +53,6 @@ function ev:onEvent(event)
         end
     end
 
-    if event.id == world.event.S_EVENT_TAKEOFF then
-        local unit = event.initiator
-        if unit and unit.isExist and unit:isExist() and unit.getCategory and unit:getCategory() == Object.Category.UNIT then
-            trigger.action.outText(unit:getTypeName() .. " took off", 10)
-            -- MissionLogger:info("Event place:")
-            -- MissionLogger:info(event.place:getName())
-        end
-    end
-
     if event.id == world.event.S_EVENT_CRASH and event.initiator then
 
 

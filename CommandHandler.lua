@@ -528,7 +528,6 @@ do
 
         for i = start_index, end_index do
             local item = command_list[i]
-            
             if item.submenu then
                 -- Item is a nested menu structure
                 local sub_menu = missionCommands.addSubMenuForGroup(group_id, item.name, parent_menu)

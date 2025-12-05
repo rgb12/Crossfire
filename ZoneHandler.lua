@@ -396,9 +396,8 @@ do
     end
 
     function ZoneHandler:capture(side)
-        if self.side == side then
-            return -- no change
-        end
+        if self.side == side then return end
+        if MISSION_ENDED then return end
 
         if self.side == coalition.side.NEUTRAL then
             stats.neutral_zones = stats.neutral_zones - 1
@@ -510,25 +509,21 @@ do
                     if wh then
                         local inv = wh:getInventory()
 
-                        -- 1. Clear Weapons / Stores
+                        -- 1. Clear Weapons / Stores (only those we manage)
                         if inv.weapon then
                             for item_name, count in pairs(inv.weapon) do
-                                wh:removeItem(item_name, count)
+                                if WarehouseManager:isSupportedWeapon(item_name) then
+                                    wh:removeItem(item_name, count)
+                                end
                             end
                         end
 
-                        -- 2. Clear Aircraft
+                        -- 2. Clear Aircraft (only those we manage)
                         if inv.aircraft then
                             for item_name, count in pairs(inv.aircraft) do
-                                wh:removeItem(item_name, count)
-                            end
-                        end
-
-                        -- 3. Clear Liquids (Fuel, etc.)
-                        -- The key (0,1,2,3) corresponds to the liquid type ID
-                        if inv.liquids then
-                            for liquid_type, _ in pairs(inv.liquids) do
-                                wh:setLiquidAmount(liquid_type, 0)
+                                if WarehouseManager:isSupportedAircraft(item_name) then
+                                    wh:removeItem(item_name, count)
+                                end
                             end
                         end
                     end
@@ -619,6 +614,8 @@ do
         MissionLogger:info("Zone " .. self.zone.name .. " captured by " .. utils.coalitionToString(self.side))
 
         timer.scheduleFunction(function ()
+            CommandHandler.requestMenuRefresh()
+            if MISSION_ENDED then return end
             if stats.blue_zones == 0 and stats.red_zones > 0 then
                 MISSION_ENDED = true
                 world.removeEventHandler(ev)
@@ -811,7 +808,7 @@ do
 
         -- levels up lowest level zones nearby
         -- allow level ups only of ammo depot intact (not destroyed)
-        MissionLogger:info("Checking logistics zone "..self.name.." for level up")
+        -- MissionLogger:info("Checking logistics zone "..self.name.." for level up")
         if self.ammo_depot_intact and self.next_level_up_avail and timer.getTime() > self.next_level_up_avail then
             -- level up nearest zone at lowest level
             local lowest_level_zone_nearby = nil

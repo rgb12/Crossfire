@@ -291,7 +291,6 @@ do
             and side_comms_towers >= Config.tasking_requirements.comms_zones_required_for_strike
             then 
                 local valid_strike_targets = {
-                    ZoneTypes.EWSITE,
                     ZoneTypes.LOGISTICS,
                     ZoneTypes.COMMS,
                 }
@@ -313,7 +312,7 @@ do
                 if strike_enroute and #strike_enroute >= Config.tasking.max_strike_theatre then
                     MissionLogger:info(string.format("[STRIKE] %s: Max STRIKE tasks reached", utils.coalitionToString(side)))
                 elseif side_comms_towers < Config.tasking_requirements.comms_zones_required_for_strike then
-                    MissionLogger:info(string.format("[STRIKE] %s: Not enough COMMS towers (%d < %d)", 
+                    MissionLogger:info(string.format("[STRIKE] %s: Not enough COMMS towers (%d < %d)",
                         utils.coalitionToString(side), side_comms_towers, Config.tasking_requirements.comms_zones_required_for_strike))
                 end
             end
@@ -714,6 +713,8 @@ do
             local variance = Scenario.coalition_setup.dist_variance or 0
             local actual_radius = frontline_dist + math.random(-variance, variance)
 
+            stats.blue_zones = 0
+            stats.red_zones = 0
             for _, zone in ipairs(zones) do
                 -- Skip home bases for pool assignment (they are already handled)
                 if zone.name ~= red_airbase.name and zone.name ~= blue_airbase.name then
@@ -723,14 +724,18 @@ do
                         if dist_to_blue <= actual_radius then
                             zone.side = coalition.side.BLUE
                             table.insert(blue_pool, zone)
-                            stats.blue_zones = stats.blue_zones + 1
                         else
                             zone.side = coalition.side.RED
                             table.insert(red_pool, zone)
-                            stats.red_zones = stats.red_zones + 1
                         end
                     end
                 end
+                if zone.side == coalition.side.BLUE then
+                    stats.blue_zones = stats.blue_zones + 1
+                elseif zone.side == coalition.side.RED then
+                    stats.red_zones = stats.red_zones + 1
+                end
+
             end
         else
             for _,zone in ipairs(zones) do

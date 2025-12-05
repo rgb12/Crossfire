@@ -618,23 +618,28 @@ do
             outtext = "No operations available at this time."
         end
         
+
+        local operation_types_displayed = {}
         local operations_displayed = 0
         for _, op in ipairs(self.available_operations) do
             if operations_displayed >= 5 then
                 break
             end
+            if not utils.tableContains(operation_types_displayed, op.type) then
+                if op.type == OperationTypes.RECON then
+                    outtext = outtext .. string.format("\n\n %s", op.type)
+                else
+                    outtext = outtext .. string.format("\n\n %s - %s", op.type, op.target_zone_name)
+                end
 
-            if op.type == OperationTypes.RECON then
-                outtext = outtext .. string.format("\n\n %s", op.type)
-
-            else
-                outtext = outtext .. string.format("\n\n %s - %s", op.type, op.target_zone_name)
+                for _, obj in ipairs(op.objectives) do
+                    outtext = outtext .. "\n - " .. obj.description
+                end
+                
+                outtext = outtext .. "\n Operation code: " .. op.code
+                operations_displayed = operations_displayed + 1
+                table.insert(operation_types_displayed, op.type)
             end
-            for _, obj in ipairs(op.objectives) do
-                outtext = outtext .. "\n - " .. obj.description
-            end
-            outtext = outtext .. "\n Operation code: " .. op.code
-            operations_displayed = operations_displayed + 1
         end
         trigger.action.outTextForUnit(unit:getID(), outtext, 30)
     end

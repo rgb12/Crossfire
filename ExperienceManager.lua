@@ -43,9 +43,8 @@ do
                                 break
                             end
                         end
-                        local out_text = string.format("*/*/*/ User Stats /*/*/*: %s\n> Rank: %s\n\n> Tokens: %d (+%d)\n> XP: %d (+%d)\n> Missions Completed: %d\n\n> Next Rank: %s\n  %s XP",
-
-                            user.name, rank_name, user.tokens, user.unclaimed_tokens, user.xp, user.unclaimed_xp, user.missions_completed, next_rank, next_rank_xp)
+                        local out_text = string.format("/*/*/*/ User Stats /*/*/*/\n> Rank: %s\n\n> Tokens: %d (+%d)\n> XP: %d (+%d)\n> Missions Completed: %d\n\n> Next Rank: %s\n  %s XP",
+                            rank_name, user.tokens, user.unclaimed_tokens, user.xp, user.unclaimed_xp, user.missions_completed, next_rank, next_rank_xp)
                         trigger.action.outTextForGroup(group_id, out_text, 15)
                     end
                 end)

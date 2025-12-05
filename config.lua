@@ -28,12 +28,15 @@ Config = {
         recon_distance_from_zone = 10000, -- (meters)
         cap_duration = 10*60, -- (seconds)
         cap_max_radius_from_zone = 20*1000, -- (meters)
+
     },
     jupiter_enabled = true, -- enables/disables the Jupiter command system
 
     grace_period = 30, -- (seconds) time at the start of the mission where no captures can occur
     enabled_su25t_bluefor = true, -- adds the SU-25T to the bluefor warehouse inventory
+
     estimated_users = 1, -- used to scale warehouse stocks and resupply quantities
+    red_stock_multiplier = 10, -- multiplier for redfor warehouse stocks, compared to bluefor
 
     std_resupply_time = 20*60, -- (seconds) respawn resupply aircraft delay
     cooldown_before_capture_attempt = 12,--3*60, -- (seconds)
