@@ -301,6 +301,46 @@ do
             end
         end
 
+        local capture_heli_list = {}
+        for _, zone in ipairs(zones) do
+            -- Find enemy zones suitable for HELI CAPTURE
+            if zone.side == coalition.side.NEUTRAL and utils.tableContains(discovered_zones, zone.name)
+            then
+                table.insert(capture_heli_list, {
+                    name = zone.name,
+                    func = function (args)
+                        local u = args.u
+                        local to_zone = args.z
+                        if not checkRankRequirement(u, AITaskTypes.CAPTURE_HELO) then return end
+                        if not checkTokens(u, Config.tasking_requirements.tokens_required_for_capture_helicopter) then return end
+
+                        -- Finds nearest blue logistics zone to the target neutral zone
+                        local from_zone = nil
+                        for _, log_zone in ipairs(zones) do
+                            if log_zone.side == side and log_zone.zone_type == ZoneTypes.LOGISTICS
+                            and log_zone.capture_heli_avail > 0 then
+                                from_zone = log_zone
+                                break
+                            end
+                        end
+
+                        if from_zone then                        
+                            if TaskManager:initiateAITask(AITaskTypes.CAPTURE_HELO, side, false, to_zone, from_zone, true) then
+                                ExperienceManager:deductTokens(u, Config.tasking_requirements.tokens_required_for_capture_helicopter)
+                                trigger.action.outTextForUnit(u:getID(), "Helicopter Capture dispatched to " .. to_zone.name .. ", -" .. Config.tasking_requirements.tokens_required_for_capture_helicopter .. " tokens.", 10)
+                            else
+                                trigger.action.outTextForUnit(u:getID(), "Helicopter Capture request failed (No assets available).", 10)
+                            end
+                        else
+                            trigger.action.outTextForUnit(u:getID(), "> No available logistics zones with capture helicopters available.", 10)
+                        end
+
+                    end,
+                    arg = {u = unit, z = zone}
+                })
+            end
+        end
+
         local jtac_target_list = {}
         for _, zone in ipairs(zones) do
             -- Find enemy zones suitable for JTAC
@@ -392,6 +432,19 @@ do
         else
              table.insert(main_tasking_list, {
                 name = "Request JTAC (No Targets)",
+                func = function() end,
+                arg = nil
+            })
+        end
+
+        if #capture_heli_list > 0 then
+            table.insert(main_tasking_list, {
+                name = "Request Helicopter Capture",
+                submenu = capture_heli_list
+            })
+        else
+             table.insert(main_tasking_list, {
+                name = "Request Helicopter Capture (Unavailable)",
                 func = function() end,
                 arg = nil
             })

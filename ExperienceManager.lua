@@ -43,8 +43,9 @@ do
                                 break
                             end
                         end
-                        local out_text = string.format("Stats: %s\nRank: %s\nXP: %d\nMissions Completed: %d\nTokens: %d\nNext Rank: %s XP: %s",
-                            user.name, rank_name, user.xp, user.missions_completed, user.tokens, next_rank, next_rank_xp)
+                        local out_text = string.format("*/*/*/ User Stats /*/*/*: %s\n> Rank: %s\n\n> Tokens: %d (+%d)\n> XP: %d (+%d)\n> Missions Completed: %d\n\n> Next Rank: %s\n  %s XP",
+
+                            user.name, rank_name, user.tokens, user.unclaimed_tokens, user.xp, user.unclaimed_xp, user.missions_completed, next_rank, next_rank_xp)
                         trigger.action.outTextForGroup(group_id, out_text, 15)
                     end
                 end)
@@ -117,7 +118,7 @@ do
                             
 
 
-                            local out_text = "RTB rewards claimed:"
+                            local out_text = "> "
                             if user.unclaimed_xp > 0 then
                                 out_text = out_text .. " +" .. user.unclaimed_xp .. " XP"
                             end
@@ -125,23 +126,7 @@ do
                                 out_text = out_text .. " +" .. user.unclaimed_tokens .. " Tokens"
                             end
 
-                            -- -- determine rank
-                            -- if user.unclaimed_xp > 0 then
-                            --     local rank_name = "Unranked"
-                            --     for i = #Config.reward_system.ranks, 1, -1 do
-                            --         local rank = Config.reward_system.ranks[i]
-                            --         if user.xp >= rank.xp_required then
-                            --             user.rank = rank.name
-                            --             rank_name = rank.name
-                            --             break
-                            --         end
-                            --     end
-                            --     out_text = out_text .. " | New Rank: " .. rank_name
-                            -- end
-
-                            local coal = unit_check:getCoalition()
-                            trigger.action.outTextForCoalition(coal, unit_check:getPlayerName() .. " RTB: " .. out_text,10)
-                            -- trigger.action.outTextForUnit(user.id,out_text,10)
+                            trigger.action.outTextForCoalition(unit_check:getCoalition(), out_text,10)
                             user.unclaimed_xp = 0
                             user.unclaimed_tokens = 0
                         end

@@ -679,7 +679,7 @@ do
 
         -- prevents a potential crash, using delay
         local function startMoving()
-
+            if not (helo_group and helo_group.isExist and helo_group:isExist()) then return end
             local helo_controller = helo_group:getController()
             helo_controller:setTask({
                 id = "Land",
@@ -1274,8 +1274,6 @@ do
             trigger.action.outTextForCoalition(enroute_data.side, "STRIKE mission tasked, engaging: "..enroute_data.to_zone.name,10)
             trigger.action.outSoundForCoalition(enroute_data.side, "transmission1.ogg")
             MissionLogger:info("STRIKE mission tasked, engaging: "..enroute_data.to_zone.name)
-
-            
         end, {}, timer.getTime() + 12)
     end
 

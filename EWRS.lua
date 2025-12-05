@@ -12,7 +12,7 @@ do
     function EWRS:new(side)
         local obj = {}
         obj.side = side
-        obj.refresh_time = Config.ewrs_standard_refresh_time
+        obj.refresh_time = Config.EWRS.standard_refresh_time
         obj.enemy_side = utils.getEnemyCoalition(side)
         obj.users = {}
         obj.radars = {}
@@ -30,6 +30,7 @@ do
     ---@param unit Unit
     ---@param view_radius number meters>0
     function EWRS:addUser(name,unit,view_radius)
+        if not unit or not unit:isExist() then return end
 
         ---@class EWRSUsers
         ---@field unit Unit
@@ -39,7 +40,7 @@ do
             view_radius = view_radius
         }
         MissionLogger:info(unit:getID())
-        trigger.action.outTextForUnit(unit:getID(),"EWRS enabled, radius set to "..mist.utils.metersToNM(view_radius).." NM",5)
+        trigger.action.outTextForUnit(unit:getID(),"> EWRS enabled, radius set to "..mist.utils.metersToNM(view_radius).." NM",5)
 
     end
 
@@ -178,7 +179,7 @@ do
 
                 local report = "EWRS Report\n\n"
     
-                for i = 1, math.min(#nearby_units, 8) do
+                for i = 1, math.min(#nearby_units, Config.EWRS.max_aircraft_per_text) do
 
                     local txt=""
                     if nearby_units[i].range > 1500 then

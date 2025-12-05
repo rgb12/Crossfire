@@ -14,11 +14,13 @@ do
     AIM_54 = "weapons.missiles.AIM_54C_Mk47",
     AGM_65D = "weapons.missiles.AGM_65D",
     AGM_65E = "weapons.missiles.AGM_65E",
+    AGM_65F = "weapons.missiles.AGM_65F",
     AGM_88_HARM = "weapons.missiles.AGM_88",
     AGM_154C_JSOW = "weapons.missiles.AGM_154", --WARN is correct?
     AGM_154A_JSOW = "weapons.missiles.AGM_154A",
     AGM_84H_SLAM_ER = "weapons.missiles.AGM_84H",
     AGM_84D_HARPOON = "weapons.missiles.AGM_84D",
+    ADM_141_TALD = "weapons.missiles.ADM_141A",
 
     CBU_87 = "weapons.bombs.CBU_87",
     CBU_97 = "weapons.bombs.CBU_97",
@@ -169,6 +171,18 @@ do
         S3_B_TANKER = "S-3B Tanker",
 
     }
+
+    -- Helpers to validate warehouse item support
+    function WarehouseManager:isSupportedWeapon(item_name)
+        if not item_name then return false end
+        return utils.tableContains(WarehouseManager.Flags, item_name)
+            or utils.tableContains(WarehouseManager.FuelTanks, item_name)
+    end
+
+    function WarehouseManager:isSupportedAircraft(item_name)
+        if not item_name then return false end
+        return utils.tableContains(WarehouseManager.AircraftFlags, item_name)
+    end
    
 
     WarehouseManager.AirbaseGroupData = {
@@ -710,6 +724,7 @@ do
             [coalition.side.BLUE] = {
                 [WarehouseManager.Flags.AGM_65D] = math.random(14,18),
                 [WarehouseManager.Flags.AGM_65E] = math.random(8,10),
+                [WarehouseManager.Flags.AGM_65F] = math.random(6,8),
                 [WarehouseManager.Flags.AGM_88_HARM] = math.random(4,10),
                 [WarehouseManager.Flags.GBU_31_V_3B] = math.random(8,16),
                 [WarehouseManager.Flags.GBU_38] = math.random(15,20),
@@ -738,6 +753,7 @@ do
                 [WarehouseManager.Flags.AN_AAQ_33_SNIPER] = math.random(7,10),
                 [WarehouseManager.Flags.HTS_POD] = math.random(4,6),
                 [WarehouseManager.Flags.ALQ_184] = math.random(3,5),
+                [WarehouseManager.Flags.ADM_141_TALD] = math.random(24,38),
                 [WarehouseManager.Flags.AGM_154C_JSOW] = math.random(4,8),
                 [WarehouseManager.Flags.AGM_154A_JSOW] = math.random(4,8),
                 [WarehouseManager.Flags.AGM_84H_SLAM_ER] = math.random(2,6),
@@ -752,14 +768,14 @@ do
                 [WarehouseManager.Flags.SUPER_530D] = math.random(8,14),
                 [WarehouseManager.Flags.MAGIC_II] = math.random(8,14),
 
-                [WarehouseManager.AircraftFlags.A10C_TANK_KILLER_II] = 14,
+                [WarehouseManager.AircraftFlags.A10C_TANK_KILLER_II] = 10,
                 [WarehouseManager.AircraftFlags.E3A] = 2,
-                [WarehouseManager.AircraftFlags.F15E_SE] = 8,
-                [WarehouseManager.AircraftFlags.F16C_BL50] = 18,
-                [WarehouseManager.AircraftFlags.FA18C_HORNET] = 16,
+                [WarehouseManager.AircraftFlags.F15E_SE] = 4,
+                [WarehouseManager.AircraftFlags.F16C_BL50] = 6,
+                [WarehouseManager.AircraftFlags.FA18C_HORNET] = 6,
                 [WarehouseManager.AircraftFlags.M2000C] = 4,
                 [WarehouseManager.AircraftFlags.MIRAGE_2000_5] = 4,
-                [WarehouseManager.AircraftFlags.F15C] = 12,
+                [WarehouseManager.AircraftFlags.F15C] = 8,
                 [WarehouseManager.AircraftFlags.F_14A_135_GR] = 6,
                 [WarehouseManager.AircraftFlags.RQ_1A_PREDATOR] = 3,
 
@@ -797,12 +813,12 @@ do
                 [WarehouseManager.Flags.KAB_500KR] = math.random(20,30),
 
                 [WarehouseManager.AircraftFlags.SU25T] = 18,
-                [WarehouseManager.AircraftFlags.SU27] = 8,
+                [WarehouseManager.AircraftFlags.SU27] = 16,
                 [WarehouseManager.AircraftFlags.SU24M] = 16,
-                [WarehouseManager.AircraftFlags.SU33] = 6,
+                [WarehouseManager.AircraftFlags.SU33] = 12,
                 [WarehouseManager.AircraftFlags.SU34] = 4,
-                [WarehouseManager.AircraftFlags.A50] = 2,
-                [WarehouseManager.AircraftFlags.SU24MR] = 4,
+                [WarehouseManager.AircraftFlags.A50] = 4,
+                [WarehouseManager.AircraftFlags.SU24MR] = 8,
 
             }
                 
@@ -872,15 +888,18 @@ do
             [coalition.side.BLUE] = {
                 [WarehouseManager.Flags.AGM_65D] = math.random(12,16),
                 [WarehouseManager.Flags.AGM_65E] = math.random(6,10),
+                [WarehouseManager.Flags.AGM_65F] = math.random(6,10),
                 [WarehouseManager.Flags.AGM_88_HARM] = math.random(6,10),
                 [WarehouseManager.Flags.AGM_84H_SLAM_ER] = math.random(2,6),
                 [WarehouseManager.Flags.AGM_84D_HARPOON] = math.random(2,6),
+                [WarehouseManager.Flags.ADM_141_TALD] = math.random(2,4),
             },
             [coalition.side.RED] = {
                 [WarehouseManager.Flags.KH25ML] = math.random(10,15),
                 [WarehouseManager.Flags.KH58U] = math.random(14,18),
                 [WarehouseManager.Flags.X_25MP] = math.random(8,12),
                 [WarehouseManager.Flags.X_29L] = math.random(8,12),
+                [WarehouseManager.Flags.S25L] = math.random(4,8),
             }
         },
         [WarehouseManager.StockTypes.AIR_GROUND_ROCKETS] = {
@@ -891,6 +910,7 @@ do
             },
             [coalition.side.RED] = {
                 [WarehouseManager.Flags.S_8O0FP2_MPP] = math.random(200,300),
+                [WarehouseManager.Flags.S8_OM_FP2_MPP] = math.random(150,250),
                 [WarehouseManager.Flags.VIKHR_M] = math.random(100,150),
                 [WarehouseManager.Flags.S13_OF_122MM] = math.random(20,30),
                 [WarehouseManager.Flags.S24A] = math.random(12,20),
@@ -899,6 +919,13 @@ do
                 [WarehouseManager.Flags.S25_O_420MM_FRAG] = math.random(6,10),
                 [WarehouseManager.Flags.S5_M_HE] = math.random(40,60),
                 [WarehouseManager.Flags.S5_KP_57MM_HEAT_FRAG] = math.random(40,60),
+                [WarehouseManager.Flags.S8_TsM_SM_ORANGE] = math.random(30,60),
+                [WarehouseManager.Flags.S8_TsM_SM_BLUE] = math.random(30,60),
+                [WarehouseManager.Flags.S8_TsM_SM_GREEN] = math.random(30,60),
+                [WarehouseManager.Flags.S8_TsM_SM_RED] = math.random(30,60),
+                [WarehouseManager.Flags.S8_TsM_SM_VIOLET] = math.random(30,60),
+                [WarehouseManager.Flags.S8_TsM_SM_WHITE] = math.random(30,60),
+                [WarehouseManager.Flags.S8_TsM_SM_YELLOW] = math.random(30,60),
             }
         },
         [WarehouseManager.StockTypes.ECM] = {
@@ -908,8 +935,8 @@ do
                 [WarehouseManager.Flags.ECLAIR_M_51] = math.random(2,4),
             },
             [coalition.side.RED] = {
-                [WarehouseManager.Flags.L005_SORBSIYA_ECM_POD_LEFT] = math.random(3,5),
-                [WarehouseManager.Flags.L005_SORBSIYA_ECM_POD_RIGHT] = math.random(3,5),
+                [WarehouseManager.Flags.L005_SORBSIYA_ECM_POD_LEFT] = 12,
+                [WarehouseManager.Flags.L005_SORBSIYA_ECM_POD_RIGHT] = 12,
                 [WarehouseManager.Flags.L081_FANTASMAGORIA] = math.random(2,4),
                 [WarehouseManager.Flags.MERCURY_LLTV_POD] = math.random(2,4),
                 [WarehouseManager.Flags.MPS_410] = math.random(2,4),
@@ -925,6 +952,7 @@ do
         [WarehouseManager.StockTypes.MISC] = {
             [coalition.side.BLUE] = {
                 [WarehouseManager.Flags.HTS_POD] = math.random(4,6),
+                [WarehouseManager.Flags.ADM_141_TALD] = math.random(2,4),
             }
         },
         
@@ -977,11 +1005,13 @@ do
         [WarehouseManager.StockTypes.LOGISTICS_CAPTURE] = {
             [coalition.side.BLUE] = {
                 [WarehouseManager.Flags.AGM_65D] = math.random(12,20),
+                [WarehouseManager.Flags.AGM_65F] = math.random(8,14),
                 [WarehouseManager.Flags.AGM_88_HARM] = math.random(2,6),
                 [WarehouseManager.Flags.GBU_31_V_3B] = math.random(4,8),
                 [WarehouseManager.Flags.GBU_38] = math.random(15,20),
                 [WarehouseManager.Flags.GBU_12] = math.random(16,28),
                 [WarehouseManager.Flags.LAU_88] = math.random(4,10),
+                [WarehouseManager.Flags.ADM_141_TALD] = math.random(2,4),
                 
                 [WarehouseManager.Flags.HYDRA_70_M282_MPP_APKWS] = math.random(20,40),
                 [WarehouseManager.Flags.HYDRA_70_M151_HE] = math.random(20,40),
@@ -1002,6 +1032,7 @@ do
             [coalition.side.RED] = {
                 [WarehouseManager.Flags.R73_AA_11_ARCHER] = math.random(10,20),
                 [WarehouseManager.Flags.S_8O0FP2_MPP] = math.random(100,200),
+                [WarehouseManager.Flags.S8_OM_FP2_MPP] = math.random(80,160),
                 [WarehouseManager.Flags.VIKHR_M] = math.random(12,16),
                 [WarehouseManager.Flags.KH_29T] = math.random(6,10),
                 [WarehouseManager.Flags.KH25ML] = math.random(10,15),
@@ -1009,6 +1040,13 @@ do
                 [WarehouseManager.Flags.L081_FANTASMAGORIA] = math.random(2,4),
                 [WarehouseManager.Flags.R27ER] = math.random(6,10),
                 [WarehouseManager.Flags.R27ET] = math.random(4,10),
+                [WarehouseManager.Flags.S8_TsM_SM_ORANGE] = math.random(20,40),
+                [WarehouseManager.Flags.S8_TsM_SM_BLUE] = math.random(20,40),
+                [WarehouseManager.Flags.S8_TsM_SM_GREEN] = math.random(20,40),
+                [WarehouseManager.Flags.S8_TsM_SM_RED] = math.random(20,40),
+                [WarehouseManager.Flags.S8_TsM_SM_VIOLET] = math.random(20,40),
+                [WarehouseManager.Flags.S8_TsM_SM_WHITE] = math.random(20,40),
+                [WarehouseManager.Flags.S8_TsM_SM_YELLOW] = math.random(20,40),
             }
         },
      

@@ -12,8 +12,8 @@
 
 Config = {
     persistance = {
-        enable = false, -- enables or not persistance, has authority over everything below in this section
-        save_interval = 30,--5*60, -- (seconds) interval at which the mission state is saved
+        enable = true, -- enables or not persistance, has authority over everything below in this section
+        save_interval = 5*59, -- (seconds) interval at which the mission state is saved
         save_dir = "Missions/Saves/Crossfire/", -- this is your saves directory in Saved Games
         save_file = "mission.json", -- this is the name of the mission file
         user_data_file = "user_data.json", -- this is the name of user data only file, note that this only records user xp, tokens ans rank
@@ -31,9 +31,9 @@ Config = {
     },
     jupiter_enabled = true, -- enables/disables the Jupiter command system
 
-    grace_period = 10,--5*60, -- (seconds) time at the start of the mission where no captures can occur
+    grace_period = 30, -- (seconds) time at the start of the mission where no captures can occur
     enabled_su25t_bluefor = true, -- adds the SU-25T to the bluefor warehouse inventory
-    estimated_users = 10, -- used to scale warehouse stocks and resupply quantities
+    estimated_users = 1, -- used to scale warehouse stocks and resupply quantities
 
     std_resupply_time = 20*60, -- (seconds) respawn resupply aircraft delay
     cooldown_before_capture_attempt = 12,--3*60, -- (seconds)
@@ -70,6 +70,7 @@ Config = {
             [AITaskTypes.CAS]            = 15000,
             [AITaskTypes.STRIKE]         = 20000,
             [AITaskTypes.SEAD]           = 25000,
+            [AITaskTypes.CAPTURE_HELO]   = 30000,
             [AITaskTypes.RESUPPLY_CARGO] = 50000,
             [AITaskTypes.AWACS]          = 120000,
         },
@@ -131,10 +132,11 @@ theatre = {
         tokens_required_for_jtac = 5,
         tokens_required_for_cas = 10,
         tokens_required_for_sead = 15,
-        tokens_required_for_strike = 10,
-        tokens_required_for_intercept = 5,
-        tokens_required_for_awacs = 20,
-        tokens_required_for_recon = 5,
+        tokens_required_for_strike = 15,
+        tokens_required_for_intercept = 10,
+        tokens_required_for_awacs = 30,
+        tokens_required_for_recon = 10,
+        tokens_required_for_capture_helicopter = 10,
     },
     comms_tower_respawn_time = 120,--TO CHANGE 20*60, -- (seconds), the timer decreases by 25% for every level
     comms_tower_lost_penalty = 1.5, -- the respawn time is multiplied by this much when a comms tower is lost
@@ -159,6 +161,7 @@ theatre = {
         max_intercept_theatre = 6,-- per coalition, only for AI auto tasking
         max_recon_theatre = 4,-- per coalition, only for AI auto tasking
         max_awacs_per_theatre = 2,-- per coalition, only for AI auto tasking
+        max_attack_convoy_per_theatre = 3,-- per coalition, only for AI auto tasking
 
         max_capture_helicopters_per_logistics_zone = 4,
         max_attack_convoys_per_strongpoint_zone = 2,
@@ -181,7 +184,6 @@ theatre = {
     attack_convoy_range = 30000, -- (meters)
 
     jtac_smoke_stock = 4,
-    ewrs_standard_refresh_time = 20, -- (seconds)
 
     -- logistics_upgrade_range = 30000, -- (meters)
     logistics_upgrade_chance = 100,--10, -- (%) every minute the dice is rolled
@@ -190,6 +192,12 @@ theatre = {
     airbase_command_center_respawn_time = 70, -- (seconds) time it takes for a command center to respawn after being destroyed
 
     upgrade_tier_range = 50000,
+
+    EWRS = {
+        enable = true, -- enables/disables the EWRS system
+        standard_refresh_time = 20, -- (seconds)
+        max_aircraft_per_text = 8, -- maximum number of aircraft displayed per message
+    },
 
     messages = {
         enable_capture = true,

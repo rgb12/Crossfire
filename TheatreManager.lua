@@ -23,32 +23,33 @@ do
 
 
 
+        -- Capture Helicopter spawn
 
-        ------------[friendly group instant spawn]------------
-            
-        ---@type ZoneHandler[]
-        local zones_to_check
-        if from_zone then
-            zones_to_check = { from_zone }
-        else
-            zones_to_check = ZoneHandler.sortZonesByDistance(to_zone.zone.point)
-        end
-
-        for _, zone in ipairs(zones_to_check) do
-            if zone.side == side_sending_capture and zone.zone_type == ZoneTypes.LOGISTICS then
-                local zones_distance = mist.utils.get2DDist(to_zone.zone.point,zone.zone.point)
-
-                if EnrouteManager:findByFromZone(zone,side_sending_capture,{AITaskTypes.CAPTURE_HELO}) then return end
-
-                -- checks if closest zone can deploy a heli
-                if zone.capture_heli_avail and zone.capture_heli_avail>0 and zones_distance <= Config.capture_helicopter_max_range then
-                    -- send heli
-                    TaskManager:initiateAITask(AITaskTypes.CAPTURE_HELO,side_sending_capture,true,to_zone,zone,false)
-                    return
-                end
+        timer.scheduleFunction(function ()
+            ---@type ZoneHandler[]
+            local zones_to_check
+            if from_zone then
+                zones_to_check = { from_zone }
+            else
+                zones_to_check = ZoneHandler.sortZonesByDistance(to_zone.zone.point)
             end
-
-        end
+    
+            for _, zone in ipairs(zones_to_check) do
+                if zone.side == side_sending_capture and zone.zone_type == ZoneTypes.LOGISTICS then
+                    local zones_distance = mist.utils.get2DDist(to_zone.zone.point,zone.zone.point)
+    
+                    if EnrouteManager:findByFromZone(zone,side_sending_capture,{AITaskTypes.CAPTURE_HELO}) then return end
+    
+                    -- checks if closest zone can deploy a heli
+                    if zone.capture_heli_avail and zone.capture_heli_avail>0 and zones_distance <= Config.capture_helicopter_max_range then
+                        -- send heli
+                        TaskManager:initiateAITask(AITaskTypes.CAPTURE_HELO,side_sending_capture,true,to_zone,zone,false)
+                        return
+                    end
+                end
+    
+            end
+        end,nil,timer.getTime()+math.random(10,30))
         
     end
 
@@ -56,7 +57,11 @@ do
     --- func desc
     ---@param enroute_group EnrouteObj
     function TheatreCommander.checkIfCaptureGroupArrived(enroute_group)
+
         if not EnrouteManager:findByGroup(enroute_group.group_name) then return false end
+        local zone_coal_check = ZoneHandler.getFromName(enroute_group.to_zone.name)
+        if not zone_coal_check then return false end
+        if zone_coal_check.side ~= coalition.side.NEUTRAL then return false end
 
         local capture_group = Group.getByName(enroute_group.group_name)
         if not capture_group then return false end
@@ -386,7 +391,7 @@ do
                     -- [ this spawns an attack convoy from strongpoints periodically ] --
                     if math.random(1,100) <= 15 and zone.zone_type == ZoneTypes.STRONGPOINT
                     and zone.attack_convoy and zone.attack_convoy > 0
-                    and #EnrouteManager:findByTaskType(AITaskTypes.ATTACK_CONVOY) < #zones / 4
+                    and #EnrouteManager:findByTaskType(AITaskTypes.ATTACK_CONVOY,zone.side) < Config.tasking.max_attack_convoy_per_theatre
                     then
                         TaskManager:initiateAITask(AITaskTypes.ATTACK_CONVOY,zone.side,true,nil,zone,false)
                     end

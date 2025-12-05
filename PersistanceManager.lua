@@ -13,7 +13,6 @@ do
     PersistanceManager.data = {}
 
     function PersistanceManager:isEnabled()
-        -- Safety check for Config
         if not Config or not Config.persistance then return false end
 
         if Config.persistance.enable and lfs and io then
@@ -25,21 +24,20 @@ do
     end
 
 
-    ---
-    --- Gathers all mission-critical data into the self.data table.
-    ---
+    --- Gathers all mission-critical data into the data table.
     function PersistanceManager:fetchState()
         if not PersistanceManager.enabled then return end  
         MissionLogger:info("Gathering current mission state...")
         PersistanceManager.data = {} -- Clear old data
 
         -- 1. Save Scenario (the home bases)
-        PersistanceManager.data.scenario = {
-            blue_airbase_name = blue_airbase.name,
-            red_airbase_name = red_airbase.name
-        }
+        PersistanceManager.data.scenario = Scenario
+        -- PersistanceManager.data.scenario = {
+        --     blue_airbase_name = blue_airbase.name,
+        --     red_airbase_name = red_airbase.name
+        -- }
 
-        -- 2. Save the entire stats table
+        -- 2. Save stats
         PersistanceManager.data.stats = stats
 
         -- 3. Save only essential zone properties that cannot be reconstructed
@@ -226,8 +224,9 @@ do
         MissionLogger:info("Applying loaded mission state...")
 
         -- 1. Restore Scenario
-        blue_airbase = ZoneHandler.getFromName(PersistanceManager.data.scenario.blue_airbase_name)
-        red_airbase = ZoneHandler.getFromName(PersistanceManager.data.scenario.red_airbase_name)
+        Scenario = PersistanceManager.data.scenario
+        blue_airbase = ZoneHandler.getFromName(PersistanceManager.data.scenario.blue_airbase.name)
+        red_airbase = ZoneHandler.getFromName(PersistanceManager.data.scenario.red_airbase.name)
         if not (blue_airbase and red_airbase) then
             MissionLogger:error("Restore failed: Could not find home airbases.")
             return false

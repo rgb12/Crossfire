@@ -67,8 +67,9 @@ do
     ---@param group_name string
     ---@param zone ZoneHandler
     ---@param disperse boolean|nil
+    ---@param max_disperse_disperse number|nil
     ---@return string|nil -- group name
-    function UnitHandler.clone(group_name, zone, disperse)
+    function UnitHandler.clone(group_name, zone, disperse,max_disperse_disperse)
         local clear_point = UnitHandler.findClearPoint(zone)
         local new_group
         new_group = mist.teleportToPoint({
@@ -76,14 +77,13 @@ do
             point = clear_point,
             action = 'clone',
             disperse = disperse or false,
+            maxDisperse = max_disperse_disperse or nil,
             initTasks = true
         })
         if not new_group or not new_group.name then
             return nil
         end
-
         table.insert(zone.linked_groups, new_group.name)
-        
         if new_group and new_group.name then return new_group.name end
     end
 
@@ -274,7 +274,7 @@ do
                 UnitHandler.clone(GroupData.AIRBASE_SITES.RED[zone.level].group_name, zone,true)
                 for _,sam in pairs(GroupData.AIRBASE_SAMS.RED) do
                     if sam.tier == zone.level then
-                        UnitHandler.clone(sam.group_name, zone,false)
+                        UnitHandler.clone(sam.group_name, zone,true,300)
                     end
                 end
                 stats.red_airbases = stats.red_airbases +1
@@ -282,7 +282,7 @@ do
                 UnitHandler.clone(GroupData.AIRBASE_SITES.BLUE[zone.level].group_name, zone,true)
                 for _,sam in pairs(GroupData.AIRBASE_SAMS.BLUE) do
                     if sam.tier == zone.level then
-                        UnitHandler.clone(sam.group_name, zone,false)
+                        UnitHandler.clone(sam.group_name, zone,true,300)
                     end
                 end
                 stats.blue_airbases = stats.blue_airbases +1

@@ -138,18 +138,32 @@ function Jupiter:onEvent(event)
                 end
             end
         elseif command == "-getwarehouse" then
-            for _, zone in pairs(zones) do
-                if mist.utils.get2DDist(vec3, zone.zone.point) <= 2000 and zone.zone_type == ZoneTypes.AIRBASE then
-                    local airbase = Airbase.getByName(zone.airbase_name)
-                    if airbase then
-                        local wh = airbase:getWarehouse():getInventory()
-                        MissionLogger:info("Warehouse inventory for "..zone.airbase_name..":")
-                        MissionLogger:info(wh)
-                        trigger.action.outText("Jupiter: .."..zone.name.." warehouse inventory", 5)
-                        trigger.action.outText(mist.utils.tableShow(wh),25)
-                        cmd_executed = true
-                    else
-                        trigger.action.outText("Jupiter: No airbase found for zone "..zone.name, 5)
+            if param1 then
+                local airbase = Airbase.getByName(param1)
+                if airbase then
+                    local wh = airbase:getWarehouse():getInventory()
+                    MissionLogger:info(wh)
+                    trigger.action.outText("Jupiter: warehouse inventory logged", 5)
+                    trigger.action.outText(mist.utils.tableShow(wh),25)
+                    cmd_executed = true
+                else
+                    trigger.action.outText("Jupiter: No airbase found for airbase", 5)
+                end
+            end
+            if not cmd_executed then
+                for _, zone in pairs(zones) do
+                    if mist.utils.get2DDist(vec3, zone.zone.point) <= 2000 and zone.zone_type == ZoneTypes.AIRBASE then
+                        local airbase = Airbase.getByName(zone.airbase_name)
+                        if airbase then
+                            local wh = airbase:getWarehouse():getInventory()
+                            MissionLogger:info("Warehouse inventory for "..zone.airbase_name..":")
+                            MissionLogger:info(wh)
+                            trigger.action.outText("Jupiter: .."..zone.name.." warehouse inventory", 5)
+                            trigger.action.outText(mist.utils.tableShow(wh),25)
+                            cmd_executed = true
+                        else
+                            trigger.action.outText("Jupiter: No airbase found for zone "..zone.name, 5)
+                        end
                     end
                 end
             end
@@ -237,9 +251,15 @@ function Jupiter:onEvent(event)
                 trigger.action.outText("Jupiter: No zone found within 10km for JTAC tasking.", 5)
             end
         elseif command == "-sendstrike" then
+            local side_sending = coalition.side.BLUE
+            if param1 == "blue" then
+                side_sending = coalition.side.BLUE
+            elseif param1 == "red" then
+                side_sending = coalition.side.RED
+            end
             local closest_zone, dist = getClosestZone(vec3)
             if closest_zone and dist <= 10000 then
-                TaskManager:initiateAITask(AITaskTypes.STRIKE,coalition.side.BLUE,true,closest_zone,nil,true)
+                TaskManager:initiateAITask(AITaskTypes.STRIKE,side_sending,true,closest_zone,nil,true)
                 cmd_executed = true
             else
                 trigger.action.outText("Jupiter: No zone found within 10km for Strike tasking.", 5)

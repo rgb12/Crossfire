@@ -8,7 +8,7 @@ and objectives
 - Difficulty settings: hours to weeks of gameplay depending on scenario
 - Performance optimizations 
 - Easy config (mission and scripting)
-- Warehouse dynamics
+- Functional Warehouse
 - player operations
 - EWRS
 - Custom JTAC
