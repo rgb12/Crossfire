@@ -118,8 +118,13 @@ function Jupiter:onEvent(event)
                 end
             end
         elseif command == "-dispatch" then
-            -- TheatreCommander:evaluateAITasks(coalition.side.BLUE)
+            TheatreCommander:evaluateAITasks(coalition.side.BLUE)
             TheatreCommander:evaluateAITasks(coalition.side.RED)
+            cmd_executed = true
+        elseif command == "-save" then
+            PersistanceManager:saveMissionToFile()
+            PersistanceManager:saveUserDataToFile()
+            trigger.action.outText("Jupiter: Mission saved.", 15)
             cmd_executed = true
         elseif command == "-additemwarehouse" then
             local item_flag = param1
@@ -364,4 +369,4 @@ end
 
 -- Register the event handler
 world.addEventHandler(Jupiter)
-trigger.action.outText("Jupiter Command Handler Loaded. Use markers starting with '-' on F10 map.", 10)
+trigger.action.outText("< Jupiter Command Handler Loaded >", 10)

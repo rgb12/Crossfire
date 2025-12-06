@@ -89,3 +89,5 @@ OperationStatus = {
     COMPLETED = "completed",
     FAILED = "failed"
 }
+
+MissionLogger = mist.Logger:new("MissionLogger", 3)

@@ -1,47 +1,53 @@
-# Crossfire (Alpha), a DCS dynamic campaign
 
-Crossfire is a DCS dynamic campaign offering users a simulated war, with ground, air (and later naval) units
-and objectives
+# Crossfire - Persistant and dynamic campaign (Alpha)
 
-## Features
-- Countless Scenarios, randomised starts
-- Difficulty settings: hours to weeks of gameplay depending on scenario
-- Performance optimizations 
-- Easy config (mission and scripting)
-- Functional Warehouse
-- player operations
-- EWRS
-- Custom JTAC
-- XP, Ranks and player AI tasking
+Crossfire is a DCS dynamic and persistant campaign offering users a simulated war, with countless units and objectives.
+Scenarios can range from hours to weeks of gameplay, with different theatre being generated upon each new mission.
 
-## Supported modules
-- FA18C
-- F16C
-- SU25T
-- A10C Tank Killer II
-- F15E
+Version: 1.0.0
+### Supported modules
+- F/A-18C
+- F-16C
+- Su-25T
+- A-10C
+- F-15E
 - Mirage 2000C
 
-## Zone categories
-- EW sites
-- SAM sites (short, medium and long range)
-- Strongpoints
-- Logistics
-- COMMS 
-- Airbases
+## Features
+
+- Countless Scenarios (theatre setup, randomised starts): **hours to weeks of gameplay** depending on scenario
+- **Performance** optimizations 
+- Campaign config (mission and scripting)
+- Functional and complete **Warehouse** logistcs
+- Player CAP/CAS/SEAD/DEED/Recon **operations**
+- **AI tasking**
+- **EWRS**
+- Custom **JTAC**
+- **XP, Ranks**
+
+
+## Notes
+Most core features are implemented, but __the mission can be unstable due to limited large scale testing__, hence the Alpha nomination.
+
+Your feedback is invaluable, consider sharing your suggestions and bug reports.
+
+Persistance requires 'io' and 'lfs' (scripting modules allowing file changes, see below)\
+Do not use the DCS 'Save mission' feature, the mission is designed to work with its own saved files.
+
+As of now, only one scenario comes with the mission, the code is implemented, but requires more rigorous testing/balance tweaks for other scenarios that will be released shortly.
+
+This mission is inspired from Dzsekeb's Pretense and Foothold missions.
+
 
 ## Upcoming features
+- A collection of different scenarios
+- Support for all DCS terrains
 - Cold War equivalent
-- Helicopter custom operations and integration into mission logistics/warehouse
-- C130 custom operations and support
+- C130J custom operations and support
+- Rotary aicraft operations and integration into mission logistics/Warehouse
 - Co-op operations
 - FARPs
 - Carrier OPS
-- Naval units
+- Naval units and operations
 - Realistic weather
 
-This mission is inspired from Dzsekeb's Pretense and Foothold missions.
-Note: Most core features are implemented, but the mission is unstable due to limited large scale testing.
-Version: 1.0.0
-
-![Screenshot of a comment on a GitHub issue showing an image, added in the Markdown, of an Octocat smiling and raising a tentacle.](https://myoctocat.com/assets/images/base-octocat.svg)

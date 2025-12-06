@@ -41,9 +41,8 @@ do
 
         if obj.zone_type == ZoneTypes.LOGISTICS then
             if not obj.next_level_up_avail then 
-                MissionLogger:error("ZoneHandler:new Missing/Incorrect fields - LOGISTICS zone "..obj.name)
-                trigger.action.outText("Error while initiating the mission. See logs",20)
-                return end
+                obj.next_level_up_avail = timer.getTime()
+            end
             obj.ammo_depot_intact = false
             obj.capture_heli_avail = obj.capture_heli_avail or 0
             obj.capture_convoy_avail = obj.capture_convoy_avail or 0
@@ -431,7 +430,7 @@ do
                 stats.red_strongpoints = stats.red_strongpoints -1
                 stats.blue_strongpoints = stats.blue_strongpoints +1
             end
-
+            self.attack_convoy = 0
 
         elseif self.zone_type == ZoneTypes.LOGISTICS and self.side ~= coalition.side.NEUTRAL then
             --TO CHANGE add looting capture logic
@@ -443,6 +442,7 @@ do
                 UnitHandler.clone(GroupData.LOGISTICS_SITES.BLUE[self.level].group_name, self,true)
                 WarehouseManager:handleIncomingSupplies(self.side,{WarehouseManager.StockTypes.LOGISTICS_CAPTURE})
             end
+            self.capture_heli_avail = 0
 
         elseif self.zone_type == ZoneTypes.COMMS and self.side ~= coalition.side.NEUTRAL then
             if self.side == coalition.side.RED then
@@ -619,12 +619,10 @@ do
             if stats.blue_zones == 0 and stats.red_zones > 0 then
                 MISSION_ENDED = true
                 world.removeEventHandler(ev)
-                trigger.action.outSound("ACDC Highway to Hell.ogg")
                 trigger.action.outText("************\n\n  REDFOR achieved total domination !\n\n************", 500)
             elseif stats.red_zones == 0 and stats.blue_zones > 0 then
                 MISSION_ENDED = true
                 world.removeEventHandler(ev)
-                trigger.action.outSound("ACDC Highway to Hell.ogg")
                 trigger.action.outText("************\n\n  BLUEFOR achieved total domination !\n\n************", 500)
             end
         end,nil,timer.getTime()+10)

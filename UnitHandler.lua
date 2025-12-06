@@ -291,6 +291,7 @@ do
     end
 
     function UnitHandler.initStatics(zone)
+        if zone.side == coalition.side.NEUTRAL then return end
         local country_name
         if zone.side == coalition.side.BLUE then country_name = country.id.CJTF_BLUE
         else country_name = country.id.CJTF_RED end

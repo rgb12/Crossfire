@@ -12,7 +12,7 @@ do
     ---@param from_zone ZoneHandler|nil
     function TheatreCommander.sendCapture(to_zone, side_sending_capture, from_zone)
         if side_sending_capture == coalition.side.NEUTRAL then return end
-        MissionLogger:info(utils.coalitionToString(side_sending_capture).." attempting capture group for zone: " .. to_zone.name)
+        -- MissionLogger:info(utils.coalitionToString(side_sending_capture).." attempting capture group for zone: " .. to_zone.name)
 
         ------------[checks if capture group already enroute for side]------------
         if EnrouteManager:findByToZone(to_zone,side_sending_capture,{AITaskTypes.CAPTURE_CONVOY, AITaskTypes.CAPTURE_HELO}) then
@@ -58,13 +58,12 @@ do
     ---@param enroute_group EnrouteObj
     function TheatreCommander.checkIfCaptureGroupArrived(enroute_group)
 
-        if not EnrouteManager:findByGroup(enroute_group.group_name) then return false end
         local zone_coal_check = ZoneHandler.getFromName(enroute_group.to_zone.name)
         if not zone_coal_check then return false end
         if zone_coal_check.side ~= coalition.side.NEUTRAL then return false end
 
         local capture_group = Group.getByName(enroute_group.group_name)
-        if not capture_group then return false end
+        if not capture_group or not capture_group:isExist() then return false end
 
         local capture_group_units = capture_group:getUnits()
         -- check if at least one convoy/heli unit is inside and no enemies remain
@@ -77,11 +76,6 @@ do
             MissionLogger:info("Heli captured zone: " .. enroute_group.to_zone.zone.name)
             -- remove heli from enroutes
             EnrouteManager:remove(enroute_group.group_name)
-        elseif enroute_group.ai_task_type == AITaskTypes.CAPTURE_CONVOY and in_zone_count == #capture_group_units then
-            -- remove convoy from enroutes
-            MissionLogger:info("Convoy captured zone: " .. enroute_group.to_zone.zone.name)
-            EnrouteManager:remove(enroute_group.group_name)
-
         else
             -- MissionLogger:info("Capture group not in zone or not all units are in zone")
             return false -- capture not successful
@@ -89,24 +83,15 @@ do
 
         ------------[cancelling all other enemy helicopters inbound for this zone]------------
         ------------[cancelling all other enemy convoys inbound for this zone]------------
-        for _,possible_enroute in ipairs(EnrouteManager.enroutes) do
-            if possible_enroute.ai_task_type == AITaskTypes.CAPTURE_HELO
+        for i=#EnrouteManager.enroutes,1,-1 do
+            local possible_enroute = EnrouteManager.enroutes[i]
+            if possible_enroute.ai_task_type == AITaskTypes.CAPTURE_CONVOY
             and possible_enroute.to_zone.name == enroute_group.to_zone.name then
-                UnitHandler.abortHeliCapture(
+                UnitHandler.abortConvoyCapture(
                     possible_enroute.group_name,
                     possible_enroute.from_zone)
-                MissionLogger:info("Aborted helicopter capture: " ..possible_enroute.group_name .." from zone: " .. possible_enroute.to_zone.zone.name)
-            elseif possible_enroute.ai_task_type == AITaskTypes.CAPTURE_CONVOY
-            and possible_enroute.to_zone.name == enroute_group.to_zone.name then
-                local aborting_convoy_group = Group.getByName(possible_enroute.group_name)
-                if aborting_convoy_group then
-                    trigger.action.setGroupAIOff(aborting_convoy_group)
-                    timer.scheduleFunction(function ()
-                        aborting_convoy_group:destroy()
-                        EnrouteManager:remove(possible_enroute.group_name)
-                        MissionLogger:info("Destroyed convoy: " .. possible_enroute.group_name)
-                    end, {}, timer.getTime() + math.random(15, 25))
-                end
+                MissionLogger:info("Aborted convoy capture: " ..possible_enroute.group_name .." from zone: " .. possible_enroute.to_zone.zone.name)
+                EnrouteManager.enroutes[i] = nil
             end
         end
 
@@ -204,6 +189,7 @@ do
             local awacs_enroute = EnrouteManager:findByTaskType(AITaskTypes.AWACS, side)
             if #awacs_enroute == 0 and closest_dist < Config.tasking.min_cleareance_dist_for_awacs
             and side_comms_towers >= Config.tasking_requirements.comms_zones_required_for_awacs then
+                MissionLogger:info("Initiating AWACS for " .. utils.coalitionToString(side))
                 return TaskManager:initiateAITask(AITaskTypes.AWACS, side, true, nil, home_base, false)
             end
             return false
@@ -369,6 +355,7 @@ do
 
     
             local upgraded_zone = false
+            local capture_helicopter_sent = false
             for _, zone in ipairs(zones) do
 
                     TheatreCommander.sendPotentialCapture(zone)
@@ -381,9 +368,10 @@ do
 
                     zone:addAIAssets(10) -- Supply chance every minute
 
-                    -- Skip empty check for first 2 minutes after mission start (grace period for spawns)
-                    if timer.getTime() > Config.grace_period and zone.side ~=coalition.side.NEUTRAL and zone:checkIfEmpty() then
+                    if  not capture_helicopter_sent and zone.side ~=coalition.side.NEUTRAL
+                    and zone:checkIfEmpty() then
                         TheatreCommander.sendCapture(zone, utils.getEnemyCoalition(zone.side))
+                        capture_helicopter_sent = true
                         zone:capture(coalition.side.NEUTRAL)
                     end
 
@@ -633,7 +621,8 @@ do
                                 y = landPos.z,
                                 action = AI.Task.TurnMethod.FIN_POINT,
                                 alt_type = AI.Task.AltitudeType.BARO,
-                                alt=6096
+                                alt=6096,
+                                speed=500
 
                             }
                         }

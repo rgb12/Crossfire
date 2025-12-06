@@ -13,7 +13,7 @@
 Config = {
     persistance = {
         enable = true, -- enables or not persistance, has authority over everything below in this section
-        save_interval = 5*59, -- (seconds) interval at which the mission state is saved
+        save_interval = 5*51, -- (seconds) interval at which the mission state is saved
         save_dir = "Missions/Saves/Crossfire/", -- this is your saves directory in Saved Games
         save_file = "mission.json", -- this is the name of the mission file
         user_data_file = "user_data.json", -- this is the name of user data only file, note that this only records user xp, tokens ans rank
@@ -26,29 +26,27 @@ Config = {
         recon_minimum_altitude = 1524, -- (meters)
         recon_duration = 120, -- (seconds)
         recon_distance_from_zone = 10000, -- (meters)
-        cap_duration = 10*60, -- (seconds)
+        cap_duration = 8*60, -- (seconds)
         cap_max_radius_from_zone = 20*1000, -- (meters)
 
     },
     jupiter_enabled = true, -- enables/disables the Jupiter command system
 
-    grace_period = 30, -- (seconds) time at the start of the mission where no captures can occur
     enabled_su25t_bluefor = true, -- adds the SU-25T to the bluefor warehouse inventory
 
     estimated_users = 1, -- used to scale warehouse stocks and resupply quantities
     red_stock_multiplier = 10, -- multiplier for redfor warehouse stocks, compared to bluefor
 
     std_resupply_time = 20*60, -- (seconds) respawn resupply aircraft delay
-    cooldown_before_capture_attempt = 12,--3*60, -- (seconds)
-    retry_capture_chance = 100,--50, -- (%)
+    cooldown_before_capture_attempt = 3*60, -- (seconds)
+    retry_capture_chance = 50, -- (%)
 
     allow_resupply = true, -- this will enable/disable resupply aircrafts, this will make the misison significantly harder
 
-
     zone_upgrade_costs_tokens = {
-        [1] = 20, -- cost to upgrade from tier 1 to tier 2
-        [2] = 40, -- cost to upgrade from tier 2 to tier 3
-        [3] = 60, -- cost to upgrade from tier 3 to tier 4
+        [1] = 10, -- cost to upgrade from tier 1 to tier 2
+        [2] = 30, -- cost to upgrade from tier 2 to tier 3
+        [3] = 40, -- cost to upgrade from tier 3 to tier 4
     },
     resupply_tokens_cost = 50, -- cost in tokens to request a resupply aircraft
 
@@ -65,6 +63,9 @@ Config = {
         xp_per_intel_report = 25,
         token_per_mission_completed = 5,
         landing_time = 15, -- (seconds) the time the player has to stay on the ground to be rewarded
+
+        tokens_on_rank_up = 20, -- random between tokens awarded on rank up
+        tokens_on_rank_up_variance = 10,
 
         xp_required = {
             [AITaskTypes.JTAC]           = 3000,
@@ -106,6 +107,7 @@ Config = {
     },
 theatre = {
 
+        -- Removed, will be reimplemented later
         zone_count_difficulty = {
             [ScenarioDifficulty.EASY] = 0.90, -- 30% of total zones active
             [ScenarioDifficulty.MEDIUM] = 0.80,
@@ -176,13 +178,9 @@ theatre = {
     },
 
     capture_helicopter_max_range = 100*1000 , -- (meters)
-    capture_convoy_max_range = 100,--25*1000, -- (meters)
 
+    max_ground_recon_range = 30000, -- (meters) the range at which enemy zones will be discovered from friendly zones
 
-    max_ground_recon_range = 30000, -- (meters)
-    --[[
-        the range at which enemy zones will be discovered from friendly zones
-    ]]
     stuck_convoy_timeout = 8*60, -- (seconds) time without movement after which a convoy is considered stuck and will be removed
     attack_convoy_range = 30000, -- (meters)
 
@@ -202,17 +200,9 @@ theatre = {
         max_aircraft_per_text = 8, -- maximum number of aircraft displayed per message
     },
 
-    messages = {
-        enable_capture = true,
-        enable_level_up = true,
-        enable_resupply = true,
-        ai_dispatcher = true,
-    },
-
 }
 
--- TO CHANGE dont leave this here
--- Stats tracking table should not be edited
+-- Stats tracking table should not be edited unless comprehensively understood
 stats = {
     neutral_zones = 0,
     red_zones = 0,
@@ -228,8 +218,6 @@ stats = {
     blue_total_comms_zones = 0,
 
     blue_comms_antennas = 0,
-    blue_retry_capture_chance = 50,
-    blue_capture_lost_zone_chance = 30,
     blue_discovered_zones = {},
     blue_enroute_resupply = {},
     blue_resupply_step = 1, -- prevents random resupply type repetition
@@ -243,8 +231,6 @@ stats = {
     red_total_comms_zones = 0,
 
     red_comms_antennas = 0,
-    red_retry_capture_chance = 50,
-    red_capture_lost_zone_chance = 30,
     red_discovered_zones = {},
     red_enroute_resupply = {},
     red_resupply_step = 1 -- prevents random resupply type repetition
@@ -595,11 +581,3 @@ GroupData = {
 
 
 }
-
-
-
-
-
-
--- TO CHANGE dont leave this here
-MissionLogger = mist.Logger:new("MissionLogger", 3)

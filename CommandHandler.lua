@@ -109,7 +109,7 @@ do
 
             missionCommands.addCommandForGroup(gr_id, "Request Resupply - Cost:"..Config.resupply_tokens_cost.." tokens", resources_main_submenu, function()
                 if not checkTokens(unit, Config.resupply_tokens_cost) then return end
-                
+                ExperienceManager:deductTokens(unit, Config.resupply_tokens_cost)
                 trigger.action.outTextForGroup(gr_id, "> Resupply requested", 10)
                 TheatreCommander.sendWarehouseResupply(side, false)
             end, nil)

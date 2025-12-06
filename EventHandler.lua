@@ -113,64 +113,14 @@ function ev:onEvent(event)
 
             MissionLogger:info("Unit shutdown: " .. unit_type .. " at " .. airbase_name)
             
-            -- Check if this group is a tracked resupply mission
-            local enroute_task = EnrouteManager:findByGroup(gr_name)
 
-            if enroute_task and enroute_task.ai_task_type == AITaskTypes.RESUPPLY_CARGO then
-                
-                trigger.action.outText(gr_name.. " has shut down at ramp", 10)
-                
-                -- Destroy the aircraft unit
-                unit:destroy()
-
-                -- Schedule the supply addition
-                timer.scheduleFunction(function ()
-                
-                    -- 1. Get the correct step and cycle
-                    local current_step
-
-                    if gr_coalition == coalition.side.BLUE then
-                        current_step = stats.blue_resupply_step
-                        -- Increment and wrap for next time
-                        stats.blue_resupply_step = stats.blue_resupply_step + 1
-                        if stats.blue_resupply_step > #WarehouseManager.ResupplyCycle then
-                            stats.blue_resupply_step = 1
-                        end
-                    else -- Must be RED
-                        current_step = stats.red_resupply_step
-                        -- Increment and wrap for next time
-                        stats.red_resupply_step = stats.red_resupply_step + 1
-                        if stats.red_resupply_step > #WarehouseManager.ResupplyCycle then
-                            stats.red_resupply_step = 1
-                        end
-                    end
-
-                    -- 2. Get the supplies from the cycle
-                    local restock_types = WarehouseManager.ResupplyCycle[current_step].types
-                    local restock_txt = WarehouseManager.ResupplyCycle[current_step].text
-
-                    -- 3. Distribute the supplies to ALL eligible L3/L4 bases
-                    MissionLogger:info("Cargo aircraft arrived, supplying "..restock_txt.." into airfield warehouses...")
-                    trigger.action.outTextForCoalition(gr_coalition, "Cargo aircraft arrived, supplying "..restock_txt.." into airfield warehouses...",10)
-                    
-                    WarehouseManager:handleIncomingSupplies(gr_coalition, restock_types)
-
-                    -- 4. Remove the task from the manager
-
-                
-                end,{},timer.getTime()+10)
-
-                
-                EnrouteManager:remove(gr_name)
-                return
-            end
         end
     end
 
     if event.id == world.event.S_EVENT_LAND and event.initiator then
         -- checks if player landed
         local unit = event.initiator
-        if unit and unit.getPlayerName and unit:getPlayerName() then trigger.action.outText(unit:getTypeName() .. " landed", 10) end
+        -- if unit and unit.getPlayerName and unit:getPlayerName() then trigger.action.outText(unit:getTypeName() .. " landed", 10) end
         
         if not unit or not unit.isExist or not unit:isExist() then return end
         local group_name = unit:getGroup():getName()
@@ -200,7 +150,7 @@ function ev:onEvent(event)
                         enroute_heli.from_zone:drawF10()
                     end
                     return
-            elseif enroute_heli then 
+            elseif enroute_heli then
                 -- POSSIBLE CAPTURE HELI
                     --check if in zone, if yes abort all ot hers inbound to the zone
                     if  TheatreCommander.checkIfCaptureGroupArrived(enroute_heli) then
@@ -214,9 +164,74 @@ function ev:onEvent(event)
 
         elseif desc.category == Unit.Category.AIRPLANE then
 
+            MissionLogger:info("Aircraft landed: " .. group_name)
             local enroute_task = EnrouteManager:findByGroup(group_name)
             if enroute_task then
+                local landed_gr_name = enroute_task.group_name
+
+ 
+                if enroute_task.ai_task_type == AITaskTypes.RESUPPLY_CARGO then
+                    
+                    trigger.action.outText(group_name.. " CARGO has landed", 10)
+                    
+                    local enroute_task_side = enroute_task.side
+                    -- Schedule the supply addition
+                    timer.scheduleFunction(function ()
+                    
+                        -- -- 1. Get the correct step and cycle
+                        -- local current_step
+                        
+                        -- if enroute_task_side == coalition.side.BLUE then
+                        --     current_step = stats.blue_resupply_step
+                        --     -- Increment and wrap for next time
+                        --     stats.blue_resupply_step = stats.blue_resupply_step + 1
+                        --     if stats.blue_resupply_step > #WarehouseManager.ResupplyCycle then
+                        --         stats.blue_resupply_step = 1
+                        --     end
+                        -- else -- Must be RED
+                        --     current_step = stats.red_resupply_step
+                        --     -- Increment and wrap for next time
+                        --     stats.red_resupply_step = stats.red_resupply_step + 1
+                        --     if stats.red_resupply_step > #WarehouseManager.ResupplyCycle then
+                        --         stats.red_resupply_step = 1
+                        --     end
+                        -- end
+    
+                        -- -- 2. Get the supplies from the cycle
+                        -- local restock_types = WarehouseManager.ResupplyCycle[current_step].types
+                        -- local restock_txt = WarehouseManager.ResupplyCycle[current_step].text
+    
+                        -- -- 3. Distribute the supplies to ALL eligible L3/L4 bases
+                        -- MissionLogger:info("Cargo aircraft arrived, supplying "..restock_txt.." into airfield warehouses...")
+                        -- trigger.action.outTextForCoalition(enroute_task_side, "Cargo aircraft arrived, supplying "..restock_txt.." into airfield warehouses...",10)
+                        
+                        -- WarehouseManager:handleIncomingSupplies(enroute_task_side, restock_types)
+                        if enroute_task_side == coalition.side.RED then
+                            WarehouseManager:handleIncomingSupplies(coalition.side.RED, {WarehouseManager.StockTypes.INITIAL})
+                        else
+                            if Config.enabled_su25t_bluefor then
+                                WarehouseManager:handleIncomingSupplies(coalition.side.BLUE, {WarehouseManager.StockTypes.SU25T_BLUEFOR, WarehouseManager.StockTypes.INITIAL})
+                            else 
+                                WarehouseManager:handleIncomingSupplies(coalition.side.BLUE, {WarehouseManager.StockTypes.INITIAL})
+
+
+                            end
+                        end
+                    
+                    end,{},timer.getTime()+10)
+    
+                end
+
+
                 EnrouteManager:remove(group_name)
+                
+                timer.scheduleFunction(function ()
+                    local gr = Group.getByName(landed_gr_name)
+                    if gr and gr.isExist and gr:isExist() then
+                        gr:destroy()
+                    end
+
+                end, {}, timer.getTime() + 300)
                 -- MissionLogger:info("Removed LANDED"..enroute_task.ai_task_type.." from enroutes: " .. group_name)
                 return
             end

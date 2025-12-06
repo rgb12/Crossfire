@@ -204,8 +204,11 @@ do
             MissionLogger:info(user.rank.. " -> "..new_rank)
             if new_rank ~= user.rank then
                 user.rank = new_rank
+                local tokens_awarded = math.max(0, Config.reward_system.tokens_on_rank_up + math.random(-Config.reward_system.tokens_on_rank_up_variance, Config.reward_system.tokens_on_rank_up_variance))
+                user.tokens = user.tokens + tokens_awarded
+
                 trigger.action.outSoundForUnit(user.id,"rank_up.ogg")
-                trigger.action.outTextForUnit(user.id,"Rank Up! New Rank: " .. new_rank,10)
+                trigger.action.outTextForUnit(user.id,"Rank Up! New Rank: " .. new_rank..", +" .. tokens_awarded .. " Tokens",10)
             end
             return true
         end
