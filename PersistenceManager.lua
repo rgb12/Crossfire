@@ -238,6 +238,8 @@ do
 
         -- 2. Restore Stats
         stats = PersistenceManager.data.stats
+        stats.blue_comms_antennas = 0
+        stats.red_comms_antennas = 0
         MissionLogger:info("Stats table restored.")
 
         -- 3. Restore Zones

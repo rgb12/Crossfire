@@ -173,7 +173,7 @@ function ev:onEvent(event)
  
                 if enroute_task.ai_task_type == AITaskTypes.RESUPPLY_CARGO then
                     
-                    trigger.action.outText(group_name.. " CARGO has landed", 10)
+                    trigger.action.outTextForCoalition(enroute_task.side, "RESUPPLY CARGO has landed", 10)
                     
                     local enroute_task_side = enroute_task.side
                     -- Schedule the supply addition

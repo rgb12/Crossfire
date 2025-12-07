@@ -26,9 +26,9 @@ Config = {
     operations = {
         recon_minimum_altitude = 1524, -- (meters)
         recon_duration = 120, -- (seconds)
-        recon_distance_from_zone = 10000, -- (meters)
+        recon_distance_from_zone = 20000, -- (meters)
         cap_duration = 8*60, -- (seconds)
-        cap_max_radius_from_zone = 20*1000, -- (meters)
+        cap_max_radius_from_zone = 28*1000, -- (meters)
 
     },
     jupiter_enabled = true, -- enables/disables the Jupiter command system

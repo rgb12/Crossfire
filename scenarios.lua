@@ -527,19 +527,19 @@ zones = {}
     ---@type Scenario|nil
     Scenario = nil
     for _,scenario in pairs(Scenarios) do
-        if scenario.name == Config.persistance.scenario_selected then
+        if scenario.name == Config.persistence.scenario_selected then
             Scenario = scenario
             break
         end
     end
-    if Config.persistance.random_scenario_selection == true then
+    if Config.persistence.random_scenario_selection == true then
         Scenario = Scenarios[math.random(1,#Scenarios)]
     end
 
     if Scenario == nil then
-        trigger.action.outText("ERROR: Scenario '" .. Config.persistance.scenario_selected .. "' not found! Check your config.", 120)
+        trigger.action.outText("ERROR: Scenario '" .. Config.persistence.scenario_selected .. "' not found! Check your config.", 120)
     elseif not Scenario.blue_airbase or not Scenario.red_airbase then
-        trigger.action.outText("ERROR: Scenario '" .. Config.persistance.scenario_selected .. "' is missing airbase definitions! Check your config.", 120)
+        trigger.action.outText("ERROR: Scenario '" .. Config.persistence.scenario_selected .. "' is missing airbase definitions! Check your config.", 120)
     else
         -- table.insert(zones,Scenario.zones)
         zones = mist.utils.deepCopy(Scenario.zones)

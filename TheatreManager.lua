@@ -123,6 +123,7 @@ do
             return
         end
 
+        local active_zones = {}  -- Prevents AI from being tasked to where players are tasked
         local enemy_side = utils.getEnemyCoalition(side)
         local home_base
         if side == coalition.side.BLUE then
@@ -132,12 +133,21 @@ do
                     "No coalition airbases on the battlefield, AI tasking suspended.", 10)
                 return
             end
+
+            for _,operation in pairs(TheatreCommander.blue_op_manager.active_operations) do
+                table.insert(active_zones, operation.target_zone_name)
+            end
+
         elseif side == coalition.side.RED then
             home_base = red_airbase
             if stats.red_airbases == 0 then
                 trigger.action.outTextForCoalition(side,
                     "No coalition airbases on the battlefield, AI tasking suspended.", 10)
                 return
+            end
+
+            for _,operation in pairs(TheatreCommander.red_op_manager.active_operations) do
+                table.insert(active_zones, operation.target_zone_name)
             end
         end
         
@@ -167,7 +177,8 @@ do
             local discovered_list = (side == coalition.side.BLUE) and stats.blue_discovered_zones or stats.red_discovered_zones
             
             for _, zone in ipairs(zones) do
-                if zone.side == enemy_side and not utils.tableContains(discovered_list, zone.name) then
+                if zone.side == enemy_side and not utils.tableContains(discovered_list, zone.name)
+                and not utils.tableContains(active_zones, zone.name) then
                     local dist = mist.utils.get2DDist(home_base.zone.point, zone.zone.point)
                     if dist < current_closest_dist then
                         current_closest_dist = dist
@@ -178,7 +189,7 @@ do
 
             if closest_undiscovered_zone then
                 if not EnrouteManager:findByToZone(closest_undiscovered_zone, side, {AITaskTypes.RECON}) then
-                    return TaskManager:initiateAITask(AITaskTypes.RECON, side, true, closest_undiscovered_zone, nil, true)
+                    return TaskManager:initiateAITask(AITaskTypes.RECON, side, true, closest_undiscovered_zone, nil, false)
                 end
             end
             return false
@@ -204,9 +215,8 @@ do
             if side_comms_towers < Config.tasking_requirements.comms_zones_required_for_cas then
                 return false
             end
-
             for _, zone in ipairs(zones) do
-                if zone.side == enemy_side then
+                if zone.side == enemy_side and not utils.tableContains(active_zones, zone.name) then
                     local discovered = (side == coalition.side.BLUE and utils.tableContains(stats.blue_discovered_zones, zone.name)) or
                                        (side == coalition.side.RED and utils.tableContains(stats.red_discovered_zones, zone.name))
                     if discovered and not EnrouteManager:findByToZone(zone, side, {AITaskTypes.CAS}) then
@@ -231,7 +241,8 @@ do
                 return false
             end
                 for _, zone in ipairs(zones) do
-                    if zone.side == enemy_side and zone.zone_type == ZoneTypes.SAMSITE then
+                    if zone.side == enemy_side and zone.zone_type == ZoneTypes.SAMSITE 
+                    and not utils.tableContains(active_zones, zone.name) then
                         local discovered = (side == coalition.side.BLUE and utils.tableContains(stats.blue_discovered_zones, zone.name)) or
                                            (side == coalition.side.RED and utils.tableContains(stats.red_discovered_zones, zone.name))
                         
@@ -254,11 +265,14 @@ do
             if side_comms_towers < Config.tasking_requirements.comms_zones_required_for_intercept then
                 return false
             end
+
                 for _, zone in ipairs(zones) do
-                    if zone.side == enemy_side and zone.zone_type ~= ZoneTypes.AIRBASE then
+                    if zone.side == side and zone.zone_type ~= ZoneTypes.AIRBASE then
                         local discovered = (side == coalition.side.BLUE and utils.tableContains(stats.blue_discovered_zones, zone.name)) or
                                            (side == coalition.side.RED and utils.tableContains(stats.red_discovered_zones, zone.name))
-                        if discovered then
+                        local dist = mist.utils.get2DDist(home_base.zone.point, zone.zone.point)
+
+                        if dist < 75000 and discovered then
                             if not EnrouteManager:findByToZone(zone, side, {AITaskTypes.INTERCEPT}) then
                                 return TaskManager:initiateAITask(AITaskTypes.INTERCEPT, side, true, zone, nil, false)
                             end
@@ -281,7 +295,8 @@ do
                     ZoneTypes.COMMS,
                 }
                 for _, zone in ipairs(zones) do
-                    if zone.side == enemy_side and utils.tableContains(valid_strike_targets, zone.zone_type) then
+                    if zone.side == enemy_side and utils.tableContains(valid_strike_targets, zone.zone_type) 
+                    and not utils.tableContains(active_zones, zone.name) then
                         local discovered = (side == coalition.side.BLUE and utils.tableContains(stats.blue_discovered_zones, zone.name)) or
                                            (side == coalition.side.RED and utils.tableContains(stats.red_discovered_zones, zone.name))
                         

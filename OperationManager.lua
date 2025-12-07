@@ -92,7 +92,7 @@ do
             outtxt = outtxt .. string.format("\n%d. %s %s", i, obj.description, status)
         end
 
-        trigger.action.outTextForUnit(unit:getID(), outtxt, 20)
+        trigger.action.outTextForUnit(unit:getID(), outtxt, 120)
     end
 
     --- Handles DCS events to check for mission success or failure.

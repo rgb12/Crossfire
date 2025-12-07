@@ -693,7 +693,7 @@ do
                     -- Add XP for intel report
                     local user = ExperienceManager:fetchUser(u)
                     if user then
-                        ExperienceManager:addXP(user, Config.reward_system.xp_per_intel_report)
+                        user.unclaimed_xp = user.unclaimed_xp + Config.reward_system.xp_per_intel_report
                         
                         trigger.action.outTextForUnit(unit_id,"Intel report, +" .. Config.reward_system.xp_per_intel_report .. "XP",10)
                     end
