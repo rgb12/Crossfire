@@ -1,5 +1,3 @@
-
-
 ---@class Operation
 ---@field type OperationTypes
 ---@field code number
@@ -817,5 +815,3 @@ do
         self:checkObjectives()
     end
 end
-
-

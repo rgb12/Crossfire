@@ -1,4 +1,4 @@
---- Parts of this code belongs to Dzsek’s very well designed JTAC
+--- Parts of this code belongs to Dzsekeb's very well designed JTAC
 
 pending_jtac_zones = {} --TO CHANGE
 used_jtac_callsign_index = 1 --TO CHANGE

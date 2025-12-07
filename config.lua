@@ -1,3 +1,4 @@
+
 --[[
     DCS CROSSFIRE MISSION CONFIG FILE
 
@@ -11,8 +12,8 @@
 
 
 Config = {
-    persistance = {
-        enable = true, -- enables or not persistance, has authority over everything below in this section
+    persistence = {
+        enable = true, -- enables or not persistence, has authority over everything below in this section
         save_interval = 5*51, -- (seconds) interval at which the mission state is saved
         save_dir = "Missions/Saves/Crossfire/", -- this is your saves directory in Saved Games
         save_file = "mission.json", -- this is the name of the mission file

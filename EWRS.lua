@@ -1,4 +1,3 @@
---- Parts of this code belongs to Dzsek’s GCI
 ---@class EW
 ---@field side coalition.side
 ---@field enemy_side coalition.side

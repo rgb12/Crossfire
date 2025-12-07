@@ -1,47 +1,51 @@
 ---@diagnostic disable: lowercase-global
 
 --[[
-    Persistance Manager
+    Persistence Manager
     
-    Inspired by Dzsek's Pretense persistance script
+    Inspired by Dzsek's Pretense persistence script
 ]]
-PersistanceManager = {}
+PersistenceManager = {}
 do 
 
     local JSON = (loadfile("Scripts/JSON.lua"))()
-    PersistanceManager.enabled = false
-    PersistanceManager.data = {}
+    PersistenceManager.enabled = false
+    PersistenceManager.data = {}
 
-    function PersistanceManager:isEnabled()
-        if not Config or not Config.persistance then return false end
+    function PersistenceManager:isEnabled()
+        if not Config or not Config.persistence then return false end
 
-        if Config.persistance.enable and lfs and io then
-            PersistanceManager.enabled = true
-            PersistanceManager:checkPath()
+        if Config.persistence.enable and lfs and io then
+            PersistenceManager.enabled = true
+            PersistenceManager:checkPath()
+            trigger.action.outText("> Persistence enabled.",60)
             return true
+        elseif Config.persistence.enable then
+            PersistenceManager.enabled = false
+            trigger.action.outText("> Persistence disabled, could not access io or lfs.", 60)
         end
         return false
     end
 
 
     --- Gathers all mission-critical data into the data table.
-    function PersistanceManager:fetchState()
-        if not PersistanceManager.enabled then return end  
+    function PersistenceManager:fetchState()
+        if not PersistenceManager.enabled then return end  
         MissionLogger:info("Gathering current mission state...")
-        PersistanceManager.data = {} -- Clear old data
+        PersistenceManager.data = {} -- Clear old data
 
         -- 1. Save Scenario (the home bases)
-        PersistanceManager.data.scenario = Scenario
-        -- PersistanceManager.data.scenario = {
+        PersistenceManager.data.scenario = Scenario
+        -- PersistenceManager.data.scenario = {
         --     blue_airbase_name = blue_airbase.name,
         --     red_airbase_name = red_airbase.name
         -- }
 
         -- 2. Save stats
-        PersistanceManager.data.stats = stats
+        PersistenceManager.data.stats = stats
 
         -- 3. Save only essential zone properties that cannot be reconstructed
-        PersistanceManager.data.zones = {}
+        PersistenceManager.data.zones = {}
         for _, z in ipairs(zones) do
             local zone_data = {
                 -- Identity & Configuration
@@ -64,18 +68,18 @@ do
                 ammo_depot_last_destroyed = z.ammo_depot_last_destroyed,
                 next_level_up_avail = z.next_level_up_avail,
             }
-            PersistanceManager.data.zones[z.name] = zone_data
+            PersistenceManager.data.zones[z.name] = zone_data
         end
 
         -- 4. Save Warehouse Inventories
-        PersistanceManager.data.warehouses = {}
+        PersistenceManager.data.warehouses = {}
         for _, z in ipairs(zones) do
             if z.zone_type == ZoneTypes.AIRBASE and z.airbase_name then
                 local airbase = Airbase.getByName(z.airbase_name)
                 if airbase then
                     local warehouse = airbase:getWarehouse()
                     if warehouse then
-                        PersistanceManager.data.warehouses[z.airbase_name] = warehouse:getInventory()
+                        PersistenceManager.data.warehouses[z.airbase_name] = warehouse:getInventory()
                     end
                 end
             end
@@ -84,13 +88,13 @@ do
     end
 
     --- Simply places enroutes back into warehouses for next mission
-    function PersistanceManager:enroutesRefund()
+    function PersistenceManager:enroutesRefund()
         MissionLogger:info("Calculating virtual refunds for save file...")
         
         for _, enroute in ipairs(EnrouteManager.enroutes) do
             local zone_data = nil
             if enroute.from_zone then
-                zone_data = PersistanceManager.data.zones[enroute.from_zone.name]
+                zone_data = PersistenceManager.data.zones[enroute.from_zone.name]
             end
 
             if zone_data then
@@ -111,7 +115,7 @@ do
                 
                 if enroute.from_zone and enroute.from_zone.airbase_name then
                     -- Find the warehouse data in our Save Table
-                    local wh_root = PersistanceManager.data.warehouses[enroute.from_zone.airbase_name]
+                    local wh_root = PersistenceManager.data.warehouses[enroute.from_zone.airbase_name]
                     
                     if wh_root then
                         -- Ensure categories exist in save data if they were empty
@@ -147,19 +151,19 @@ do
 
 
     --- Create the folder if it doesn't exist
-    function PersistanceManager:checkPath()
-        if not PersistanceManager.enabled then return end
-        if not Config or not Config.persistance then return end
+    function PersistenceManager:checkPath()
+        if not PersistenceManager.enabled then return end
+        if not Config or not Config.persistence then return end
 
-        lfs.mkdir(lfs.writedir()..Config.persistance.save_dir)
-        PersistanceManager.mission_save_file_path = lfs.writedir()..Config.persistance.save_dir .. Config.persistance.save_file
-        PersistanceManager.user_data_file_path = lfs.writedir()..Config.persistance.save_dir .. Config.persistance.user_data_file
+        lfs.mkdir(lfs.writedir()..Config.persistence.save_dir)
+        PersistenceManager.mission_save_file_path = lfs.writedir()..Config.persistence.save_dir .. Config.persistence.save_file
+        PersistenceManager.user_data_file_path = lfs.writedir()..Config.persistence.save_dir .. Config.persistence.user_data_file
     end
 
     --- Serializes self.data and writes it to the save file.
-    function PersistanceManager:saveMissionToFile()
-        if not PersistanceManager.enabled then return end
-        PersistanceManager:checkPath()
+    function PersistenceManager:saveMissionToFile()
+        if not PersistenceManager.enabled then return end
+        PersistenceManager:checkPath()
 
         self:fetchState()
 
@@ -167,14 +171,14 @@ do
 
         if not JSON then return end
             ---@diagnostic disable-next-line: undefined-field
-            local file_content = JSON:encode(PersistanceManager.data)
+            local file_content = JSON:encode(PersistenceManager.data)
             if file_content then
 
-                local file= io.open(PersistanceManager.mission_save_file_path, "w")
+                local file= io.open(PersistenceManager.mission_save_file_path, "w")
                 if file then
                     file:write(file_content)
                     file:close()
-                    MissionLogger:info("Mission state saved to " .. PersistanceManager.mission_save_file_path)
+                    MissionLogger:info("Mission state saved to " .. PersistenceManager.mission_save_file_path)
                 end
 
             end
@@ -184,18 +188,18 @@ do
     ---
     --- Reads the save file and deserializes it into self.data.
     ---
-    function PersistanceManager:loadFromFile()
-        if not PersistanceManager.enabled then return end
+    function PersistenceManager:loadFromFile()
+        if not PersistenceManager.enabled then return end
         
         -- Check path in case lfs isn't loaded yet
-        PersistanceManager:checkPath()
+        PersistenceManager:checkPath()
 
-        if not lfs.attributes(PersistanceManager.mission_save_file_path) then
-            MissionLogger:info("No save file found at " .. PersistanceManager.mission_save_file_path)
+        if not lfs.attributes(PersistenceManager.mission_save_file_path) then
+            MissionLogger:info("No save file found at " .. PersistenceManager.mission_save_file_path)
             return false
         end
 
-        local file = io.open(PersistanceManager.mission_save_file_path, "r")
+        local file = io.open(PersistenceManager.mission_save_file_path, "r")
         if file and JSON then
             local file_data = file:read("*all")
             ---@diagnostic disable-next-line: undefined-field
@@ -203,8 +207,8 @@ do
             file:close()
 
             if data then
-                PersistanceManager.data = data
-                MissionLogger:info("Successfully loaded data from " .. PersistanceManager.mission_save_file_path)
+                PersistenceManager.data = data
+                MissionLogger:info("Successfully loaded data from " .. PersistenceManager.mission_save_file_path)
                 return true
             end
         end
@@ -213,10 +217,10 @@ do
     ---
     --- Applies the loaded self.data to the running mission.
     ---
-    function PersistanceManager:restoreState()
-        if not PersistanceManager.enabled then return false end
+    function PersistenceManager:restoreState()
+        if not PersistenceManager.enabled then return false end
 
-        if not PersistanceManager.data or not PersistanceManager.data.zones then
+        if not PersistenceManager.data or not PersistenceManager.data.zones then
             MissionLogger:error("Restore failed: No data loaded.")
             return false
         end
@@ -224,21 +228,21 @@ do
         MissionLogger:info("Applying loaded mission state...")
 
         -- 1. Restore Scenario
-        Scenario = PersistanceManager.data.scenario
-        blue_airbase = ZoneHandler.getFromName(PersistanceManager.data.scenario.blue_airbase.name)
-        red_airbase = ZoneHandler.getFromName(PersistanceManager.data.scenario.red_airbase.name)
+        Scenario = PersistenceManager.data.scenario
+        blue_airbase = ZoneHandler.getFromName(PersistenceManager.data.scenario.blue_airbase.name)
+        red_airbase = ZoneHandler.getFromName(PersistenceManager.data.scenario.red_airbase.name)
         if not (blue_airbase and red_airbase) then
             MissionLogger:error("Restore failed: Could not find home airbases.")
             return false
         end
 
         -- 2. Restore Stats
-        stats = PersistanceManager.data.stats
+        stats = PersistenceManager.data.stats
         MissionLogger:info("Stats table restored.")
 
         -- 3. Restore Zones
         local new_zones = {}
-        for _, saved_zone in pairs(PersistanceManager.data.zones) do
+        for _, saved_zone in pairs(PersistenceManager.data.zones) do
             local zone = ZoneHandler.getFromName(saved_zone.name)
             if zone then
                 -- Restore identity & configuration
@@ -291,7 +295,7 @@ do
         MissionLogger:info("Zone states and units restored.")
 
         -- 4. Restore Warehouses
-        for airbase_name, saved_inventory in pairs(PersistanceManager.data.warehouses) do
+        for airbase_name, saved_inventory in pairs(PersistenceManager.data.warehouses) do
             local airbase = Airbase.getByName(airbase_name)
             if airbase then
                 local warehouse = airbase:getWarehouse()
@@ -312,22 +316,22 @@ do
             end
         end
         
-        PersistanceManager:loadUserData()
+        PersistenceManager:loadUserData()
         
         MissionLogger:info("Mission state successfully restored.")
         trigger.action.outText("Mission state restored from last save.", 10)
         return true
     end
 
-function PersistanceManager:saveUserDataToFile()
-        if not PersistanceManager.enabled then return end
-        if not PersistanceManager.user_data_file_path then return end
+function PersistenceManager:saveUserDataToFile()
+        if not PersistenceManager.enabled then return end
+        if not PersistenceManager.user_data_file_path then return end
         if not JSON then return end
         
         local file_content = JSON:encode(ExperienceManager.user_data)
 
         if file_content then
-            local file = io.open(PersistanceManager.user_data_file_path, "w")
+            local file = io.open(PersistenceManager.user_data_file_path, "w")
             if file then
                 file:write(file_content)
                 file:close()
@@ -335,16 +339,16 @@ function PersistanceManager:saveUserDataToFile()
         end
     end
 
-    function PersistanceManager:loadUserData()
-        if not PersistanceManager.enabled then return end
-        if not PersistanceManager.user_data_file_path then return end
+    function PersistenceManager:loadUserData()
+        if not PersistenceManager.enabled then return end
+        if not PersistenceManager.user_data_file_path then return end
 
-        if not lfs.attributes(PersistanceManager.user_data_file_path) then
+        if not lfs.attributes(PersistenceManager.user_data_file_path) then
             MissionLogger:info("No user data file found.")
             return
         end
 
-        local file = io.open(PersistanceManager.user_data_file_path, "r")
+        local file = io.open(PersistenceManager.user_data_file_path, "r")
         if file and JSON then
             local file_data = file:read("*all")
             local data = JSON:decode(file_data)
@@ -357,18 +361,18 @@ function PersistanceManager:saveUserDataToFile()
         end
     end
 
-    function PersistanceManager:autoSave()
-        if not Config or not Config.persistance or not Config.persistance.save_interval then return end
+    function PersistenceManager:autoSave()
+        if not Config or not Config.persistence or not Config.persistence.save_interval then return end
         
         MissionLogger:info("Auto-save enabled.")
 
         timer.scheduleFunction(function()
 
-            PersistanceManager:saveMissionToFile()
-            PersistanceManager:saveUserDataToFile()
+            PersistenceManager:saveMissionToFile()
+            PersistenceManager:saveUserDataToFile()
 
-            return timer.getTime() + (Config.persistance.save_interval)
-        end, {}, timer.getTime() + (Config.persistance.save_interval))
+            return timer.getTime() + (Config.persistence.save_interval)
+        end, {}, timer.getTime() + (Config.persistence.save_interval))
     end
 
 end

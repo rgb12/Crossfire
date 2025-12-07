@@ -843,6 +843,15 @@ do
                 end
             end
 
+            if zone.zone_type == ZoneTypes.AIRBASE then
+                if not utils.tableContains(stats.blue_discovered_zones, zone.name) then
+                    table.insert(stats.blue_discovered_zones, zone.name)
+                end
+                if not utils.tableContains(stats.red_discovered_zones, zone.name) then
+                    table.insert(stats.red_discovered_zones, zone.name)
+                end
+            end
+
             -- Spawn
             UnitHandler.initZoneUnits(zone)
             UnitHandler.initStatics(zone)
@@ -868,7 +877,7 @@ do
 
         -- Establish the theatre and get home airbases
         -- 1. Create the Persistor object
-        local persistor = PersistanceManager
+        local persistor = PersistenceManager
         
 
         -- 2. Try to load a saved state
@@ -886,7 +895,6 @@ do
         end
         
         -- 3. Start all services (these run in both cases)
-        CommandHandler.init()
         CommandHandler.refreshJtacCmds(coalition.side.BLUE)
         CommandHandler.refreshJtacCmds(coalition.side.RED)
 
@@ -919,7 +927,7 @@ do
         if Config.jupiter_enabled then
             world.addEventHandler(Jupiter)
         end
-        PersistanceManager:autoSave()
+        PersistenceManager:autoSave()
         -- trigger.action.outText("Theatre setup complete.", 5)
         MissionLogger:info("Mission Commander: Mission Setup Complete.")
     end

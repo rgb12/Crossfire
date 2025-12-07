@@ -1,6 +1,6 @@
 --[[
     scenarios.lua
-    Catalyst Mission Scenarios
+    Crossfire Mission Scenarios
 
 ]]
 ---@class CoalSetup

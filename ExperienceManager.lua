@@ -1,5 +1,3 @@
-
-
 ExperienceManager = {}
 do
     ExperienceManager.EventHandler = {}
@@ -241,7 +239,7 @@ do
         return 0
     end
 
-    --- Called by PersistanceManager to overwrite/merge loaded data
+    --- Called by PersistenceManager to overwrite/merge loaded data
     function ExperienceManager:restoreUserData(data)
         if not Config.reward_system.enable then return end
         if not data then return end

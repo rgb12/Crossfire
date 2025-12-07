@@ -122,8 +122,8 @@ function Jupiter:onEvent(event)
             TheatreCommander:evaluateAITasks(coalition.side.RED)
             cmd_executed = true
         elseif command == "-save" then
-            PersistanceManager:saveMissionToFile()
-            PersistanceManager:saveUserDataToFile()
+            PersistenceManager:saveMissionToFile()
+            PersistenceManager:saveUserDataToFile()
             trigger.action.outText("Jupiter: Mission saved.", 15)
             cmd_executed = true
         elseif command == "-additemwarehouse" then
@@ -369,4 +369,4 @@ end
 
 -- Register the event handler
 world.addEventHandler(Jupiter)
-trigger.action.outText("< Jupiter Command Handler Loaded >", 10)
+trigger.action.outText("< Jupiter Command Handler Loaded >", 3)

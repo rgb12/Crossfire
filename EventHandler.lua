@@ -8,7 +8,8 @@ function ev:onEvent(event)
                 
                 --init commands
                 CommandHandler.tallyZone(unit)
-    
+                CommandHandler.init(unit)
+
                 local ew = EWRS_coalition[unit_coalition]
                 ew:addRadioMenuForUser(unit)
                 --  CommandHandler.initCommandsForGroup(unit:getGroup())
@@ -32,7 +33,7 @@ function ev:onEvent(event)
         if unit and unit.getCategory and unit:getCategory() == Object.Category.UNIT and unit.getCoalition and unit.isExist
         and unit:isExist() and unit.getPlayerName then
             local unit_coalition = unit:getCoalition()
-            trigger.action.outText(unit:getTypeName() .. " entered", 10)
+            -- trigger.action.outText(unit:getTypeName() .. " entered", 10)
             -- Checks if the player has the rigt to spawn in the airbase
             for _,zone in ipairs(zones) do
                 if zone:isPointInsideZone(unit:getPoint()) then

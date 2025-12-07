@@ -840,7 +840,11 @@ do
                 self.next_level_up_avail = timer.getTime() + Config.logistics_level_up_interval
                 MissionLogger:info("Logistics zone "..self.name.." leveled up "..lowest_level_zone_nearby.name .. " to level "..lowest_level_zone_nearby.level.."/4")
                 trigger.action.outSoundForCoalition(self.side,"radio_beep.ogg")
-                trigger.action.outTextForCoalition(self.side, "Logistics zone "..self.name.." provided additional support for "..lowest_level_zone_nearby.name.."\nT: "..lowest_level_zone_nearby.level.."/4",10)
+                if self.name == lowest_level_zone_nearby.name then
+                    trigger.action.outTextForCoalition(self.side, "> Logistics "..self.name.." has been upgraded to tier "..lowest_level_zone_nearby.level.."/4",10)
+                else
+                    trigger.action.outTextForCoalition(self.side, "> Logistics "..self.name.." provided additional support for "..lowest_level_zone_nearby.name.."\nT: "..lowest_level_zone_nearby.level.."/4",10)
+                end
                 return true
             end
         end

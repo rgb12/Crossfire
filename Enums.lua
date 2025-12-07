@@ -68,7 +68,6 @@ AITaskTypes = {
     CAPTURE_CONVOY = "CAPTURE CONVOY",
     RESUPPLY_CARGO = "RESUPPLY CARGO",
     RECON = "RECON"
-    
 }
 
 ---@enum OperationTypes

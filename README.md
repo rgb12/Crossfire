@@ -1,53 +1,59 @@
+Crossfire is a DCS persistent and dynamic campaign that generates large-scale, replayable conflicts lasting from hours to weeks. It features full logistics and warehouse systems, player and AI tasking (CAP/CAS/SEAD/DEAD/Recon), custom JTAC and EWRS, and an XP/rank system. Though core features are implemented, the mission is in Alpha and may be unstable due to limited large-scale testing.
 
-# Crossfire - Persistant and dynamic campaign (Alpha)
 
-Crossfire is a DCS dynamic and persistant campaign offering users a simulated war, with countless units and objectives.
-Scenarios can range from hours to weeks of gameplay, with different theatre being generated upon each new mission.
+# Crossfire – Persistent and Dynamic Campaign (Alpha)
 
-Version: 1.0.0
-### Supported modules
-- F/A-18C
-- F-16C
-- Su-25T
-- A-10C
-- F-15E
-- Mirage 2000C
+Crossfire is a DCS dynamic and persistent campaign offering players a simulated conflict with countless units and objectives.  
+Scenarios can range from hours to weeks of gameplay, with a new theatre generated for each mission.
+
+Version: <1>
+
+## Supported Modules
+- F/A-18C  
+- F-16C  
+- Su-25T  
+- A-10C  
+- F-15E  
+- Mirage 2000C  
 
 ## Features
 
-- Countless Scenarios (theatre setup, randomised starts): **hours to weeks of gameplay** depending on scenario
-- **Performance** optimizations 
-- Campaign config (mission and scripting)
-- Functional and complete **Warehouse** logistcs
-- Player CAP/CAS/SEAD/DEED/Recon **operations**
-- **AI tasking**
-- **EWRS**
-- Custom **JTAC**
-- **XP, Ranks**
-
+- Scenarios (theatre setup, randomized starts): hours to weeks of gameplay depending on scenario  
+- Performance optimizations
+- Campaign configuration (mission and scripting)  
+- Functional and complete Warehouse logistics  
+- Player CAP/CAS/SEAD/DEAD/Recon operations 
+- AI tasking
+- EWRS
+- Custom JTAC  
+- XP and Ranks system
 
 ## Notes
-Most core features are implemented, but __the mission can be unstable due to limited large scale testing__, hence the Alpha nomination.
+Most core features are implemented, but the mission may be unstable due to limited large-scale testing, hence the Alpha status.
 
-Your feedback is invaluable, consider sharing your suggestions and bug reports.
+Your feedback is invaluable—please consider sharing suggestions and bug reports.
 
-Persistance requires 'io' and 'lfs' (scripting modules allowing file changes, see below)\
-Do not use the DCS 'Save mission' feature, the mission is designed to work with its own saved files.
+Persistence requires the `io` and `lfs` scripting modules (allowing file operations; see below).  
+Do not use the DCS “Save Mission” feature—this mission manages persistence with its own save files.
 
-As of now, only one scenario comes with the mission, the code is implemented, but requires more rigorous testing/balance tweaks for other scenarios that will be released shortly.
+Currently, only one scenario is included. The underlying code for additional scenarios exists but requires more extensive testing and balance adjustments before release.
 
-This mission is inspired from Dzsekeb's Pretense and Foothold missions.
+This mission is inspired by Dzsekeb’s Pretense and Foothold missions.
 
+## Contact
+Crossfire Discord Server: https://discord.gg/QgRRqwNegE
 
-## Upcoming features
-- A collection of different scenarios
-- Support for all DCS terrains
-- Cold War equivalent
-- C130J custom operations and support
-- Rotary aicraft operations and integration into mission logistics/Warehouse
-- Co-op operations
-- FARPs
-- Carrier OPS
-- Naval units and operations
-- Realistic weather
+## Documentation
+Availabe with download and on the discord server
 
+## Upcoming Features
+- Support and collection of scenarios  
+- Support for all DCS terrains  
+- Cold War variant
+- C-130J custom operations and support  
+- Rotary-wing operations and integration into logistics/Warehouse  
+- Co-op operations  
+- FARPs  
+- Carrier OPS  
+- Naval units integration  
+- Realistic weather  

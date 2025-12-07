@@ -14,10 +14,26 @@ do
         [coalition.side.RED] = nil,
         [coalition.side.BLUE] = nil
     }
-
-    function CommandHandler.init()
+    ---@param unit Unit
+    function CommandHandler.init(unit)
         -- SITMAP
+        if unit and unit.isExist and unit:isExist() and unit.getCoalition then
+            missionCommands.addCommandForGroup(unit:getGroup():getID(), "SITMAP", nil, function()
+                local out_text = "< SITAMP> \n\n"
+                out_text = out_text .. "REDFOR controls " .. stats.red_zones .. " areas.\n"
+                out_text = out_text .. "BLUEFOR controls " .. stats.blue_zones .. " areas.\n"
+                out_text = out_text .. "Neutral areas: " .. stats.neutral_zones .. "\n\n"
 
+                local total_zones = stats.red_zones + stats.blue_zones + stats.neutral_zones
+
+                if unit:getCoalition() == coalition.side.RED then
+                    out_text = out_text .. "Your forces control " .. stats.red_zones .. "/" .. total_zones .. " areas.\n"
+                else
+                    out_text = out_text .. "Your forces control " .. stats.blue_zones .. "/" .. total_zones .. " areas.\n"
+                end
+                trigger.action.outTextForUnit(unit:getID(), out_text, 15)
+            end, nil)
+        end
     end
 
     local refresh_timer = nil
@@ -327,12 +343,12 @@ do
                         if from_zone then                        
                             if TaskManager:initiateAITask(AITaskTypes.CAPTURE_HELO, side, false, to_zone, from_zone, true) then
                                 ExperienceManager:deductTokens(u, Config.tasking_requirements.tokens_required_for_capture_helicopter)
-                                trigger.action.outTextForUnit(u:getID(), "Helicopter Capture dispatched to " .. to_zone.name .. ", -" .. Config.tasking_requirements.tokens_required_for_capture_helicopter .. " tokens.", 10)
+                                trigger.action.outTextForUnit(u:getID(), "> Helicopter capture dispatched to " .. to_zone.name .. ", -" .. Config.tasking_requirements.tokens_required_for_capture_helicopter .. " tokens.", 10)
                             else
-                                trigger.action.outTextForUnit(u:getID(), "Helicopter Capture request failed (No assets available).", 10)
+                                trigger.action.outTextForUnit(u:getID(), "> Helicopter capture request failed (no assets available).", 10)
                             end
                         else
-                            trigger.action.outTextForUnit(u:getID(), "> No available logistics zones with capture helicopters available.", 10)
+                            trigger.action.outTextForUnit(u:getID(), "> No logistics zones with capture helicopters available.", 10)
                         end
 
                     end,
