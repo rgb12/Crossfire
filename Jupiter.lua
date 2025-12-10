@@ -92,6 +92,19 @@ function Jupiter:onEvent(event)
             else
                 trigger.action.outText("Jupiter: No zone found within 10km to level up.", 5)
             end
+        elseif command == "-setlevel" then
+            local level = tonumber(param1) or 1
+            -- Set level of the closest zone within 10km
+            local closest_zone, dist = getClosestZone(vec3)
+            if closest_zone and dist <= 10000 then
+                closest_zone.level = level
+                UnitHandler.updateZoneUnits(closest_zone)
+                closest_zone:drawF10()
+                trigger.action.outText("Jupiter: Set zone "..closest_zone.name.." to level: "..level, 5)
+                cmd_executed = true
+            else
+                trigger.action.outText("Jupiter: No zone found within 10km to set level.", 5)
+            end
         elseif command == "-logstats" then
             MissionLogger:info(stats)
             cmd_executed = true
