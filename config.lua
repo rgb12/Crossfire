@@ -29,6 +29,7 @@ Config = {
         recon_distance_from_zone = 20000, -- (meters)
         cap_duration = 8*60, -- (seconds)
         cap_max_radius_from_zone = 28*1000, -- (meters)
+        max_distance_to_frontline_for_airdrops = 300*1000, -- (meters)
 
     },
     jupiter_enabled = true, -- enables/disables the Jupiter command system

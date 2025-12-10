@@ -83,7 +83,7 @@ do
                 active_mission.operation_name, active_mission.type, active_mission.target_zone_name)
         end
         
-        outtxt = outtxt .. string.format("\n\nTarget Coordinates:\n%s\n%s\nMGRS: %s", 
+        outtxt = outtxt .. string.format("\n\nCoordinates:\n%s\n%s\nMGRS: %s",
             mist.tostringLL(lat, lon, 1), mist.tostringLL(lat, lon, 1, true), mist.tostringMGRS(mgrs, 3))
 
         outtxt = outtxt .. "\n\nObjectives:"
@@ -327,6 +327,14 @@ do
                     table.insert(self.available_operations, op)
                 end
 
+                -- AIRDROP over friendly zones
+                if zone.side == friendly_coalition and utils.tableContains(discovered_zones, zone.name) and zone.level < 4 then
+                    local closest_enemy_zone, dist = zone:getClosestZone(enemy_coalition)
+                    if closest_enemy_zone and dist and dist < Config.operations.max_distance_to_frontline_for_airdrops then
+                        local op = self:createAIRDROPOperation(zone)
+                        table.insert(self.available_operations, op)
+                    end
+                end
             end
         end
     end
@@ -365,6 +373,84 @@ do
                         local zone = ZoneHandler.getFromName(target_zone.name)
                         if not zone then return false end
                         return zone.side ~= utils.getEnemyCoalition(zone.side) -- if it's neutral or friendly, it's cleared
+                    end
+                }
+            }
+        }
+        return op
+    end
+
+    function OperationManager:createAIRDROPOperation(target_zone)
+        local op = {
+            type = OperationTypes.AIRDROP,
+            code = self:createOperationCode(),
+            status = OperationStatus.AVAILABLE,
+            target_zone_name = target_zone.name,
+            operation_name = operations_name[math.random(#operations_name)],
+            objectives = {
+                {
+                    description = "Successfully deliver supplies to " .. target_zone.name .. " via air drop.",
+                    completed = false,
+                    check = function(self, player_unit)
+                        local zone = ZoneHandler.getFromName(target_zone.name)
+                        if not zone then return false end
+                            MissionLogger:info("Checking airdrop objective for zone: "..zone.name)
+                            local volume = {
+                                id = world.VolumeType.SPHERE,
+                                params = {
+                                    point = zone.zone.point,
+                                    radius = zone.zone.radius
+                                }
+                            }
+
+                            local cargo_names = {}
+                            local foundCargo = false
+                            world.searchObjects({Object.Category.CARGO}, volume, function(obj)
+                                MissionLogger:info(1)
+                                if obj and obj:isExist() and obj.getVelocity and obj.getName then
+                                    table.insert(cargo_names, obj:getName())
+                                    MissionLogger:info("Found cargo: "..obj:getName())
+
+                                    local vel = obj:getVelocity()
+                                    -- Checks if cargo has landed
+                                    local speed = math.sqrt(vel.x^2 + vel.y^2 + vel.z^2)
+                                    if speed < 1 then
+                                        foundCargo = true
+                                    end
+                                end
+                                return true
+                            end)
+                            
+                            if foundCargo then
+                                if zone.level < 4 then
+                                    zone.level = zone.level + 1
+                                    UnitHandler.updateZoneUnits(zone)
+                                    zone:drawF10()
+                                    zone.next_level_up_avail = timer.getTime() + Config.logistics_level_up_interval
+                                    trigger.action.outSoundForCoalition(zone.side,"radio_beep.ogg")
+                                    trigger.action.outTextForCoalition(zone.side, "> AIRDROP: "..zone.name.." has been upgraded to tier "..zone.level.."/4",10)
+                                    
+                                else 
+                                    trigger.action.outTextForCoalition(zone.side, "> AIRDROP: "..zone.name.." is already at tier 4/4.",10)
+                                end
+
+                                -- Delete cargo crates from world
+                                timer.scheduleFunction(function ()
+                                    MissionLogger:info("Removing cargo crates for airdrop objective.")
+                                    for _, cname in ipairs(cargo_names) do
+                                        -- MissionLogger:info("Looking for cargo: "..cname)
+                                        local cargo_obj = StaticObject.getByName(cname)
+                                        if cargo_obj and cargo_obj:isExist() then
+                                            -- MissionLogger:info("Destroying cargo: "..cname)
+                                            cargo_obj:destroy()
+                                        end
+                                    end
+
+                                end, {}, timer.getTime() + 120)
+
+                                return true
+                            end
+                        return false
                     end
                 }
             }
@@ -606,20 +692,31 @@ do
 
     ---@param unit Unit
     function OperationManager:showAvailableOperations(unit)
-        if not unit or not unit:isExist() or not unit:getPlayerName() then return end
+        if not unit or not unit:isExist() or not unit.getPlayerName or not unit.hasAttribute then return end
 
         self:generateOperations()
 
+        local unit_supported_operations = {}
+        local unit_is_transport = unit:hasAttribute("Transports")
+        for _, op in ipairs(self.available_operations) do
+            MissionLogger:info(op.type)
+            if op.type == OperationTypes.AIRDROP and unit_is_transport then
+                table.insert(unit_supported_operations, op)
+            elseif not unit_is_transport then
+                table.insert(unit_supported_operations, op)
+            end
+        end
         
+
         local outtext = "Recommended Operations"
-        if #self.available_operations == 0 then
+        if #unit_supported_operations == 0 then
             outtext = "No operations available at this time."
         end
         
 
         local operation_types_displayed = {}
         local operations_displayed = 0
-        for _, op in ipairs(self.available_operations) do
+        for _, op in ipairs(unit_supported_operations) do
             if operations_displayed >= 5 then
                 break
             end
@@ -789,29 +886,7 @@ do
         end
     end
 
-    function OperationManager:checkCapOperations()
-        for i = #self.active_operations, 1, -1 do
-            local op = self.active_operations[i]
-            if op.type == OperationTypes.CAP then
-                local player_unit = Unit.getByName(op.assigned_unit_name)
-
-                if not player_unit or not player_unit:isExist() or not player_unit:getPlayerName() then
-                    -- Player left server, died, or is no longer in the unit. Abort mission.
-                    -- This is a fallback; events should catch this first.
-                    op.status = OperationStatus.FAILED
-                    trigger.action.outTextForCoalition(self.side, "Operation " .. op.operation_name .. " failed: operative lost.", 15)
-                    table.remove(self.active_operations, i)
-                else
-                    -- Check only this specific CAP operation
-                    self:checkObjectives(player_unit)
-                end
-            end
-        end
-    end
-
     function OperationManager:tick()
-        -- The tick now only needs to check for time-based objectives like CAP
-        -- self:checkCapOperations()
         self:checkObjectives()
     end
 end

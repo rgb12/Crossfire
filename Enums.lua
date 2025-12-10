@@ -78,6 +78,7 @@ OperationTypes = {
     DEAD = "DEAD",
     CAS = "CAS",
     RECON = "Recon",
+    AIRDROP = "Airdrop",
 }
 
 
