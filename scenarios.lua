@@ -381,7 +381,6 @@ Scenarios = {
             ZoneHandler:new({ name = "BYLYM" }),
             ZoneHandler:new({ name = "TEBERDA" }),
             ZoneHandler:new({ name = "SUBURBS" }),
-            ZoneHandler:new({ name = "USAHELO" }),
             ZoneHandler:new({ name = "ATOTSI" }),
             ZoneHandler:new({ name = "ABISI" }),
             ZoneHandler:new({ name = "ALAGIR" }),

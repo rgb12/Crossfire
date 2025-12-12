@@ -84,7 +84,7 @@ do
         end
         
         outtxt = outtxt .. string.format("\n\nCoordinates:\n%s\n%s\nMGRS: %s",
-            mist.tostringLL(lat, lon, 1), mist.tostringLL(lat, lon, 1, true), mist.tostringMGRS(mgrs, 3))
+            mist.tostringLL(lat, lon, 2), mist.tostringLL(lat, lon, 2, true), mist.tostringMGRS(mgrs, 3))
 
         outtxt = outtxt .. "\n\nObjectives:"
         for i, obj in ipairs(active_mission.objectives) do
@@ -389,7 +389,7 @@ do
             operation_name = operations_name[math.random(#operations_name)],
             objectives = {
                 {
-                    description = "Successfully deliver supplies to " .. target_zone.name .. " via air drop.",
+                    description = "Successfully deliver ".. Config.operations.airdrop_min_crates_landed .. "x crates to " .. target_zone.name .. " via air drop.",
                     completed = false,
                     check = function(self, player_unit)
                         local zone = ZoneHandler.getFromName(target_zone.name)
@@ -405,6 +405,7 @@ do
 
                             local cargo_names = {}
                             local foundCargo = false
+                            local cargo_count = 0
                             world.searchObjects({Object.Category.CARGO}, volume, function(obj)
                                 MissionLogger:info(1)
                                 if obj and obj:isExist() and obj.getVelocity and obj.getName then
@@ -415,7 +416,10 @@ do
                                     -- Checks if cargo has landed
                                     local speed = math.sqrt(vel.x^2 + vel.y^2 + vel.z^2)
                                     if speed < 1 then
-                                        foundCargo = true
+                                        cargo_count = cargo_count + 1
+                                        if cargo_count >= Config.operations.airdrop_min_crates_landed then
+                                            foundCargo = true
+                                        end
                                     end
                                 end
                                 return true
@@ -699,11 +703,15 @@ do
         local unit_supported_operations = {}
         local unit_is_transport = unit:hasAttribute("Transports")
         for _, op in ipairs(self.available_operations) do
-            MissionLogger:info(op.type)
-            if op.type == OperationTypes.AIRDROP and unit_is_transport then
-                table.insert(unit_supported_operations, op)
-            elseif not unit_is_transport then
-                table.insert(unit_supported_operations, op)
+            if op.type == OperationTypes.AIRDROP then
+                -- Only transports should see AIRDROP operations
+                if unit_is_transport then
+                    table.insert(unit_supported_operations, op)
+                end
+            else
+                if not unit_is_transport then
+                    table.insert(unit_supported_operations, op)
+                end
             end
         end
         
@@ -874,8 +882,17 @@ do
                         if user then
                             user.missions_completed = user.missions_completed + 1
                             user.unclaimed_xp = user.unclaimed_xp + Config.reward_system.xp_per_mission_completed
-                            user.unclaimed_tokens = user.unclaimed_tokens + Config.reward_system.token_per_mission_completed
-                            trigger.action.outTextForUnit(player_unit:getID(), "+" .. Config.reward_system.xp_per_mission_completed .. " XP; +" .. Config.reward_system.token_per_mission_completed .. " Tokens.\nReturn to base to claim your rewards.", 10)
+
+                            tokens_awarded = 0
+                            if Config.reward_system.tokens_mission_complete[op.type] then
+                                tokens_awarded = Config.reward_system.tokens_mission_complete[op.type]
+                                user.unclaimed_tokens = user.unclaimed_tokens + tokens_awarded
+                            else
+                                tokens_awarded = 5 -- default
+                                user.unclaimed_tokens = user.unclaimed_tokens + tokens_awarded 
+                            end
+
+                            trigger.action.outTextForUnit(player_unit:getID(), "+" .. Config.reward_system.xp_per_mission_completed .. " XP; +" .. tokens_awarded .. " Tokens.\nReturn to base to claim your rewards.", 10)
                         end
 
 

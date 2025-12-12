@@ -30,6 +30,7 @@ Config = {
         cap_duration = 8*60, -- (seconds)
         cap_max_radius_from_zone = 28*1000, -- (meters)
         max_distance_to_frontline_for_airdrops = 300*1000, -- (meters)
+        airdrop_min_crates_landed = 6 -- minimum number of crates that must land to consider the airdrop successful
 
     },
     jupiter_enabled = true, -- enables/disables the Jupiter command system
@@ -63,11 +64,20 @@ Config = {
         xp_per_structure_destroyed = 40,
         xp_per_ship_sunk = 150,
         xp_per_intel_report = 25,
-        token_per_mission_completed = 5,
         landing_time = 15, -- (seconds) the time the player has to stay on the ground to be rewarded
 
         tokens_on_rank_up = 20, -- random between tokens awarded on rank up
         tokens_on_rank_up_variance = 10,
+
+        tokens_mission_complete = {
+            [OperationTypes.AIRDROP] = 15,
+            [OperationTypes.CAP] = 10,
+            [OperationTypes.CAS] = 20,
+            [OperationTypes.SEAD] = 15,
+            [OperationTypes.STRIKE] = 15,
+            [OperationTypes.DEAD] = 30,
+            [OperationTypes.RECON] = 10,
+        },
 
         xp_required = {
             [AITaskTypes.JTAC]           = 3000,
@@ -107,16 +117,8 @@ Config = {
         }
 
     },
-theatre = {
+    theatre = {
 
-        -- Removed, will be reimplemented later
-        zone_count_difficulty = {
-            [ScenarioDifficulty.EASY] = 0.90, -- 30% of total zones active
-            [ScenarioDifficulty.MEDIUM] = 0.80,
-            [ScenarioDifficulty.HARD] = 0.80,
-            [ScenarioDifficulty.EXPERT] = 0.70, -- there are more zones but they are more randomised
-        },
-        
         -- Weights for random generation (Airbases are excluded)
         zone_type_weights = {
             [ZoneTypes.STRONGPOINT] = 60,
@@ -150,7 +152,7 @@ theatre = {
 
     tasking = {
         enable = true, -- enables/disables AI tasking system, does not affect resupply and capture mechanics
-        dispatcher_interval = 5*60+8,--5*60, -- (seconds), avoid multiples of 15 to reduce lag spikes
+        dispatcher_interval = 10*60+8,--5*60, -- (seconds), avoid multiples of 15 to reduce lag spikes
         max_tasks_per_airbase = 4, -- maximum number of concurrent tasks per airbase
 
         max_jtac_per_airbase = 2,
@@ -178,6 +180,9 @@ theatre = {
         max_cas_range = 200*1000, -- (meters)
         min_cleareance_dist_for_awacs = 70*1000 -- (meters) from the nearest enemy zone
     },
+    cargo_aicraft = {
+        "C-130J-30"
+    },
 
     capture_helicopter_max_range = 100*1000 , -- (meters)
 
@@ -201,6 +206,28 @@ theatre = {
         standard_refresh_time = 20, -- (seconds)
         max_aircraft_per_text = 8, -- maximum number of aircraft displayed per message
     },
+
+    draw_color_palette = {
+        -- for rgb, divide values by 255 to get 0-1 range
+        red_palette = {
+            {0.7, 0, 0, 0.9},   -- Border color (r g b: values from 0 to 1, a: alpha from 0 to 1)
+            {0.7, 0, 0, 0.25},  -- Fill color
+            {0.5, 0.1, 0.1, 1},   -- Text color
+            {1, 0.5, 0.5, 0.3}    -- Text BG
+        },
+        blue_palette = {
+            {0, 0.2, 0.8, 0.9},
+            {0, 0.2, 0.8, 0.25},
+            {0, 0.1, 0.5, 1},
+            {0.5, 0.8, 1, 0.3}
+        },
+        neutral_palette = {
+            {0.4, 0.4, 0.4, 0.8},
+            {0.4, 0.4, 0.4, 0.2},
+            {1, 1, 1, 1},
+            {0, 0, 0, 0.2}
+        }
+    }
 
 }
 

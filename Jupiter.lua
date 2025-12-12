@@ -382,4 +382,4 @@ end
 
 -- Register the event handler
 world.addEventHandler(Jupiter)
-trigger.action.outText("< Jupiter Command Handler Loaded >", 3)
+--trigger.action.outText("< Jupiter Command Handler Loaded >", 3)

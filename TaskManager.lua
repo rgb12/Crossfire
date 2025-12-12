@@ -1359,9 +1359,9 @@ do
             ctrl:setOption(AI.Option.Air.id.REACTION_ON_THREAT, AI.Option.Air.val.REACTION_ON_THREAT.PASSIVE_DEFENCE)
             ctrl:setOption(AI.Option.Air.id.RTB_ON_BINGO, true)
 
-            trigger.action.outTextForCoalition(enroute_data.side, "RECON mission tasked.", 10)
-            trigger.action.outSoundForCoalition(enroute_data.side, "transmission1.ogg")
-            MissionLogger:info("RECON mission tasked to " .. enroute_data.to_zone.name)
+            --trigger.action.outTextForCoalition(enroute_data.side, "RECON flight tasked.", 10)
+            --trigger.action.outSoundForCoalition(enroute_data.side, "transmission1.ogg")
+            MissionLogger:info("RECON flight tasked to " .. enroute_data.to_zone.name)
         end, {}, timer.getTime() + 12)
     end
 

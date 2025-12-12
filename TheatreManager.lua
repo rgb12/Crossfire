@@ -524,7 +524,7 @@ do
                             if first_time_discovered then
                                 enroute.to_zone:drawF10()
                                 CommandHandler.refreshJtacCmds(enroute.side)
-                                trigger.action.outTextForCoalition(enroute.side,"Recon group " .. enroute.group_name .. " has discovered " .. enroute.to_zone.name.."\nCheck F10 map", 10)
+                                trigger.action.outTextForCoalition(enroute.side,"Recon task has discovered " .. enroute.to_zone.name.."\nCheck F10 map", 10)
                                 MissionLogger:info("Recon group " .. enroute.group_name .. " has discovered " .. enroute.to_zone.name.."\nCheck F10 map")
                             end
                         end
@@ -690,8 +690,7 @@ do
 
         -- 2. APPLY DIFFICULTY (Zone Count) & REBUILD GLOBAL ZONES TABLE
         local diff_setting = Scenario.difficulty
-        local diff_ratios = Config.theatre.zone_count_difficulty
-        local active_ratio = 1--diff_ratios[diff_setting] or 0.75
+        local active_ratio = 1
 
         utils.shuffleTable(all_other_zones)
         

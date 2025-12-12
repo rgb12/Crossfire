@@ -49,6 +49,36 @@ function ev:onEvent(event)
                         end, {}, timer.getTime() + 2)
                         return
                     end
+
+                    -- C130J_30 are not added as "takeoff from ramp", the script has to manually remove one from warehouse
+                    if unit.getTypeName and unit:getTypeName() == WarehouseManager.AircraftFlags.C130J_30 then
+                        if not zone.airbase_name then return end
+                        local airbase = Airbase.getByName(zone.airbase_name)
+                        if airbase then
+                            local warehouse = airbase:getWarehouse()
+                            if warehouse then
+                                local acft_count = warehouse:getItemCount(WarehouseManager.AircraftFlags.C130J_30)
+                                if acft_count <= 0 then
+                                    -- no more C130J_30 available, destroy the unit
+                                    local unit_id = unit:getID()
+                                    trigger.action.outSoundForUnit(unit_id, "error.ogg")
+                                    trigger.action.outTextForUnit(unit_id, "****************\n\nNo C-130J-30 available in warehouse!\n\n****************", 20)
+                                    timer.scheduleFunction(function ()
+                                        if unit and unit:isExist() then
+                                            unit:destroy()
+                                        end
+                                    end, {}, timer.getTime() + 2)
+                                    return
+                                else 
+                                    warehouse:removeItem(WarehouseManager.AircraftFlags.C130J_30, 1)
+
+                                end
+                            end
+
+                        end
+
+                    end
+
                 end
             end
         end

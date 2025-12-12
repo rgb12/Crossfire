@@ -90,4 +90,17 @@ OperationStatus = {
     FAILED = "failed"
 }
 
+---@enum CargoCrates
+CargoCrates = {
+    CDS_BARRELS = "cds_barrels",
+    CDS_CRATES = "cds_crate",
+    ContainerClean = "M92_10Ft_Container",
+    MOAB = "gbu_43b_airdrop",
+    LargeContainer = "iso_container",
+    SmallContainer = "iso_container_small"
+
+
+
+}
+
 MissionLogger = mist.Logger:new("MissionLogger", 3)

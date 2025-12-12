@@ -151,24 +151,9 @@ do
     function ZoneHandler:drawF10()
         -- 1. Define Color Palettes
         -- [Area Border, Area Fill, Text, Text Background]
-        local red_palette = {
-            {0.7, 0, 0, 0.9},   -- Border: Dark, solid red
-            {0.7, 0, 0, 0.25},  -- Fill: Translucent red
-            {0.5, 0, 0, 1},   -- Text: Dark Maroon
-            {1, 0.5, 0.5, 0.3}    -- Text BG: Light, translucent "pink"
-        }
-        local blue_palette = {
-            {0, 0.2, 0.8, 0.9},   -- Border: Dark, solid blue
-            {0, 0.2, 0.8, 0.25},  -- Fill: Translucent blue
-            {0, 0.1, 0.5, 1},   -- Text: Dark Navy
-            {0.5, 0.8, 1, 0.3}    -- Text BG: Light, translucent "cyan"
-        }
-        local neutral_palette = {
-            {0.4, 0.4, 0.4, 0.8},   -- Border: Solid gray
-            {0.4, 0.4, 0.4, 0.2},   -- Fill: Translucent gray
-            {1, 1, 1, 1},       -- Text: Solid white
-            {0, 0, 0, 0.2}        -- Text BG: Translucent black
-        }
+        local red_palette = Config.draw_color_palette.red_palette
+        local blue_palette = Config.draw_color_palette.blue_palette
+        local neutral_palette = Config.draw_color_palette.neutral_palette
         
         -- Set default colors to neutral
         local border_color = neutral_palette[1]
@@ -330,6 +315,7 @@ do
         return closestZone, closestDistance
     end
 
+    ---@param point vec3|vec2
     function ZoneHandler:isPointInsideZone(point)
         if self:isCircle() then
             local dist = mist.utils.get2DDist(point, self.zone.point)

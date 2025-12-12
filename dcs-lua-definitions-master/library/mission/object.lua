@@ -11,7 +11,7 @@ Object.Category = {
     STATIC  = 3,
     BASE    = 4,
     SCENERY = 5,
-    Cargo   = 6,
+    CARGO   = 6,
 }
 
 ---@class ObjectDesc

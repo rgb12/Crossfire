@@ -16,6 +16,7 @@ do
         return string.sub(str, 1, string.len(prefix)) == prefix
     end
 
+    ---@param position vec3|vec2
     function utils.getZoneOfUnitFromPosition(position)
         for i, zone in ipairs(zones) do
             if zone:isPointInsideZone(position) then

@@ -122,6 +122,131 @@ do
                     })
                 end
             end
+            ---------------------------------------------------------------
+            -- CARGO CRATES LOGIC
+            
+            ---@param u Unit
+            ---@return boolean
+            local function checkAircraftIsCargoCapable(u)
+                if not u or not u.isExist or not u:isExist() then return false end
+                local type_name = u:getTypeName()
+                for _, cargo_aircraft in ipairs(Config.cargo_aicraft) do
+                    if type_name == cargo_aircraft then
+                        return true
+                    end
+                end
+                return false
+            end
+
+            ---@param u Unit
+            ---@return boolean
+            local function aircraftMoving(u)
+                if not u or not u.isExist or not u:isExist() then return false end
+                local speed = u:getVelocity()
+                local horizontal_speed = math.sqrt(speed.x^2 + speed.z^2)
+                if horizontal_speed > 1 then -- 1 m/s threshold
+                    return true
+                end
+                return false
+            end
+
+            local cargo_crates_submenu = missionCommands.addSubMenuForGroup(gr_id, "Cargo Crates", resources_main_submenu)
+
+            missionCommands.addCommandForGroup(gr_id, "CDS Barrels", cargo_crates_submenu, function()
+                local u = gr:getUnit(1)
+                if not u or not u:isExist() then return end
+                if not u.getTypeName or not u:getTypeName() then return end
+
+                if not checkAircraftIsCargoCapable(u) then
+                    trigger.action.outTextForUnit(u:getID(), "> Cargo crates cannot be deployed from this aircraft.", 10)
+                    return
+                end
+
+                if aircraftMoving(u) then
+                    trigger.action.outTextForUnit(u:getID(), "> Aircraft must be stationary to deploy cargo crates.", 10)
+                    return
+                end
+
+                UnitHandler.staticCargoSpawn(u, CargoCrates.CDS_BARRELS, 2, 12)
+            end, nil)
+
+            missionCommands.addCommandForGroup(gr_id, "CDS Crates", cargo_crates_submenu, function()
+                local u = gr:getUnit(1)
+                if not u or not u:isExist() then return end
+                if not u.getTypeName or not u:getTypeName() then return end
+
+                if not checkAircraftIsCargoCapable(u) then
+                    trigger.action.outTextForUnit(u:getID(), "> Cargo crates cannot be deployed from this aircraft.", 10)
+                    return
+                end
+
+                if aircraftMoving(u) then
+                    trigger.action.outTextForUnit(u:getID(), "> Aircraft must be stationary to deploy cargo crates.", 10)
+                    return
+                end
+
+                UnitHandler.staticCargoSpawn(u, CargoCrates.CDS_CRATES, 2, 12)
+            end, nil)
+
+            missionCommands.addCommandForGroup(gr_id, "Cargo Container", cargo_crates_submenu, function()
+                local u = gr:getUnit(1)
+                if not u or not u:isExist() then return end
+                if not u.getTypeName or not u:getTypeName() then return end
+
+                if not checkAircraftIsCargoCapable(u) then
+                    trigger.action.outTextForUnit(u:getID(), "> Cargo crates cannot be deployed from this aircraft.", 10)
+                    return
+                end
+
+                if aircraftMoving(u) then
+                    trigger.action.outTextForUnit(u:getID(), "> Aircraft must be stationary to deploy cargo crates.", 10)
+                    return
+                end
+
+                UnitHandler.staticCargoSpawn(u, CargoCrates.ContainerClean, 5, 4)
+            end, nil)
+
+            missionCommands.addCommandForGroup(gr_id, "MOAB", cargo_crates_submenu, function()
+                local u = gr:getUnit(1)
+                if not u or not u:isExist() then return end
+                if not u.getTypeName or not u:getTypeName() then return end
+
+                if not checkAircraftIsCargoCapable(u) then
+                    trigger.action.outTextForUnit(u:getID(), "> Cargo crates cannot be deployed from this aircraft.", 10)
+                    return
+                end
+
+                if aircraftMoving(u) then
+                    trigger.action.outTextForUnit(u:getID(), "> Aircraft must be stationary to deploy cargo crates.", 10)
+                    return
+                end
+
+                -- Checks if MOAB in warehouse
+                local airbase = utils.getZoneOfUnitFromPosition(u:getPoint())
+                if not airbase or not airbase.airbase_name then
+                    trigger.action.outTextForUnit(u:getID(), "> Unable to determine airbase for MOAB deployment.", 10)
+                    return
+                end
+                local in_stock = false
+                ab = Airbase.getByName(airbase.airbase_name)
+                if ab then
+                    local warehouse = ab:getWarehouse()
+                        local moab_count = warehouse:getItemCount(WarehouseManager.Flags.GBU_43)
+                        if moab_count and moab_count > 0 then
+                            in_stock = true
+                            warehouse:removeItem(WarehouseManager.Flags.GBU_43, 1)
+                        end
+                end
+                if not in_stock then
+                    trigger.action.outTextForUnit(u:getID(), "> No MOABs available in warehouse for deployment.", 10)
+                    return
+                end
+
+                UnitHandler.staticCargoSpawn(u, CargoCrates.MOAB, 10, 1)
+            end, nil)
+
+            -----------------------------------------------------------------------
+            -- RESUPPLY REQUEST LOGIC
 
             missionCommands.addCommandForGroup(gr_id, "Request Resupply - Cost:"..Config.resupply_tokens_cost.." tokens", resources_main_submenu, function()
                 if not checkTokens(unit, Config.resupply_tokens_cost) then return end

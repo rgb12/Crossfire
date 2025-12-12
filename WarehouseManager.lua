@@ -36,6 +36,7 @@ do
     GBU_32_V_2B = "weapons.bombs.GBU_32_V_2B",
     GBU_31_V_3B = "weapons.bombs.GBU_31_V_3B",
     GBU_54_V_1B = "weapons.bombs.GBU_54_V_1B",
+    GBU_43 = "weapons.bombs.GBU_43",
 
     MK_82 = "weapons.bombs.Mk_82",
     MK_83 = "weapons.bombs.Mk_83",
@@ -769,7 +770,7 @@ do
                 [WarehouseManager.Flags.AGM_65D] = math.random(14,18),
                 [WarehouseManager.Flags.AGM_65E] = math.random(8,10),
                 [WarehouseManager.Flags.AGM_65F] = math.random(6,8),
-                [WarehouseManager.Flags.AGM_88_HARM] = math.random(4,10),
+                [WarehouseManager.Flags.AGM_88_HARM] = math.random(8,10),
                 [WarehouseManager.Flags.GBU_31_V_3B] = math.random(8,16),
                 [WarehouseManager.Flags.GBU_38] = math.random(15,20),
                 [WarehouseManager.Flags.GBU_12] = math.random(32,50),
@@ -778,6 +779,8 @@ do
                 [WarehouseManager.Flags.GBU_24] = math.random(5,10),
                 [WarehouseManager.Flags.GBU_32_V_2B] = math.random(6,10),
                 [WarehouseManager.Flags.GBU_54_V_1B] = math.random(12,18),
+                [WarehouseManager.Flags.GBU_43] = math.random(4,6),
+
                 [WarehouseManager.Flags.MK_82] = math.random(20,50),
                 [WarehouseManager.Flags.MK_83] = math.random(12,18),
                 [WarehouseManager.Flags.MK_84] = math.random(8,14),
@@ -906,7 +909,8 @@ do
                 [WarehouseManager.Flags.CBU_99] = math.random(4,8),
                 [WarehouseManager.Flags.CBU_105] = math.random(4,8),
                 [WarehouseManager.Flags.CBU_103] = math.random(4,8),
-                [WarehouseManager.Flags.GBU_54_V_1B] = math.random(10,16)
+                [WarehouseManager.Flags.GBU_54_V_1B] = math.random(10,16),
+                [WarehouseManager.Flags.GBU_43] = math.random(4,6),
             },
             [coalition.side.RED] = {
                 [WarehouseManager.Flags.KAB_500KR] = math.random(10,15),
@@ -920,8 +924,8 @@ do
         },
         [WarehouseManager.StockTypes.AIR_GROUND_GUIDED_BOMBS] = {
             [coalition.side.BLUE] = {
-                [WarehouseManager.Flags.GBU_38] = math.random(8,14),
-                [WarehouseManager.Flags.GBU_12] = math.random(6,10),
+                [WarehouseManager.Flags.GBU_38] = math.random(16,18),
+                [WarehouseManager.Flags.GBU_12] = math.random(20,35),
                 [WarehouseManager.Flags.GBU_31_V_3B] = math.random(6,10),
                 [WarehouseManager.Flags.GBU_10] = math.random(6,10),
                 [WarehouseManager.Flags.GBU_16] = math.random(6,10),

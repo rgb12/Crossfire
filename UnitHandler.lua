@@ -406,5 +406,56 @@ do
     
     end
 
+    ---@param unit Unit
+    ---@param cargo_type CargoCrates
+    ---@param dist_apart number|nil
+    ---@param amount_to_spawn number|nil
+    function UnitHandler.staticCargoSpawn(unit, cargo_type, dist_apart, amount_to_spawn)
+        if not unit or not unit.isExist or not unit:isExist() then return end
+        local unit_coalition = unit:getCoalition()
+        if unit_coalition == coalition.side.NEUTRAL then return end
 
+        local country_name
+        if unit_coalition == coalition.side.BLUE then country_name = country.id.CJTF_BLUE
+        else country_name = country.id.CJTF_RED end
+
+        amount_to_spawn = amount_to_spawn or 6
+
+        local unit_pos = unit:getPoint()
+
+        -- First remove the crates that might already be there
+        local vol = {
+            id = world.VolumeType.SPHERE, 
+            params = { point = unit_pos, radius = 50 } }
+        world.searchObjects({Object.Category.CARGO}, vol, function(obj)
+            if obj and obj:isExist() then
+                MissionLogger:info(obj:getName().." cargo removed")
+                obj:destroy()
+            end
+            return true
+        end)
+
+        local unit_heading = mist.getHeading(unit) or 0
+        local behind_distance = 20 -- meters behind the unit 
+        local behind_point = {
+            unit_pos.x - behind_distance * math.cos(unit_heading),
+            unit_pos.z - behind_distance * math.sin(unit_heading)
+        }
+        timer.scheduleFunction(function()
+            for i = 1, amount_to_spawn do
+                local offset = (i - (amount_to_spawn + 1) / 2) * (dist_apart or 2) -- 2 meters apart by default
+                local offset_point = {
+                    behind_point[1] + offset * math.cos(unit_heading + math.pi / 2),
+                    behind_point[2] + offset * math.sin(unit_heading + math.pi / 2)
+                }
+                -- cds_barrels
+                mist.dynAddStatic({
+                    type = cargo_type or CargoCrates.CDS_BARRELS,
+                    country = country_name,
+                    category = "Cargos",
+                    x = offset_point[1],
+                    y = offset_point[2]})
+            end
+        end, {}, timer.getTime()+1) -- to prevent crates stacking
+    end
 end
