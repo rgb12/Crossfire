@@ -35,6 +35,7 @@ do
     GBU_38 = "weapons.bombs.GBU_38", --JDAM 500 lbs
     GBU_32_V_2B = "weapons.bombs.GBU_32_V_2B",
     GBU_31_V_3B = "weapons.bombs.GBU_31_V_3B",
+    GBU_54_V_1B = "weapons.bombs.GBU_54_V_1B",
 
     MK_82 = "weapons.bombs.Mk_82",
     MK_83 = "weapons.bombs.Mk_83",
@@ -45,7 +46,9 @@ do
     LAU_88 = "weapons.adapters.lau-88",
     AAQ_28_LITENING = "weapons.containers.AAQ-28_LITENING",
     AN_AAQ_33_SNIPER = "weapons.containers.AN_AAQ_33",
-
+    AAQ_14_LANTIRN = "weapons.containers.F-15E_AAQ-14_LANTIRN",
+    AAQ_13_LANTIRN = "weapons.containers.F-15E_AAQ-13_LANTIRN",
+        
     HTS_POD = "weapons.containers.16c_hts_pod",
     ALQ_184 = "weapons.containers.ALQ-184",
 
@@ -774,6 +777,7 @@ do
                 [WarehouseManager.Flags.GBU_16] = math.random(8,14),
                 [WarehouseManager.Flags.GBU_24] = math.random(5,10),
                 [WarehouseManager.Flags.GBU_32_V_2B] = math.random(6,10),
+                [WarehouseManager.Flags.GBU_54_V_1B] = math.random(12,18),
                 [WarehouseManager.Flags.MK_82] = math.random(20,50),
                 [WarehouseManager.Flags.MK_83] = math.random(12,18),
                 [WarehouseManager.Flags.MK_84] = math.random(8,14),
@@ -790,10 +794,14 @@ do
                 [WarehouseManager.Flags.CBU_105] = math.random(4,8),
                 [WarehouseManager.Flags.CBU_103] = math.random(4,8),
 
-                [WarehouseManager.Flags.AAQ_28_LITENING] = math.random(7,10),
-                [WarehouseManager.Flags.AN_AAQ_33_SNIPER] = math.random(7,10),
-                [WarehouseManager.Flags.HTS_POD] = math.random(4,6),
-                [WarehouseManager.Flags.ALQ_184] = math.random(3,5),
+                [WarehouseManager.Flags.AAQ_28_LITENING] = math.random(10,16),
+                [WarehouseManager.Flags.AN_AAQ_33_SNIPER] = math.random(10,16),
+                [WarehouseManager.Flags.AAQ_14_LANTIRN] = math.random(10,16),
+                [WarehouseManager.Flags.AAQ_13_LANTIRN] = math.random(10,16),
+
+
+                [WarehouseManager.Flags.HTS_POD] = math.random(6,12),
+                [WarehouseManager.Flags.ALQ_184] = math.random(8,12),
                 [WarehouseManager.Flags.ADM_141_TALD] = math.random(24,38),
                 [WarehouseManager.Flags.AGM_154C_JSOW] = math.random(4,8),
                 [WarehouseManager.Flags.AGM_154A_JSOW] = math.random(4,8),
@@ -894,10 +902,11 @@ do
                 [WarehouseManager.Flags.MK82_SNAKEEYE] = math.random(6,12),
                 [WarehouseManager.Flags.MK_20_ROCKEYE] = math.random(4,8),
                 [WarehouseManager.Flags.CBU_87] = math.random(4,8),
-                [WarehouseManager.Flags.CBU_97] = math.random(4,8),
+                [WarehouseManager.Flags.CBU_97] = math.random(8,16),
                 [WarehouseManager.Flags.CBU_99] = math.random(4,8),
                 [WarehouseManager.Flags.CBU_105] = math.random(4,8),
                 [WarehouseManager.Flags.CBU_103] = math.random(4,8),
+                [WarehouseManager.Flags.GBU_54_V_1B] = math.random(10,16)
             },
             [coalition.side.RED] = {
                 [WarehouseManager.Flags.KAB_500KR] = math.random(10,15),
@@ -987,13 +996,15 @@ do
             [coalition.side.BLUE] = {
                 [WarehouseManager.Flags.AAQ_28_LITENING] = math.random(5,8),
                 [WarehouseManager.Flags.AN_AAQ_33_SNIPER] = math.random(5,8),
+                [WarehouseManager.Flags.AAQ_14_LANTIRN] = math.random(5,8),
+                [WarehouseManager.Flags.AAQ_13_LANTIRN] = math.random(5,8),
             },
 
         },
         [WarehouseManager.StockTypes.MISC] = {
             [coalition.side.BLUE] = {
                 [WarehouseManager.Flags.HTS_POD] = math.random(4,6),
-                [WarehouseManager.Flags.ADM_141_TALD] = math.random(2,4),
+                [WarehouseManager.Flags.ADM_141_TALD] = math.random(16,24),
             }
         },
         
