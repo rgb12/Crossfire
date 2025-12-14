@@ -19,7 +19,7 @@ do
         -- SITMAP
         if unit and unit.isExist and unit:isExist() and unit.getCoalition then
             missionCommands.addCommandForGroup(unit:getGroup():getID(), "SITMAP", nil, function()
-                local out_text = "< SITAMP> \n\n"
+                local out_text = "< SITMAP > \n\n"
                 out_text = out_text .. "REDFOR controls " .. stats.red_zones .. " areas.\n"
                 out_text = out_text .. "BLUEFOR controls " .. stats.blue_zones .. " areas.\n"
                 out_text = out_text .. "Neutral areas: " .. stats.neutral_zones .. "\n\n"

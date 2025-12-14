@@ -799,7 +799,7 @@ do
                 elseif budget_sam > 0 then
                     zone.zone_type = ZoneTypes.SAMSITE
                     local r = math.random(1, 100)
-                    if r < 30 then zone.sam_classification = SAM_TYPES.SHORT_RANGE
+                    if r < 15 then zone.sam_classification = SAM_TYPES.SHORT_RANGE
                     elseif r < 60 then zone.sam_classification = SAM_TYPES.MEDIUM_RANGE
                     else zone.sam_classification = SAM_TYPES.LONG_RANGE end
                     budget_sam = budget_sam - 1

@@ -2,11 +2,11 @@
 --[[
     DCS CROSSFIRE MISSION CONFIG FILE
 
-    This file allows you to edit how the mission responds, how AI behaved depending on multiple variables.
+    This file allows you to edit how the mission responds, how AI behaves depending on multiple variables.
 
 
     do not remove the commas at the end of each line
-    Refer to documenation for details on each setting
+    Refer to the comments for details on each field
 
 ]]
 
@@ -38,7 +38,7 @@ Config = {
     enabled_su25t_bluefor = true, -- adds the SU-25T to the bluefor warehouse inventory
 
     estimated_users = 1, -- used to scale warehouse stocks and resupply quantities
-    red_stock_multiplier = 10, -- multiplier for redfor warehouse stocks, compared to bluefor
+    red_stock_multiplier = 4, -- multiplier for redfor warehouse stocks, compared to bluefor
 
     std_resupply_time = 20*60, -- (seconds) respawn resupply aircraft delay
     cooldown_before_capture_attempt = 3*60, -- (seconds)
@@ -47,9 +47,9 @@ Config = {
     allow_resupply = true, -- this will enable/disable resupply aircrafts, this will make the misison significantly harder
 
     zone_upgrade_costs_tokens = {
-        [1] = 10, -- cost to upgrade from tier 1 to tier 2
-        [2] = 30, -- cost to upgrade from tier 2 to tier 3
-        [3] = 40, -- cost to upgrade from tier 3 to tier 4
+        [1] = 40, -- cost to upgrade from tier 1 to tier 2
+        [2] = 60, -- cost to upgrade from tier 2 to tier 3
+        [3] = 80, -- cost to upgrade from tier 3 to tier 4
     },
     resupply_tokens_cost = 50, -- cost in tokens to request a resupply aircraft
 
@@ -70,7 +70,7 @@ Config = {
         tokens_on_rank_up_variance = 10,
 
         tokens_mission_complete = {
-            [OperationTypes.AIRDROP] = 15,
+            [OperationTypes.AIRDROP] = 20,
             [OperationTypes.CAP] = 10,
             [OperationTypes.CAS] = 20,
             [OperationTypes.SEAD] = 15,
@@ -80,7 +80,7 @@ Config = {
         },
 
         xp_required = {
-            [AITaskTypes.JTAC]           = 3000,
+            [AITaskTypes.JTAC]           = 0,
             [AITaskTypes.RECON]          = 6000,
             [AITaskTypes.INTERCEPT]      = 10000,
             [AITaskTypes.CAS]            = 15000,
@@ -130,7 +130,7 @@ Config = {
 
     },
     tasking_requirements = {
-        comms_zones_required_for_jtac = 2,
+        comms_zones_required_for_jtac = 0,
         comms_zones_required_for_cas = 2,
         comms_zones_required_for_sead = 3,
         comms_zones_required_for_strike = 2,
@@ -147,7 +147,7 @@ Config = {
         tokens_required_for_recon = 10,
         tokens_required_for_capture_helicopter = 10,
     },
-    comms_tower_respawn_time = 120,--TO CHANGE 20*60, -- (seconds), the timer decreases by 25% for every level
+    comms_tower_respawn_time = 40*60, -- (seconds), the timer decreases by 25% for every level
     comms_tower_lost_penalty = 1.5, -- the respawn time is multiplied by this much when a comms tower is lost
 
     tasking = {
@@ -194,10 +194,18 @@ Config = {
     jtac_smoke_stock = 4,
 
     -- logistics_upgrade_range = 30000, -- (meters)
-    logistics_upgrade_chance = 100,--10, -- (%) every minute the dice is rolled
-    logistics_level_up_interval = 5*60, -- (seconds) minimum time between level ups
-    logistics_ammo_depot_respawn_time = 7*60, -- (seconds) time it takes for an ammo depot to respawn after being destroyed
-    airbase_command_center_respawn_time = 70, -- (seconds) time it takes for a command center to respawn after being destroyed
+    logistics_upgrade_chance = 30, -- (%) every minute the dice is rolled
+    logistics_level_up_interval = 16*60, -- (seconds) minimum time between level ups
+    logistics_ammo_depot_respawn_time = 25*60, -- (seconds) time it takes for an ammo depot to respawn after being destroyed
+    airbase_command_center_respawn_time = 15*60, -- (seconds) time it takes for a command center to respawn after being destroyed
+
+    -- Warehouse supply distribution percentages by airbase tier, make sure they add up to 1.0 exactly
+    warehouse_supply_distribution = {
+        tier_1 = 0.5, -- % of supplies to tier 1 airbases
+        tier_2 = 0.10, -- % of supplies to tier 2 airbases
+        tier_3 = 0.15, -- % of supplies to tier 3 airbases
+        tier_4 = 0.70, -- % of supplies to tier 4 airbases
+    },
 
     upgrade_tier_range = 50000,
 

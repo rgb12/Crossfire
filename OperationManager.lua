@@ -630,9 +630,6 @@ do
                         local zone = ZoneHandler.getFromName(target_zone.name)
                         if not zone or not player_pos or not player_unit.getCoalition then return false end
 
-
-                        
-
                         if not self.start_time then
                             if mist.utils.get2DDist(zone.zone.point,player_pos) <= self.radius then
 
