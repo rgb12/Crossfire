@@ -194,7 +194,6 @@ function ev:onEvent(event)
                         enroute_heli.from_zone.capture_heli_avail = enroute_heli.from_zone.capture_heli_avail + 1
                         enroute_heli.from_zone:drawF10()
                     end
-                    return
             elseif enroute_heli then
                 -- POSSIBLE CAPTURE HELI
                     --check if in zone, if yes abort all ot hers inbound to the zone
@@ -203,9 +202,22 @@ function ev:onEvent(event)
                             unit:getGroup():destroy()
                         end, {}, timer.getTime() + 10)
                     end
-                    return
+            end
+
+            if unit and unit.getPlayerName and unit:getPlayerName() then
+                local unit_coalition = unit:getCoalition()
+                -- check if heli landed in neutral zone
+                for _,zone in ipairs(zones) do
+                    if zone.side == coalition.side.NEUTRAL and zone:isPointInsideZone(unit:getPoint()) then
+                        trigger.action.outTextForCoalition(unit_coalition, "> You have captured ".. zone.name, 15)
+                        trigger.action.outSoundForCoalition(unit_coalition, "radio_beep2.ogg")
+                        
+                        zone:capture(unit_coalition)
+                    end
+                end
                 
             end
+
 
         elseif desc.category == Unit.Category.AIRPLANE then
 
@@ -223,40 +235,12 @@ function ev:onEvent(event)
                     -- Schedule the supply addition
                     timer.scheduleFunction(function ()
                     
-                        -- -- 1. Get the correct step and cycle
-                        -- local current_step
-                        
-                        -- if enroute_task_side == coalition.side.BLUE then
-                        --     current_step = stats.blue_resupply_step
-                        --     -- Increment and wrap for next time
-                        --     stats.blue_resupply_step = stats.blue_resupply_step + 1
-                        --     if stats.blue_resupply_step > #WarehouseManager.ResupplyCycle then
-                        --         stats.blue_resupply_step = 1
-                        --     end
-                        -- else -- Must be RED
-                        --     current_step = stats.red_resupply_step
-                        --     -- Increment and wrap for next time
-                        --     stats.red_resupply_step = stats.red_resupply_step + 1
-                        --     if stats.red_resupply_step > #WarehouseManager.ResupplyCycle then
-                        --         stats.red_resupply_step = 1
-                        --     end
-                        -- end
-    
-                        -- -- 2. Get the supplies from the cycle
-                        -- local restock_types = WarehouseManager.ResupplyCycle[current_step].types
-                        -- local restock_txt = WarehouseManager.ResupplyCycle[current_step].text
-    
-                        -- -- 3. Distribute the supplies to ALL eligible L3/L4 bases
-                        -- MissionLogger:info("Cargo aircraft arrived, supplying "..restock_txt.." into airfield warehouses...")
-                        -- trigger.action.outTextForCoalition(enroute_task_side, "Cargo aircraft arrived, supplying "..restock_txt.." into airfield warehouses...",10)
-                        
-                        -- WarehouseManager:handleIncomingSupplies(enroute_task_side, restock_types)
                         if enroute_task_side == coalition.side.RED then
                             WarehouseManager:handleIncomingSupplies(coalition.side.RED, {WarehouseManager.StockTypes.INITIAL})
                         else
                             if Config.enabled_su25t_bluefor then
                                 WarehouseManager:handleIncomingSupplies(coalition.side.BLUE, {WarehouseManager.StockTypes.SU25T_BLUEFOR, WarehouseManager.StockTypes.INITIAL})
-                            else 
+                            else
                                 WarehouseManager:handleIncomingSupplies(coalition.side.BLUE, {WarehouseManager.StockTypes.INITIAL})
 
 
