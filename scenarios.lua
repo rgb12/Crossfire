@@ -13,6 +13,11 @@
 ---@field heli_capture_range number
 ---@field max_dist_to_frontline number
 
+---@class CarrierSetup
+---@field group_name string
+---@field enabled boolean
+---@field waypoints vec2[]
+
 ---@class Resupply
 ---@field blue_point vec3
 ---@field red_point vec3
@@ -25,50 +30,12 @@
 ---@field red_airbase ZoneHandler|nil
 ---@field blue_airbase ZoneHandler|nil
 ---@field logistics_setup LogisticsSetup
+---@field carrier_setup CarrierSetup|nil
 ---@field resupply Resupply
 ---@field zones ZoneHandler[]
 
 ---@type Scenario[]
 Scenarios = {
-    {
-        name = "Neptune Protocol1",
-        description = "Regain control of lost Georgia.",
-        coalition_setup = {
-            initial_dist_blue_to_frontline = 55750, --meters
-            dist_variance = 5000, --meters
-            auto_coalition_designation = true, -- overrides the above
-        },
-        logistics_setup = {
-            upgrade_range = 50000, --meters
-            heli_capture_range = 100000, --meters
-            max_dist_to_frontline = 65000 --meters
-        },
-        resupply = {
-            red_point = { x = 00006923, y = 6096, z = 00079849 },
-            blue_point = { x = -00326782, y = 6096, z = 00932890 }
-        },
-        difficulty = ScenarioDifficulty.HARD,
-        red_airbase = ZoneHandler:new({
-            name = "ANAPA",
-            airbase_name = Airbases.Caucasus.Anapa_Vityazevo,
-            zone_type = ZoneTypes.AIRBASE}),
-        blue_airbase =  ZoneHandler:new({
-            name = "VAZIANI",
-            zone_type = ZoneTypes.AIRBASE,
-            airbase_name = Airbases.Caucasus.Vaziani,}),
-        zones = {
-            ZoneHandler:new({
-                name = "ALPHA",
-                zone_type = ZoneTypes.STRONGPOINT
-            }),
-            ZoneHandler:new({
-                name = "KUTAISI",
-                zone_type = ZoneTypes.AIRBASE,
-                airbase_name = Airbases.Caucasus.Kutaisi,
-            }),
-
-        }
-    },
     {
         name = "Neptune Protocol",
         description = "Regain control of lost Georgia.",
@@ -453,6 +420,14 @@ Scenarios = {
             blue_point = { x = -00318568, y = 6096, z = 00991378 },
             red_point = { x = -00290581, y = 6096, z = 00569411 }
         },
+        carrier_setup = {
+            group_name = "Carrier",
+            enabled = false,
+            waypoints = {
+                { x = -00335908, y=00539171}, --spawn point
+                { x=-00274928, y=00533556}
+            }
+        },
         difficulty = ScenarioDifficulty.MEDIUM,
         red_airbase = ZoneHandler:new({
             name = "SENAKI",
@@ -463,7 +438,6 @@ Scenarios = {
             airbase_name = Airbases.Caucasus.Vaziani,
             zone_type = ZoneTypes.AIRBASE}),
         zones = {
-            ZoneHandler:new({name = "BRAVO"}),
             ZoneHandler:new({name = "OUTPOST-SEPTEMBER"}),
             ZoneHandler:new({name = "OUTPOST-NOVEMBER"}),
             ZoneHandler:new({name = "OUTPOST-DECEMBER"}),
@@ -486,7 +460,6 @@ Scenarios = {
             ZoneHandler:new({name = "OSCAR"}),
             ZoneHandler:new({name = "DEHVIRI"}),
             ZoneHandler:new({name = "GVERKI"}),
-            ZoneHandler:new({name = "DELTA"}),
             ZoneHandler:new({name = "OUTPOST-INDIA"}),
             ZoneHandler:new({name = "AIRFIELD"}),
             ZoneHandler:new({name = "SUBURBS"}),
@@ -498,12 +471,15 @@ Scenarios = {
             ZoneHandler:new({name = "GRIGOLISHI"}),
             ZoneHandler:new({name = "NOVEMBER"}),
             ZoneHandler:new({name = "KOKI"}),
-            ZoneHandler:new({name = "SEASIDE"}),
-            ZoneHandler:new({name = "TRAINING-AIRFIELD"}),
             ZoneHandler:new({name = "CHECKPOINT-QUEBEC"}),
             ZoneHandler:new({name = "TKVARCHELI"}),
             ZoneHandler:new({name = "LABRA"}),
-
+            
+            ZoneHandler:new({name = "BRAVO", zone_type = ZoneTypes.FARP, level=4}),
+            ZoneHandler:new({name = "DELTA", zone_type = ZoneTypes.FARP,level=4}),
+            ZoneHandler:new({name = "TRAINING-AIRFIELD", zone_type = ZoneTypes.FARP,level=4}),
+            ZoneHandler:new({name = "SEASIDE", zone_type = ZoneTypes.FARP,level=4}),
+            
             ZoneHandler:new({name = "GUDAUTA", zone_type = ZoneTypes.AIRBASE, airbase_name = Airbases.Caucasus.Gudauta}),
             ZoneHandler:new({name = "SUKHUMI", zone_type = ZoneTypes.AIRBASE, airbase_name = Airbases.Caucasus.Sukhumi_Babushara}),
             ZoneHandler:new({name = "BATUMI", zone_type = ZoneTypes.AIRBASE, airbase_name = Airbases.Caucasus.Batumi}),

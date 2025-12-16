@@ -10,6 +10,7 @@ end
 ---@class ZoneHandler
 ---@field name string
 ---@field side coalition.side|nil
+---@field level number|nil
 ---@field sam_classification string|nil
 ---@field zone ZoneObj
 ---@field zone_type ZoneTypes
@@ -18,6 +19,7 @@ end
 ---@field airbase_name string|nil
 ---@field comms_tower_intact boolean|nil
 ---@field linked_comms_tower string|nil
+---@field linked_farp string|nil
 ZoneHandler = {}
 do
     function ZoneHandler:new(obj)
@@ -40,7 +42,7 @@ do
         end
 
         if obj.zone_type == ZoneTypes.LOGISTICS then
-            if not obj.next_level_up_avail then 
+            if not obj.next_level_up_avail then
                 obj.next_level_up_avail = timer.getTime()
             end
             obj.ammo_depot_intact = false
@@ -181,6 +183,8 @@ do
         elseif self.zone_type == ZoneTypes.LOGISTICS then
             text_display = text_display .. "\nLOGISTICS"
             text_display = text_display .. "\nCapture Helicopters: " .. (self.capture_heli_avail or 0)
+        elseif self.zone_type == ZoneTypes.FARP then
+            text_display = text_display .. "\nFARP"
         elseif self.zone_type == ZoneTypes.SAMSITE then
             text_display = text_display .. "\nSAM SITE"
         elseif self.zone_type == ZoneTypes.EWSITE then
@@ -453,7 +457,19 @@ do
                 stats.red_ew_zones = stats.red_ew_zones -1
                 stats.blue_ew_zones = stats.blue_ew_zones +1
             end
+        elseif self.zone_type == ZoneTypes.FARP and self.side ~= coalition.side.NEUTRAL then
+            -- first delete the invisiblefarp if exits
+            timer.scheduleFunction(function ()
+                UnitHandler.initFARP(self)
+            end,{},timer.getTime()+5)
 
+            if self.side == coalition.side.RED then
+                stats.red_farps_zones = stats.red_farps_zones +1
+                stats.blue_farp_zones = stats.blue_farp_zones -1
+            elseif self.side == coalition.side.BLUE then
+                stats.red_farps_zones = stats.red_farps_zones -1
+                stats.blue_farp_zones = stats.blue_farp_zones +1
+            end
         elseif self.zone_type == ZoneTypes.SAMSITE and self.side ~= coalition.side.NEUTRAL then
             local sam_spawned = nil
             local sam_spawn_options = {}
@@ -541,20 +557,30 @@ do
                 stats.blue_airbases = stats.blue_airbases +1
             end
         end
-        --WARN missing SAM SItE spawning
-        
+
+        -- remove potential jtacs
 
         -- remove potential attack convoys in zone
         for _,enroute in ipairs(EnrouteManager.enroutes) do
-            if self.name == enroute.to_zone.name and self.side == enroute.side then
-                local convoy_group = Group.getByName(enroute.group_name)
-                if convoy_group and convoy_group:isExist() then
-                    trigger.action.setGroupAIOff(convoy_group)
-                    timer.scheduleFunction(function ()
-                        convoy_group:destroy()
-                    end, {}, timer.getTime() + math.random(5, 10))
-                    EnrouteManager:remove(enroute.group_name)
+            if self.name == enroute.to_zone.name then
+                if enroute.ai_task_type == AITaskTypes.ATTACK_CONVOY then
+                    local convoy_group = Group.getByName(enroute.group_name)
+                    if convoy_group and convoy_group:isExist() then
+                        trigger.action.setGroupAIOff(convoy_group)
+                        timer.scheduleFunction(function ()
+                            convoy_group:destroy()
+                        end, {}, timer.getTime() + math.random(5, 10))
+                        EnrouteManager:remove(enroute.group_name)
+                    end
+                elseif enroute.ai_task_type == AITaskTypes.JTAC then
+                    if enroute.jtac then
+                        timer.scheduleFunction(function ()
+                            enroute.jtac:destroy()
+                        end, {}, timer.getTime() + math.random(5, 10))
+                        EnrouteManager:remove(enroute.group_name)
+                    end
                 end
+
             end
         end
         
@@ -729,10 +755,7 @@ do
         if self.side == coalition.side.NEUTRAL then return false end
         if self.zone_type ~= ZoneTypes.LOGISTICS then return false end
 
-
-
         -- MissionLogger:info("Checking logistcs zone "..self.name)
-
         if not self.linked_ammo_depot then return false end
         local ammo_depot = StaticObject.getByName(self.linked_ammo_depot)
         
@@ -748,6 +771,10 @@ do
             if ammo_depot and ammo_depot:isExist() then
                 ammo_depot:destroy()
             end
+        end
+        if not self.ammo_depot_intact and not self.ammo_depot_last_destroyed then
+            -- depot was destroyed but time not recorded, record it now
+            self.ammo_depot_last_destroyed = timer.getTime()
         end
 
         -- checks if the ammo depot has not been destroyed, else respawn one in 
@@ -851,6 +878,11 @@ do
         -- First, check the actual status of the tower
         local is_alive = comms_tower and comms_tower:isExist() and comms_tower:getLife() >= 1
         
+        if not self.comms_tower_intact and not self.comms_tower_last_destroyed then
+            -- tower was destroyed but time not recorded, record it now
+            self.comms_tower_last_destroyed = timer.getTime()
+        end
+
         -- If the script thinks the tower is intact, but it's NOT alive, mark it as destroyed.
         if self.comms_tower_intact and not is_alive then
             self.comms_tower_intact = false

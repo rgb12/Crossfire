@@ -234,18 +234,6 @@ do
                 else stats.blue_sam_sites = stats.blue_sam_sites+1 end
             end
 
-
-        elseif zone.zone_type == ZoneTypes.FARP and zone.side ~= coalition.side.NEUTRAL then
-            -- spawn red or blue ground logistics units
-            if zone.side == coalition.side.RED then
-                -- UnitHandler.clone(obj.init_groups or {"GRND L1"}, obj.zone.name)
-                stats.red_farp_zones = stats.red_farp_zones +1
-            elseif zone.side == coalition.side.BLUE then
-                -- UnitHandler.clone(obj.init_groups or {"BLUE GRND L1"}, obj.zone.name)
-                stats.blue_farp_zones = stats.blue_farp_zones +1
-            end
-
-
         elseif zone.zone_type == ZoneTypes.COMMS and zone.side ~= coalition.side.NEUTRAL then
             -- spawn red or blue ground logistics units
             if zone.side == coalition.side.RED then
@@ -297,6 +285,8 @@ do
         else country_name = country.id.CJTF_RED end
 
         if zone.zone_type == ZoneTypes.LOGISTICS then
+            if zone.ammo_depot_intact == false then return end
+
             local point = mist.getRandomPointInZone(zone.name) or {x=zone.zone.point.x+55,y=zone.zone.point.z-29}
 
             
@@ -317,6 +307,7 @@ do
             end
 
         elseif zone.zone_type == ZoneTypes.COMMS then
+            if zone.comms_tower_intact == false then return end
             local point = mist.getRandomPointInZone(zone.name) or {x=zone.zone.point.x+25,y=zone.zone.point.z-19}
 
             local comms_tower = mist.dynAddStatic({
@@ -359,51 +350,123 @@ do
                 MissionLogger:error("Could not spawn comms tower for ".. zone.name)
             end
 
-
-        elseif zone.zone_type == ZoneTypes.FARP then
-            -- local farp_ammo_storage_point = mist.getRandomPointInZone(zone.name) or {x=zone.zone.point.x+85,y=zone.zone.point.z-29}
-            -- local farp_fuel_depot_point = mist.getRandomPointInZone(zone.name) or {x=zone.zone.point.x+57,y=zone.zone.point.z-27}
-
-            local farp_heliport_point = UnitHandler.findClearPoint(zone,6,10)
-            local farp_tent = UnitHandler.findClearPoint(zone,6,10)
-            local farp_fuel_depot_point = UnitHandler.findClearPoint(zone,6,10)
-            local farp_ammo_storage_point = UnitHandler.findClearPoint(zone,6,10)
-
-            mist.dynAddStatic({
-                type = "Invisible FARP",
-                shape_name = "invisiblefarp",
-                country = country_name,
-                category = "Heliports",
-                x = farp_heliport_point.x,
-                y = farp_heliport_point.y})
-
-            mist.dynAddStatic({
-                type = "FARP Tent",
-                country = country_name,
-                category = "Fortifications",
-                x = farp_tent.x,
-                y = farp_tent.y})
-
-            mist.dynAddStatic({
-                type = "FARP Fuel Depot",
-                country = country_name,
-                category = "Fortifications",
-                x = farp_fuel_depot_point.x,
-                y = farp_fuel_depot_point.y})
-            mist.dynAddStatic({
-                type = "FARP Ammo Dump Coating",
-                country = country_name,
-                category = "Fortifications",
-                x = farp_ammo_storage_point.x,
-                y = farp_ammo_storage_point.y}) --TO CHANGE complete the spawns
-            
-            -- if zone.side == coalition.side.RED then --WARN Deleted by accident the units
-            --     mist.cloneInZone("RED FARP UNITS",zone.name,true,10)
-            -- elseif zone.side == coalition.side.BLUE then 
-            --     mist.cloneInZone("BLUE FARP UNITS",zone.name,true,10)
-            -- end
         end
     
+    end
+
+    ---@param zone ZoneHandler
+    function UnitHandler.initFARP(zone)
+        if zone.zone_type ~= ZoneTypes.FARP then return end
+        if zone.side == coalition.side.NEUTRAL then return end
+
+        local country_name_id
+        if zone.side == coalition.side.BLUE then
+            country_name_id = country.id.CJTF_BLUE
+            stats.blue_farp_zones = stats.blue_farp_zones +1
+        else 
+            country_name_id = country.id.CJTF_RED
+            stats.red_farps_zones = stats.red_farps_zones +1
+        end
+
+        -- Base coordinates for the zone center (where Invisible FARP goes)
+        local base_x = zone.zone.point.x
+        local base_y = zone.zone.point.z -- DCS world Z coordinate is Lua's Y
+
+        -- List of Statics to spawn with their estimated offsets (X, Y)
+        local farp_statics_to_spawn = {
+            -- Invisible FARP (Center Point)
+            { type = "Invisible FARP", category = "Heliports", shape_name = "invisiblefarp", offset_x = 0, offset_y = 0 },
+
+            -- Tents (clustered east of the pad)
+            { type = "FARP Tent", category = "Fortifications", offset_x = 30, offset_y = 5 },
+            { type = "FARP Tent", category = "Fortifications", offset_x = 30, offset_y = -5 },
+
+            -- Ammo Storage (North of the pad)
+            { type = "FARP Ammo Dump Coating", category = "Fortifications", offset_x = 5, offset_y = 55 },
+            { type = "FARP Ammo Dump Coating", category = "Fortifications", offset_x = -5, offset_y = 55 },
+
+            -- Fuel Depots (South of the pad)
+            { type = "FARP Fuel Depot", category = "Fortifications", offset_x = 5, offset_y = -60 },
+            { type = "FARP Fuel Depot", category = "Fortifications", offset_x = -5, offset_y = -60 },
+        }
+
+        -- Spawn the Statics
+        for _, static_data in ipairs(farp_statics_to_spawn) do
+            local static_point = {
+                x = base_x + static_data.offset_x,
+                y = base_y + static_data.offset_y
+            }
+
+            -- some dcs quirks with invisible farps .. that makes it work
+
+            if not (zone.side == coalition.side.RED and static_data.type == "Invisible FARP")
+            and not (zone.linked_farp and static_data.type == "Invisible FARP") then
+ 
+                local new_static = mist.dynAddStatic({
+                        type = static_data.type,
+                        shape_name = static_data.shape_name,
+                        country = country_name_id,
+                        category = static_data.category,
+                        x = static_point.x,
+                        y = static_point.y,
+                        heading = 0
+                    })
+
+                if new_static and new_static.name then
+
+                    
+                    if static_data.type ~= "Invisible FARP" then
+                        -- do not track invisible farps as they are not destroyable
+                        table.insert(zone.linked_statics, new_static.name)
+                    else
+                        zone.linked_farp = new_static.name
+                    end
+            
+                end
+            end
+        end
+        -- Add to warehouse
+        
+        -- set warehouse
+        if zone.linked_farp then
+            timer.scheduleFunction(function()
+                WarehouseManager:clearWarehouse(zone.linked_farp)
+
+                WarehouseManager:attributeAirbaseStock(zone.linked_farp, zone.side, {WarehouseManager.StockTypes.FARP})
+            end, {}, timer.getTime()+1)
+        end
+
+
+        local group_template_name = "BLUE FARP" -- Assumes this is the name of your Late Activated group template
+        local group_offset_x = -55
+        local group_offset_y = 10
+        local group_spawn_point = {
+            x = base_x + group_offset_x,
+            y = base_y + group_offset_y
+        }
+
+        -- Vehicle group
+        if zone.side == coalition.side.RED then
+            group_template_name = GroupData.COMMON_ASSETS.RED.farp
+        else 
+            group_template_name = GroupData.COMMON_ASSETS.BLUE.farp
+        end
+
+        local vehicles_gr = mist.teleportToPoint({
+            groupName = group_template_name,
+            point = group_spawn_point,
+            action = 'clone',
+            disperse = false,
+            initTasks = true,
+            anyTerrain = true
+        })
+
+        if vehicles_gr and vehicles_gr.name then
+            table.insert(zone.linked_groups, vehicles_gr.name)
+            MissionLogger:info("Cloned FARP Unit Group: " .. group_template_name)
+        else
+            MissionLogger:error("Failed to clone FARP Unit Group: " .. group_template_name .. ". Ensure the group exists and is Late Activated.")
+        end
     end
 
     ---@param unit Unit
@@ -426,7 +489,7 @@ do
         -- First remove the crates that might already be there
         local vol = {
             id = world.VolumeType.SPHERE, 
-            params = { point = unit_pos, radius = 50 } }
+            params = { point = unit_pos, radius = 100 } }
         world.searchObjects({Object.Category.CARGO}, vol, function(obj)
             if obj and obj:isExist() then
                 MissionLogger:info(obj:getName().." cargo removed")

@@ -15,19 +15,19 @@ trigger.smokePlumeColor =  { ---@diagnostic disable-line: inject-field
 
 ---@enum trigger.smokeColor
 trigger.smokeColor =  { ---@diagnostic disable-line: inject-field
-    GREEN = 0,
-    RED = 1,
-    WHITE = 2,
-    ORANGE = 3,
-    BLUE = 4
+    Green = 0,
+    Red = 1,
+    White = 2,
+    Orange = 3,
+    Blue = 4
 }
 
 ---@enum trigger.flareColor
 trigger.flareColor = { ---@diagnostic disable-line: inject-field
-    GREEN = 0,
-    RED = 1,
-    WHITE = 2,
-    YELLOW = 3
+    Green = 0,
+    Red = 1,
+    White = 2,
+    Yellow = 3
 }
 
 ---@enum trigger.shapeId

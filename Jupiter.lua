@@ -8,19 +8,19 @@ Jupiter = {}
 -- Helper to get Color Enums safely
 local function getSmokeColor(colorStr)
     local c = colorStr and colorStr:lower() or "red"
-    if c == "green" then return trigger.smokeColor.GREEN
-    elseif c == "white" then return trigger.smokeColor.WHITE
-    elseif c == "orange" then return trigger.smokeColor.ORANGE
-    elseif c == "blue" then return trigger.smokeColor.BLUE
-    else return trigger.smokeColor.RED end
+    if c == "green" then return trigger.smokeColor.Green
+    elseif c == "white" then return trigger.smokeColor.White
+    elseif c == "orange" then return trigger.smokeColor.Orange
+    elseif c == "blue" then return trigger.smokeColor.Blue
+    else return trigger.smokeColor.Red end
 end
 
 local function getFlareColor(colorStr)
     local c = colorStr and colorStr:lower() or "red"
-    if c == "green" then return trigger.flareColor.GREEN
-    elseif c == "white" then return trigger.flareColor.WHITE
-    elseif c == "yellow" then return trigger.flareColor.YELLOW
-    else return trigger.flareColor.RED end
+    if c == "green" then return trigger.flareColor.Green
+    elseif c == "white" then return trigger.flareColor.White
+    elseif c == "yellow" then return trigger.flareColor.Yellow
+    else return trigger.flareColor.Red end
 end
 
 local function getClosestZone(vec3)

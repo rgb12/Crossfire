@@ -65,8 +65,8 @@ do
                 
                 -- State tracking
                 ammo_depot_intact = z.ammo_depot_intact,
-                ammo_depot_last_destroyed = z.ammo_depot_last_destroyed,
-                next_level_up_avail = z.next_level_up_avail,
+
+                comms_tower_intact = z.comms_tower_intact
             }
             PersistenceManager.data.zones[z.name] = zone_data
         end
@@ -228,7 +228,16 @@ do
         MissionLogger:info("Applying loaded mission state...")
 
         -- 1. Restore Scenario
-        Scenario = PersistenceManager.data.scenario
+        ---@type Scenario
+
+        for _,scenario in pairs(Scenarios) do
+            if scenario.name == PersistenceManager.data.scenario.name then
+                Scenario = scenario
+                MissionLogger:info("Scenario restored: " .. Scenario.name)
+                break
+            end
+        end
+        
         blue_airbase = ZoneHandler.getFromName(PersistenceManager.data.scenario.blue_airbase.name)
         red_airbase = ZoneHandler.getFromName(PersistenceManager.data.scenario.red_airbase.name)
         if not (blue_airbase and red_airbase) then
@@ -261,8 +270,7 @@ do
                 
                 -- Restore state tracking
                 zone.ammo_depot_intact = saved_zone.ammo_depot_intact
-                zone.ammo_depot_last_destroyed = saved_zone.ammo_depot_last_destroyed
-                zone.next_level_up_avail = saved_zone.next_level_up_avail
+                zone.comms_tower_intact = saved_zone.comms_tower_intact
                 
                 -- Clear runtime tracking arrays - will be repopulated by spawn functions
                 zone.linked_groups = {}
@@ -271,6 +279,7 @@ do
                 -- Spawn the correct units for the zone's side and level
                 UnitHandler.initZoneUnits(zone)
                 UnitHandler.initStatics(zone)
+                UnitHandler.initFARP(zone)
                 
                 -- Post-spawn check for destroyed statics
                 if not zone.ammo_depot_intact and zone.linked_ammo_depot then
@@ -308,7 +317,7 @@ do
                         for category, items_table in pairs(saved_inventory) do
                             if type(items_table) == "table" and category ~= "liquids" then
                                 for item_name, count in pairs(items_table) do
-                                    warehouse:setItem(item_name, count)
+                                    warehouse:addItem(item_name, count)
                                 end
                             end
                         end

@@ -326,16 +326,9 @@ do
 
 
         elseif AITaskTypes.JTAC == ai_task_type and to_zone then
+            -- JTAC does not follow classic spawn from airbase, it instead spawns in the air near the target zone and orbits there
+            -- Currently only works for blue
 
-            local closest_airbase, template_gr_name = self:findClosestAirbaseWithAircraftInStock(to_zone,side,ai_task_type,1,ai_task_type)
-            if not closest_airbase then
-                if user_requested then
-                    txt="JTAC unavailable for "..to_zone.name..", check aircraft availability, warehouse stock and tasking limits."
-                trigger.action.outTextForCoalition(side,txt,5)
-                end
-                return false
-            end
-        
             if EnrouteManager:findByToZone(to_zone,side,{AITaskTypes.JTAC}) then
                 if user_requested then
                     txt="JTAC already tasked for "..to_zone.name
@@ -344,25 +337,24 @@ do
                 return false
             end
 
-            local airbase = Airbase.getByName(closest_airbase.airbase_name)
-            if not airbase then return false end
+            local spawn_point = {
+                x = to_zone.zone.point.x + math.random(-5000, 5000),
+                y = mist.utils.feetToMeters(25000),               -- y is ALTITUDE
+                z = to_zone.zone.point.z + math.random(-5000, 5000)
+            }
+            if not blue_airbase then return false end
 
-            local enroutes_from_airbase = EnrouteManager:findByFromZone(closest_airbase,side)
-            if enroutes_from_airbase and #enroutes_from_airbase >= Config.tasking.max_tasks_per_airbase then
-                if user_requested then
-                    txt="JTAC unavailable from "..closest_airbase.name..", airbase cannot handle more tasks at the moment."
-                    trigger.action.outTextForCoalition(side,txt,5)
-                end
-                return false
-            end
-
-            local new_group = mist.cloneGroup(template_gr_name,true)
+            local new_group = mist.teleportToPoint({
+                groupName = GroupData.COMMON_ASSETS.BLUE.jtac,
+                point = spawn_point,
+                action = "clone"
+            })
             if not new_group then return false end
 
             local ai_enroute_data = EnrouteManager:add({
                 to_zone = to_zone,
                 side=side,
-                from_zone=closest_airbase,
+                from_zone=blue_airbase,
                 group_name=new_group.name,
                 ai_task_type=ai_task_type
             })
@@ -799,6 +791,12 @@ do
             local jtac_gr = Group.getByName(jtac_group_name)
             if not (jtac_gr and jtac_gr:isExist() and enroute_data.to_zone) then return end
             local ctrl = jtac_gr:getController()
+            if not ctrl then return end
+
+            ctrl:setCommand({
+                id = "SetInvisible",
+                params = { value = true }
+            })
 
             ctrl:setOption(AI.Option.Air.id.ROE, AI.Option.Air.val.ROE.WEAPON_FREE) --has to be, return fire does not work
             ctrl:setOption(AI.Option.Air.id.REACTION_ON_THREAT, AI.Option.Air.val.REACTION_ON_THREAT.PASSIVE_DEFENCE)
@@ -819,14 +817,14 @@ do
                         x = enroute_data.to_zone.zone.point.x+math.random(-300,300),
                         y = enroute_data.to_zone.zone.point.z+math.random(-300,300)},
                     speed = 32, --in m/s
-                    altitude = 1000 --TO CHANGE 6096
+                    altitude = mist.utils.feetToMeters(25000)
                 }})
 
             local jtac = JTAC:new({
                 jtac_gr_name = jtac_group_name,
                 side = enroute_data.side,
                 to_zone = enroute_data.to_zone,
-                smoke_count = 4,
+                smoke_count = Config.jtac_smoke_stock,
             })
             enroute_data.jtac = jtac
         end, {}, timer.getTime() + 12)

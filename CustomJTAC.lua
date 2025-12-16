@@ -1,7 +1,6 @@
 --- Parts of this code belongs to Dzsekeb's very well designed JTAC
 
-pending_jtac_zones = {} --TO CHANGE
-used_jtac_callsign_index = 1 --TO CHANGE
+local used_jtac_callsign_index = 1
 
 ---@class JTACLasers
 ---@field laser Spot|nil
@@ -35,11 +34,11 @@ do
     }
 
     JTAC.categories = {}
-	JTAC.categories['SAM'] = {'SAM SR', 'SAM TR', 'IR Guided SAM','SAM LL','SAM CC'}
-	JTAC.categories['Infantry'] = {'Infantry'}
-	JTAC.categories['Armor'] = {'Tanks','IFV','APC'}
-	JTAC.categories['Support'] = {'Unarmed vehicles','Artillery'}
-	JTAC.categories['Structures'] = {'StaticObjects'}
+    JTAC.categories['SAM'] = {'SAM SR', 'SAM TR', 'IR Guided SAM','SAM LL','SAM CC'}
+    JTAC.categories['Infantry'] = {'Infantry'}
+    JTAC.categories['Armor'] = {'Tanks','IFV','APC'}
+    JTAC.categories['Support'] = {'Unarmed vehicles','Artillery'}
+    JTAC.categories['Structures'] = {'StaticObjects'}
 
     ---@return JTAC
     function JTAC:new(obj)
@@ -50,18 +49,52 @@ do
         obj.lasers = {}
         obj.viable_targets = {}
         obj.jtac_main_submenu = CommandHandler.jtac_main_submenu
-        if not obj.to_zone
-        or not obj.side then return MissionLogger:error("Missing field(s) for JTAC") end
+        if not obj.to_zone or not obj.side then return MissionLogger:error("Missing field(s) for JTAC") end
 
         setmetatable(obj, self)
-		self.__index = self
+        self.__index = self
         
         used_jtac_callsign_index = (used_jtac_callsign_index % #JTAC.callsigns) + 1
         trigger.action.outSoundForCoalition(obj.side, "transmission1.ogg")
-        trigger.action.outTextForCoalition(obj.side, obj.callsign.." JTAC tasked, enroute to "..obj.to_zone.name,10)
+        trigger.action.outTextForCoalition(obj.side, obj.callsign.." JTAC on station at "..obj.to_zone.name..".", 10)
+        
         obj:setupCommands()
 
+        -- Auto-start targeting after a short delay to allow unit to settle
+        timer.scheduleFunction(function(jtac_obj)
+            if jtac_obj and jtac_obj.searchTarget then
+                jtac_obj:searchTarget(false) -- Allow first search to speak if empty
+                jtac_obj:startLasing(1688)
+                jtac_obj:startAutoLoop() -- Start the status monitor
+            end
+        end, obj, timer.getTime() + 50)
+
         return obj
+    end
+
+    -- Periodically checks if target is still alive, if not, finds new one
+    function JTAC:startAutoLoop()
+        timer.scheduleFunction(function(jtac_obj)
+            local jtac_gr = Group.getByName(jtac_obj.jtac_gr_name)
+            if not jtac_gr or not jtac_gr:isExist() then return end
+
+            if jtac_obj.target then
+                if not jtac_obj.target:isExist() or jtac_obj.target:getLife() < 1 then
+                    trigger.action.outTextForCoalition(jtac_obj.side, jtac_obj.callsign.." JTAC: Target destroyed.", 10)
+                    jtac_obj:clearTarget()
+                    jtac_obj:searchTarget(true)
+                    jtac_obj:startLasing(1688)
+                end
+            else
+                -- No target currently selected, try to find one
+                jtac_obj:searchTarget(true)
+                if jtac_obj.target then
+                    jtac_obj:startLasing(1688)
+                end
+            end
+
+            return timer.getTime() + 10
+        end, self, timer.getTime() + 10)
     end
 
     function JTAC:startLasing(code)
@@ -72,48 +105,38 @@ do
         if unit and unit:isExist() and unit:inAir() then
             if not self.target then return end
 
-            self.laser_code = code or math.random(1111,1788)
+            self.laser_code = code or 1688
+
+            if self.lasers.laser then self.lasers.laser:destroy() end
+            if self.lasers.ir then self.lasers.ir:destroy() end
+
             self.lasers.laser = Spot.createLaser(unit,{ x = 0, y = 1, z = 0 },self.target:getPoint(), self.laser_code)
             self.lasers.ir = Spot.createInfraRed(unit, { x = 0, y = 1, z = 0 }, self.target:getPoint())
     
-            trigger.action.outTextForCoalition(self.side, self.callsign.." JTAC lasing target, code: "..self.laser_code,3)
+            trigger.action.outTextForCoalition(self.side, self.callsign.." JTAC targeting: ".. self.target:getTypeName() .."\nLaser Code: "..self.laser_code, 10)
         end
-
     end
 
     function JTAC:clearTarget()
         self.target = nil
-	
-		if self.lasers.laser then
-			self.lasers.laser:destroy()
-			self.lasers.laser = nil
-		end
-		
-		if self.lasers.ir then
-			self.lasers.ir:destroy()
-			self.lasers.ir = nil
-		end
+    
+        if self.lasers.laser then
+            self.lasers.laser:destroy()
+            self.lasers.laser = nil
+        end
+        
+        if self.lasers.ir then
+            self.lasers.ir:destroy()
+            self.lasers.ir = nil
+        end
     end
 
     function JTAC:setTarget(unit)
-		
-		if self.lasers.laser then
-			self.lasers.laser:destroy()
-			self.lasers.laser = nil
-		end
-		
-		if self.lasers.ir then
-			self.lasers.ir:destroy()
-			self.lasers.ir = nil
-		end
+        self:clearTarget()
+        self.target = unit
+    end
+    function JTAC:searchTarget(quiet)
 
-		self.target = unit
-        trigger.action.outTextForCoalition(self.side, self.callsign.." JTAC: Target selected.",3)
-	end
-
-    function JTAC:searchTarget()
-        MissionLogger:info("Searching targets")
-    
         self.viable_targets = {}
         self.priority_targets = {}
     
@@ -126,7 +149,7 @@ do
     
         -- Filter for alive units
         for _,unit in ipairs(self.units_in_zone) do
-            if unit and unit:isExist() and unit:getLife() >= 1 then
+            if unit and unit:isExist() and unit:getLife() >= 1 and unit:isActive() then
                 table.insert(self.viable_targets,unit)
             end
         end
@@ -144,34 +167,48 @@ do
         end
     
         -- Choose which list to use for targeting
-        local target_list = self.priority and self.priority_targets or self.viable_targets
+        local target_list = self.viable_targets -- Default to all
+        
+        if self.priority then
+            if #self.priority_targets > 0 then
+                target_list = self.priority_targets
+            else
+                --trigger.action.outTextForCoalition(self.side, self.callsign.." JTAC: No targets found for priority '"..self.priority.."'. Engaging targets of opportunity.", 5)
+                -- target_list remains self.viable_targets
+            end
+        end
     
         -- Set or wrap search_index
         if not self.search_index or self.search_index > #target_list then
             self.search_index = 1
         end
     
-        if target_list and #target_list == 0 then
+        if #target_list == 0 then
             self.target = nil
-            trigger.action.outTextForCoalition(self.side,"JTAC: No targets found at ".. self.to_zone.name..".",5)
-        elseif target_list and #target_list > 0 then
+            if not quiet then
+                trigger.action.outTextForCoalition(self.side, self.callsign.." JTAC: No targets found at ".. self.to_zone.name..", standing by.", 10)
+            end
+        elseif target_list then
             self:setTarget(target_list[self.search_index])
         end
     end
 
+    function JTAC:destroy()
+        if self.jtac_gr_name then
+            local jtac_gr = Group.getByName(self.jtac_gr_name)
+            if jtac_gr and jtac_gr:isExist() then
+                jtac_gr:destroy()
+            end
+        end
 
-    function JTAC:RTB()
-        local jtac_gr = Group.getByName(self.jtac_gr_name)
-        if not (jtac_gr and jtac_gr:isExist() and self.to_zone) then return end
+        self:clearTarget()
 
-        local ctrl = jtac_gr:getController()
-
-        ctrl:resetTask()
-        MissionLogger:info(ctrl:hasTask())
-        trigger.action.outTextForCoalition(self.side, self.callsign.." JTAC RTB ("..blue_airbase.name..")",10)
-    
-        missionCommands.removeItemForCoalition(self.side, self.jtac_menu)
-        self.jtac_menu = nil
+        if self.jtac_menu then
+            missionCommands.removeItemForCoalition(self.side, self.jtac_menu)
+            self.jtac_menu = nil
+        end
+        self.target = nil
+        self.viable_targets = {}
     end
 
     function JTAC:setupCommands()
@@ -180,53 +217,26 @@ do
         end
         self.jtac_menu = missionCommands.addSubMenuForCoalition(self.side, self.callsign..' JTAC '..self.to_zone.name,CommandHandler.jtac_submenu[self.side])
 
-        self.select_target_menu = missionCommands.addCommandForCoalition(self.side,"Select target / Start lasing",self.jtac_menu, function (jtac)
+        missionCommands.addCommandForCoalition(self.side, "Cycle Next Target", self.jtac_menu, function (jtac)
             local jtac_gr = Group.getByName(jtac.jtac_gr_name)
-            if jtac_gr then
+            if jtac_gr and jtac_gr:getUnit(1):inAir() then
+                
+                jtac:searchTarget(false)
+                
+                -- Determine which list we are using
+                local target_list = jtac.viable_targets
+                if jtac.priority and #jtac.priority_targets > 0 then
+                    target_list = jtac.priority_targets
+                end
 
-                if self.target then return trigger.action.outTextForCoalition(jtac.side, jtac.callsign..' JTAC: Target already selected, check JTAC Status.', 10) end
-                if jtac_gr:getUnit(1):inAir() then
-                    if not self.target and mist.utils.get3DDist(self.to_zone.zone.point,jtac_gr:getUnit(1):getPoint()) < 15000 then
-                        jtac:searchTarget()
-                        jtac:startLasing(1686)
-                        missionCommands.removeItemForCoalition(jtac.side, jtac.select_target_menu)
-                    else
-                        trigger.action.outTextForCoalition(self.side,self.callsign.." JTAC is out of range",10)
-                    end
-                else trigger.action.outTextForCoalition(jtac.side, jtac.callsign..' JTAC is not airborne.', 5) end
-            else
-                missionCommands.removeItemForCoalition(jtac.side, jtac.jtac_menu)
-                jtac.jtac_menu = nil
-            end
-        end,self)
-
-        missionCommands.addCommandForCoalition(self.side, "Next target", self.jtac_menu, function (jtac)
-            local jtac_gr = Group.getByName(jtac.jtac_gr_name)
-            if jtac_gr then
-                if jtac_gr:getUnit(1):inAir() then
-                    if not self.target then return trigger.action.outTextForCoalition(jtac.side, jtac.callsign..' JTAC: No selected target.', 10) end
-        
-                    jtac:clearTarget()
-
-                    jtac:searchTarget()
-                    local target_list = jtac.priority and jtac.priority_targets or jtac.viable_targets
-                    MissionLogger:info("Target list")
-                    MissionLogger:info(target_list)
-
-                    if target_list and #target_list > 0 then
-                        if #target_list == 1 then
-                            jtac.search_index = 1
-                            
-                        else
-                            jtac.search_index = (jtac.search_index or 1) + 1
-                            if jtac.search_index > #target_list then jtac.search_index = 1 end
-                        end
-
-                        jtac:setTarget(target_list[jtac.search_index])
-                        jtac:startLasing(1686)
-                    end
+                if #target_list > 0 then
+                    jtac.search_index = (jtac.search_index or 1) + 1
+                    if jtac.search_index > #target_list then jtac.search_index = 1 end
+                    
+                    jtac:setTarget(target_list[jtac.search_index])
+                    jtac:startLasing(1688)
                 else
-                    trigger.action.outTextForCoalition(jtac.side, jtac.callsign..' JTAC is not airborne.', 5)
+                    trigger.action.outTextForCoalition(jtac.side, jtac.callsign..' JTAC: No targets available to cycle.', 10)
                 end
             else
                 missionCommands.removeItemForCoalition(jtac.side, jtac.jtac_menu)
@@ -234,109 +244,82 @@ do
             end
         end, self)
 
-        missionCommands.addCommandForCoalition(self.side,"JTAC target data",self.jtac_menu, function (jtac)
+        missionCommands.addCommandForCoalition(self.side,"Target Data",self.jtac_menu, function (jtac)
             local jtac_gr = Group.getByName(jtac.jtac_gr_name)
-            if jtac_gr then
-                if jtac_gr:getUnit(1):inAir() then
-                    if not self.target or not self.target:isExist() then return trigger.action.outTextForCoalition(jtac.side, jtac.callsign..' JTAC is standing by for orders.', 10) end
+            if jtac_gr and jtac_gr:getUnit(1):inAir() then
+                if not jtac.target or not jtac.target:isExist() then
+                    jtac:searchTarget(false)
+                    if jtac.target then jtac:startLasing(1688) end
+                end
 
+                if not jtac.target then
+                    return trigger.action.outTextForCoalition(jtac.side, jtac.callsign..' JTAC scanning... No targets locked.', 10)
+                end
 
-                    local toprint = self.callsign.." JTAC\n"
-                    if self.priority then toprint = toprint..'Priority targets: '..self.priority..'\n' end
+                local toprint = self.callsign.." JTAC\n"
+                if self.priority then toprint = toprint..'Priority: '..self.priority..'\n' end
+                
+                toprint = toprint..'Target: '.. jtac.target:getTypeName() ..'\n'
+                toprint = toprint..'Laser Code: '..self.laser_code..'\n'
+                
+                local lat,lon,alt = coord.LOtoLL(self.target:getPoint())
+                local mgrs = coord.LLtoMGRS(coord.LOtoLL(self.target:getPoint()))
+                toprint = toprint..'\nDDM:  '.. mist.tostringLL(lat,lon,3)
+                toprint = toprint..'\nDMS:  '.. mist.tostringLL(lat,lon,2,true)
+                toprint = toprint..'\nMGRS: '.. mist.tostringMGRS(mgrs, 5)
+                toprint = toprint..'\nAlt: '..math.floor(alt)..'m'..' | '..math.floor(alt*3.280839895)..'ft'
 
-                    
-                    toprint = toprint..'Lasing at '..self.to_zone.name..'\nCode: '..self.laser_code..'\n'
-                    local lat,lon,alt = coord.LOtoLL(self.target:getPoint())
-                    local mgrs = coord.LLtoMGRS(coord.LOtoLL(self.target:getPoint()))
-                    toprint = toprint..'\nDDM:  '.. mist.tostringLL(lat,lon,3)
-                    toprint = toprint..'\nDMS:  '.. mist.tostringLL(lat,lon,2,true)
-                    toprint = toprint..'\nMGRS: '.. mist.tostringMGRS(mgrs, 5)
-                    toprint = toprint..'\nAlt: '..math.floor(alt)..'m'..' | '..math.floor(alt*3.280839895)..'ft'
+                trigger.action.outTextForCoalition(jtac.side, toprint, 20)
 
-                    trigger.action.outTextForCoalition(jtac.side, toprint, 20)
-
-                else trigger.action.outTextForCoalition(jtac.side, jtac.callsign..' JTAC is not airborne.', 5) end
             else
                 missionCommands.removeItemForCoalition(jtac.side, jtac.jtac_menu)
                 jtac.jtac_menu = nil
             end
         end,self)
 
-        missionCommands.addCommandForCoalition(self.side, "Deploy smoke",self.jtac_menu, function (jtac)
+        missionCommands.addCommandForCoalition(self.side, "Deploy Smoke (Red)",self.jtac_menu, function (jtac)
             local jtac_gr = Group.getByName(jtac.jtac_gr_name)
-            if jtac_gr then
-                if jtac_gr:getUnit(1):inAir() then
-                    if not (jtac.target and jtac.target:isExist()) then 
-                        return trigger.action.outTextForCoalition(jtac.side, jtac.callsign..' JTAC: Current target not found or selected.', 5)
-                    end
-                    if self.smoke_count <= 0 then
-                        return trigger.action.outTextForCoalition(jtac.side, jtac.callsign..' JTAC: Out of stock.', 5)
-                    else
-                        self.smoke_count = self.smoke_count -1
-                    end
+            if jtac_gr and jtac_gr:getUnit(1):inAir() then
+                if not (jtac.target and jtac.target:isExist()) then 
+                    return trigger.action.outTextForCoalition(jtac.side, jtac.callsign..' JTAC: No active target for smoke.', 5)
+                end
+                
+                if self.smoke_count <= 0 then
+                    return trigger.action.outTextForCoalition(jtac.side, jtac.callsign..' JTAC: Out of smoke canisters.', 5)
+                end
 
-
-                        if mist.utils.get2DDist(jtac_gr:getUnit(1):getPoint(), jtac.target:getPoint()) < 15000 then
-                            trigger.action.smoke(jtac.target:getPosition().p, 1)
-                            trigger.action.outTextForCoalition(jtac.side, jtac.callsign.." JTAC: Target marked with RED smoke. ("..self.smoke_count.."/"..Config.jtac_smoke_stock..")", 10)
-                        else
-                            trigger.action.outTextForCoalition(jtac.side, jtac.callsign..' JTAC: Target is not in range.', 10)
-                        end
-                    
+                if mist.utils.get2DDist(jtac_gr:getUnit(1):getPoint(), jtac.target:getPoint()) < 20000 then
+                    self.smoke_count = self.smoke_count -1
+                    trigger.action.smoke(jtac.target:getPosition().p, trigger.smokeColor.Red)
+                    trigger.action.outTextForCoalition(jtac.side, jtac.callsign.." JTAC: Tally smoke! ("..self.smoke_count.." remaining)", 10)
                 else
-                    trigger.action.outTextForCoalition(jtac.side, jtac.callsign..' JTAC is not airborne.', 5)
+                    trigger.action.outTextForCoalition(jtac.side, jtac.callsign..' JTAC: Too far to deploy smoke accurately.', 10)
                 end
             else
                 missionCommands.removeItemForCoalition(jtac.side, jtac.jtac_menu)
                 jtac.jtac_menu = nil
             end
-                
         end,self)
 
         missionCommands.addCommandForCoalition(self.side, "RTB",self.jtac_menu, function (jtac)
-            local jtac_gr = Group.getByName(jtac.jtac_gr_name)
-            if jtac_gr then
-                if not jtac_gr:getUnit(1):inAir() then
-                    return trigger.action.outTextForCoalition(jtac.side, jtac.callsign..' JTAC is not airborne.', 5)
-                end
-
-                jtac:RTB()
-
-            else
-                missionCommands.removeItemForCoalition(jtac.side, jtac.jtac_menu)
-                jtac.jtac_menu = nil
-            end
-                
+            jtac:destroy()
         end,self)
 
-
         -- enables the player to designate a category as priority
-        local priority_menu = missionCommands.addSubMenuForCoalition(self.side, "Set priority", self.jtac_menu)
+        local priority_menu = missionCommands.addSubMenuForCoalition(self.side, "Set Priority", self.jtac_menu)
         for category_name, _ in pairs(self.categories) do
-            missionCommands.addCommandForCoalition(self.side,category_name,priority_menu,function(jtac)
+            missionCommands.addCommandForCoalition(self.side, category_name, priority_menu, function(jtac)
                 local jtac_gr = Group.getByName(jtac.jtac_gr_name)
-                if jtac_gr then
-                    if jtac_gr:getUnit(1):inAir() then
-                        jtac.priority = category_name
-    
-    
-                        local out_text = jtac.callsign .. " JTAC priority set to: " .. category_name
-                        if not self.target then
-                            out_text = out_text.."\nSelect target to start lasing"
-                            return trigger.action.outTextForCoalition(jtac.side,out_text,5)
+                if jtac_gr and jtac_gr:getUnit(1):inAir() then
+                    jtac.priority = category_name
+                    jtac.search_index = 1 -- Reset index on priority switch
 
-                        end
-                        trigger.action.outTextForCoalition(jtac.side,out_text,2)
-                   
-                        jtac:searchTarget()
-                        jtac:startLasing(1686)
-    
-                    else
-                        trigger.action.outTextForCoalition(jtac.side, jtac.callsign..' JTAC is not airborne.', 5)
-
-                    end
-
-
+                    local out_text = jtac.callsign .. " JTAC priority updated: " .. category_name
+                    trigger.action.outTextForCoalition(jtac.side, out_text, 5)
+               
+                    jtac:clearTarget()
+                    jtac:searchTarget(false)
+                    jtac:startLasing(1688)
                 else
                     missionCommands.removeItemForCoalition(jtac.side, jtac.jtac_menu)
                     jtac.jtac_menu = nil

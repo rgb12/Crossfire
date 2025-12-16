@@ -9,8 +9,6 @@
     Refer to the comments for details on each field
 
 ]]
-
-
 Config = {
     persistence = {
         enable = true, -- enables or not persistence, has authority over everything below in this section
@@ -191,7 +189,7 @@ Config = {
     stuck_convoy_timeout = 8*60, -- (seconds) time without movement after which a convoy is considered stuck and will be removed
     attack_convoy_range = 30000, -- (meters)
 
-    jtac_smoke_stock = 4,
+    jtac_smoke_stock = 8,
 
     -- logistics_upgrade_range = 30000, -- (meters)
     logistics_upgrade_chance = 30, -- (%) every minute the dice is rolled
@@ -260,6 +258,7 @@ stats = {
     blue_resupply_step = 1, -- prevents random resupply type repetition
 
     red_sam_sites = 0,
+    red_farps_zones = 0,
     red_logistics_zone = 0,
     red_comms_zones = 0,
     red_airbases = 0,
@@ -285,14 +284,17 @@ GroupData = {
             resupply_aircraft = "C130",
             capture_convoy = "BLUE Capture Convoy",
             capture_helicopter = "BLUE Capture Helo",
-            attack_convoy = "BLUE Attack Convoy"
+            attack_convoy = "BLUE Attack Convoy",
+            jtac = "BLUE JTAC",
+            farp = "BLUE FARP VEHICLES"
         },
     
         RED = {
             resupply_aircraft = "IL76",
             capture_convoy = "RED Capture Convoy",
             capture_helicopter = "RED Capture Helo",
-            attack_convoy = "RED Attack Convoy"
+            attack_convoy = "RED Attack Convoy",
+            farp = "RED FARP VEHICLES",
         }
     },
 

@@ -32,53 +32,67 @@ function ev:onEvent(event)
         local unit = event.initiator
         if unit and unit.getCategory and unit:getCategory() == Object.Category.UNIT and unit.getCoalition and unit.isExist
         and unit:isExist() and unit.getPlayerName then
+
             local unit_coalition = unit:getCoalition()
-            -- trigger.action.outText(unit:getTypeName() .. " entered", 10)
+
             -- Checks if the player has the rigt to spawn in the airbase
             for _,zone in ipairs(zones) do
                 if zone:isPointInsideZone(unit:getPoint()) then
+
+                    -- checks if aircraft/helicopter in airbase or farp stock
+                    local can_spawn = false
+                    if unit.getTypeName and unit:getTypeName() then
+                        local acft_name = unit:getTypeName()
+
+                        local wh_name = nil
+                        if zone.zone_type == ZoneTypes.FARP and zone.linked_farp then
+                            wh_name = zone.linked_farp
+                        elseif zone.zone_type == ZoneTypes.AIRBASE then
+                            wh_name = zone.airbase_name
+                        end
+
+                        if wh_name then
+                            local airbase = Airbase.getByName(wh_name)
+                            if airbase then
+                                local warehouse = airbase:getWarehouse()
+                                MissionLogger:info(warehouse:getInventory())
+                                if warehouse then
+                                    local acft_count = warehouse:getItemCount(acft_name)
+                                    if acft_count > 0 then
+                                        can_spawn = true
+                                        
+                                        if acft_name == WarehouseManager.AircraftFlags.C130J_30 or
+                                        zone.zone_type == ZoneTypes.FARP then
+                                            warehouse:removeItem(acft_name, 1)
+                                        end
+
+                                    end
+                                end
+                            end
+                        end
+
+                    end
+
                     if zone.side ~= unit_coalition then
+                        can_spawn = false
+                    end
+                    if zone.zone_type ~= ZoneTypes.AIRBASE and zone.zone_type~=ZoneTypes.FARP then
+                        can_spawn = false
+                    end
+
+                    MissionLogger:info("Player "..unit:getPlayerName().." spawned in zone "..zone.name..". Can spawn: "..tostring(can_spawn))
+                    if not can_spawn then
+
                         -- not allowed, destroy the unit
                         local unit_id = unit:getID()
                         trigger.action.outSoundForUnit(unit_id, "error.ogg")
-                        trigger.action.outTextForUnit(unit_id, "****************\n\nThis slot is not allowed at the moment! Consult F10 map.\n\n****************", 20)
+                        trigger.action.outTextForUnit(unit_id, "****************\n\nThis slot is not allowed! Consult F10 map and warehouse stocks.\n\n****************", 20)
                         timer.scheduleFunction(function ()
                             if unit and unit:isExist() then
                                 unit:destroy()
                             end
                         end, {}, timer.getTime() + 2)
-                        return
                     end
-
-                    -- C130J_30 are not added as "takeoff from ramp", the script has to manually remove one from warehouse
-                    if unit.getTypeName and unit:getTypeName() == WarehouseManager.AircraftFlags.C130J_30 then
-                        if not zone.airbase_name then return end
-                        local airbase = Airbase.getByName(zone.airbase_name)
-                        if airbase then
-                            local warehouse = airbase:getWarehouse()
-                            if warehouse then
-                                local acft_count = warehouse:getItemCount(WarehouseManager.AircraftFlags.C130J_30)
-                                if acft_count <= 0 then
-                                    -- no more C130J_30 available, destroy the unit
-                                    local unit_id = unit:getID()
-                                    trigger.action.outSoundForUnit(unit_id, "error.ogg")
-                                    trigger.action.outTextForUnit(unit_id, "****************\n\nNo C-130J-30 available in warehouse!\n\n****************", 20)
-                                    timer.scheduleFunction(function ()
-                                        if unit and unit:isExist() then
-                                            unit:destroy()
-                                        end
-                                    end, {}, timer.getTime() + 2)
-                                    return
-                                else 
-                                    warehouse:removeItem(WarehouseManager.AircraftFlags.C130J_30, 1)
-
-                                end
-                            end
-
-                        end
-
-                    end
-
                 end
             end
         end

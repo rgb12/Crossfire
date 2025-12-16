@@ -869,6 +869,7 @@ do
             -- Spawn
             UnitHandler.initZoneUnits(zone)
             UnitHandler.initStatics(zone)
+            UnitHandler.initFARP(zone)
             zone:drawF10()
         end
 
