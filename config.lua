@@ -28,8 +28,8 @@ Config = {
         cap_duration = 8*60, -- (seconds)
         cap_max_radius_from_zone = 28*1000, -- (meters)
         max_distance_to_frontline_for_airdrops = 300*1000, -- (meters)
-        airdrop_min_crates_landed = 6 -- minimum number of crates that must land to consider the airdrop successful
-
+        airdrop_min_crates_landed = 6, -- minimum number of crates that must land to consider the airdrop successful
+        csar_rescue_radius = 200 -- (meters)
     },
     jupiter_enabled = true, -- enables/disables the Jupiter command system
 
@@ -38,7 +38,7 @@ Config = {
     estimated_users = 1, -- used to scale warehouse stocks and resupply quantities
     red_stock_multiplier = 4, -- multiplier for redfor warehouse stocks, compared to bluefor
 
-    std_resupply_time = 20*60, -- (seconds) respawn resupply aircraft delay
+    std_resupply_time = 1*60*60, -- (seconds) respawn resupply aircraft delay
     cooldown_before_capture_attempt = 3*60, -- (seconds)
     retry_capture_chance = 50, -- (%)
 
@@ -50,6 +50,7 @@ Config = {
         [3] = 80, -- cost to upgrade from tier 3 to tier 4
     },
     resupply_tokens_cost = 50, -- cost in tokens to request a resupply aircraft
+    farp_resupply_cost = 30,
 
     reward_system = {
         enable = true, -- completely enables/disables the reward system
@@ -258,7 +259,7 @@ stats = {
     blue_resupply_step = 1, -- prevents random resupply type repetition
 
     red_sam_sites = 0,
-    red_farps_zones = 0,
+    red_farp_zones = 0,
     red_logistics_zone = 0,
     red_comms_zones = 0,
     red_airbases = 0,
@@ -616,7 +617,53 @@ GroupData = {
                 group_name = "RED EWR TIER 4"
             }
         }
+    },
+    
+    FARP_SUPPORT = {
+        BLUE = {
+            [1] = {
+                level = 1,
+                side = coalition.side.BLUE,
+                group_name = "BLUE FARP SUPPORT TIER 1"
+            },
+            [2] = {
+                level = 2,
+                side = coalition.side.BLUE,
+                group_name = "BLUE FARP SUPPORT TIER 2"
+            },
+            [3] = {
+                level = 3,
+                side = coalition.side.BLUE,
+                group_name = "BLUE FARP SUPPORT TIER 3"
+            },
+            [4] = {
+                level = 4,
+                side = coalition.side.BLUE,
+                group_name = "BLUE FARP SUPPORT TIER 4"
+            }
+        },
+        RED = {
+            [1] = {
+                level = 1,
+                side = coalition.side.RED,
+                group_name = "RED FARP SUPPORT TIER 1"
+            },
+            [2] = {
+                level = 2,
+                side = coalition.side.RED,
+                group_name = "RED FARP SUPPORT TIER 2"
+            },
+            [3] = {
+                level = 3,
+                side = coalition.side.RED,
+                group_name = "RED FARP SUPPORT TIER 3"
+            },
+            [4] = {
+                level = 4,
+                side = coalition.side.RED,
+                group_name = "RED FARP SUPPORT TIER 4"
+            }
+        }
     }
-
 
 }

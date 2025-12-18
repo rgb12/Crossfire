@@ -1,7 +1,5 @@
 --[[
     Jupiter is desiged to help missions admins and developers by implementing tools directly in game.
-
-
 ]]
 Jupiter = {}
 
@@ -156,6 +154,7 @@ function Jupiter:onEvent(event)
                 end
             end
         elseif command == "-getwarehouse" then
+            param1 = Airbases.Caucasus.Beslan
             if param1 then
                 local airbase = Airbase.getByName(param1)
                 if airbase then

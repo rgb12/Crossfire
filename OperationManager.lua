@@ -17,13 +17,10 @@ OperationManager = {}
 do
     OperationManager.__index = OperationManager
 
-    -- Static list to hold all manager instances
     OperationManager.instances = {}
 
-    -- The single, global event handler table that DCS will call
     OperationManager.EventHandler = {}
 
-    --- The onEvent method for the global handler. It dispatches events to all instances.
     ---@param event table
     function OperationManager.EventHandler:onEvent(event)
         if not OperationManager.instances then return end
@@ -78,7 +75,7 @@ do
         if active_mission.type == OperationTypes.RECON then
             outtxt = string.format("ACTIVE OPERATION: %s\nType: %s",
             active_mission.operation_name, active_mission.type)
-        else     
+        else
             outtxt = string.format("ACTIVE OPERATION: %s\nType: %s\nTarget: %s",
                 active_mission.operation_name, active_mission.type, active_mission.target_zone_name)
         end
@@ -95,15 +92,12 @@ do
         trigger.action.outTextForUnit(unit:getID(), outtxt, 120)
     end
 
-    --- Handles DCS events to check for mission success or failure.
-    --- @param event table The DCS event table.
+    --- @param event table
     function OperationManager:onEvent(event)
         if event.id == world.event.S_EVENT_DEAD or event.id == world.event.S_EVENT_CRASH or event.id == world.event.S_EVENT_PILOT_DEAD then
-            -- An initiator is the object that was destroyed/killed/crashed.
             if event.initiator and event.initiator.getPlayerName then
                 local dead_unit_name = event.initiator.unit_name or event.initiator:getName()
 
-                -- 1. Check if the dead unit was a player on a mission.
                 for i = #self.active_operations, 1, -1 do
                     local op = self.active_operations[i]
                     if op.assigned_unit_name == dead_unit_name then
@@ -138,7 +132,8 @@ do
                 local group_id = event.initiator:getGroup():getID()
 
                 local missions_submenu = missionCommands.addSubMenuForGroup(group_id, "Operations")
-                
+                CommandHandler.addToMenuTracking(group_id, missions_submenu, "operations_menu")
+
                 missionCommands.addCommandForGroup(group_id, "Recommended Operations", missions_submenu,function()
                     self:showAvailableOperations(event.initiator)
                 end)
@@ -247,9 +242,6 @@ do
         local reference_pos = self.home_airbase.zone.point
         local friendly_coalition = self.side
         local enemy_coalition = utils.getEnemyCoalition(friendly_coalition)
-        -- STEP 1: MAINTENANCE
-        -- Remove operations from the 'available' list if they are now active (taken by someone else)
-        -- or if the target zone is no longer valid (e.g. destroyed by random event).
 
         local discovered_zones = {}
         if self.side == coalition.side.BLUE then

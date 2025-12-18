@@ -302,6 +302,7 @@ do
         end,self)
 
         missionCommands.addCommandForCoalition(self.side, "RTB",self.jtac_menu, function (jtac)
+            EnrouteManager:remove(jtac.jtac_gr_name)
             jtac:destroy()
         end,self)
 

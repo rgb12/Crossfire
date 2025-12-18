@@ -439,14 +439,11 @@ do
                 UnitHandler.clone(GroupData.COMMS_SITES.RED[self.level].group_name, self,true)
                 stats.red_comms_zones = stats.red_comms_zones +1
                 stats.blue_comms_zones = stats.blue_comms_zones -1
-                -- ... (rest of your comms stat logic) ...
             elseif self.side == coalition.side.BLUE then
                 UnitHandler.clone(GroupData.COMMS_SITES.BLUE[self.level].group_name, self,true)
                 stats.red_comms_zones = stats.red_comms_zones -1
                 stats.blue_comms_zones = stats.blue_comms_zones +1
-                -- ... (rest of your comms stat logic) ...
             end
- 
         elseif self.zone_type == ZoneTypes.EWSITE and self.side ~= coalition.side.NEUTRAL then
             if self.side == coalition.side.RED then
                 UnitHandler.clone(GroupData.EW_SITES.RED[self.level].group_name , self,true)
@@ -464,11 +461,13 @@ do
             end,{},timer.getTime()+5)
 
             if self.side == coalition.side.RED then
-                stats.red_farps_zones = stats.red_farps_zones +1
-                stats.blue_farp_zones = stats.blue_farp_zones -1
+                UnitHandler.clone(GroupData.FARP_SUPPORT.RED[self.level].group_name , self,true,100,300)
+                stats.red_farp_zones = stats.red_farp_zones+1
+                stats.blue_farp_zones = stats.blue_farp_zones-1
             elseif self.side == coalition.side.BLUE then
-                stats.red_farps_zones = stats.red_farps_zones -1
-                stats.blue_farp_zones = stats.blue_farp_zones +1
+                UnitHandler.clone(GroupData.FARP_SUPPORT.BLUE[self.level].group_name , self,true,100,300)
+                stats.red_farp_zones = stats.red_farp_zones-1
+                stats.blue_farp_zones = stats.blue_farp_zones+1
             end
         elseif self.zone_type == ZoneTypes.SAMSITE and self.side ~= coalition.side.NEUTRAL then
             local sam_spawned = nil

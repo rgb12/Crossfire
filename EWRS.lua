@@ -229,6 +229,7 @@ do
 
         -- Root menu for the unit
         local rootPath = missionCommands.addSubMenuForGroup(gr_id, "EWRS")
+        CommandHandler.addToMenuTracking(gr_id, rootPath, "ewrs_menu")
 
         -- Enable
         missionCommands.addCommandForGroup(gr_id, "Enable EWRS reports", rootPath, function()

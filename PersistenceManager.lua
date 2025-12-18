@@ -83,7 +83,26 @@ do
                     end
                 end
             end
+            if z.zone_type == ZoneTypes.FARP and z.linked_farp then
+                local farp = Airbase.getByName(z.linked_farp)
+                if farp then
+                    local warehouse = farp:getWarehouse()
+                    if warehouse then
+                        PersistenceManager.data.warehouses[z.linked_farp] = warehouse:getInventory()
+                    end
+                end
+            end
         end
+        if Scenario.carrier_setup.enabled and Scenario.carrier_setup.carrier_unit_name then
+            local carrier = Airbase.getByName(Scenario.carrier_setup.carrier_unit_name)
+            if carrier then
+                local warehouse = carrier:getWarehouse()
+                if warehouse then
+                    PersistenceManager.data.warehouses[Scenario.carrier_setup.carrier_unit_name] = warehouse:getInventory()
+                end
+            end
+        end
+
         MissionLogger:info("State successfully gathered.")
     end
 

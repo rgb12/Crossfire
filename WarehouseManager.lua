@@ -1,17 +1,22 @@
 ---@class WarehouseManager
 WarehouseManager = {}
 do
-
+    
     ---@enum WarehouseManager.Flags
     WarehouseManager.Flags = {
         
-    VIKHR_M = "weapons.missiles.Vikhr_M",
     AIM_9L = "weapons.missiles.AIM-9L",
     AIM_9M = "weapons.missiles.AIM_9",
     AIM_9X = "weapons.missiles.AIM_9X",
     AIM_120C = "weapons.missiles.AIM_120C",
     AIM_120B = "weapons.missiles.AIM_120",
-    AIM_54 = "weapons.missiles.AIM_54C_Mk47",
+    AIM_7P = "weapons.missiles.AIM-7P",
+    AIM_7F = "weapons.missiles.AIM-7F",
+    AIM_7M = "weapons.missiles.AIM_7",
+    AIM_7MH = "weapons.missiles.AIM-7MH",
+    AIM_54C_MK60 = "weapons.missiles.AIM_54C_Mk60",
+    AIM_54C_MK47 = "weapons.missiles.AIM_54C_Mk47",
+    
     AGM_65D = "weapons.missiles.AGM_65D",
     AGM_65E = "weapons.missiles.AGM_65E",
     AGM_65F = "weapons.missiles.AGM_65F",
@@ -21,13 +26,15 @@ do
     AGM_84H_SLAM_ER = "weapons.missiles.AGM_84H",
     AGM_84D_HARPOON = "weapons.missiles.AGM_84D",
     ADM_141_TALD = "weapons.missiles.ADM_141A",
+    AGM_114L = "weapons.missiles.AGM_114",
+    AGM_114K = "weapons.missiles.AGM_114K",
 
     CBU_87 = "weapons.bombs.CBU_87",
     CBU_97 = "weapons.bombs.CBU_97",
     CBU_99 = "weapons.bombs.CBU_99",
     CBU_105 = "weapons.bombs.CBU_105",
     CBU_103 = "weapons.bombs.CBU_103",
-
+    
     GBU_12 = "weapons.bombs.GBU_12",
     GBU_16 = "weapons.bombs.GBU_16",
     GBU_24 = "weapons.bombs.GBU_24",
@@ -37,33 +44,42 @@ do
     GBU_31_V_3B = "weapons.bombs.GBU_31_V_3B",
     GBU_54_V_1B = "weapons.bombs.GBU_54_V_1B",
     GBU_43 = "weapons.bombs.GBU_43",
-
+    
     MK_82 = "weapons.bombs.Mk_82",
     MK_83 = "weapons.bombs.Mk_83",
     MK_84 = "weapons.bombs.Mk_84",
     MK82_SNAKEEYE = "weapons.bombs.MK_82SNAKEYE",
     MK_20_ROCKEYE = "weapons.bombs.ROCKEYE",
-
+    
     LAU_88 = "weapons.adapters.lau-88",
     AAQ_28_LITENING = "weapons.containers.AAQ-28_LITENING",
     AN_AAQ_33_SNIPER = "weapons.containers.AN_AAQ_33",
     AAQ_14_LANTIRN = "weapons.containers.F-15E_AAQ-14_LANTIRN",
     AAQ_13_LANTIRN = "weapons.containers.F-15E_AAQ-13_LANTIRN",
-        
+    AN_APG_78_APACHE_RADAR = "weapons.containers.ah-64d_radar",
+
     HTS_POD = "weapons.containers.16c_hts_pod",
     ALQ_184 = "weapons.containers.ALQ-184",
-
+    
     HYDRA_70_M282_MPP_APKWS = "weapons.missiles.AGR_20_M282",
-    HYDRA_70_MK5 = "weapons.nurs.HYDRA_70_MK5",
+    HYDRA_70_MK5_HEAT = "weapons.nurs.HYDRA_70_MK5",
+    HYDRA_70_M151_HE = "weapons.nurs.HYDRA_70_M151",
+    HYDRA_70_M257 = "weapons.nurs.HYDRA_70_M257",
+    HYDRA_70_M274 = "weapons.nurs.HYDRA_70_M274",
+    HYDRA_70_MK1 = "weapons.nurs.HYDRA_70_MK1",
+    ZUNI_127 = "weapons.nurs.Zuni_127",
+
 
     SUPER_530D = "weapons.missiles.Matra Super 530D",
     MAGIC_II = "weapons.missiles.MMagicII",
     ECLAIR_M_60 = "weapons.containers.{EclairM_60}",
     ECLAIR_M_51 = "weapons.containers.{EclairM_51}",
-    HYDRA_70_MK5_HEAT = "weapons.nurs.HYDRA_70_MK5",
-    HYDRA_70_M151_HE = "weapons.nurs.HYDRA_70_M151",
     HOT3 = "weapons.missiles.HOT3_MBDA",
+    
+    IR_DEFLECTOR = "weapons.containers.IRDeflector",
+    SAND_FILTER = "weapons.containers.FAS",
 
+    VIKHR_M = "weapons.missiles.Vikhr_M",
     KAB_500KR = "weapons.bombs.KAB-500Kr",
     R27ER = "weapons.missiles.P_27PE",
     R27ET = "weapons.missiles.P_27TE",
@@ -141,6 +157,7 @@ do
         M2000C = "M-2000C",
         FA18C_HORNET = "FA-18C_hornet",
         F_14A_135_GR = "F-14A-135-GR",
+        F14B = "F-14B",
         A10C_TANK_KILLER_II = "A-10C_2",
         F15C = "F-15C",
         C17A = "C-17A",
@@ -731,7 +748,20 @@ do
                 [WarehouseManager.AircraftFlags.AH64D_BLKII] = 4,
 
 
-                [WarehouseManager.Flags.HOT3] = math.random(8,12),
+                [WarehouseManager.Flags.HOT3] = math.random(16,18),
+                [WarehouseManager.Flags.AGM_114K] = math.random(12,20),
+                [WarehouseManager.Flags.AGM_114L] = math.random(12,20),
+
+                [WarehouseManager.Flags.HYDRA_70_M151_HE] = math.random(50,100),
+                [WarehouseManager.Flags.HYDRA_70_M257] = math.random(50,100),
+                [WarehouseManager.Flags.HYDRA_70_M274] = math.random(50,100),
+                [WarehouseManager.Flags.HYDRA_70_MK1] = math.random(50,100),
+                [WarehouseManager.Flags.HYDRA_70_MK5_HEAT] = math.random(50,100),
+                [WarehouseManager.Flags.ZUNI_127] = math.random(50,100),
+
+                [WarehouseManager.Flags.SAND_FILTER] = 5,
+                [WarehouseManager.Flags.IR_DEFLECTOR] = 2,
+                [WarehouseManager.Flags.AN_APG_78_APACHE_RADAR] = 4,
             },
             [coalition.side.RED] = {
 
@@ -789,7 +819,7 @@ do
                 [WarehouseManager.Flags.AIM_9M] = math.random(20,28),
                 [WarehouseManager.Flags.AIM_9X] = math.random(8,14),
                 [WarehouseManager.Flags.AIM_9L] = math.random(8,14),
-                [WarehouseManager.Flags.AIM_54] = math.random(6,10),
+                [WarehouseManager.Flags.AIM_54C_MK47] = math.random(6,10),
                 [WarehouseManager.Flags.SUPER_530D] = math.random(8,14),
                 [WarehouseManager.Flags.MAGIC_II] = math.random(8,14),
 
@@ -853,9 +883,15 @@ do
         [WarehouseManager.StockTypes.CARRIER_INITAL] = {
             [coalition.side.BLUE] = {
                 [WarehouseManager.Flags.AIM_9X] = 40,
-                [WarehouseManager.Flags.AIM_9M] = 20,
+                [WarehouseManager.Flags.AIM_9M] = 60,
                 [WarehouseManager.Flags.AIM_120C] = 60,
-                [WarehouseManager.Flags.AIM_54] = 20,
+                [WarehouseManager.Flags.AIM_54C_MK47] = math.random(20,30),
+                [WarehouseManager.Flags.AIM_54C_MK60] = math.random(20,30),
+                [WarehouseManager.Flags.AIM_7F] = math.random(20,30),
+                [WarehouseManager.Flags.AIM_7M] = math.random(20,30),
+                [WarehouseManager.Flags.AIM_7P] = math.random(20,30),
+                [WarehouseManager.Flags.AIM_7MH] = math.random(20,30),
+
 
                 [WarehouseManager.Flags.GBU_12] = 40,
                 [WarehouseManager.Flags.GBU_10] = 10,
@@ -881,6 +917,7 @@ do
                 [WarehouseManager.AircraftFlags.FA18C_HORNET] = 12,
                 [WarehouseManager.AircraftFlags.E2C_HAWKEYE] = 2,
                 [WarehouseManager.AircraftFlags.F_14A_135_GR] = 8,
+                [WarehouseManager.AircraftFlags.F14B] = 6,
             },
             [coalition.side.RED] = {}
         },
@@ -940,7 +977,7 @@ do
             [coalition.side.BLUE] = {
                 [WarehouseManager.Flags.AIM_120B] = math.random(8,14),
                 [WarehouseManager.Flags.AIM_120C] = math.random(6,10),
-                [WarehouseManager.Flags.AIM_54] = math.random(6,10),
+                [WarehouseManager.Flags.AIM_54C_MK47] = math.random(6,10),
             },
             [coalition.side.RED] = {
                 [WarehouseManager.Flags.R27ER] = math.random(20,30),

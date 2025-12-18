@@ -4,16 +4,7 @@ function ev:onEvent(event)
         ---@type Unit
         local unit = event.initiator
         if unit and unit.getCategory and unit:getCategory() == Object.Category.UNIT and unit.getCoalition then
-            local unit_coalition = unit:getCoalition()
-                
-                --init commands
-                CommandHandler.tallyZone(unit)
-                CommandHandler.init(unit)
 
-                local ew = EWRS_coalition[unit_coalition]
-                ew:addRadioMenuForUser(unit)
-                --  CommandHandler.initCommandsForGroup(unit:getGroup())
-                
        
 
             -- Check if the spawned unit is a radar
@@ -26,7 +17,7 @@ function ev:onEvent(event)
             end
         end
     end
-    
+
     if event.id == world.event.S_EVENT_PLAYER_ENTER_UNIT then
         ---@type Unit
         local unit = event.initiator
@@ -63,9 +54,12 @@ function ev:onEvent(event)
                                         
                                         if acft_name == WarehouseManager.AircraftFlags.C130J_30 or
                                         zone.zone_type == ZoneTypes.FARP then
-                                            warehouse:removeItem(acft_name, 1)
+                                            warehouse:removeItem(acft_name,1)
                                         end
 
+                                    else
+                                        can_spawn = false
+                                        warehouse:addItem(acft_name,1)
                                     end
                                 end
                             end
@@ -95,6 +89,64 @@ function ev:onEvent(event)
                     end
                 end
             end
+
+            local group = unit:getGroup()
+            if not group then return end
+
+            -- Init Commands
+            CommandHandler.clearF10(group)
+
+            -- Initiate the command menus for the player
+            ExperienceManager:addUser(unit)
+            local group_id = group:getID()
+            local xprank_root = missionCommands.addCommandForGroup(group_id, "XP/Rank", nil, function()
+                local user = ExperienceManager:fetchUser(unit)
+                if user then
+                    local rank_name = "Unranked"
+                    local next_rank_xp = 999999
+                    local next_rank = "..."
+                    for i = #Config.reward_system.ranks, 1, -1 do
+                        local rank = Config.reward_system.ranks[i]
+                        if user.xp >= rank.xp_required then
+                            rank_name = rank.name
+                            if i < #Config.reward_system.ranks then
+                                next_rank_xp = Config.reward_system.ranks[i + 1].xp_required
+                                next_rank = Config.reward_system.ranks[i + 1].name
+                            end
+                            break
+                        end
+                    end
+                    local out_text = string.format("< XP and Rank >\n\nRank: %s\n\nTokens: %d (+%d)\nXP: %d (+%d)\nMissions Completed: %d\n\nNext Rank: %s\n  %s XP",
+                        rank_name, user.tokens, user.unclaimed_tokens, user.xp, user.unclaimed_xp, user.missions_completed, next_rank, next_rank_xp)
+                    trigger.action.outTextForGroup(group_id, out_text, 15)
+                end
+            end)
+            CommandHandler.addToMenuTracking(group_id, xprank_root, "xp_rank_menu")
+        
+            
+            -- 2. Now initialize the fresh menus
+            CommandHandler.init(unit)
+            CommandHandler.resourcesRequests(group)
+            CommandHandler.initTaskingRequests(group)
+            CommandHandler.tallyZone(unit)
+            local ew = EWRS_coalition[unit_coalition]
+            ew:addRadioMenuForUser(unit)
+            --  CommandHandler.initCommandsForGroup(unit:getGroup())
+
+        end
+    end
+
+    if event.id == world.event.S_EVENT_PLAYER_LEAVE_UNIT then
+        ---@type Unit
+        local unit = event.initiator
+        if unit and unit.getCategory and unit:getCategory() == Object.Category.UNIT and unit.getCoalition and unit.isExist
+        and unit:isExist() and unit.getPlayerName then
+            -- Clear F10 menus
+            local group = unit:getGroup()
+            if group then
+                CommandHandler.clearF10(group)
+            end
+
         end
     end
 

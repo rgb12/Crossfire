@@ -18,7 +18,12 @@ do
     function CommandHandler.init(unit)
         -- SITMAP
         if unit and unit.isExist and unit:isExist() and unit.getCoalition then
-            missionCommands.addCommandForGroup(unit:getGroup():getID(), "SITMAP", nil, function()
+            local group = unit:getGroup()
+            if not group then return end
+            local group_id = group:getID()
+            if not group_id then return end
+
+            local sitmap_path = missionCommands.addCommandForGroup(group_id, "SITMAP", nil, function()
                 local out_text = "< SITMAP > \n\n"
                 out_text = out_text .. "REDFOR controls " .. stats.red_zones .. " areas.\n"
                 out_text = out_text .. "BLUEFOR controls " .. stats.blue_zones .. " areas.\n"
@@ -33,6 +38,8 @@ do
                 end
                 trigger.action.outTextForUnit(unit:getID(), out_text, 15)
             end, nil)
+
+            CommandHandler.addToMenuTracking(group_id, sitmap_path, "sitmap")
         end
     end
 
@@ -42,31 +49,52 @@ do
         [coalition.side.BLUE] = false
     }
 
-    ---@param gr Group
-    function CommandHandler.resourcesRequests(gr)
-
-        if not gr or not gr.isExist or not gr:isExist() then return end
-                local gr_id = gr:getID()
+    function CommandHandler.clearMenu(gr, type)
+        if not gr then return end
+        local gr_id = gr:getID()
 
         if CommandHandler.group_menus[gr_id] then
             -- Remove existing menus. 
             for i = #CommandHandler.group_menus[gr_id], 1, -1 do
-                if CommandHandler.group_menus[gr_id][i].type == "resources_main" then
+                if CommandHandler.group_menus[gr_id][i].type == type then
                     missionCommands.removeItemForGroup(gr_id, CommandHandler.group_menus[gr_id][i].path)
                     table.remove(CommandHandler.group_menus[gr_id], i)
                 end
             end
-        else
+        end
+    end
+
+    ---@param gr Group
+    function CommandHandler.clearF10(gr)
+        if not gr or not gr.isExist or not gr:isExist() then return end
+        local gr_id = gr:getID()
+
+        if CommandHandler.group_menus[gr_id] then
+            -- Remove existing menus. 
+            for i = #CommandHandler.group_menus[gr_id], 1, -1 do
+                missionCommands.removeItemForGroup(gr_id, CommandHandler.group_menus[gr_id][i].path)
+                table.remove(CommandHandler.group_menus[gr_id], i)
+            end
+        end
+    end
+
+    function CommandHandler.addToMenuTracking(gr_id, menu_path, menu_type)
+        if not CommandHandler.group_menus[gr_id] then
             CommandHandler.group_menus[gr_id] = {}
         end
+        table.insert(CommandHandler.group_menus[gr_id], {path=menu_path, type=menu_type})
+    end
+
+    ---@param gr Group
+    function CommandHandler.resourcesRequests(gr)
+
+        if not gr or not gr.isExist or not gr:isExist() then return end
+        local gr_id = gr:getID()
 
           -- Create the root menu for this update
         local resources_main_submenu = missionCommands.addSubMenuForGroup(gr_id,"Resources",nil)
-        table.insert(CommandHandler.group_menus[gr_id], {path=resources_main_submenu, type="resources_main"})
+        CommandHandler.addToMenuTracking(gr_id, resources_main_submenu, "resources_main")
 
-        local resources = {}
-
-        -- UPGRADE ZONES LOGIC
         local unit = gr:getUnit(1)
         if unit and unit:isExist() and unit.getCoalition then
             local side = unit:getCoalition()
@@ -138,6 +166,7 @@ do
                 return false
             end
 
+            --- returns true if aircraft is moving
             ---@param u Unit
             ---@return boolean
             local function aircraftMoving(u)
@@ -248,12 +277,38 @@ do
             -----------------------------------------------------------------------
             -- RESUPPLY REQUEST LOGIC
 
-            missionCommands.addCommandForGroup(gr_id, "Request Resupply - Cost:"..Config.resupply_tokens_cost.." tokens", resources_main_submenu, function()
+            missionCommands.addCommandForGroup(gr_id, "Request Resupply - "..Config.resupply_tokens_cost.." tokens", resources_main_submenu, function()
                 if not checkTokens(unit, Config.resupply_tokens_cost) then return end
                 ExperienceManager:deductTokens(unit, Config.resupply_tokens_cost)
                 trigger.action.outTextForGroup(gr_id, "> Resupply requested", 10)
                 TheatreCommander.sendWarehouseResupply(side, false)
             end, nil)
+
+            local farps_resupply_list = {}
+            for _,zone in ipairs(zones) do
+                if zone.side == side and zone.zone_type == ZoneTypes.FARP and zone.linked_farp then
+                    table.insert(farps_resupply_list, {
+                        name = zone.name .. " - " .. Config.farp_resupply_cost .. " tokens",
+                        func = function (args)
+                            local coal = args.side
+                            local farp = args.farp_name
+                            local unit = args.u
+                            if not checkTokens(unit, Config.farp_resupply_cost) then return end
+                            ExperienceManager:deductTokens(unit, Config.farp_resupply_cost)
+                            WarehouseManager:attributeAirbaseStock(farp,coal, {WarehouseManager.StockTypes.FARP})
+                            trigger.action.outTextForCoalition(coal, "> FARP " .. farp .. " resupplied.", 10)
+                        end,
+                        arg = {side = side, farp_name = zone.linked_farp,u=unit}})
+                end
+            end
+
+            local farp_resupply_menu = missionCommands.addSubMenuForGroup(gr_id,"Request FARP Resupply", resources_main_submenu)
+            if #farps_resupply_list > 0 then
+                CommandHandler.buildPagedMenuForGroup(gr_id, farp_resupply_menu, farps_resupply_list, 1)
+            else
+                missionCommands.addCommandForGroup(gr_id, "No FARPs Available", resources_main_submenu, function() end, nil)
+            end
+
 
             local  upgrade_submenu = missionCommands.addSubMenuForGroup(gr_id, "Request Upgrade", resources_main_submenu)
             if #upgrade_zone_list > 0 then
@@ -261,6 +316,63 @@ do
             else
                 missionCommands.addCommandForGroup(gr_id, "No Zones Available", resources_main_submenu, function() end, nil)
             end
+
+            ---------------------------------------------------------------
+            -- Restock Aircraft
+            local restock_submenu = missionCommands.addSubMenuForGroup(gr_id, "Restock Aircraft", resources_main_submenu)
+            missionCommands.addCommandForGroup(gr_id, "Confirm (destroy)", restock_submenu, function()
+                local point = unit:getPoint()
+                -- Checks if aircraft is not moving and on ground
+                local aircraft_on_carrier = false
+                local on_carrier = false
+                if  land.getSurfaceType{ x = point.x, y = point.z } == land.SurfaceType.WATER
+                and not unit:inAir() then
+                    aircraft_on_carrier = true
+                end
+
+                if not aircraft_on_carrier then
+                    if aircraftMoving(unit) or unit:inAir() then
+                        trigger.action.outTextForGroup(gr_id, "> Restock aborted: Aircraft is not stationary.", 10)
+                        return
+                    end
+                else
+                    local carrier_unit = Unit.getByName("Carrier")
+                    if carrier_unit and carrier_unit:isExist() then
+                        local carrier_point = carrier_unit:getPoint()
+                        local dist_to_carrier = mist.utils.get2DDist(point, carrier_point)
+                        if dist_to_carrier <= 500 then
+                            on_carrier = true
+                        else
+                            trigger.action.outTextForGroup(gr_id, "> Restock aborted: Aircraft is not on carrier deck.", 10)
+                            return
+                        end
+                    else
+                        trigger.action.outTextForGroup(gr_id, "> Restock aborted: Carrier unit not found.", 10)
+                        return
+                    end
+                end
+                trigger.action.outTextForGroup(gr_id, "> Aircraft will be restocked to warehouse in 10 seconds...", 10)
+                timer.scheduleFunction(function()
+
+                    -- Add the aircraft back to the warehouse
+                    if on_carrier then
+                        if gr and gr:isExist() then
+                            gr:destroy()
+                        end
+                    else
+                        for _,zone in ipairs(zones) do
+                            if (zone.zone_type == ZoneTypes.AIRBASE or zone.zone_type == ZoneTypes.FARP) and zone.side == side
+                            and zone:isPointInsideZone(point)then
+                                if gr and gr:isExist() then
+                                    gr:destroy()
+                                end
+                            end
+                        end
+
+                    end
+                end, {}, timer.getTime() + 10)
+            end, nil)
+
         end
 
     end
@@ -326,21 +438,11 @@ do
         if not gr or not gr.isExist or not gr:isExist() then return end
         local gr_id = gr:getID()
 
-        if CommandHandler.group_menus[gr_id] then
-            -- Remove existing menus. 
-            for i = #CommandHandler.group_menus[gr_id], 1, -1 do
-                if CommandHandler.group_menus[gr_id][i].type == "tasking_main" then
-                    missionCommands.removeItemForGroup(gr_id, CommandHandler.group_menus[gr_id][i].path)
-                    table.remove(CommandHandler.group_menus[gr_id], i)
-                end
-            end
-        else
-            CommandHandler.group_menus[gr_id] = {}
-        end
+        CommandHandler.clearMenu(gr, "tasking_main")
 
         -- Create the root menu for this update
         local tasking_main_submenu = missionCommands.addSubMenuForGroup(gr_id,"Request Tasking",nil)
-        table.insert(CommandHandler.group_menus[gr_id], {path=tasking_main_submenu, type="tasking_main"})
+        CommandHandler.addToMenuTracking(gr_id, tasking_main_submenu, "tasking_main")
 
         ---@param unit Unit
         ---@param required_tokens number
@@ -372,7 +474,7 @@ do
                 return true
             else
                 local rankreq = ExperienceManager:getRankfromXP(required_xp) or "Unknown"
-                trigger.action.outTextForUnit(unit:getID(),"Insufficient rank for this tasking request. Required rank: "..rankreq..", ".. required_xp .." XP",5)
+                trigger.action.outTextForUnit(unit:getID(),"Insufficient rank for this tasking request.\nRequired rank: "..rankreq..", ".. required_xp .." XP",5)
                 return false
             end
         end
@@ -767,14 +869,14 @@ do
             local gr = u:getGroup()
             if gr and gr.isExist and gr:isExist() and u.getCoalition then
                 if not u:inAir() then
-                    trigger.action.outTextForUnit(u:getID(), "Recon report\n Can only perform recon while airborne.",10)
+                    trigger.action.outTextForUnit(u:getID(), "Recon report\n> Can only perform recon while airborne.",10)
                     return
                 end
                 
                 local unit_id = u:getID()
                 for i,p in ipairs(player_cooldowns) do
                     if p.id == unit_id and timer.getTime() < p.next_avail_report then
-                        return trigger.action.outTextForUnit(unit_id, "Next report available shortly.",5)
+                        return trigger.action.outTextForUnit(unit_id, "Recon report\n> Next report available shortly.",5)
                     else
                         table.remove(player_cooldowns,i)
                     end
@@ -809,7 +911,7 @@ do
                 end
                 
                 if not found_zone then
-                    trigger.action.outTextForUnit(unit_id, "Recon report\n Nothing in the vicinity. Next report available shortly.",10)
+                    trigger.action.outTextForUnit(unit_id, "Recon report\n> Nothing in the vicinity. Next report available shortly.",10)
                     for _,p in ipairs(player_cooldowns) do
                         if p.id == unit_id then return end
                     end
@@ -822,10 +924,13 @@ do
                         
                         trigger.action.outTextForUnit(unit_id,"Intel report, +" .. Config.reward_system.xp_per_intel_report .. "XP",10)
                     end
-                    trigger.action.outTextForCoalition(unit_coalition, "Recon report\n Newly detected ground targets displayed on your F10 map.",15)
+                    trigger.action.outTextForCoalition(unit_coalition, "Recon report\n> Newly detected ground targets displayed on your F10 map.",15)
                 end
             end
         end
-        missionCommands.addCommandForGroup(u:getGroup():getID(),"Intel Report",nil,checkTallyZone,{})
+        local gr = u:getGroup()
+        if not gr then return end
+        local intel_path = missionCommands.addCommandForGroup(gr:getID(),"Intel Report",nil,checkTallyZone,{})
+        CommandHandler.addToMenuTracking(gr:getID(), intel_path, "intel_report")
     end
 end

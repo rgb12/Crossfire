@@ -65,11 +65,6 @@ do
         local capture_group = Group.getByName(enroute_group.group_name)
         if not capture_group or not capture_group:isExist() then return false end
 
-        local capture_group_units = capture_group:getUnits()
-        -- check if at least one convoy/heli unit is inside and no enemies remain
-        local in_zone_count = utils.getUnitsInZoneObj(enroute_group.to_zone)--mist.getUnitsInZones({ convoy_unit:getName() }, { enroute_group.to_zone.zone.name })
-
-        
         ------------[capture zone checks]------------
         -- group is in zone and capture succeeds
         if enroute_group.ai_task_type == AITaskTypes.CAPTURE_HELO then
@@ -339,24 +334,26 @@ do
     end
 
     ---@param zone ZoneHandler
+    ---@return boolean
     function TheatreCommander.sendPotentialCapture(zone)
-        if zone.side ~= coalition.side.NEUTRAL then return end
+        if zone.side ~= coalition.side.NEUTRAL then return false end
 
         local now = timer.getTime()
         if not zone.last_capture_attempt then zone.last_capture_attempt = timer.getTime() end
 
         -- cooldown before sending capture group
-        if now - zone.last_capture_attempt < Config.cooldown_before_capture_attempt then return end
+        if now - zone.last_capture_attempt < Config.cooldown_before_capture_attempt then return false end
 
-        if EnrouteManager:findByToZone(zone, nil, {AITaskTypes.CAPTURE_CONVOY, AITaskTypes.CAPTURE_HELO}) then return end
+        if EnrouteManager:findByToZone(zone, nil, {AITaskTypes.CAPTURE_CONVOY, AITaskTypes.CAPTURE_HELO}) then return false end
         
         -- both sides have a chance to send capture group
-        if math.random(0,100) >= Config.retry_capture_chance then return end
+        if math.random(0,100) >= Config.retry_capture_chance then return false end
         local side_sending_capture = math.random(1,2)
 
         -- MissionLogger:info(utils.coalitionToString(side_sending_capture).." attempting capture for zone: " .. zone.name)
         zone.last_capture_attempt = now
         TheatreCommander.sendCapture(zone, side_sending_capture)
+        return true
     end
 
     -- This function is executed every 15 seconds
@@ -373,7 +370,7 @@ do
             local capture_helicopter_sent = false
             for _, zone in ipairs(zones) do
 
-                    TheatreCommander.sendPotentialCapture(zone)
+                    capture_helicopter_sent = TheatreCommander.sendPotentialCapture(zone)
 
                     if not upgraded_zone then
                         upgraded_zone = zone:checkLogisticsZone()
@@ -383,10 +380,8 @@ do
 
                     zone:addAIAssets(10) -- Supply chance every minute
 
-                    if  not capture_helicopter_sent and zone.side ~=coalition.side.NEUTRAL
+                    if not capture_helicopter_sent and zone.side ~=coalition.side.NEUTRAL
                     and zone:checkIfEmpty() then
-                        TheatreCommander.sendCapture(zone, utils.getEnemyCoalition(zone.side))
-                        capture_helicopter_sent = true
                         zone:capture(coalition.side.NEUTRAL)
                     end
 
@@ -884,6 +879,16 @@ do
             WarehouseManager:handleIncomingSupplies(blue_airbase.side, {WarehouseManager.StockTypes.SU25T_BLUEFOR})
         end
         WarehouseManager:handleIncomingSupplies(red_airbase.side, {WarehouseManager.StockTypes.INITIAL})
+
+        -- Carrier warehouse
+        if Scenario.carrier_setup then
+            if Scenario.carrier_setup.enabled
+            and Scenario.carrier_setup.carrier_unit_name then
+                WarehouseManager:attributeAirbaseStock(Scenario.carrier_setup.carrier_unit_name, coalition.side.BLUE, {WarehouseManager.StockTypes.CARRIER_INITAL})
+            end
+        end
+        UnitHandler.carrierCheck()
+
         return blue_airbase, red_airbase
     end
 
@@ -891,25 +896,18 @@ do
         MissionLogger:info("Mission Commander: Starting Mission Setup...")
 
         -- Establish the theatre and get home airbases
-        -- 1. Create the Persistor object
         local persistor = PersistenceManager
         
-
-        -- 2. Try to load a saved state
         if persistor:isEnabled() and persistor:loadFromFile() then
-            -- A. SAVE FILE FOUND: Apply the loaded state
             if not persistor:restoreState()then
-                -- Restore failed, fallback to fresh start
                 MissionLogger:error("Failed to restore state. Establishing new theatre.")
                 blue_airbase, red_airbase = TheatreCommander.establishTheatre()
             end
         else
-            -- B. NO SAVE FILE: Run first-time setup
             MissionLogger:info("No save file found. Establishing new theatre.")
             blue_airbase, red_airbase = TheatreCommander.establishTheatre()
         end
         
-        -- 3. Start all services (these run in both cases)
         CommandHandler.refreshJtacCmds(coalition.side.BLUE)
         CommandHandler.refreshJtacCmds(coalition.side.RED)
 
@@ -917,8 +915,6 @@ do
         if blue_airbase and red_airbase then
             TheatreCommander.blue_op_manager = OperationManager:new(coalition.side.BLUE, blue_airbase)
             TheatreCommander.red_op_manager = OperationManager:new(coalition.side.RED, red_airbase)
-        else
-            MissionLogger:error("Could not create Operation Managers, home airbases not found.")
         end
 
         

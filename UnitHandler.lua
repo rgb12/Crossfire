@@ -68,8 +68,9 @@ do
     ---@param zone ZoneHandler
     ---@param disperse boolean|nil
     ---@param max_disperse_disperse number|nil
+    ---@param inner_radius number|nil
     ---@return string|nil -- group name
-    function UnitHandler.clone(group_name, zone, disperse,max_disperse_disperse)
+    function UnitHandler.clone(group_name, zone, disperse,max_disperse_disperse, inner_radius)
         local clear_point = UnitHandler.findClearPoint(zone)
         local new_group
         new_group = mist.teleportToPoint({
@@ -78,6 +79,7 @@ do
             action = 'clone',
             disperse = disperse or false,
             maxDisperse = max_disperse_disperse or nil,
+            innerRadius = inner_radius or nil,
             initTasks = true
         })
         if not new_group or not new_group.name then
@@ -275,6 +277,15 @@ do
                 end
                 stats.blue_airbases = stats.blue_airbases +1
             end
+        elseif zone.zone_type == ZoneTypes.FARP and zone.side ~= coalition.side.NEUTRAL then
+            -- spawn red or blue ground logistics units
+            if zone.side == coalition.side.RED then
+                UnitHandler.clone(GroupData.FARP_SUPPORT.RED[zone.level].group_name, zone,true,100,300)
+                stats.red_farp_zones = stats.red_farp_zones +1
+            elseif zone.side == coalition.side.BLUE then
+                UnitHandler.clone(GroupData.FARP_SUPPORT.BLUE[zone.level].group_name, zone,true,100,300)
+                stats.blue_farp_zones = stats.blue_farp_zones +1
+            end
         end
     end
 
@@ -365,7 +376,7 @@ do
             stats.blue_farp_zones = stats.blue_farp_zones +1
         else 
             country_name_id = country.id.CJTF_RED
-            stats.red_farps_zones = stats.red_farps_zones +1
+            stats.red_farp_zones = stats.red_farp_zones +1
         end
 
         -- Base coordinates for the zone center (where Invisible FARP goes)
@@ -378,12 +389,13 @@ do
             { type = "Invisible FARP", category = "Heliports", shape_name = "invisiblefarp", offset_x = 0, offset_y = 0 },
 
             -- Tents (clustered east of the pad)
-            { type = "FARP Tent", category = "Fortifications", offset_x = 30, offset_y = 5 },
-            { type = "FARP Tent", category = "Fortifications", offset_x = 30, offset_y = -5 },
+            { type = "FARP Tent", category = "Fortifications", offset_x = 5, offset_y = 55 },
+            { type = "FARP Tent", category = "Fortifications", offset_x = -15, offset_y = 55 },
 
             -- Ammo Storage (North of the pad)
-            { type = "FARP Ammo Dump Coating", category = "Fortifications", offset_x = 5, offset_y = 55 },
-            { type = "FARP Ammo Dump Coating", category = "Fortifications", offset_x = -5, offset_y = 55 },
+            { type = "FARP Ammo Dump Coating", category = "Fortifications", offset_x = 30, offset_y = 5 },
+            { type = "FARP Ammo Dump Coating", category = "Fortifications", offset_x = 30, offset_y = -5 },
+
 
             -- Fuel Depots (South of the pad)
             { type = "FARP Fuel Depot", category = "Fortifications", offset_x = 5, offset_y = -60 },
@@ -521,4 +533,22 @@ do
             end
         end, {}, timer.getTime()+1) -- to prevent crates stacking
     end
+
+    function UnitHandler.carrierCheck()
+        if not Scenario then return end
+
+        local carrier_data = Scenario.carrier_setup
+        if not carrier_data then return end
+        if not carrier_data.enabled then
+            local carrier_unit = Unit.getByName(carrier_data.carrier_unit_name)
+            if not carrier_unit or not carrier_unit:isExist() then return end
+            local carrier_group = carrier_unit:getGroup()
+            if carrier_group and carrier_group:isExist() then
+                MissionLogger:info("Destroying carrier as per scenario settings...")
+                carrier_group:destroy()
+            end
+            return
+        end
+    end
+
 end

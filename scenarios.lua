@@ -14,9 +14,8 @@
 ---@field max_dist_to_frontline number
 
 ---@class CarrierSetup
----@field group_name string
+---@field carrier_unit_name string
 ---@field enabled boolean
----@field waypoints vec2[]
 
 ---@class Resupply
 ---@field blue_point vec3
@@ -421,12 +420,8 @@ Scenarios = {
             red_point = { x = -00290581, y = 6096, z = 00569411 }
         },
         carrier_setup = {
-            group_name = "Carrier",
-            enabled = false,
-            waypoints = {
-                { x = -00335908, y=00539171}, --spawn point
-                { x=-00274928, y=00533556}
-            }
+            carrier_unit_name = "Carrier",
+            enabled = true
         },
         difficulty = ScenarioDifficulty.MEDIUM,
         red_airbase = ZoneHandler:new({
@@ -475,10 +470,10 @@ Scenarios = {
             ZoneHandler:new({name = "TKVARCHELI"}),
             ZoneHandler:new({name = "LABRA"}),
             
-            ZoneHandler:new({name = "BRAVO", zone_type = ZoneTypes.FARP, level=4}),
-            ZoneHandler:new({name = "DELTA", zone_type = ZoneTypes.FARP,level=4}),
-            ZoneHandler:new({name = "TRAINING-AIRFIELD", zone_type = ZoneTypes.FARP,level=4}),
-            ZoneHandler:new({name = "SEASIDE", zone_type = ZoneTypes.FARP,level=4}),
+            ZoneHandler:new({name = "BRAVO", zone_type = ZoneTypes.FARP,}),
+            ZoneHandler:new({name = "DELTA", zone_type = ZoneTypes.FARP}),
+            ZoneHandler:new({name = "TRAINING-AIRFIELD", zone_type = ZoneTypes.FARP}),
+            ZoneHandler:new({name = "SEASIDE", zone_type = ZoneTypes.FARP}),
             
             ZoneHandler:new({name = "GUDAUTA", zone_type = ZoneTypes.AIRBASE, airbase_name = Airbases.Caucasus.Gudauta}),
             ZoneHandler:new({name = "SUKHUMI", zone_type = ZoneTypes.AIRBASE, airbase_name = Airbases.Caucasus.Sukhumi_Babushara}),

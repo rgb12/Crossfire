@@ -17,45 +17,11 @@ do
     function ExperienceManager.EventHandler:onEvent(event)
         if not Config.reward_system.enable then return end
 
-        if event.id == world.event.S_EVENT_PLAYER_ENTER_UNIT then
-            if event.initiator and event.initiator.getPlayerName then
-
-                ExperienceManager:addUser(event.initiator)
-                local group = event.initiator:getGroup()
-                if not group then return end
-                local group_id = group:getID()
-                missionCommands.addCommandForGroup(group_id, "XP/Rank", nil, function()
-                    local user = ExperienceManager:fetchUser(event.initiator)
-                    if user then
-                        local rank_name = "Unranked"
-                        local next_rank_xp = 999999
-                        local next_rank = "..."
-                        for i = #Config.reward_system.ranks, 1, -1 do
-                            local rank = Config.reward_system.ranks[i]
-                            if user.xp >= rank.xp_required then
-                                rank_name = rank.name
-                                if i < #Config.reward_system.ranks then
-                                    next_rank_xp = Config.reward_system.ranks[i + 1].xp_required
-                                    next_rank = Config.reward_system.ranks[i + 1].name
-                                end
-                                break
-                            end
-                        end
-                        local out_text = string.format("/*/*/*/ User Stats /*/*/*/\n> Rank: %s\n\n> Tokens: %d (+%d)\n> XP: %d (+%d)\n> Missions Completed: %d\n\n> Next Rank: %s\n  %s XP",
-                            rank_name, user.tokens, user.unclaimed_tokens, user.xp, user.unclaimed_xp, user.missions_completed, next_rank, next_rank_xp)
-                        trigger.action.outTextForGroup(group_id, out_text, 15)
-                    end
-                end)
-
-                CommandHandler.initTaskingRequests(group)
-                CommandHandler.resourcesRequests(group)
-            end
-
-        elseif event.id == world.event.S_EVENT_KILL then
+        if event.id == world.event.S_EVENT_KILL then
             -- Adds XP to the player who made the kill
             local target = event.target
             local initiator = event.initiator
-            if target and initiator.getPlayerName and initiator then
+            if target and initiator and initiator.getPlayerName then
                 
                 local user = ExperienceManager:fetchUser(initiator)
                 if not user then return end
@@ -113,8 +79,6 @@ do
                             ExperienceManager:addXP(user, user.unclaimed_xp) -- to check for rank up
                             user.tokens = user.tokens + user.unclaimed_tokens
                             
-
-
                             local out_text = "> "
                             if user.unclaimed_xp > 0 then
                                 out_text = out_text .. " +" .. user.unclaimed_xp .. " XP"
