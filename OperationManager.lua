@@ -122,52 +122,6 @@ do
                     end
                 end
             end
-        elseif event.id == world.event.S_EVENT_BIRTH and event.initiator then
-            if event.initiator.getPlayerName and event.initiator:getPlayerName() then
-
-                if event.initiator.getCoalition and event.initiator:getCoalition() ~= self.side then
-                    return
-                end
-
-                local group_id = event.initiator:getGroup():getID()
-
-                local missions_submenu = missionCommands.addSubMenuForGroup(group_id, "Operations")
-                CommandHandler.addToMenuTracking(group_id, missions_submenu, "operations_menu")
-
-                missionCommands.addCommandForGroup(group_id, "Recommended Operations", missions_submenu,function()
-                    self:showAvailableOperations(event.initiator)
-                end)
-
-                missionCommands.addCommandForGroup(group_id, "Active Operation", missions_submenu,function()
-                    self:showActiveOperation(event.initiator)
-                end)
-                missionCommands.addCommandForGroup(group_id, "Cancel Active Operation", missions_submenu,function()
-                    self:cancelOperation(event.initiator)
-                end)
-
-
-                local join_operation_menu = missionCommands.addSubMenuForGroup(group_id, "Initiate Operation", missions_submenu)
-
-                for i1 = 1, 9 do
-                    local digit1 = missionCommands.addSubMenuForGroup(group_id, i1 .. ' _ _', join_operation_menu)
-                    for i2 = 0, 9 do
-                        local digit2 = missionCommands.addSubMenuForGroup(group_id, i1 .. i2 .. ' _', digit1)
-                        for i3 = 0, 9 do
-                            local code = tonumber(i1 .. i2 .. i3)
-                            missionCommands.addCommandForGroup(group_id,tostring(code), digit2,
-                                function(code,unit)
-                                    
-                                    if unit and unit:getCoalition() == self.side then
-                                        self:activateOperation(unit, code)
-                                    end
-                                end, code, event.initiator)
-                        end
-                    end
-                end
-
-
-            end
-
         end
     end
 
