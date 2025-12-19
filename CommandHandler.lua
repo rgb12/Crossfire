@@ -86,6 +86,59 @@ do
     end
 
     ---@param gr Group
+    ---@param unit Unit
+    function CommandHandler.operationsMenu(gr,unit)
+        if not gr or not gr.isExist or not gr:isExist() then return end
+        if not unit or not unit:isExist() then return end
+        if unit.getPlayerName and unit:getPlayerName() and unit.getCoalition then
+
+            local operation_manager = nil
+            if unit:getCoalition() == coalition.side.RED then
+                operation_manager = TheatreCommander.red_op_manager
+            elseif unit:getCoalition() == coalition.side.BLUE then
+                operation_manager = TheatreCommander.blue_op_manager
+            end
+            if not operation_manager then return end
+
+            local group_id = gr:getID()
+
+            local missions_submenu = missionCommands.addSubMenuForGroup(group_id, "Operations")
+            CommandHandler.addToMenuTracking(group_id, missions_submenu, "operations_menu")
+
+            missionCommands.addCommandForGroup(group_id, "Recommended Operations", missions_submenu,function()
+                operation_manager:showAvailableOperations(unit)
+            end)
+
+            missionCommands.addCommandForGroup(group_id, "Active Operation", missions_submenu,function()
+                operation_manager:showActiveOperation(unit)
+            end)
+            missionCommands.addCommandForGroup(group_id, "Cancel Active Operation", missions_submenu,function()
+                operation_manager:cancelOperation(unit)
+            end)
+
+
+            local join_operation_menu = missionCommands.addSubMenuForGroup(group_id, "Initiate Operation", missions_submenu)
+
+            for i1 = 1, 9 do
+                local digit1 = missionCommands.addSubMenuForGroup(group_id, i1 .. ' _ _', join_operation_menu)
+                for i2 = 0, 9 do
+                    local digit2 = missionCommands.addSubMenuForGroup(group_id, i1 .. i2 .. ' _', digit1)
+                    for i3 = 0, 9 do
+                        local code = tonumber(i1 .. i2 .. i3)
+                        missionCommands.addCommandForGroup(group_id,tostring(code), digit2,
+                            function(code,unit)
+                                
+                                if unit and unit:getCoalition() == operation_manager.side then
+                                    operation_manager:activateOperation(unit, code)
+                                end
+                            end, code, unit)
+                    end
+                end
+            end
+        end
+    end
+
+    ---@param gr Group
     function CommandHandler.resourcesRequests(gr)
 
         if not gr or not gr.isExist or not gr:isExist() then return end

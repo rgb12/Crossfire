@@ -128,6 +128,7 @@ function ev:onEvent(event)
             CommandHandler.init(unit)
             CommandHandler.resourcesRequests(group)
             CommandHandler.initTaskingRequests(group)
+            CommandHandler.operationsMenu(group,unit)
             CommandHandler.tallyZone(unit)
             local ew = EWRS_coalition[unit_coalition]
             ew:addRadioMenuForUser(unit)
