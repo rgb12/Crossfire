@@ -853,9 +853,9 @@ do
                 MissionLogger:info("Logistics zone "..self.name.." leveled up "..lowest_level_zone_nearby.name .. " to level "..lowest_level_zone_nearby.level.."/4")
                 trigger.action.outSoundForCoalition(self.side,"radio_beep.ogg")
                 if self.name == lowest_level_zone_nearby.name then
-                    trigger.action.outTextForCoalition(self.side, "> Logistics "..self.name.." has been upgraded to tier "..lowest_level_zone_nearby.level.."/4",10)
+                    trigger.action.outTextForCoalition(self.side, "Logistics "..self.name.." has been upgraded to tier "..lowest_level_zone_nearby.level.."/4",10)
                 else
-                    trigger.action.outTextForCoalition(self.side, "> Logistics "..self.name.." provided additional support for "..lowest_level_zone_nearby.name.."\nT: "..lowest_level_zone_nearby.level.."/4",10)
+                    trigger.action.outTextForCoalition(self.side, "Logistics "..self.name.." provided additional support for "..lowest_level_zone_nearby.name.."\nT: "..lowest_level_zone_nearby.level.."/4",10)
                 end
                 return true
             end
@@ -937,8 +937,12 @@ do
                     stats.red_comms_antennas = stats.red_comms_antennas + 1
                 end
                 
+                -- Every level reduces the respawn time by 10%
+                local level_modifier = 1 - ((self.level -1) * 0.1)
+                Config.comms_tower_respawn_time = math.floor(Config.comms_tower_respawn_time * level_modifier)
+
                 -- Increase future respawn times
-                Config.comms_tower_respawn_time = math.floor(Config.comms_tower_respawn_time * Config.comms_tower_lost_penalty)
+                --Config.comms_tower_respawn_time = math.floor(Config.comms_tower_respawn_time * Config.comms_tower_lost_penalty)
                 MissionLogger:info("Comms tower respawn time is now "..Config.comms_tower_respawn_time)
            
                 trigger.action.outSoundForCoalition(self.side,"radio_beep.ogg")

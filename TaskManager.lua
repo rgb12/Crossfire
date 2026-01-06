@@ -955,27 +955,43 @@ do
     ---@param enroute_data EnrouteObj
     function TaskManager:setCASTask(cas_group_name,enroute_data)
         timer.scheduleFunction(function()
-            local units_to_attack
-            if enroute_data.side == coalition.side.BLUE then
-                units_to_attack = utils.getUnitsInZoneObj(enroute_data.to_zone, coalition.side.RED)
-            elseif enroute_data.side == coalition.side.RED then
-                units_to_attack = utils.getUnitsInZoneObj(enroute_data.to_zone, coalition.side.BLUE)
-            end
+            -- local units_to_attack
+            -- if enroute_data.side == coalition.side.BLUE then
+            --     units_to_attack = utils.getUnitsInZoneObj(enroute_data.to_zone, coalition.side.RED)
+            -- elseif enroute_data.side == coalition.side.RED then
+            --     units_to_attack = utils.getUnitsInZoneObj(enroute_data.to_zone, coalition.side.BLUE)
+            -- end
             
-            local grp_to_attack_id
-            if units_to_attack and #units_to_attack > 0 then
-                grp_to_attack_id = units_to_attack[1]:getGroup():getID()
-            else
-                MissionLogger:error("Could not send CAS: No enemy units found in zone "..enroute_data.to_zone.name)
+            -- local grp_to_attack_id
+            -- if units_to_attack and #units_to_attack > 0 then
+            --     grp_to_attack_id = units_to_attack[1]:getGroup():getID()
+            -- else
+            --     MissionLogger:error("Could not send CAS: No enemy units found in zone "..enroute_data.to_zone.name)
+            --     return false
+            -- end
+
+            local groups_to_attack = enroute_data.to_zone.linked_groups
+            if not groups_to_attack or #groups_to_attack == 0 then
+                MissionLogger:error("Could not send CAS: No linked enemy groups found in zone "..enroute_data.to_zone.name)
+                return false
+            end
+            local viable_ids ={}
+            for _,grp_name in ipairs(groups_to_attack) do
+                local grp = Group.getByName(grp_name)
+                if grp and grp:isExist() then
+                    table.insert(viable_ids,grp:getID())
+                end
+            end
+            if #viable_ids==0 then
+                MissionLogger:error("Could not send CAS: No linked enemy groups exist in zone "..enroute_data.to_zone.name)
                 return false
             end
 
             local cas_gr = Group.getByName(cas_group_name)
-            if not (cas_gr and cas_gr:isExist() and grp_to_attack_id) then
+            if not (cas_gr and cas_gr:isExist()) then
                 MissionLogger:error("Could not send CAS: Group or target ID missing.")
                 return false
             end
-            MissionLogger:info(cas_gr:getName())
 
             local ctrl = cas_gr:getController()
 
@@ -986,13 +1002,25 @@ do
                 return false
             end
 
-            -- 2. Define the specific 'AttackGroup' task
-            local attackTask = {
-                id = 'AttackGroup',
+            local tasks = {}
+            for i, target_group_id in ipairs(viable_ids) do
+               local attackTask = {
+                    enabled = true,
+                    auto = false,
+                    id = 'AttackGroup',
+                    number = i,
+                    params = {
+                        groupId = target_group_id,
+                        groupAttack = true,
+                    }
+                }
+                table.insert(tasks, attackTask)
+            end
+
+            local comboTask = {
+                id = 'ComboTask',
                 params = {
-                    groupId = grp_to_attack_id,
-                    groupAttack = true,
-                    expend = AI.Task.WeaponExpend.ALL
+                    tasks = tasks
                 }
             }
      
@@ -1025,7 +1053,7 @@ do
                 action = AI.Task.TurnMethod.FLY_OVER_POINT,
                 alt = 4000, -- 13k ft
                 alt_type = AI.Task.AltitudeType.BARO,
-                task = attackTask -- Attach the AttackGroup task to this waypoint
+                task = comboTask -- Attach the AttackGroup task to this waypoint
             })
 
             -- Waypoint 3: LAND (Return to the starting position)
@@ -1055,7 +1083,7 @@ do
 
             trigger.action.outTextForCoalition(enroute_data.side, "CAS mission tasked, engaging: "..enroute_data.to_zone.name,10)
             trigger.action.outSoundForCoalition(enroute_data.side, "transmission1.ogg")
-            MissionLogger:info("CAS mission tasked, engaging: "..enroute_data.to_zone.name)
+            MissionLogger:info("CAS flight tasked, engaging: "..enroute_data.to_zone.name)
         end, {}, timer.getTime() + 12)
     end
 

@@ -46,7 +46,6 @@ function ev:onEvent(event)
                             local airbase = Airbase.getByName(wh_name)
                             if airbase then
                                 local warehouse = airbase:getWarehouse()
-                                MissionLogger:info(warehouse:getInventory())
                                 if warehouse then
                                     local acft_count = warehouse:getItemCount(acft_name)
                                     if acft_count > 0 then
@@ -137,7 +136,7 @@ function ev:onEvent(event)
         end
     end
 
-    if event.id == world.event.S_EVENT_PLAYER_LEAVE_UNIT then
+    if event.id == world.event.S_EVENT_PLAYER_LEAVE_UNIT and event.initiator then
         ---@type Unit
         local unit = event.initiator
         if unit and unit.getCategory and unit:getCategory() == Object.Category.UNIT and unit.getCoalition and unit.isExist
@@ -153,22 +152,12 @@ function ev:onEvent(event)
 
     if event.id == world.event.S_EVENT_CRASH and event.initiator then
 
-
-        -- removes from enroutes
-        local group_name = event.initiator:getGroup():getName()
-        if EnrouteManager:findByGroup(group_name) then EnrouteManager:remove(group_name) end
-
-        -- [checks if a capture heli crashed, if yes, remove it from enroute_capture_heli]
         local enroute_crash = EnrouteManager:findByGroup(event.initiator:getGroup():getName())
         if enroute_crash then
-
             EnrouteManager:remove(enroute_crash.group_name)
             MissionLogger:info("Removed CRASHED" ..enroute_crash.ai_task_type.." from enroutes: " .. enroute_crash.group_name)
-            
+        
         end
-
-
-
     end
 
     if event.id == world.event.S_EVENT_AI_ABORT_MISSION and event.initiator then
@@ -186,7 +175,7 @@ function ev:onEvent(event)
                 timer.scheduleFunction(function ()
                     local gr = Group.getByName(group_name)
                     if gr and gr.isExist and gr:isExist() then
-                        trigger.action.explosion(gr:getUnit(1):getPoint(), 200)
+                        trigger.action.explosion(gr:getUnit(1):getPoint(), 250)
                         EnrouteManager:remove(group_name)
                         MissionLogger:info("Removed damaged AI "..enroute_aborted.ai_task_type.." from enroutes: " .. group_name)
                     end
@@ -216,10 +205,7 @@ function ev:onEvent(event)
     end
 
     if event.id == world.event.S_EVENT_LAND and event.initiator then
-        -- checks if player landed
         local unit = event.initiator
-        -- if unit and unit.getPlayerName and unit:getPlayerName() then trigger.action.outText(unit:getTypeName() .. " landed", 10) end
-        
         if not unit or not unit.isExist or not unit:isExist() then return end
         local group_name = unit:getGroup():getName()
         
@@ -278,7 +264,6 @@ function ev:onEvent(event)
             local enroute_task = EnrouteManager:findByGroup(group_name)
             if enroute_task then
                 local landed_gr_name = enroute_task.group_name
-
  
                 if enroute_task.ai_task_type == AITaskTypes.RESUPPLY_CARGO then
                     
@@ -295,8 +280,6 @@ function ev:onEvent(event)
                                 WarehouseManager:handleIncomingSupplies(coalition.side.BLUE, {WarehouseManager.StockTypes.SU25T_BLUEFOR, WarehouseManager.StockTypes.INITIAL})
                             else
                                 WarehouseManager:handleIncomingSupplies(coalition.side.BLUE, {WarehouseManager.StockTypes.INITIAL})
-
-
                             end
                         end
                     
@@ -305,17 +288,17 @@ function ev:onEvent(event)
                 end
 
 
-                EnrouteManager:remove(group_name)
                 
                 timer.scheduleFunction(function ()
+                    EnrouteManager:remove(group_name)
+                    MissionLogger:info("destroying landed cargo")
                     local gr = Group.getByName(landed_gr_name)
                     if gr and gr.isExist and gr:isExist() then
                         gr:destroy()
                     end
 
-                end, {}, timer.getTime() + 300)
+                end, {}, timer.getTime() + 120)
                 -- MissionLogger:info("Removed LANDED"..enroute_task.ai_task_type.." from enroutes: " .. group_name)
-                return
             end
         end
     elseif event.id == world.event.S_EVENT_DEAD and event.initiator then
@@ -347,9 +330,6 @@ function ev:onEvent(event)
 
         if unit and Object.getCategory(unit) == Object.Category.STATIC then
             MissionLogger:info("Static unit destroyed: " .. unit:getName())
-
         end
-
-
     end
 end

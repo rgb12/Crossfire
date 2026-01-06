@@ -211,7 +211,7 @@ do
             local function checkAircraftIsCargoCapable(u)
                 if not u or not u.isExist or not u:isExist() then return false end
                 local type_name = u:getTypeName()
-                for _, cargo_aircraft in ipairs(Config.cargo_aicraft) do
+                for _, cargo_aircraft in ipairs(Config.cargo_aircraft) do
                     if type_name == cargo_aircraft then
                         return true
                     end

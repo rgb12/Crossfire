@@ -9,8 +9,7 @@ do
 
     ---@param to_zone ZoneHandler
     ---@param side_sending_capture coalition.side
-    ---@param from_zone ZoneHandler|nil
-    function TheatreCommander.sendCapture(to_zone, side_sending_capture, from_zone)
+    function TheatreCommander.sendCapture(to_zone, side_sending_capture)
         if side_sending_capture == coalition.side.NEUTRAL then return end
         -- MissionLogger:info(utils.coalitionToString(side_sending_capture).." attempting capture group for zone: " .. to_zone.name)
 
@@ -27,13 +26,8 @@ do
 
         timer.scheduleFunction(function ()
             ---@type ZoneHandler[]
-            local zones_to_check
-            if from_zone then
-                zones_to_check = { from_zone }
-            else
-                zones_to_check = ZoneHandler.sortZonesByDistance(to_zone.zone.point)
-            end
-    
+            local zones_to_check = ZoneHandler.sortZonesByDistance(to_zone.zone.point)
+
             for _, zone in ipairs(zones_to_check) do
                 if zone.side == side_sending_capture and zone.zone_type == ZoneTypes.LOGISTICS then
                     local zones_distance = mist.utils.get2DDist(to_zone.zone.point,zone.zone.point)
@@ -104,7 +98,6 @@ do
         if not Config.tasking.enable then return end
         MissionLogger:info("Evaluating "..utils.coalitionToString(side) .." AI tasks..")
         
-        -- 1. PRE-CHECKS (Global resources)
         local side_comms_towers = 0
         if side == coalition.side.BLUE then
             side_comms_towers = stats.blue_comms_antennas
@@ -284,7 +277,7 @@ do
                 utils.coalitionToString(side), strike_enroute and #strike_enroute or 0, Config.tasking.max_strike_theatre))
             if strike_enroute and #strike_enroute < Config.tasking.max_strike_theatre
             and side_comms_towers >= Config.tasking_requirements.comms_zones_required_for_strike
-            then 
+            then
                 local valid_strike_targets = {
                     ZoneTypes.LOGISTICS,
                     ZoneTypes.COMMS,
@@ -315,15 +308,15 @@ do
             MissionLogger:info(string.format("[STRIKE] %s: No valid STRIKE targets found", utils.coalitionToString(side)))
             return false
         end)
-        -- 3. SHUFFLE THE TASKS
+
+
         -- Fisher-Yates shuffle to randomize the order of checks
         for i = #possible_tasks, 2, -1 do
             local j = math.random(i)
             possible_tasks[i], possible_tasks[j] = possible_tasks[j], possible_tasks[i]
         end
 
-        -- 4. EXECUTE
-        -- Run through the shuffled list. As soon as ONE task spawns (returns true), we exit the whole function.
+        -- Run through the shuffled list. As soon as one task spawns (returns true), exit the whole function.
         for _, task_func in ipairs(possible_tasks) do
             if task_func() then
                 MissionLogger:info("Tasking succeeded for " .. utils.coalitionToString(side))
@@ -344,7 +337,7 @@ do
         -- cooldown before sending capture group
         if now - zone.last_capture_attempt < Config.cooldown_before_capture_attempt then return false end
 
-        if EnrouteManager:findByToZone(zone, nil, {AITaskTypes.CAPTURE_CONVOY, AITaskTypes.CAPTURE_HELO}) then return false end
+        if EnrouteManager:findByToZone(zone, nil, {AITaskTypes.CAPTURE_HELO}) then return false end
         
         -- both sides have a chance to send capture group
         if math.random(0,100) >= Config.retry_capture_chance then return false end
@@ -382,10 +375,13 @@ do
 
                     if not capture_helicopter_sent and zone.side ~=coalition.side.NEUTRAL
                     and zone:checkIfEmpty() then
+                        local capturing_side = utils.getEnemyCoalition(zone.side)
                         zone:capture(coalition.side.NEUTRAL)
+                        -- Send a capture helicopter+
+                        TheatreCommander.sendCapture(zone, capturing_side)
                     end
 
-                    -- [ this spawns an attack convoy from strongpoints periodically ] --
+                    -- this spawns an attack convoy from strongpoints
                     if math.random(1,100) <= 15 and zone.zone_type == ZoneTypes.STRONGPOINT
                     and zone.attack_convoy and zone.attack_convoy > 0
                     and #EnrouteManager:findByTaskType(AITaskTypes.ATTACK_CONVOY,zone.side) < Config.tasking.max_attack_convoy_per_theatre
@@ -448,8 +444,9 @@ do
                     local convoy_group = Group.getByName(enroute.group_name)
                     
                     if not convoy_group or not convoy_group:isExist() then
+                        -- SCENARIO 1: CONVOY Dead (or at destination)
                         trigger.action.outTextForCoalition(enroute.side, "Convoy sent to attack " .. enroute.to_zone.zone.name .. " has been destroyed", 10)
-                        EnrouteManager.enroutes[i] = nil -- equivalent to EnrouteManager:remove but without the logging
+                        EnrouteManager.enroutes[i] = nil
 
                     elseif not UnitHandler.checkConvoyMoving(convoy_group) then
                         -- SCENARIO 2: CONVOY STUCK (or at destination)
@@ -476,7 +473,7 @@ do
                                 end, {}, timer.getTime() + math.random(5, 10))
                             end
                         else
-                            -- It's stuck *en route* (not in the zone)
+                            -- It's stuck en route (not in the zone)
                             if not enroute.stuck_since then
                                 enroute.stuck_since = timer.getTime()
                                 MissionLogger:info("Attack convoy " .. enroute.group_name .. " detected as stuck en route, starting timer.")
@@ -613,6 +610,7 @@ do
             local cargo_ctr = cargo_group:getController()
             local landPos = home_airbase.zone.point -- Get coords from the zone object
 
+            
             if not landPos then
                 MissionLogger:error("Resupply task: Could not get landing coordinates.")
                 return
@@ -642,7 +640,7 @@ do
 
             -- Assign the mission
             cargo_ctr:setTask(missionTask)
-            trigger.action.outTextForCoalition(side, "> RESUPPLY Cargo aircraft inbound for " .. home_airbase.name, 10)
+            trigger.action.outTextForCoalition(side, "RESUPPLY Cargo aircraft inbound for " .. home_airbase.name, 10)
         end, {}, timer.getTime() + 12) -- Wait 12 seconds for spawn to be stable
     end
 

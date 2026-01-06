@@ -72,7 +72,6 @@ do
         return obj
     end
 
-    -- Periodically checks if target is still alive, if not, finds new one
     function JTAC:startAutoLoop()
         timer.scheduleFunction(function(jtac_obj)
             local jtac_gr = Group.getByName(jtac_obj.jtac_gr_name)
@@ -102,7 +101,7 @@ do
         if not (jtac_gr and jtac_gr:isExist() and self.to_zone) then return end
         local unit = jtac_gr:getUnit(1)
 
-        if unit and unit:isExist() and unit:inAir() then
+        if unit and unit.isExist and unit:isExist() and unit:inAir() then
             if not self.target then return end
 
             self.laser_code = code or 1688
@@ -140,20 +139,22 @@ do
         self.viable_targets = {}
         self.priority_targets = {}
     
-        -- Get enemy units in zone
-        if self.side == coalition.side.RED then
-            self.units_in_zone = mist.getUnitsInZones(mist.makeUnitTable({'[blue]'}), {self.to_zone.name})
-        elseif self.side == coalition.side.BLUE then
-            self.units_in_zone = mist.getUnitsInZones(mist.makeUnitTable({'[red]'}), {self.to_zone.name})
-        end
-    
-        -- Filter for alive units
-        for _,unit in ipairs(self.units_in_zone) do
-            if unit and unit:isExist() and unit:getLife() >= 1 and unit:isActive() then
-                table.insert(self.viable_targets,unit)
+        local zone = ZoneHandler.getFromName(self.to_zone.name)
+        if not zone then return end
+        for _,gr_name in pairs(zone.linked_groups) do
+            local gr = Group.getByName(gr_name)
+            if gr and gr:isExist() then
+                for _,unit in pairs(gr:getUnits()) do
+                    if unit and unit.isExist and unit:isExist() and unit:getLife() >= 1 and unit:isActive() then
+                        if unit:getCoalition() ~= self.side then
+                            --table.insert(self.units_in_zone, unit)
+                            table.insert(self.viable_targets,unit)
+                        end
+                    end
+                end
             end
         end
-    
+
         -- Build priority_targets if priority is set
         if self.priority then
             for _,unit in ipairs(self.viable_targets) do
@@ -173,7 +174,7 @@ do
             if #self.priority_targets > 0 then
                 target_list = self.priority_targets
             else
-                --trigger.action.outTextForCoalition(self.side, self.callsign.." JTAC: No targets found for priority '"..self.priority.."'. Engaging targets of opportunity.", 5)
+                trigger.action.outTextForCoalition(self.side, self.callsign.." JTAC: No targets found for priority '"..self.priority.."'. Engaging targets of opportunity.", 5)
                 -- target_list remains self.viable_targets
             end
         end
@@ -217,7 +218,7 @@ do
         end
         self.jtac_menu = missionCommands.addSubMenuForCoalition(self.side, self.callsign..' JTAC '..self.to_zone.name,CommandHandler.jtac_submenu[self.side])
 
-        missionCommands.addCommandForCoalition(self.side, "Cycle Next Target", self.jtac_menu, function (jtac)
+        missionCommands.addCommandForCoalition(self.side, "Next Target", self.jtac_menu, function (jtac)
             local jtac_gr = Group.getByName(jtac.jtac_gr_name)
             if jtac_gr and jtac_gr:getUnit(1):inAir() then
                 

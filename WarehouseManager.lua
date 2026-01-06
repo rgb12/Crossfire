@@ -56,6 +56,7 @@ do
     AN_AAQ_33_SNIPER = "weapons.containers.AN_AAQ_33",
     AAQ_14_LANTIRN = "weapons.containers.F-15E_AAQ-14_LANTIRN",
     AAQ_13_LANTIRN = "weapons.containers.F-15E_AAQ-13_LANTIRN",
+    F14_LANTIRN = "weapons.containers.{F14-LANTIRN-TP}",
     AN_APG_78_APACHE_RADAR = "weapons.containers.ah-64d_radar",
 
     HTS_POD = "weapons.containers.16c_hts_pod",
@@ -791,7 +792,7 @@ do
                 [WarehouseManager.Flags.MK_20_ROCKEYE] = math.random(6,12),
                 [WarehouseManager.Flags.LAU_88] = math.random(8,12),
                 
-                [WarehouseManager.Flags.HYDRA_70_M282_MPP_APKWS] = math.random(60,90),
+                [WarehouseManager.Flags.HYDRA_70_M282_MPP_APKWS] = math.random(120,130),
                 [WarehouseManager.Flags.HYDRA_70_M151_HE] = math.random(60,100),
                 [WarehouseManager.Flags.HYDRA_70_MK5_HEAT] = math.random(60,100),
                 [WarehouseManager.Flags.CBU_87] = math.random(6,12),
@@ -800,10 +801,11 @@ do
                 [WarehouseManager.Flags.CBU_105] = math.random(4,8),
                 [WarehouseManager.Flags.CBU_103] = math.random(4,8),
 
-                [WarehouseManager.Flags.AAQ_28_LITENING] = math.random(6,10),
+                [WarehouseManager.Flags.AAQ_28_LITENING] = math.random(4,6),
                 [WarehouseManager.Flags.AN_AAQ_33_SNIPER] = math.random(4,5),
                 [WarehouseManager.Flags.AAQ_14_LANTIRN] = math.random(6,10),
                 [WarehouseManager.Flags.AAQ_13_LANTIRN] = math.random(6,10),
+                [WarehouseManager.Flags.F14_LANTIRN] = math.random(2,3),
 
 
                 [WarehouseManager.Flags.HTS_POD] = math.random(4,6),
@@ -913,6 +915,8 @@ do
                 [WarehouseManager.Flags.MK_84] = 30,
                 [WarehouseManager.Flags.HYDRA_70_M151_HE] = 200,
 
+                [WarehouseManager.Flags.F14_LANTIRN] = 10,
+                [WarehouseManager.Flags.AAQ_28_LITENING] = 10,
 
                 [WarehouseManager.AircraftFlags.FA18C_HORNET] = 12,
                 [WarehouseManager.AircraftFlags.E2C_HAWKEYE] = 2,
@@ -978,6 +982,12 @@ do
                 [WarehouseManager.Flags.AIM_120B] = math.random(8,14),
                 [WarehouseManager.Flags.AIM_120C] = math.random(6,10),
                 [WarehouseManager.Flags.AIM_54C_MK47] = math.random(6,10),
+                [WarehouseManager.Flags.SUPER_530D] = math.random(8,14),
+                [WarehouseManager.Flags.AIM_7F] = math.random(6,10),
+                [WarehouseManager.Flags.AIM_7M] = math.random(6,10),
+                [WarehouseManager.Flags.AIM_7P] = math.random(6,10),
+                [WarehouseManager.Flags.AIM_7MH] = math.random(6,10),
+                
             },
             [coalition.side.RED] = {
                 [WarehouseManager.Flags.R27ER] = math.random(20,30),
@@ -989,6 +999,8 @@ do
                 [WarehouseManager.Flags.AIM_9M] = math.random(8,14),
                 [WarehouseManager.Flags.AIM_9X] = math.random(6,10),
                 [WarehouseManager.Flags.AIM_9L] = math.random(6,10),
+                [WarehouseManager.Flags.MAGIC_II] = math.random(8,14),
+
             },
             [coalition.side.RED] = {
                 [WarehouseManager.Flags.R73_AA_11_ARCHER] = math.random(40,60),

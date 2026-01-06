@@ -147,7 +147,8 @@ Config = {
         tokens_required_for_capture_helicopter = 10,
     },
     comms_tower_respawn_time = 40*60, -- (seconds), the timer decreases by 25% for every level
-    comms_tower_lost_penalty = 1.5, -- the respawn time is multiplied by this much when a comms tower is lost
+    comms_tower_lost_penalty = 1, -- the respawn time is multiplied by this much when a comms tower is lost
+    -- the penalty is disabled by default to avoid excessive respawn times
 
     tasking = {
         enable = true, -- enables/disables AI tasking system, does not affect resupply and capture mechanics
@@ -179,7 +180,7 @@ Config = {
         max_cas_range = 200*1000, -- (meters)
         min_cleareance_dist_for_awacs = 70*1000 -- (meters) from the nearest enemy zone
     },
-    cargo_aicraft = {
+    cargo_aircraft = {
         "C-130J-30"
     },
 

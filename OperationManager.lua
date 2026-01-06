@@ -315,10 +315,11 @@ do
                 {
                     description = "Clear Strongpoint "..target_zone.name.." of all units.",
                     completed = false,
-                    check = function()
+                    check = function(self, player_unit)
                         local zone = ZoneHandler.getFromName(target_zone.name)
                         if not zone then return false end
-                        return zone.side ~= utils.getEnemyCoalition(zone.side) -- if it's neutral or friendly, it's cleared
+                        return zone.side == player_unit:getCoalition()
+                        or zone.side == coalition.side.NEUTRAL
                     end
                 }
             }
@@ -431,10 +432,12 @@ do
                             if group_obj and group_obj:isExist() then
                                 local units = group_obj:getUnits()
                                 for _, unit in ipairs(units) do
-                                    if unit:hasAttribute('SAM SR') or unit:hasAttribute('SAM TR')
-                                    or unit:hasAttribute('IR Guided SAM') or unit:hasAttribute("EWR") then
-                                        sam_units_alive = true
-                                        break
+                                    if unit and unit:isActive() and unit:isExist() then
+                                        if unit:hasAttribute('SAM SR') or unit:hasAttribute('SAM TR')
+                                        or unit:hasAttribute('IR Guided SAM') or unit:hasAttribute("EWR") then
+                                            sam_units_alive = true
+                                            break
+                                        end
                                     end
                                 end
                             end
@@ -801,9 +804,7 @@ do
                 ---@type Unit
                 local player_unit = player_unit_for_cap or Unit.getByName(op.assigned_unit_name)
 
-                if not player_unit or not player_unit:isExist() then
-
-                else
+                if player_unit and player_unit:isExist() then
                     for _, obj in ipairs(op.objectives) do
                         if not obj.completed then
 

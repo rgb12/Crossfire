@@ -316,6 +316,7 @@ function Jupiter:onEvent(event)
         elseif command == "-sendresupply" then
             TheatreCommander.sendWarehouseResupply(coalition.side.BLUE,false)
             TheatreCommander.sendWarehouseResupply(coalition.side.RED,false)
+            cmd_executed = true
         elseif command == "-resupply" then
             if param1 == "help" then
                 trigger.action.outText(mist.utils.tableShow(WarehouseManager.StockTypes),25)
@@ -339,6 +340,11 @@ function Jupiter:onEvent(event)
             else
                 trigger.action.outText("Jupiter: No zone found within 10km for capture.", 5)
             end
+        elseif command == "-scalewarehouse" then
+            local scale = tonumber(param1) or 1.0
+            Config.estimated_users = math.max(1,scale)
+            trigger.action.outText(string.format("Jupiter: Scaled warehouse stock calculations for %d users.", Config.estimated_users), 5)
+            cmd_executed = true
         elseif command == "-addxp" then
             local xp_to_add = tonumber(param1) or 1000
             -- Find all players within 500m of the marker

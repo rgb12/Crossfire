@@ -498,13 +498,30 @@ do
 
         local unit_pos = unit:getPoint()
 
-        -- First remove the crates that might already be there
+        -- First check if there are no cargo aircrafts nearby
+        local nearby_cargo_count = 0
+        local vol = {
+            id = world.VolumeType.SPHERE,
+            params = { point = unit_pos, radius = 200 } }
+        world.searchObjects({Object.Category.UNIT}, vol, function(obj)
+            if obj and obj:isExist() then
+                local obj_type = obj:getTypeName()
+                if obj_type and utils.tableContains(Config.cargo_aircraft, obj_type) then
+                    nearby_cargo_count = nearby_cargo_count + 1
+                    return true
+                end
+            end
+        end)
+        if nearby_cargo_count > 1 then
+            trigger.action.outTextForUnit(unit:getID(), "Could not spawn cargo crates asa a Cargo aircraft nearby.", 10    )
+        end
+
+        -- Second remove the crates that might already be there
         local vol = {
             id = world.VolumeType.SPHERE, 
             params = { point = unit_pos, radius = 100 } }
         world.searchObjects({Object.Category.CARGO}, vol, function(obj)
             if obj and obj:isExist() then
-                MissionLogger:info(obj:getName().." cargo removed")
                 obj:destroy()
             end
             return true
