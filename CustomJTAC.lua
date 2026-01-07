@@ -77,6 +77,15 @@ do
             local jtac_gr = Group.getByName(jtac_obj.jtac_gr_name)
             if not jtac_gr or not jtac_gr:isExist() then return end
 
+            local zone = ZoneHandler.getFromName(jtac_obj.to_zone.name)
+            if not zone then return end
+            if zone.side == jtac_obj.side or zone.side == coalition.side.NEUTRAL then
+                trigger.action.outTextForCoalition(jtac_obj.side, jtac_obj.callsign.." JTAC: Task complete. RTB", 10)
+                EnrouteManager:remove(jtac_obj.jtac_gr_name)
+                jtac_obj:destroy()
+                return
+            end
+
             if jtac_obj.target then
                 if not jtac_obj.target:isExist() or jtac_obj.target:getLife() < 1 then
                     trigger.action.outTextForCoalition(jtac_obj.side, jtac_obj.callsign.." JTAC: Target destroyed.", 10)

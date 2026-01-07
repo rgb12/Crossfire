@@ -15,6 +15,8 @@ Airbase.Category = {
 ---@return string
 function Airbase:getCallsign() end
 
+function Airbase:getRunways() end
+
 ---@param name string
 ---@return Airbase|nil
 function Airbase.getByName(name) end

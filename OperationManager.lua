@@ -4,13 +4,20 @@
 ---@field status OperationStatus
 ---@field target_zone_name string
 ---@field operation_name string
----@field assigned_player_id string | nil
+---@field assigned_player_id number | nil
 ---@field assigned_unit_name string | nil
 ---@field objectives table
+---@field is_coop boolean -- Whether this operation supports co-op
+---@field coop_leader_id number | nil -- Unit ID of the player who created the operation
+---@field coop_leader_name string | nil -- Name of the unit who created the operation
+---@field coop_members table<number, string> -- Map of unit IDs to unit names
+---@field coop_join_code number | nil -- Code for other players to join this co-op operation
 
 ---@class OperationManager
 ---@field side coalition.side
 ---@field home_airbase ZoneHandler
+---@field last_generation_time number
+---@field generation_cooldown number seconds>0
 ---@field available_operations Operation[]
 ---@field active_operations Operation[]
 OperationManager = {}
@@ -35,7 +42,9 @@ do
             side = side,
             home_airbase = home_airbase,
             available_operations = {},
-            active_operations = {}
+            active_operations = {},
+            last_generation_time = 0, -- Cache timestamp
+            generation_cooldown = 30 -- Regenerate at most every 30 seconds
         }
         setmetatable(obj, self)
         table.insert(OperationManager.instances, obj) -- Add this new instance to our list
@@ -50,7 +59,13 @@ do
 
         local active_mission = nil
         for _, op in ipairs(self.active_operations) do
+            -- Check if player is the leader
             if op.assigned_player_id == unit:getID() then
+                active_mission = op
+                break
+            end
+            -- Check if player is a co-op member
+            if op.is_coop and op.coop_members and op.coop_members[unit:getID()] then
                 active_mission = op
                 break
             end
@@ -62,9 +77,9 @@ do
         end
 
         local zone_tgt = ZoneHandler.getFromName(active_mission.target_zone_name)
-        if not zone_tgt then
+        if not zone_tgt or not zone_tgt.zone or not zone_tgt.zone.point then
             trigger.action.outTextForUnit(unit:getID(), "Target zone not found for this operation.", 10)
-            OperationManager:cancelOperation(unit)
+            self:cancelOperation(unit)
             return
         end
 
@@ -72,7 +87,7 @@ do
         local mgrs = coord.LLtoMGRS(lat, lon)
 
         local outtxt = ""
-        if active_mission.type == OperationTypes.RECON then
+        if active_mission.type == OperationTypes.RECON or active_mission.type == OperationTypes.INTERCEPT then
             outtxt = string.format("ACTIVE OPERATION: %s\nType: %s",
             active_mission.operation_name, active_mission.type)
         else
@@ -80,12 +95,14 @@ do
                 active_mission.operation_name, active_mission.type, active_mission.target_zone_name)
         end
         
-        outtxt = outtxt .. string.format("\n\nCoordinates:\n%s\n%s\nMGRS: %s",
-            mist.tostringLL(lat, lon, 2), mist.tostringLL(lat, lon, 2, true), mist.tostringMGRS(mgrs, 3))
+        if not active_mission.type == OperationTypes.INTERCEPT then
+            outtxt = outtxt .. string.format("\n\nCoordinates:\n%s\n%s\nMGRS: %s",
+                mist.tostringLL(lat, lon, 2), mist.tostringLL(lat, lon, 2, true), mist.tostringMGRS(mgrs, 3))
+        end
 
         outtxt = outtxt .. "\n\nObjectives:"
         for i, obj in ipairs(active_mission.objectives) do
-            local status = obj.completed and "[COMPLETE]" or "[PENDING]"
+            local status = obj.completed and "[Completed]" or "[Pending]"
             outtxt = outtxt .. string.format("\n%d. %s %s", i, obj.description, status)
         end
 
@@ -97,28 +114,170 @@ do
         if event.id == world.event.S_EVENT_DEAD or event.id == world.event.S_EVENT_CRASH or event.id == world.event.S_EVENT_PILOT_DEAD then
             if event.initiator and event.initiator.getPlayerName then
                 local dead_unit_name = event.initiator.unit_name or event.initiator:getName()
+                local dead_unit_id = event.initiator:getID()
 
                 for i = #self.active_operations, 1, -1 do
                     local op = self.active_operations[i]
+                    
+                    -- Check if dead player is the leader
                     if op.assigned_unit_name == dead_unit_name then
-                        op.status = OperationStatus.FAILED
-                        trigger.action.outTextForCoalition(self.side, "Operation " .. op.operation_name .. " failed: operative lost.", 15)
-                        table.remove(self.active_operations, i)
-                        break
+                        -- If co-op operation and there are members, transfer leadership to first active member
+                        if op.is_coop and op.coop_members then
+                            local new_leader_found = false
+                            for member_id, member_unit_name in pairs(op.coop_members) do
+                                local member_unit = Unit.getByName(member_unit_name)
+                                if member_unit and member_unit:isExist() and member_unit:isActive() then
+                                    -- Transfer leadership
+                                    op.assigned_player_id = member_id
+                                    op.assigned_unit_name = member_unit_name
+                                    op.coop_leader_id = member_id
+                                    op.coop_leader_name = member_unit_name
+                                    
+                                    -- Remove from members list
+                                    op.coop_members[member_id] = nil
+                                    
+                                    -- Notify remaining participants
+                                    trigger.action.outTextForUnit(member_id, "You are now the operation leader!", 10)
+                                    for remaining_id, _ in pairs(op.coop_members) do
+                                        trigger.action.outTextForUnit(remaining_id, member_unit:getPlayerName() .. " is now the operation leader.", 10)
+                                    end
+                                    
+                                    new_leader_found = true
+                                    break
+                                end
+                            end
+                            
+                            -- If no new leader found, fail the operation
+                            if not new_leader_found then
+                                op.status = OperationStatus.FAILED
+                                trigger.action.outTextForCoalition(self.side, "Operation " .. op.operation_name .. " failed: all operatives lost.", 15)
+                                table.remove(self.active_operations, i)
+                            end
+                        else
+                            -- Solo operation - fail it
+                            op.status = OperationStatus.FAILED
+                            trigger.action.outTextForCoalition(self.side, "Operation " .. op.operation_name .. " failed: operative lost.", 15)
+                            table.remove(self.active_operations, i)
+                        end
+                    else
+                        -- Check if dead player is a co-op member
+                        if op.is_coop and op.coop_members and op.coop_members[dead_unit_id] then
+                            op.coop_members[dead_unit_id] = nil
+                            
+                            -- Notify remaining participants
+                            local leader_unit = Unit.getByName(op.assigned_unit_name)
+                            if leader_unit and leader_unit:isExist() then
+                                trigger.action.outTextForUnit(op.assigned_player_id, "A co-op member has been lost.", 10)
+                            end
+                            for member_id, _ in pairs(op.coop_members) do
+                                trigger.action.outTextForUnit(member_id, "A co-op member has been lost.", 10)
+                            end
+                        end
                     end
                 end
-
-
+            end
+        elseif event.id == world.event.S_EVENT_KILL then
+            -- Handle kill events for INTERCEPT operations
+            if event.initiator and event.target then
+                for _, op in ipairs(self.active_operations) do
+                    if op.type == OperationTypes.INTERCEPT and op.is_coop then
+                        -- Check if killer is the leader or any co-op member
+                        local killer_unit_name = event.initiator:getName()
+                        local is_participant = false
+                        
+                        if killer_unit_name == op.assigned_unit_name then
+                            is_participant = true
+                        elseif op.coop_members then
+                            for _, member_unit_name in pairs(op.coop_members) do
+                                if killer_unit_name == member_unit_name then
+                                    is_participant = true
+                                    break
+                                end
+                            end
+                        end
+                        
+                        if is_participant then
+                            for _, obj in ipairs(op.objectives) do
+                                if obj.onKill and not obj.completed then
+                                    -- Pass the actual killer unit instead of just the leader
+                                    obj:onKill(event, event.initiator, op.target_zone_name)
+                                end
+                            end
+                        end
+                    elseif op.type == OperationTypes.INTERCEPT then
+                        -- Non-coop intercept - original behavior
+                        local player_unit = Unit.getByName(op.assigned_unit_name)
+                        if player_unit and player_unit:isExist() then
+                            for _, obj in ipairs(op.objectives) do
+                                if obj.onKill and not obj.completed then
+                                    obj:onKill(event, player_unit, op.target_zone_name)
+                                end
+                            end
+                        end
+                    end
+                end
             end
         elseif event.id == world.event.S_EVENT_PLAYER_LEAVE_UNIT then
             if event.initiator then
                 local unit_name = event.initiator:getName()
+                local unit_id = event.initiator:getID()
+                
                 for i = #self.active_operations, 1, -1 do
                     local op = self.active_operations[i]
+                    
+                    -- Check if leaving player is the leader
                     if op.assigned_unit_name == unit_name then
-                        op.status = OperationStatus.FAILED
-                        trigger.action.outTextForCoalition(self.side, "Operation " .. op.operation_name .. " failed: operative lost.", 15)
-                        table.remove(self.active_operations, i)
+                        -- If co-op operation and there are members, transfer leadership
+                        if op.is_coop and op.coop_members then
+                            local new_leader_found = false
+                            for member_id, member_unit_name in pairs(op.coop_members) do
+                                local member_unit = Unit.getByName(member_unit_name)
+                                if member_unit and member_unit:isExist() and member_unit:isActive() then
+                                    -- Transfer leadership
+                                    op.assigned_player_id = member_id
+                                    op.assigned_unit_name = member_unit_name
+                                    op.coop_leader_id = member_id
+                                    op.coop_leader_name = member_unit_name
+                                    
+                                    -- Remove from members list
+                                    op.coop_members[member_id] = nil
+                                    
+                                    -- Notify remaining participants
+                                    trigger.action.outTextForUnit(member_id, "You are now the operation leader!", 10)
+                                    for remaining_id, _ in pairs(op.coop_members) do
+                                        trigger.action.outTextForUnit(remaining_id, member_unit:getPlayerName() .. " is now the operation leader.", 10)
+                                    end
+                                    
+                                    new_leader_found = true
+                                    break
+                                end
+                            end
+                            
+                            if not new_leader_found then
+                                op.status = OperationStatus.FAILED
+                                trigger.action.outTextForCoalition(self.side, "Operation " .. op.operation_name .. " failed: all operatives left.", 15)
+                                table.remove(self.active_operations, i)
+                            end
+                        else
+                            -- Solo operation - fail it
+                            op.status = OperationStatus.FAILED
+                            trigger.action.outTextForCoalition(self.side, "Operation " .. op.operation_name .. " failed: operative left.", 15)
+                            table.remove(self.active_operations, i)
+                        end
+                    else
+                        -- Check if leaving player is a co-op member
+                        if op.is_coop and op.coop_members and op.coop_members[unit_id] then
+                            op.coop_members[unit_id] = nil
+                            
+                            -- Notify remaining participants
+                            local leader_unit = Unit.getByName(op.assigned_unit_name)
+                            if leader_unit and leader_unit:isExist() then
+                                trigger.action.outTextForUnit(op.assigned_player_id, "A co-op member has left the operation.", 10)
+                            end
+                            for member_id, _ in pairs(op.coop_members) do
+                                trigger.action.outTextForUnit(member_id, "A co-op member has left the operation.", 10)
+                            end
+                        end
                     end
                 end
             end
@@ -193,6 +352,16 @@ do
     }
 
     function OperationManager:generateOperations()
+        -- Performance optimization: Use cached operations if recently generated
+        local current_time = timer.getTime()
+        
+        -- Allow first generation (last_generation_time == 0) or if cooldown has elapsed
+        if self.last_generation_time > 0 and (current_time - self.last_generation_time < self.generation_cooldown) then
+            return -- Use cached operations
+        end
+        
+        self.last_generation_time = current_time
+        
         local reference_pos = self.home_airbase.zone.point
         local friendly_coalition = self.side
         local enemy_coalition = utils.getEnemyCoalition(friendly_coalition)
@@ -202,6 +371,12 @@ do
             discovered_zones = stats.blue_discovered_zones
         elseif self.side ==coalition.side.RED then
             discovered_zones = stats.red_discovered_zones
+        end
+        
+        -- Convert discovered_zones to a hash table for O(1) lookup instead of O(n)
+        local discovered_zones_set = {}
+        for _, zone_name in ipairs(discovered_zones) do
+            discovered_zones_set[zone_name] = true
         end
 
         for i = #self.available_operations, 1, -1 do
@@ -220,7 +395,7 @@ do
                 table.remove(self.available_operations, i)
             end
 
-            if not utils.tableContains(discovered_zones, op.target_zone_name) then
+            if not discovered_zones_set[op.target_zone_name] then
                 table.remove(self.available_operations, i)
             end
 
@@ -231,7 +406,7 @@ do
 
             if not self:isZoneActive(zone.name) and not self:isMissionProposed(zone.name)
             then
-                if zone.side == enemy_coalition and utils.tableContains(discovered_zones, zone.name) then
+                if zone.side == enemy_coalition and discovered_zones_set[zone.name] then
                     -- CAS against a STRONGPOINT
                     if zone.zone_type == ZoneTypes.STRONGPOINT then
                         local op = self:createCASOperation(zone)
@@ -259,7 +434,7 @@ do
                 end
 
                 -- CAP over a friendly zone
-                if zone.side == friendly_coalition and utils.tableContains(discovered_zones, zone.name) then
+                if zone.side == friendly_coalition and discovered_zones_set[zone.name] then
                     local closest_enemy_zone, dist = zone:getClosestZone(enemy_coalition)
                     if closest_enemy_zone and dist and dist < 50000 then
                         local op = self:createCAPOperation(zone)
@@ -267,14 +442,23 @@ do
                     end
                 end
 
+                -- INTERCEPT near friendly zones close to enemy territory
+                if zone.side == friendly_coalition and discovered_zones_set[zone.name] then
+                    local closest_enemy_zone, dist = zone:getClosestZone(enemy_coalition)
+                    if closest_enemy_zone and dist and dist < (Config.operations.intercept_max_distance_to_enemy or 75000) then
+                        local op = self:createINTERCEPTOperation(zone)
+                        table.insert(self.available_operations, op)
+                    end
+                end
+
                 -- RECON over enemy zones
-                if zone.side == enemy_coalition and not utils.tableContains(discovered_zones, zone.name) then
+                if zone.side == enemy_coalition and not discovered_zones_set[zone.name] then
                     local op = self:createRECONOperation(zone)
                     table.insert(self.available_operations, op)
                 end
 
                 -- AIRDROP over friendly zones
-                if zone.side == friendly_coalition and utils.tableContains(discovered_zones, zone.name) and zone.level < 4 then
+                if zone.side == friendly_coalition and discovered_zones_set[zone.name] and zone.level < 4 then
                     local closest_enemy_zone, dist = zone:getClosestZone(enemy_coalition)
                     if closest_enemy_zone and dist and dist < Config.operations.max_distance_to_frontline_for_airdrops then
                         local op = self:createAIRDROPOperation(zone)
@@ -311,6 +495,11 @@ do
             status = OperationStatus.AVAILABLE,
             target_zone_name = target_zone.name,
             operation_name = operations_name[math.random(#operations_name)],
+            is_coop = true,
+            coop_leader_id = nil,
+            coop_leader_name = nil,
+            coop_members = {},
+            coop_join_code = nil,
             objectives = {
                 {
                     description = "Clear Strongpoint "..target_zone.name.." of all units.",
@@ -320,6 +509,61 @@ do
                         if not zone then return false end
                         return zone.side == player_unit:getCoalition()
                         or zone.side == coalition.side.NEUTRAL
+                    end
+                }
+            }
+        }
+        return op
+    end
+
+    function OperationManager:createINTERCEPTOperation(target_zone)
+        local op = {
+            type = OperationTypes.INTERCEPT,
+            code = self:createOperationCode(),
+            status = OperationStatus.AVAILABLE,
+            target_zone_name = target_zone.name,
+            operation_name = operations_name[math.random(#operations_name)],
+            is_coop = true,
+            coop_leader_id = nil,
+            coop_leader_name = nil,
+            coop_members = {},
+            coop_join_code = nil,
+            objectives = {
+                {
+                    description = "Intercept and destroy 2 enemy aircraft or helicopters",
+                    completed = false,
+                    kills = 0,
+                    required_kills = Config.operations.intercept_required_kills or 2,
+                    check = function(self, player_unit)
+                        if self.kills >= self.required_kills then
+                            return true
+                        end
+                        return false
+                    end,
+                    ---@param event table
+                    onKill = function(self, event, player_unit, target_zone_name)
+                        -- Called by OperationManager when a kill event occurs
+                        if not event.initiator or not event.target then return end
+                        
+                        -- Check if killer is our assigned player
+                        if event.initiator:getName() ~= player_unit:getName() then return end
+                        
+                        -- Check if target is an aircraft or helicopter
+                        local target = event.target
+                        if not target.hasAttribute then return end
+                        if not (target:hasAttribute("Planes") or target:hasAttribute("Helicopters")) then return end
+                        
+                        -- Check if target is enemy
+                        if target:getCoalition() == player_unit:getCoalition() then return end
+                        
+                        -- Check if kill is within operation radius of target zone
+                        local zone = ZoneHandler.getFromName(target_zone_name)
+                        if not zone then return end
+                        
+                        -- Valid kill - increment counter
+                        self.kills = self.kills + 1
+                        trigger.action.outTextForUnit(player_unit:getID(), 
+                            string.format("Intercept - Aircraft destroyed! (%d/%d)", self.kills, self.required_kills), 10)
                     end
                 }
             }
@@ -417,6 +661,11 @@ do
             status = OperationStatus.AVAILABLE,
             target_zone_name = target_zone.name,
             operation_name = operations_name[math.random(#operations_name)],
+            is_coop = true,
+            coop_leader_id = nil,
+            coop_leader_name = nil,
+            coop_members = {},
+            coop_join_code = nil,
             objectives = {
                 {
                     description = "Take down critical radar components of SAM site situated near " .. target_zone.name,
@@ -458,6 +707,11 @@ do
             status = OperationStatus.AVAILABLE,
             target_zone_name = target_zone.name,
             operation_name = operations_name[math.random(#operations_name)],
+            is_coop = true,
+            coop_leader_id = nil,
+            coop_leader_name = nil,
+            coop_members = {},
+            coop_join_code = nil,
             objectives = {
                 {
                     description = "Clear " .. target_zone.name.. " of all SAM and support units.",
@@ -498,6 +752,11 @@ do
             status = OperationStatus.AVAILABLE,
             target_zone_name = target_zone.name,
             operation_name = operations_name[math.random(#operations_name)],
+            is_coop = true,
+            coop_leader_id = nil,
+            coop_leader_name = nil,
+            coop_members = {},
+            coop_join_code = nil,
             objectives = {
                 {
                     description = "Destroy the " .. target_desc .. " at " .. target_zone.name,
@@ -641,7 +900,8 @@ do
     end
 
     ---@param unit Unit
-    function OperationManager:showAvailableOperations(unit)
+    ---@param show_coop_only boolean|nil -- If true, only show operations that support co-op
+    function OperationManager:showAvailableOperations(unit, show_coop_only)
         if not unit or not unit:isExist() or not unit.getPlayerName or not unit.hasAttribute then return end
 
         self:generateOperations()
@@ -662,7 +922,7 @@ do
         end
         
 
-        local outtext = "Recommended Operations"
+        local outtext = "Available Operations"
         if #unit_supported_operations == 0 then
             outtext = "No operations available at this time."
         end
@@ -671,20 +931,24 @@ do
         local operation_types_displayed = {}
         local operations_displayed = 0
         for _, op in ipairs(unit_supported_operations) do
-            if operations_displayed >= 5 then
+            if operations_displayed >= 8 then
                 break
             end
-            if not utils.tableContains(operation_types_displayed, op.type) then
+            if show_coop_only and not op.is_coop then
+                -- Skip non-coop operations if filtering for coop only
+            elseif not utils.tableContains(operation_types_displayed, op.type) then
+                local tgt_zone = op.target_zone_name
                 if op.type == OperationTypes.RECON then
-                    outtext = outtext .. string.format("\n\n %s", op.type)
-                else
-                    outtext = outtext .. string.format("\n\n %s - %s", op.type, op.target_zone_name)
+                    tgt_zone = "Undiscovered Location"
                 end
+
+                outtext = outtext .. string.format("\n\n %s - %s", op.type, tgt_zone)
 
                 for _, obj in ipairs(op.objectives) do
                     outtext = outtext .. "\n - " .. obj.description
                 end
-                
+
+                outtext = outtext .. "\n Reward: " .. (Config.reward_system.xp_per_mission_completed or 100) .. " XP, " .. (Config.reward_system.tokens_mission_complete[op.type] or 0) .. " tokens"
                 outtext = outtext .. "\n Operation code: " .. op.code
                 operations_displayed = operations_displayed + 1
                 table.insert(operation_types_displayed, op.type)
@@ -700,14 +964,194 @@ do
 
         for i, active_op in ipairs(self.active_operations) do
             if active_op.assigned_player_id == unit:getID() then
-
+                -- Leader is cancelling - notify all co-op members if applicable
+                if active_op.is_coop and active_op.coop_members then
+                    for member_id, _ in pairs(active_op.coop_members) do
+                        trigger.action.outTextForUnit(member_id, "Operation " .. active_op.operation_name .. " has been cancelled by the leader.", 10)
+                        trigger.action.outSoundForUnit(member_id, "chatter3.ogg")
+                    end
+                end
+                
                 table.remove(self.active_operations, i)
                 trigger.action.outSoundForUnit(unit:getID(),"chatter3.ogg")
                 trigger.action.outTextForUnit(unit:getID(), "Operation " .. active_op.operation_name .. " cancelled.", 10)
                 return
             end
+            
+            -- Check if this player is a co-op member
+            if active_op.is_coop and active_op.coop_members and active_op.coop_members[unit:getID()] then
+                self:leaveCoopOperation(unit, active_op)
+                return
+            end
         end
 
+    end
+
+    ---@param unit Unit
+    ---@param join_code number
+    function OperationManager:joinCoopOperation(unit, join_code)
+        if not unit or not unit.getPlayerName then return end
+        
+        -- Check if player already has an active operation
+        for _, active_op in ipairs(self.active_operations) do
+            if active_op.assigned_player_id == unit:getID() or 
+               (active_op.coop_members and active_op.coop_members[unit:getID()]) then
+                trigger.action.outTextForUnit(unit:getID(), "You are already on an operation.", 10)
+                return
+            end
+        end
+        
+        -- Find the operation with matching join code
+        local target_op = nil
+        for _, active_op in ipairs(self.active_operations) do
+            if active_op.is_coop and active_op.coop_join_code == join_code then
+                target_op = active_op
+                break
+            end
+        end
+        
+        if not target_op then
+            trigger.action.outTextForUnit(unit:getID(), "Invalid co-op join code.", 10)
+            return
+        end
+        
+        -- Check if operation is still active (not completed/failed)
+        if target_op.status ~= OperationStatus.ACTIVE then
+            trigger.action.outTextForUnit(unit:getID(), "Operation is no longer active.", 10)
+            return
+        end
+        
+        -- Verify leader still exists
+        local leader_unit = Unit.getByName(target_op.assigned_unit_name)
+        if not leader_unit or not leader_unit:isExist() then
+            trigger.action.outTextForUnit(unit:getID(), "Operation leader is no longer available.", 10)
+            return
+        end
+        
+        -- Check max co-op members
+        local current_members = 1 -- leader
+        if target_op.coop_members then
+            for _ in pairs(target_op.coop_members) do
+                current_members = current_members + 1
+            end
+        end
+        
+        local max_members = Config.operations.coop_max_members or 4
+        if current_members >= max_members then
+            trigger.action.outTextForUnit(unit:getID(), "Co-op operation is full.", 10)
+            return
+        end
+        
+        -- Add player to co-op members
+        if not target_op.coop_members then
+            target_op.coop_members = {}
+        end
+        target_op.coop_members[unit:getID()] = unit:getName()
+        
+        -- Notify all participants
+        local join_msg = string.format("%s has joined Operation %s", unit:getPlayerName(), target_op.operation_name)
+        trigger.action.outTextForUnit(target_op.assigned_player_id, join_msg, 10)
+        for member_id, _ in pairs(target_op.coop_members) do
+            trigger.action.outTextForUnit(member_id, join_msg, 10)
+        end
+        
+        trigger.action.outSoundForUnit(unit:getID(),"chatter1.ogg")
+        self:showActiveOperation(unit)
+    end
+    
+    ---@param unit Unit
+    ---@param operation Operation|nil
+    function OperationManager:leaveCoopOperation(unit, operation)
+        if not unit or not unit.getPlayerName then return end
+        
+        local target_op = operation
+        if not target_op then
+            -- Find the operation this player is in
+            for _, active_op in ipairs(self.active_operations) do
+                if active_op.coop_members and active_op.coop_members[unit:getID()] then
+                    target_op = active_op
+                    break
+                end
+            end
+        end
+        
+        if not target_op or not target_op.coop_members or not target_op.coop_members[unit:getID()] then
+            trigger.action.outTextForUnit(unit:getID(), "You are not in a co-op operation.", 10)
+            return
+        end
+        
+        -- Remove player from co-op members
+        target_op.coop_members[unit:getID()] = nil
+        
+        -- Notify all participants
+        local leave_msg = string.format("%s has left Operation %s", unit:getPlayerName(), target_op.operation_name)
+        
+        -- Notify leader if still exists
+        local leader_unit = Unit.getByName(target_op.assigned_unit_name)
+        if leader_unit and leader_unit:isExist() then
+            trigger.action.outTextForUnit(target_op.assigned_player_id, leave_msg, 10)
+        end
+        
+        -- Notify remaining members
+        for member_id, _ in pairs(target_op.coop_members) do
+            trigger.action.outTextForUnit(member_id, leave_msg, 10)
+        end
+        
+        trigger.action.outTextForUnit(unit:getID(), "You have left the co-op operation.", 10)
+    end
+    
+    ---@param unit Unit
+    function OperationManager:showCoopOperationStatus(unit)
+        if not unit or not unit.getPlayerName then return end
+        
+        -- Find if player is leader or member of a co-op operation
+        local player_op = nil
+        local is_leader = false
+        
+        for _, active_op in ipairs(self.active_operations) do
+            if active_op.is_coop then
+                if active_op.assigned_player_id == unit:getID() then
+                    player_op = active_op
+                    is_leader = true
+                    break
+                elseif active_op.coop_members and active_op.coop_members[unit:getID()] then
+                    player_op = active_op
+                    is_leader = false
+                    break
+                end
+            end
+        end
+        
+        if not player_op then
+            trigger.action.outTextForUnit(unit:getID(), "You are not in a co-op operation.", 10)
+            return
+        end
+        
+        local outtext = string.format("CO-OP Operation %s\nType: %s", player_op.operation_name, player_op.type)
+        
+        if is_leader then
+            outtext = outtext .. string.format("\n\nJoin Code: %d", player_op.coop_join_code)
+        end
+        
+        -- List all participants
+        outtext = outtext .. string.format("\n\nLeader: %s", player_op.coop_leader_name)
+        
+        if player_op.coop_members then
+            local member_count = 0
+            for member_id, member_name in pairs(player_op.coop_members) do
+                member_count = member_count + 1
+                local member_unit = Unit.getByName(member_name)
+                if member_unit and member_unit:isExist() and member_unit.getPlayerName then
+                    outtext = outtext .. string.format("\nParticipant %d: %s", member_count, member_unit:getPlayerName())
+                end
+            end
+        end
+        
+        -- Show bonus info
+        local coop_bonus_pct = (Config.reward_system.coop_xp_bonus or 0.25) * 100
+        outtext = outtext .. string.format("\n\nCo-op Bonus: +%d%% XP and Tokens", coop_bonus_pct)
+        
+        trigger.action.outTextForUnit(unit:getID(), outtext, 30)
     end
 
     ---@param zone_name any
@@ -779,19 +1223,42 @@ do
         accepted_mission.status = OperationStatus.ACTIVE
         accepted_mission.assigned_player_id = unit:getID()
         accepted_mission.assigned_unit_name = unit:getName()
+        
+        -- Initialize co-op fields if this is a co-op operation
+        if accepted_mission.is_coop then
+            accepted_mission.coop_leader_id = unit:getID()
+            accepted_mission.coop_leader_name = unit:getName()
+            accepted_mission.coop_join_code = self:createOperationCode()
+            if not accepted_mission.coop_members then
+                accepted_mission.coop_members = {}
+            end
+        end
+        
         table.insert(self.active_operations, accepted_mission)
 
         local outtxt = string.format("\n%s Operation %s Initiated", accepted_mission.type, accepted_mission.operation_name)
+
         local lat, lon = coord.LOtoLL(zone_tgt.zone.point)
         local mgrs = coord.LLtoMGRS(lat, lon)
-        outtxt = outtxt .. "\n\nTarget area: " .. accepted_mission.target_zone_name
-        outtxt = outtxt .. string.format("\n\nApproximate location coordinates:\n%s\n%s\nMGRS: %s", mist.tostringLL(lat, lon, 1), mist.tostringLL(lat, lon, 1, true), mist.tostringMGRS(mgrs, 3))
+
+        if not utils.tableContains({OperationTypes.RECON, OperationTypes.INTERCEPT}, accepted_mission.type) then
+            outtxt = outtxt .. "\n\nTarget area: " .. accepted_mission.target_zone_name
+        end
+
+        if accepted_mission.type ~= OperationTypes.INTERCEPT then
+            outtxt = outtxt .. string.format("\n\nApproximate location coordinates:\n%s\n%s\nMGRS: %s", mist.tostringLL(lat, lon, 1), mist.tostringLL(lat, lon, 1, true), mist.tostringMGRS(mgrs, 3))
+        end
+
+        -- Add co-op join code if this is a co-op operation
+        if accepted_mission.is_coop then
+            outtxt = outtxt .. string.format("\n\nCO-OP Join Code: %d\nShare this code with other players to join this operation.", accepted_mission.coop_join_code)
+        end
 
         trigger.action.outTextForUnit(accepted_mission.assigned_player_id, outtxt, 25)
 
         -- Text for coalition
         trigger.action.outSoundForCoalition(self.side,"chatter1.ogg")
-        trigger.action.outTextForCoalition(self.side, accepted_mission.type .. " Operation " .. accepted_mission.operation_name .. " has been initiated by " .. accepted_mission.assigned_unit_name, 15)
+        trigger.action.outTextForCoalition(self.side, accepted_mission.type .. " Operation " .. accepted_mission.operation_name .. " has been initiated.", 15)
         -- Create briefing/markers if needed
     end
 
@@ -819,26 +1286,80 @@ do
                     end
 
                     if all_objectives_complete then
-                        op.status = OperationStatus.COMPLETED
-                        trigger.action.outTextForUnit(player_unit:getID(), "Operation " .. op.operation_name .. " completed !", 20)
-                        trigger.action.outSoundForUnit(player_unit:getID(),"chatter2.ogg")
-                        local user = ExperienceManager:fetchUser(player_unit)
-                        if user then
-                            user.missions_completed = user.missions_completed + 1
-                            user.unclaimed_xp = user.unclaimed_xp + Config.reward_system.xp_per_mission_completed
-
-                            tokens_awarded = 0
-                            if Config.reward_system.tokens_mission_complete[op.type] then
-                                tokens_awarded = Config.reward_system.tokens_mission_complete[op.type]
-                                user.unclaimed_tokens = user.unclaimed_tokens + tokens_awarded
-                            else
-                                tokens_awarded = 5 -- default
-                                user.unclaimed_tokens = user.unclaimed_tokens + tokens_awarded 
-                            end
-
-                            trigger.action.outTextForUnit(player_unit:getID(), "+" .. Config.reward_system.xp_per_mission_completed .. " XP; +" .. tokens_awarded .. " Tokens.\nReturn to base to claim your rewards.", 10)
+                        -- Collect all active participants at completion time (only those alive and existing)
+                        local participants_to_reward = {}
+                        
+                        -- Add leader if alive
+                        if player_unit and player_unit:isExist() and player_unit:isActive() then
+                            table.insert(participants_to_reward, player_unit)
                         end
+                        
+                        -- Add co-op members if alive and existing
+                        if op.is_coop and op.coop_members then
+                            for _, member_unit_name in pairs(op.coop_members) do
+                                local member_unit = Unit.getByName(member_unit_name)
+                                if member_unit and member_unit:isExist() and member_unit:isActive() then
+                                    table.insert(participants_to_reward, member_unit)
+                                end
+                            end
+                        end
+                        
+                        -- Count actual participants and determine bonus
+                        local coop_participant_count = #participants_to_reward
+                        
+                        -- If no participants are alive, operation fails silently
+                        if coop_participant_count == 0 then
+                            table.remove(self.active_operations, i)
+                            return
+                        end
+                        
+                        -- Mark operation as completed only if we have participants
+                        op.status = OperationStatus.COMPLETED
+                        
+                        local coop_bonus_multiplier = 1.0
+                        
+                        -- Only apply bonus if 2 or more players are actually participating
+                        if coop_participant_count >= 2 then
+                            coop_bonus_multiplier = 1.0 + (Config.reward_system.coop_xp_bonus or 0.25)
+                        end
+                        
+                        -- Award XP and tokens to all participants
+                        for _, participant_unit in ipairs(participants_to_reward) do
+                            trigger.action.outTextForUnit(participant_unit:getID(), "Operation " .. op.operation_name .. " completed !", 20)
+                            trigger.action.outSoundForUnit(participant_unit:getID(),"chatter2.ogg")
+                            
+                            local user = ExperienceManager:fetchUser(participant_unit)
+                            if user then
+                                user.missions_completed = user.missions_completed + 1
+                                
+                                -- Apply base XP with co-op bonus (only if 2+ players)
+                                local base_xp = Config.reward_system.xp_per_mission_completed
+                                local total_xp = math.floor(base_xp * coop_bonus_multiplier)
+                                user.unclaimed_xp = user.unclaimed_xp + total_xp
 
+                                -- Apply token reward with co-op bonus (only if 2+ players)
+                                local base_tokens = 0
+                                if Config.reward_system.tokens_mission_complete[op.type] then
+                                    base_tokens = Config.reward_system.tokens_mission_complete[op.type]
+                                else
+                                    base_tokens = 5 -- default
+                                end
+                                local total_tokens = math.floor(base_tokens * coop_bonus_multiplier)
+                                user.unclaimed_tokens = user.unclaimed_tokens + total_tokens
+
+                                local reward_msg = "+" .. total_xp .. " XP; +" .. total_tokens .. " Tokens."
+                                
+                                -- Only show bonus message if there were actually 2+ players
+                                if coop_participant_count >= 2 then
+                                    local bonus_pct = math.floor((coop_bonus_multiplier - 1.0) * 100)
+                                    reward_msg = reward_msg .. string.format("\n[+%d%% Co-op Bonus with %d players]", bonus_pct, coop_participant_count)
+                                end
+                                
+                                reward_msg = reward_msg .. "\nReturn to base to claim your rewards."
+                                
+                                trigger.action.outTextForUnit(participant_unit:getID(), reward_msg, 10)
+                            end
+                        end
 
                         table.remove(self.active_operations, i)
                     end
@@ -849,5 +1370,11 @@ do
 
     function OperationManager:tick()
         self:checkObjectives()
+    end
+    
+    -- Force regeneration of operations (call when zones change ownership)
+    function OperationManager:forceRegenerateOperations()
+        self.last_generation_time = 0
+        self:generateOperations()
     end
 end

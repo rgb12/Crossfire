@@ -634,7 +634,7 @@ do
             elseif stats.red_zones == 0 and stats.blue_zones > 0 then
                 MISSION_ENDED = true
                 world.removeEventHandler(ev)
-                trigger.action.outText("************\n\n  BLUEFOR achieved total domination !\n\n************", 500)
+                trigger.action.outText("************\n\n  BLUFOR achieved total domination !\n\n************", 500)
             end
         end,nil,timer.getTime()+10)
 
@@ -803,6 +803,7 @@ do
                     self.ammo_depot_intact = true
                     self.linked_ammo_depot = ammo_depot_gr.name
                     self.ammo_depot_last_destroyed = nil
+                    trigger.action.outSoundForCoalition(self.side,"chatter3.ogg")
                     trigger.action.outTextForCoalition(self.side, "Logistics zone "..self.name.." has reestablished its ammunition depot.",10)
             else
                 MissionLogger:error("Could not spawn ammo depot for ".. self.name)
@@ -892,8 +893,8 @@ do
                 stats.red_comms_antennas = stats.red_comms_antennas - 1
             end
 
-            trigger.action.outSoundForCoalition(self.side,"chatter3.ogg")
-            trigger.action.outTextForCoalition(self.side,self.name.." has lost its communications tower. EWRS impaired, reports are 50% slower.",10)
+            -- trigger.action.outSoundForCoalition(self.side,"chatter3.ogg")
+            -- trigger.action.outTextForCoalition(self.side,self.name.." has lost its communications tower. EWRS impaired, reports are 50% slower.",10)
 
             -- Destroy the "dead body"
             if comms_tower and comms_tower:isExist() then
@@ -945,7 +946,7 @@ do
                 --Config.comms_tower_respawn_time = math.floor(Config.comms_tower_respawn_time * Config.comms_tower_lost_penalty)
                 MissionLogger:info("Comms tower respawn time is now "..Config.comms_tower_respawn_time)
            
-                trigger.action.outSoundForCoalition(self.side,"radio_beep.ogg")
+                trigger.action.outSoundForCoalition(self.side,"chatter3.ogg")
                 trigger.action.outTextForCoalition(self.side, "Comms zone "..self.name.." has reestablished its communications tower.",10)
             else
                 MissionLogger:error("Could not spawn comms tower for ".. self.name)

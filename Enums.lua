@@ -59,6 +59,7 @@ ZoneTypes = {
 AITaskTypes = {
     JTAC = "JTAC",
     CAS = "CAS",
+    CAP = "CAP",
     INTERCEPT = "INTERCEPT",
     AWACS = "AWACS",
     SEAD = "SEAD",
@@ -79,6 +80,7 @@ OperationTypes = {
     CAS = "CAS",
     RECON = "Recon",
     AIRDROP = "Airdrop",
+    INTERCEPT = "Intercept"
 }
 
 

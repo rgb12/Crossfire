@@ -116,7 +116,7 @@ do
             })
             self:setAWACSTask(new_group.name,ai_enroute_data)
             return true
-        elseif AITaskTypes.INTERCEPT == ai_task_type and to_zone then
+        elseif AITaskTypes.CAP == ai_task_type and to_zone then
 
             local closest_airbase, template_gr_name = self:findClosestAirbaseWithAircraftInStock(to_zone,side,ai_task_type,2,ai_task_type)
             if not closest_airbase then
@@ -127,7 +127,7 @@ do
                 return false
             end
 
-            if prevent_duplicates and EnrouteManager:findByToZone(to_zone,side,{AITaskTypes.INTERCEPT}) then
+            if prevent_duplicates and EnrouteManager:findByToZone(to_zone,side,{AITaskTypes.CAP}) then
                 if user_requested then
                     txt="CAP already tasked for "..to_zone.name
                     trigger.action.outTextForCoalition(side,txt,5)
@@ -160,7 +160,7 @@ do
                 group_name=new_group.name,
                 ai_task_type=ai_task_type
             })
-            self:setINTERCEPTTask(new_group.name,ai_enroute_data)
+            self:setCAPTask(new_group.name,ai_enroute_data)
             return true
 
         elseif AITaskTypes.SEAD == ai_task_type and to_zone then
@@ -413,28 +413,24 @@ do
             return true
         elseif ai_task_type == AITaskTypes.CAPTURE_HELO and to_zone and from_zone then
 
-            --spawn the heli
+            if prevent_duplicates and EnrouteManager:findByToZone(to_zone, side, {AITaskTypes.CAPTURE_HELO}) then
+                if user_requested then
+                    local txt = "Capture Helicopter already enroute to " .. to_zone.name
+                    trigger.action.outTextForCoalition(side, txt, 5)
+                end
+                return false
+            end
+
             local template_name
             if side == coalition.side.RED then
                 template_name = GroupData.COMMON_ASSETS.RED.capture_helicopter
             elseif side == coalition.side.BLUE then
                 template_name = GroupData.COMMON_ASSETS.BLUE.capture_helicopter
             end
-            local HELO_LZ_TO_MAX_RADIUS_FROM_CENTER = 300
-            local zone_radius = from_zone.zone.radius or 30
-            local max_radius = zone_radius
-            if zone_radius > HELO_LZ_TO_MAX_RADIUS_FROM_CENTER then max_radius = HELO_LZ_TO_MAX_RADIUS_FROM_CENTER end
-
-            local safe_takeoff_point = utils.rndPointFromCenter(from_zone.zone.point,15,max_radius or 20)
-            for i=0,10 do
-                if from_zone:isPointClearOfUnits(safe_takeoff_point,30) then
-                    break
-                else safe_takeoff_point = utils.rndPointFromCenter(from_zone.zone.point,15,max_radius or 20) end
-            end
 
             local helo_sent = mist.teleportToPoint({
                 groupName = template_name,
-                point = safe_takeoff_point,
+                point = from_zone.zone.point,
                 action = "clone"
             })
 
@@ -467,7 +463,7 @@ do
     ---@param ai_task_type AITaskTypes
     ---@return boolean
     function TaskManager:checkIfMaxTasksReached(airbase,side,ai_task_type)
-        local enroutes_from_airbase = EnrouteManager:findByFromZone(airbase,side,{AITaskTypes.CAS,AITaskTypes.INTERCEPT,AITaskTypes.SEAD,AITaskTypes.STRIKE,AITaskTypes.RECON,AITaskTypes.AWACS})
+        local enroutes_from_airbase = EnrouteManager:findByFromZone(airbase,side,{AITaskTypes.CAS,AITaskTypes.CAP,AITaskTypes.SEAD,AITaskTypes.STRIKE,AITaskTypes.RECON,AITaskTypes.AWACS})
         if not enroutes_from_airbase then return false end
 
         if #enroutes_from_airbase >= Config.tasking.max_tasks_per_airbase then return true end
@@ -477,9 +473,9 @@ do
             if cas_enroutes and #cas_enroutes >= Config.tasking.max_cas_per_airbase then
                 return true
             end
-        elseif ai_task_type == AITaskTypes.INTERCEPT then
-            local intercept_enroutes = EnrouteManager:findByFromZone(airbase,side,{AITaskTypes.INTERCEPT})
-            if intercept_enroutes and #intercept_enroutes >= Config.tasking.max_intercept_per_airbase then
+        elseif ai_task_type == AITaskTypes.CAP then
+            local cap_enroutes = EnrouteManager:findByFromZone(airbase,side,{AITaskTypes.CAP})
+            if cap_enroutes and #cap_enroutes >= Config.tasking.max_cap_per_airbase then
                 return true
             end
         elseif ai_task_type == AITaskTypes.SEAD then
@@ -551,22 +547,22 @@ do
         return nil,nil
     end
 
-    ---@param intercept_group_name string
+    ---@param cap_group_name string
     ---@param enroute_data EnrouteObj
-    function TaskManager:setINTERCEPTTask(intercept_group_name, enroute_data)
+    function TaskManager:setCAPTask(cap_group_name, enroute_data)
         timer.scheduleFunction(function()
-            local intercept_gr = Group.getByName(intercept_group_name)
-            if not (intercept_gr and intercept_gr:isExist() and enroute_data.to_zone) then
-                MissionLogger:error("INTERCEPT task failed: group or to_zone missing.")
+            local cap_gr = Group.getByName(cap_group_name)
+            if not (cap_gr and cap_gr:isExist() and enroute_data.to_zone) then
+                MissionLogger:error("CAP task failed: group or to_zone missing.")
                 return false
             end
 
-            local ctrl = intercept_gr:getController()
+            local ctrl = cap_gr:getController()
 
             -- 1. Get the group's current position (at the airbase)
-            local startPos = mist.getLeadPos(intercept_group_name)
+            local startPos = mist.getLeadPos(cap_group_name)
             if not startPos then
-                MissionLogger:error("INTERCEPT task failed: could not get group position.")
+                MissionLogger:error("CAP task failed: could not get group position.")
                 return false
             end
             
@@ -664,7 +660,7 @@ do
 
             trigger.action.outTextForCoalition(enroute_data.side, "CAP mission tasked for: "..enroute_data.to_zone.name, 10)
             trigger.action.outSoundForCoalition(enroute_data.side, "transmission1.ogg")
-            MissionLogger:info("CAP/INTERCEPT mission tasked, engaging targets near: "..enroute_data.to_zone.name)
+            MissionLogger:info("CAP mission tasked, engaging targets near: "..enroute_data.to_zone.name)
         end, {}, timer.getTime() + 12)
     end
 

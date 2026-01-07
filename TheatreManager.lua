@@ -11,16 +11,11 @@ do
     ---@param side_sending_capture coalition.side
     function TheatreCommander.sendCapture(to_zone, side_sending_capture)
         if side_sending_capture == coalition.side.NEUTRAL then return end
-        -- MissionLogger:info(utils.coalitionToString(side_sending_capture).." attempting capture group for zone: " .. to_zone.name)
 
-        ------------[checks if capture group already enroute for side]------------
-        if EnrouteManager:findByToZone(to_zone,side_sending_capture,{AITaskTypes.CAPTURE_CONVOY, AITaskTypes.CAPTURE_HELO}) then
-            trigger.action.outText(utils.coalitionToString(side_sending_capture) ..
-                "Capture group already enroute to: " .. to_zone.name, 10)
+        -- Prevent multiple helis being sent to the same target from different source zones
+        if EnrouteManager:findByToZone(to_zone, side_sending_capture, {AITaskTypes.CAPTURE_HELO}) then
             return
         end
-
-
 
         -- Capture Helicopter spawn
 
@@ -144,7 +139,6 @@ do
 
         -- Calculate distances once for use in closures below
         local closest_enemy_zone, closest_dist = home_base:getClosestZone(enemy_side,nil,nil,true)
-        local closest_friendly_zone, _ = home_base:getClosestZone(side,nil,nil,true)
 
         -- 2. DEFINE TASK LOGIC
         -- We define a list of functions. Each function returns TRUE if a task was successfully sent.
@@ -186,8 +180,13 @@ do
         -- [TASK: AWACS]
         table.insert(possible_tasks, function()
             local awacs_enroute = EnrouteManager:findByTaskType(AITaskTypes.AWACS, side)
-            if #awacs_enroute == 0 and closest_dist < Config.tasking.min_cleareance_dist_for_awacs
-            and side_comms_towers >= Config.tasking_requirements.comms_zones_required_for_awacs then
+            if awacs_enroute and #awacs_enroute >= 1 then
+                return false
+            end
+            if side_comms_towers < Config.tasking_requirements.comms_zones_required_for_awacs then
+                return false
+            end
+            if closest_dist and closest_dist < Config.tasking.min_cleareance_dist_for_awacs then
                 MissionLogger:info("Initiating AWACS for " .. utils.coalitionToString(side))
                 return TaskManager:initiateAITask(AITaskTypes.AWACS, side, true, nil, home_base, false)
             end
@@ -244,13 +243,13 @@ do
             return false
         end)
 
-        -- [TASK: INTERCEPT]
+        -- [TASK: CAP]
         table.insert(possible_tasks, function()
-            local intercept_enroute = EnrouteManager:findByTaskType(AITaskTypes.INTERCEPT, side)
-            if intercept_enroute and #intercept_enroute >= Config.tasking.max_intercept_theatre then
+            local cap_enroute = EnrouteManager:findByTaskType(AITaskTypes.CAP, side)
+            if cap_enroute and #cap_enroute >= Config.tasking.max_cap_theatre then
                 return false
             end
-            if side_comms_towers < Config.tasking_requirements.comms_zones_required_for_intercept then
+            if side_comms_towers < Config.tasking_requirements.comms_zones_required_for_cap then
                 return false
             end
 
@@ -261,8 +260,8 @@ do
                         local dist = mist.utils.get2DDist(home_base.zone.point, zone.zone.point)
 
                         if dist < 75000 and discovered then
-                            if not EnrouteManager:findByToZone(zone, side, {AITaskTypes.INTERCEPT}) then
-                                return TaskManager:initiateAITask(AITaskTypes.INTERCEPT, side, true, zone, nil, false)
+                            if not EnrouteManager:findByToZone(zone, side, {AITaskTypes.CAP}) then
+                                return TaskManager:initiateAITask(AITaskTypes.CAP, side, true, zone, nil, false)
                             end
                         end
                     end
@@ -338,7 +337,8 @@ do
         if now - zone.last_capture_attempt < Config.cooldown_before_capture_attempt then return false end
 
         if EnrouteManager:findByToZone(zone, nil, {AITaskTypes.CAPTURE_HELO}) then return false end
-        
+        if EnrouteManager:findByFromZone(zone, nil, {AITaskTypes.CAPTURE_HELO}) then return false end
+
         -- both sides have a chance to send capture group
         if math.random(0,100) >= Config.retry_capture_chance then return false end
         local side_sending_capture = math.random(1,2)
@@ -385,6 +385,7 @@ do
                     if math.random(1,100) <= 15 and zone.zone_type == ZoneTypes.STRONGPOINT
                     and zone.attack_convoy and zone.attack_convoy > 0
                     and #EnrouteManager:findByTaskType(AITaskTypes.ATTACK_CONVOY,zone.side) < Config.tasking.max_attack_convoy_per_theatre
+                    and not EnrouteManager:findByToZone(zone,zone.side,{AITaskTypes.ATTACK_CONVOY})
                     then
                         TaskManager:initiateAITask(AITaskTypes.ATTACK_CONVOY,zone.side,true,nil,zone,false)
                     end
@@ -486,7 +487,6 @@ do
                         end
                     else
                         -- SCENARIO 4: CONVOY ALIVE AND MOVING
-                        -- It's moving, so clear any stuck timer
                         enroute.stuck_since = nil
                         
                         -- Check for redirect loop
@@ -496,6 +496,15 @@ do
                             EnrouteManager.enroutes[i] = nil
                             if convoy_group and convoy_group:isExist() then convoy_group:destroy() end
                         end
+
+                        -- Checks if destination zone has been captured by friendly side
+                        local zone_coal_check = ZoneHandler.getFromName(enroute.to_zone.name)
+                        if zone_coal_check and (zone_coal_check.side == enroute.side or zone_coal_check.side == coalition.side.NEUTRAL) then
+                            MissionLogger:info("Attack convoy destination captured by friendly side, removing: " .. enroute.group_name)
+                            EnrouteManager.enroutes[i] = nil
+                            if convoy_group and convoy_group:isExist() then convoy_group:destroy() end
+                        end
+
                     end
                 elseif enroute.ai_task_type == AITaskTypes.RECON then
 
@@ -535,118 +544,206 @@ do
 
     ---@param side coalition.side
     ---@param repeat_tasking boolean|nil
-    function TheatreCommander.sendWarehouseResupply(side,repeat_tasking)
-        -- this sends a cargo aircraft to the home airbase every BASE_RESUPPLY_TIME
+    ---@param stock_types WarehouseManager.StockTypes[]|nil
+    ---@param target_airbase ZoneHandler|nil Optional target airbase zone, defaults to home airbase
+    function TheatreCommander.sendWarehouseResupply(side, repeat_tasking, stock_types, target_airbase)
+        local cargo_sent_table
+        local new_group_name
+        local destination_airbase
 
-        local cargo_sent_table -- This will be the table returned by mist
-        local new_group_name   -- This will hold the string name
-        local home_airbase     -- This will be the ZoneHandler object for the base
-
+        -- [Standard Spawning Logic - No Changes]
         if side == coalition.side.BLUE and Scenario.resupply.blue_point then
             if stats.blue_airbases == 0 then return end
-
             cargo_sent_table = mist.teleportToPoint({
                 groupName = GroupData.COMMON_ASSETS.BLUE.resupply_aircraft,
                 point = Scenario.resupply.blue_point,
                 action = "clone",
                 radius = 10000
             })
-            
-            if not cargo_sent_table or not cargo_sent_table.name then
-                return MissionLogger:error("Could not send BLUE resupply cargo, spawn failed.")
-            end
-            
+            if not cargo_sent_table or not cargo_sent_table.name then return MissionLogger:error("Could not send BLUE resupply.") end
             new_group_name = cargo_sent_table.name
-            home_airbase = blue_airbase
-            
-            if repeat_tasking then
-                timer.scheduleFunction(TheatreCommander.sendWarehouseResupply, side, timer.getTime() + Config.std_resupply_time)
-            end
-        
+            destination_airbase = target_airbase or blue_airbase
+
         elseif side == coalition.side.RED and Scenario.resupply.red_point then
             if stats.red_airbases == 0 then return end
-
             cargo_sent_table = mist.teleportToPoint({
                 groupName = GroupData.COMMON_ASSETS.RED.resupply_aircraft,
                 point = Scenario.resupply.red_point,
                 action = "clone",
                 radius = 10000
             })
-
-            if not cargo_sent_table or not cargo_sent_table.name then
-                return MissionLogger:error("Could not send RED resupply cargo, spawn failed.")
-            end
-
+            if not cargo_sent_table or not cargo_sent_table.name then return MissionLogger:error("Could not send RED resupply.") end
             new_group_name = cargo_sent_table.name
-            home_airbase = red_airbase
+            destination_airbase = target_airbase or red_airbase
 
-            if repeat_tasking then
-                timer.scheduleFunction(TheatreCommander.sendWarehouseResupply, side, timer.getTime() + Config.std_resupply_time)
-            end
         else
             return
         end
+        
+        if destination_airbase == nil then return MissionLogger:error("Resupply task: Destination airbase not found") end
+        if not destination_airbase.airbase_name then return MissionLogger:error("Resupply task: Destination airbase has no airbase name") end
 
-        if home_airbase == nil then
-            return MissionLogger:error("Resupply task: Home airbase not found")
-        end
-        -- Add the new group to the EnrouteManager
         EnrouteManager:add({
             group_name = new_group_name,
-            to_zone = home_airbase,   -- The destination airbase
-            from_zone = home_airbase, -- The "origin" (can be the same for this)
+            to_zone = destination_airbase,
+            from_zone = destination_airbase,
             side = side,
             ai_task_type = AITaskTypes.RESUPPLY_CARGO
         })
-
+        
         timer.scheduleFunction(function ()
             local cargo_group = Group.getByName(new_group_name)
-            if not cargo_group or not cargo_group:isExist() then
-                MissionLogger:error("Resupply task: Group " .. new_group_name .. " not found after 12s.")
-                EnrouteManager:remove(new_group_name) -- Clean up enroute task
-                return
-            end
+            if not cargo_group or not cargo_group:isExist() then return end
             
             local cargo_ctr = cargo_group:getController()
-            local landPos = home_airbase.zone.point -- Get coords from the zone object
-
+            local landPos = destination_airbase.zone.point
             
-            if not landPos then
-                MissionLogger:error("Resupply task: Could not get landing coordinates.")
-                return
+            local alignX, alignZ   -- WP1: 15km out (Alignment)
+            local startX, startZ   -- WP2: Runway Threshold (Stabilize)
+            local dropX, dropZ     -- WP3: Runway End (Drop Trigger)
+            local exitX, exitZ     -- WP4: 10km out (Exit)
+            local airdropAlt = 0
+            
+            local airbase = Airbase.getByName(destination_airbase.airbase_name)
+            
+            if airbase then
+                local runways = airbase:getRunways()
+                if runways and runways[1] then
+                    local rwy = runways[1]
+                    local course = rwy.course * -1 -- Invert for calculation
+                    local halfLen = rwy.length / 2
+                    
+                    local alignDist = halfLen + 15000
+                    alignX = rwy.position.x + (alignDist * math.cos(course + math.pi))
+                    alignZ = rwy.position.z + (alignDist * math.sin(course + math.pi))
+                    
+                    
+                    local startDist = halfLen
+                    startX = rwy.position.x + (startDist * math.cos(course + math.pi))
+                    startZ = rwy.position.z + (startDist * math.sin(course + math.pi))
+                    
+                    
+                    local dropDist = halfLen
+                    dropX = rwy.position.x + (dropDist * math.cos(course))
+                    dropZ = rwy.position.z + (dropDist * math.sin(course))
+                    
+                    local exitDist = halfLen + 10000
+                    exitX = rwy.position.x + (exitDist * math.cos(course))
+                    exitZ = rwy.position.z + (exitDist * math.sin(course))
+                end
+                
+                local groundHeight = land.getHeight({x=landPos.x, y=landPos.z})
+                airdropAlt = groundHeight + 305
             end
-
-            -- Build the explicit RTB mission
+            
+            -- Fallback coordinates if airbase data fails
+            if not alignX then
+                alignX = landPos.x - 15000
+                alignZ = landPos.z
+                startX = landPos.x - 1000
+                startZ = landPos.z
+                dropX  = landPos.x + 1000
+                dropZ  = landPos.z
+                exitX  = landPos.x + 10000
+                exitZ  = landPos.z
+            end
+            
+            local stock_types_str = "{}"
+            if stock_types ~= nil then
+                stock_types_str = "{" .. table.concat(stock_types, ", ") .. "}"
+            end
+            
+            local scriptCommand = string.format("UnitHandler.simulateResupply('%s', '%s', %d, %s)", new_group_name, destination_airbase.name, side, stock_types_str)
+            local waypointScriptTask = {
+                id = "ComboTask",
+                params = {
+                    tasks = {
+                        [1] = {
+                            enabled = true,
+                            auto = false,
+                            id = "WrappedAction",
+                            number = 1,
+                            params = { action = { id = "Script", params = { command = scriptCommand } } }
+                        }
+                    }
+                }
+            }
             local missionTask = {
                 id = 'Mission',
                 params = {
                     route = {
-                        airborne = true, -- Tell the AI it's already in the air
+                        airborne = true,
                         points = {
+                            -- WP1: Alignment (Far out)
                             {
-                                type = AI.Task.WaypointType.LAND,
-                                x = landPos.x,
-                                y = landPos.z,
+                                type = AI.Task.WaypointType.TURNING_POINT,
+                                action = AI.Task.TurnMethod.TURNING_POINT,
+                                x = alignX,
+                                y = alignZ,
+                                alt = airdropAlt,
+                                alt_type = AI.Task.AltitudeType.RADIO,
+                                speed = 150
+                            },
+                            -- WP2: Runway Start (Forces straight flight)
+                            {
+                                type = AI.Task.WaypointType.TURNING_POINT,
+                                action = AI.Task.TurnMethod.FLY_OVER_POINT, -- Fly exactly over this
+                                x = startX,
+                                y = startZ,
+                                alt = airdropAlt,
+                                alt_type = AI.Task.AltitudeType.RADIO,
+                                speed = 150
+                            },
+                            -- WP3: Runway End -> TRIGGER DROP
+                            {
+                                type = AI.Task.WaypointType.TURNING_POINT,
+                                action = AI.Task.TurnMethod.FLY_OVER_POINT,
+                                x = dropX,
+                                y = dropZ,
+                                alt = airdropAlt,
+                                alt_type = AI.Task.AltitudeType.RADIO,
+                                speed = 150,
+                                task = waypointScriptTask
+                            },
+                            -- WP4: Exit Vector
+                            {
+                                type = AI.Task.WaypointType.TURNING_POINT,
                                 action = AI.Task.TurnMethod.FIN_POINT,
+                                x = exitX,
+                                y = exitZ,
+                                alt = 2000,
                                 alt_type = AI.Task.AltitudeType.BARO,
-                                alt=6096,
-                                speed=500
-
+                                speed = 250
                             }
                         }
                     }
                 }
             }
-
-            -- Assign the mission
+            
             cargo_ctr:setTask(missionTask)
-            trigger.action.outTextForCoalition(side, "RESUPPLY Cargo aircraft inbound for " .. home_airbase.name, 10)
-        end, {}, timer.getTime() + 12) -- Wait 12 seconds for spawn to be stable
+            trigger.action.outTextForCoalition(side, "RESUPPLY Cargo aircraft inbound for " .. destination_airbase.name, 10)
+        end, {}, timer.getTime() + 12) -- Short delay to ensure unit is ready
+
+        if repeat_tasking then
+            -- choose random friendly airbase to resupply next time
+            local airbases_to_resupply = {}
+            for _, ab in ipairs(zones) do
+                if ab.zone_type == ZoneTypes.AIRBASE and ab.airbase_name and ab.side == side then
+                    table.insert(airbases_to_resupply, ab)
+                end
+            end
+            utils.shuffleTable(airbases_to_resupply)
+            local airbase_to_resupply = airbases_to_resupply[1]
+            
+            timer.scheduleFunction(function ()
+                TheatreCommander.sendWarehouseResupply(side, true, nil, airbase_to_resupply)
+            end,nil, timer.getTime() + Config.std_resupply_time)
+        end
     end
-
-
+    
+    
     -- AI DISPATCHER
-    function TheatreCommander.dispatchAI()  
+    function TheatreCommander.dispatchAI()
         timer.scheduleFunction(function ()
             if MISSION_ENDED == true then return end
             TheatreCommander:evaluateAITasks(coalition.side.BLUE)
@@ -748,24 +845,7 @@ do
         local function assignTypesToPool(pool, home)
             if #pool == 0 then return end
             
-            local weights = (Config.theatre and Config.theatre.zone_type_weights) or {
-                [ZoneTypes.STRONGPOINT] = 50,
-                [ZoneTypes.LOGISTICS] = 20,
-                [ZoneTypes.SAMSITE] = 10,
-                [ZoneTypes.COMMS] = 5,
-                [ZoneTypes.EWSITE] = 5
-            }
-            local total_w = 0
-            for _, w in pairs(weights) do total_w = total_w + w end
-            
-            local budget_logistics = math.ceil((weights[ZoneTypes.LOGISTICS]/total_w) * #pool)
-            local budget_sam       = math.ceil((weights[ZoneTypes.SAMSITE]/total_w) * #pool)
-            local budget_comms     = math.ceil((weights[ZoneTypes.COMMS]/total_w) * #pool)
-            local budget_ew        = math.ceil((weights[ZoneTypes.EWSITE]/total_w) * #pool)
-            MissionLogger:info("Theatre Gen: Assigning Types for " .. utils.coalitionToString(home.side) .. " Pool. Total Zones: " .. #pool ..
-                " | Logistics: " .. budget_logistics .. ", SAM: " .. budget_sam .. ", COMMS: " .. budget_comms .. ", EW: " .. budget_ew)
-
-            -- B. Assign Random Types
+            -- Find unassigned zones first to calculate budgets correctly
             local unassigned = {}
             for _, z in ipairs(pool) do
                 if z.zone_type == nil then
@@ -773,33 +853,115 @@ do
                 end
             end
             
+            if #unassigned == 0 then return end -- All zones already have types assigned
+            
+            -- Shuffle for randomness
             utils.shuffleTable(unassigned)
+            
+            -- Guarantee at least 1 of each zone type (if enough zones available)
+            local idx = 1
+            local assigned_guaranteed = 0
+            
+            -- COMMS (guaranteed)
+            if idx <= #unassigned then
+                unassigned[idx].zone_type = ZoneTypes.COMMS
+                idx = idx + 1
+                assigned_guaranteed = assigned_guaranteed + 1
+            end
+            
+            -- LOGISTICS (guaranteed)
+            if idx <= #unassigned then
+                unassigned[idx].zone_type = ZoneTypes.LOGISTICS
+                unassigned[idx].next_level_up_avail = timer.getTime()
+                unassigned[idx].capture_heli_avail = 4
+                unassigned[idx].capture_convoy_avail = 0
+                idx = idx + 1
+                assigned_guaranteed = assigned_guaranteed + 1
+            end
+            
+            -- SAMSITE (guaranteed)
+            if idx <= #unassigned then
+                unassigned[idx].zone_type = ZoneTypes.SAMSITE
+                local r = math.random(1, 100)
+                if r < 15 then unassigned[idx].sam_classification = SAM_TYPES.SHORT_RANGE
+                elseif r < 60 then unassigned[idx].sam_classification = SAM_TYPES.MEDIUM_RANGE
+                else unassigned[idx].sam_classification = SAM_TYPES.LONG_RANGE end
+                idx = idx + 1
+                assigned_guaranteed = assigned_guaranteed + 1
+            end
+            
+            -- EWSITE (guaranteed)
+            if idx <= #unassigned then
+                unassigned[idx].zone_type = ZoneTypes.EWSITE
+                idx = idx + 1
+                assigned_guaranteed = assigned_guaranteed + 1
+            end
+            
+            -- STRONGPOINT (guaranteed)
+            if idx <= #unassigned then
+                unassigned[idx].zone_type = ZoneTypes.STRONGPOINT
+                unassigned[idx].attack_convoy = math.random(0,1)
+                idx = idx + 1
+                assigned_guaranteed = assigned_guaranteed + 1
+            end
+            
+            -- Now handle remaining zones with weighted budgets
+            local remaining_zones = #unassigned - assigned_guaranteed
+            
+            if remaining_zones > 0 then
+                local weights = (Config.theatre and Config.theatre.zone_type_weights) or {
+                    [ZoneTypes.STRONGPOINT] = 50,
+                    [ZoneTypes.LOGISTICS] = 15,
+                    [ZoneTypes.SAMSITE] = 10,
+                    [ZoneTypes.COMMS] = 10,
+                    [ZoneTypes.EWSITE] = 5
+                }
+                local total_w = 0
+                for _, w in pairs(weights) do total_w = total_w + w end
+                
+                -- Calculate budgets for remaining zones only
+                local budget_logistics = math.ceil((weights[ZoneTypes.LOGISTICS]/total_w) * remaining_zones)
+                local budget_sam       = math.ceil((weights[ZoneTypes.SAMSITE]/total_w) * remaining_zones)
+                local budget_comms     = math.ceil((weights[ZoneTypes.COMMS]/total_w) * remaining_zones)
+                local budget_ew        = math.ceil((weights[ZoneTypes.EWSITE]/total_w) * remaining_zones)
+                
+                local pre_assigned_count = #pool - #unassigned
+                MissionLogger:info("Theatre Gen: Assigning Types for " .. utils.coalitionToString(home.side) .. " Pool. Total Zones: " .. #pool ..
+                    " (Pre-assigned: " .. pre_assigned_count .. ", Guaranteed: " .. assigned_guaranteed .. ", Remaining: " .. remaining_zones .. ")" ..
+                    " | Logistics: " .. budget_logistics .. ", SAM: " .. budget_sam .. ", COMMS: " .. budget_comms .. ", EW: " .. budget_ew)
 
-            for i, zone in ipairs(unassigned) do
-
-                if budget_comms > 0 then
-                    zone.zone_type = ZoneTypes.COMMS
-                    budget_comms = budget_comms - 1
-                elseif budget_logistics > 0 then
-                    zone.zone_type = ZoneTypes.LOGISTICS
-                    zone.next_level_up_avail = timer.getTime()
-                    zone.capture_heli_avail = 4
-                    zone.capture_convoy_avail = 0
-                    budget_logistics = budget_logistics - 1
-                elseif budget_ew > 0 then
-                    zone.zone_type = ZoneTypes.EWSITE
-                    budget_ew = budget_ew - 1
-                elseif budget_sam > 0 then
-                    zone.zone_type = ZoneTypes.SAMSITE
-                    local r = math.random(1, 100)
-                    if r < 15 then zone.sam_classification = SAM_TYPES.SHORT_RANGE
-                    elseif r < 60 then zone.sam_classification = SAM_TYPES.MEDIUM_RANGE
-                    else zone.sam_classification = SAM_TYPES.LONG_RANGE end
-                    budget_sam = budget_sam - 1
-                else
-                    zone.zone_type = ZoneTypes.STRONGPOINT
-                    zone.attack_convoy = math.random(0,1)
+                -- Assign remaining zones using budgets
+                for i = idx, #unassigned do
+                    local zone = unassigned[i]
+                    
+                    if budget_comms > 0 then
+                        zone.zone_type = ZoneTypes.COMMS
+                        budget_comms = budget_comms - 1
+                    elseif budget_logistics > 0 then
+                        zone.zone_type = ZoneTypes.LOGISTICS
+                        zone.next_level_up_avail = timer.getTime()
+                        zone.capture_heli_avail = 4
+                        zone.capture_convoy_avail = 0
+                        budget_logistics = budget_logistics - 1
+                    elseif budget_ew > 0 then
+                        zone.zone_type = ZoneTypes.EWSITE
+                        budget_ew = budget_ew - 1
+                    elseif budget_sam > 0 then
+                        zone.zone_type = ZoneTypes.SAMSITE
+                        local r = math.random(1, 100)
+                        if r < 15 then zone.sam_classification = SAM_TYPES.SHORT_RANGE
+                        elseif r < 60 then zone.sam_classification = SAM_TYPES.MEDIUM_RANGE
+                        else zone.sam_classification = SAM_TYPES.LONG_RANGE end
+                        budget_sam = budget_sam - 1
+                    else
+                        zone.zone_type = ZoneTypes.STRONGPOINT
+                        zone.attack_convoy = math.random(0,1)
+                    end
                 end
+            else
+                local pre_assigned_count = #pool - #unassigned
+                MissionLogger:info("Theatre Gen: Assigning Types for " .. utils.coalitionToString(home.side) .. " Pool. Total Zones: " .. #pool ..
+                    " (Pre-assigned: " .. pre_assigned_count .. ", Guaranteed: " .. assigned_guaranteed .. ", Remaining: 0)")
             end
         end
 
@@ -873,8 +1035,8 @@ do
 
         -- Initial Warehouses
         WarehouseManager:handleIncomingSupplies(blue_airbase.side, {WarehouseManager.StockTypes.INITIAL})
-        if Config.enabled_su25t_bluefor then
-            WarehouseManager:handleIncomingSupplies(blue_airbase.side, {WarehouseManager.StockTypes.SU25T_BLUEFOR})
+        if Config.enabled_su25t_blufor then
+            WarehouseManager:handleIncomingSupplies(blue_airbase.side, {WarehouseManager.StockTypes.SU25T_BLUFOR})
         end
         WarehouseManager:handleIncomingSupplies(red_airbase.side, {WarehouseManager.StockTypes.INITIAL})
 

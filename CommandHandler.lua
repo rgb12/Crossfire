@@ -26,7 +26,7 @@ do
             local sitmap_path = missionCommands.addCommandForGroup(group_id, "SITMAP", nil, function()
                 local out_text = "< SITMAP > \n\n"
                 out_text = out_text .. "REDFOR controls " .. stats.red_zones .. " areas.\n"
-                out_text = out_text .. "BLUEFOR controls " .. stats.blue_zones .. " areas.\n"
+                out_text = out_text .. "BLUFOR controls " .. stats.blue_zones .. " areas.\n"
                 out_text = out_text .. "Neutral areas: " .. stats.neutral_zones .. "\n\n"
 
                 local total_zones = stats.red_zones + stats.blue_zones + stats.neutral_zones
@@ -105,14 +105,16 @@ do
             local missions_submenu = missionCommands.addSubMenuForGroup(group_id, "Operations")
             CommandHandler.addToMenuTracking(group_id, missions_submenu, "operations_menu")
 
-            missionCommands.addCommandForGroup(group_id, "Recommended Operations", missions_submenu,function()
+            missionCommands.addCommandForGroup(group_id, "Available Operations", missions_submenu,function()
                 operation_manager:showAvailableOperations(unit)
             end)
 
             missionCommands.addCommandForGroup(group_id, "Active Operation", missions_submenu,function()
                 operation_manager:showActiveOperation(unit)
             end)
-            missionCommands.addCommandForGroup(group_id, "Cancel Active Operation", missions_submenu,function()
+            local cancel_op_menu = missionCommands.addSubMenuForGroup(group_id, "Cancel Active Operation",missions_submenu)
+
+            missionCommands.addCommandForGroup(group_id, "Confirm (Cancel Active Operation)", cancel_op_menu,function()
                 operation_manager:cancelOperation(unit)
             end)
 
@@ -135,6 +137,33 @@ do
                     end
                 end
             end
+
+            -- Co-op Operations Menu
+            local join_coop_menu = missionCommands.addSubMenuForGroup(group_id, "Join Co-op", missions_submenu)
+            
+            for i1 = 1, 9 do
+                local digit1 = missionCommands.addSubMenuForGroup(group_id, i1 .. ' _ _', join_coop_menu)
+                for i2 = 0, 9 do
+                    local digit2 = missionCommands.addSubMenuForGroup(group_id, i1 .. i2 .. ' _', digit1)
+                    for i3 = 0, 9 do
+                        local join_code = tonumber(i1 .. i2 .. i3)
+                        missionCommands.addCommandForGroup(group_id, tostring(join_code), digit2,
+                            function(code, unit)
+                                if unit and unit:getCoalition() == operation_manager.side then
+                                    operation_manager:joinCoopOperation(unit, code)
+                                end
+                            end, join_code, unit)
+                    end
+                end
+            end
+
+            missionCommands.addCommandForGroup(group_id, "Leave Co-op", missions_submenu, function()
+                operation_manager:leaveCoopOperation(unit)
+            end)
+
+            missionCommands.addCommandForGroup(group_id, "Co-op Status", missions_submenu, function()
+                operation_manager:showCoopOperationStatus(unit)
+            end)
         end
     end
 
@@ -143,6 +172,9 @@ do
 
         if not gr or not gr.isExist or not gr:isExist() then return end
         local gr_id = gr:getID()
+
+        -- Clear existing resources menu before rebuilding
+        CommandHandler.clearMenu(gr, "resources_main")
 
           -- Create the root menu for this update
         local resources_main_submenu = missionCommands.addSubMenuForGroup(gr_id,"Resources",nil)
@@ -329,25 +361,168 @@ do
 
             -----------------------------------------------------------------------
             -- RESUPPLY REQUEST LOGIC
+            
+            -- Build list of friendly airbases for resupply target selection
+            local friendly_airbases = {}
+            for _, zone in ipairs(zones) do
+                if zone.side == side and zone.zone_type == ZoneTypes.AIRBASE and zone.airbase_name then
+                    table.insert(friendly_airbases, zone)
+                end
+            end
 
-            missionCommands.addCommandForGroup(gr_id, "Request Resupply - "..Config.resupply_tokens_cost.." tokens", resources_main_submenu, function()
-                if not checkTokens(unit, Config.resupply_tokens_cost) then return end
-                ExperienceManager:deductTokens(unit, Config.resupply_tokens_cost)
-                trigger.action.outTextForGroup(gr_id, "> Resupply requested", 10)
-                TheatreCommander.sendWarehouseResupply(side, false)
-            end, nil)
+            -- Helper function to build airbase submenu for a stock type
+            local function buildAirbaseSubmenu(stock_types, cost, stock_name)
+                local airbase_list = {}
+                for _, ab_zone in ipairs(friendly_airbases) do
+                    table.insert(airbase_list, {
+                        name = ab_zone.name,
+                        func = function(args)
+                            local u = args.u
+                            local target_zone = args.target_zone
+                            local stock = args.stock_types
+                            local token_cost = args.cost
+                            if not checkTokens(u, token_cost) then return end
+                            ExperienceManager:deductTokens(u, token_cost)
+                            TheatreCommander.sendWarehouseResupply(side, false, stock, target_zone)
+                            trigger.action.outTextForGroup(gr_id, "> " .. args.stock_name .. " resupply requested for " .. target_zone.name .. ", -" .. token_cost .. " tokens.", 10)
+                        end,
+                        arg = {u = unit, target_zone = ab_zone, stock_types = stock_types, cost = cost, stock_name = stock_name}
+                    })
+                end
+                return airbase_list
+            end
+
+            local resupply_menu = missionCommands.addSubMenuForGroup(gr_id, "Request Resupply", resources_main_submenu)
+            
+            local resupply_stock_list = {}
+            
+            -- Initial Stock
+            local initial_airbases = buildAirbaseSubmenu({WarehouseManager.StockTypes.INITIAL}, Config.resupply_costs.INITIAL, "Initial Stock")
+            if #initial_airbases > 0 then
+                table.insert(resupply_stock_list, {
+                    name = "Initial Stock - " .. Config.resupply_costs.INITIAL .. " tokens",
+                    submenu = initial_airbases
+                })
+            end
+            
+            -- AA Aircraft
+            local aa_aircraft_airbases = buildAirbaseSubmenu({WarehouseManager.StockTypes.AA_AIRCRAFT}, Config.resupply_costs.AA_AIRCRAFT, "AA Aircraft")
+            if #aa_aircraft_airbases > 0 then
+                table.insert(resupply_stock_list, {
+                    name = "AA Aircraft - " .. Config.resupply_costs.AA_AIRCRAFT .. " tokens",
+                    submenu = aa_aircraft_airbases
+                })
+            end
+            
+            -- AG Aircraft
+            local ag_aircraft_airbases = buildAirbaseSubmenu({WarehouseManager.StockTypes.AG_AIRCRAFT}, Config.resupply_costs.AG_AIRCRAFT, "AG Aircraft")
+            if #ag_aircraft_airbases > 0 then
+                table.insert(resupply_stock_list, {
+                    name = "AG Aircraft - " .. Config.resupply_costs.AG_AIRCRAFT .. " tokens",
+                    submenu = ag_aircraft_airbases
+                })
+            end
+            
+            -- Cargo Aircraft
+            local cargo_aircraft_airbases = buildAirbaseSubmenu({WarehouseManager.StockTypes.CARGO_AIRCRAFT}, Config.resupply_costs.CARGO_AIRCRAFT, "Cargo Aircraft")
+            if #cargo_aircraft_airbases > 0 then
+                table.insert(resupply_stock_list, {
+                    name = "Cargo Aircraft - " .. Config.resupply_costs.CARGO_AIRCRAFT .. " tokens",
+                    submenu = cargo_aircraft_airbases
+                })
+            end
+            
+            -- Long Range AA
+            local aa_lr_airbases = buildAirbaseSubmenu({WarehouseManager.StockTypes.AIR_AIR_LONG_RANGE}, Config.resupply_costs.AIR_AIR_LONG_RANGE, "Long Range AA")
+            if #aa_lr_airbases > 0 then
+                table.insert(resupply_stock_list, {
+                    name = "Long Range AA - " .. Config.resupply_costs.AIR_AIR_LONG_RANGE .. " tokens",
+                    submenu = aa_lr_airbases
+                })
+            end
+            
+            -- Short Range AA
+            local aa_sr_airbases = buildAirbaseSubmenu({WarehouseManager.StockTypes.AIR_AIR_SHORT_RANGE}, Config.resupply_costs.AIR_AIR_SHORT_RANGE, "Short Range AA")
+            if #aa_sr_airbases > 0 then
+                table.insert(resupply_stock_list, {
+                    name = "Short Range AA - " .. Config.resupply_costs.AIR_AIR_SHORT_RANGE .. " tokens",
+                    submenu = aa_sr_airbases
+                })
+            end
+            
+            -- AG Bombs
+            local ag_bombs_airbases = buildAirbaseSubmenu({WarehouseManager.StockTypes.AIR_GROUND_BOMBS}, Config.resupply_costs.AIR_GROUND_BOMBS, "AG Bombs")
+            if #ag_bombs_airbases > 0 then
+                table.insert(resupply_stock_list, {
+                    name = "AG Bombs - " .. Config.resupply_costs.AIR_GROUND_BOMBS .. " tokens",
+                    submenu = ag_bombs_airbases
+                })
+            end
+            
+            -- AG Rockets
+            local ag_rockets_airbases = buildAirbaseSubmenu({WarehouseManager.StockTypes.AIR_GROUND_ROCKETS}, Config.resupply_costs.AIR_GROUND_ROCKETS, "AG Rockets")
+            if #ag_rockets_airbases > 0 then
+                table.insert(resupply_stock_list, {
+                    name = "AG Rockets - " .. Config.resupply_costs.AIR_GROUND_ROCKETS .. " tokens",
+                    submenu = ag_rockets_airbases
+                })
+            end
+            
+            -- AG Guided Bombs
+            local ag_guided_bombs_airbases = buildAirbaseSubmenu({WarehouseManager.StockTypes.AIR_GROUND_GUIDED_BOMBS}, Config.resupply_costs.AIR_GROUND_GUIDED_BOMBS, "AG Guided Bombs")
+            if #ag_guided_bombs_airbases > 0 then
+                table.insert(resupply_stock_list, {
+                    name = "AG Guided Bombs - " .. Config.resupply_costs.AIR_GROUND_GUIDED_BOMBS .. " tokens",
+                    submenu = ag_guided_bombs_airbases
+                })
+            end
+            
+            -- AG Missiles
+            local ag_missiles_airbases = buildAirbaseSubmenu({WarehouseManager.StockTypes.AIR_GROUND_GUIDED_MISSILES}, Config.resupply_costs.AIR_GROUND_GUIDED_MISSILES, "AG Missiles")
+            if #ag_missiles_airbases > 0 then
+                table.insert(resupply_stock_list, {
+                    name = "AG Missiles - " .. Config.resupply_costs.AIR_GROUND_GUIDED_MISSILES .. " tokens",
+                    submenu = ag_missiles_airbases
+                })
+            end
+            
+            -- ECM
+            local ecm_airbases = buildAirbaseSubmenu({WarehouseManager.StockTypes.ECM}, Config.resupply_costs.ECM, "ECM")
+            if #ecm_airbases > 0 then
+                table.insert(resupply_stock_list, {
+                    name = "ECM - " .. Config.resupply_costs.ECM .. " tokens",
+                    submenu = ecm_airbases
+                })
+            end
+            
+            -- TGP, Misc
+            local tgp_misc_airbases = buildAirbaseSubmenu({WarehouseManager.StockTypes.TGP, WarehouseManager.StockTypes.MISC}, Config.resupply_costs.TGP_MISC, "TGP/Misc")
+            if #tgp_misc_airbases > 0 then
+                table.insert(resupply_stock_list, {
+                    name = "TGP, Misc - " .. Config.resupply_costs.TGP_MISC .. " tokens",
+                    submenu = tgp_misc_airbases
+                })
+            end
+            
+            if #resupply_stock_list > 0 then
+                CommandHandler.buildPagedMenuForGroup(gr_id, resupply_menu, resupply_stock_list, 1)
+            else
+                missionCommands.addCommandForGroup(gr_id, "No Airbases Available", resupply_menu, function() end, nil)
+            end
+        
+
 
             local farps_resupply_list = {}
             for _,zone in ipairs(zones) do
                 if zone.side == side and zone.zone_type == ZoneTypes.FARP and zone.linked_farp then
                     table.insert(farps_resupply_list, {
-                        name = zone.name .. " - " .. Config.farp_resupply_cost .. " tokens",
+                        name = zone.name .. " - " .. Config.resupply_costs.FARP .. " tokens",
                         func = function (args)
                             local coal = args.side
                             local farp = args.farp_name
                             local unit = args.u
-                            if not checkTokens(unit, Config.farp_resupply_cost) then return end
-                            ExperienceManager:deductTokens(unit, Config.farp_resupply_cost)
+                            if not checkTokens(unit, Config.resupply_costs.FARP) then return end
+                            ExperienceManager:deductTokens(unit, Config.resupply_costs.FARP)
                             WarehouseManager:attributeAirbaseStock(farp,coal, {WarehouseManager.StockTypes.FARP})
                             trigger.action.outTextForCoalition(coal, "> FARP " .. farp .. " resupplied.", 10)
                         end,
@@ -355,7 +530,7 @@ do
                 end
             end
 
-            local farp_resupply_menu = missionCommands.addSubMenuForGroup(gr_id,"Request FARP Resupply", resources_main_submenu)
+            local farp_resupply_menu = missionCommands.addSubMenuForGroup(gr_id,"FARP Resupply", resources_main_submenu)
             if #farps_resupply_list > 0 then
                 CommandHandler.buildPagedMenuForGroup(gr_id, farp_resupply_menu, farps_resupply_list, 1)
             else
@@ -457,7 +632,10 @@ do
                 for _, unit in ipairs(red_players) do
                     if unit and unit:isExist() then
                         local gr = unit:getGroup()
-                        if gr then CommandHandler.initTaskingRequests(gr) end
+                        if gr then
+                            CommandHandler.initTaskingRequests(gr)
+                            CommandHandler.resourcesRequests(gr)
+                        end
                     end
                 end
                 
@@ -474,7 +652,10 @@ do
                 for _, unit in ipairs(blue_players) do
                     if unit and unit:isExist() then
                         local gr = unit:getGroup()
-                        if gr then CommandHandler.initTaskingRequests(gr) end
+                        if gr then
+                            CommandHandler.initTaskingRequests(gr)
+                            CommandHandler.resourcesRequests(gr)
+                        end
                     end
                 end
                 
@@ -571,6 +752,31 @@ do
             end
         end
 
+        local awacs_airbase_list = {}
+        for _, zone in ipairs(zones) do
+            -- Find friendly airbases suitable for AWACS
+            if zone.side == side and zone.zone_type == ZoneTypes.AIRBASE
+            then
+                table.insert(awacs_airbase_list, {
+                    name = zone.name,
+                    func = function (args)
+                        local u = args.u
+                        local from_zone = args.z
+                        if not checkRankRequirement(u, AITaskTypes.AWACS) then return end
+                        if not checkTokens(u, Config.tasking_requirements.tokens_required_for_awacs) then return end
+
+                        if TaskManager:initiateAITask(AITaskTypes.AWACS, side, false, nil, from_zone, true) then
+                            ExperienceManager:deductTokens(u, Config.tasking_requirements.tokens_required_for_awacs)
+                            trigger.action.outTextForUnit(u:getID(), "AWACS dispatched from " .. from_zone.name .. ", -" .. Config.tasking_requirements.tokens_required_for_awacs .. " tokens.", 10)
+                        else
+                            trigger.action.outTextForUnit(u:getID(), "AWACS request failed (No assets available).", 10)
+                        end
+                    end,
+                    arg = {u = unit, z = zone}
+                })
+            end
+        end
+
         local sead_target_list = {}
         for _, zone in ipairs(zones) do
             -- Find enemy zones suitable for SEAD
@@ -620,7 +826,7 @@ do
                             end
                         end
 
-                        if from_zone then                        
+                        if from_zone then
                             if TaskManager:initiateAITask(AITaskTypes.CAPTURE_HELO, side, false, to_zone, from_zone, true) then
                                 ExperienceManager:deductTokens(u, Config.tasking_requirements.tokens_required_for_capture_helicopter)
                                 trigger.action.outTextForUnit(u:getID(), "> Helicopter capture dispatched to " .. to_zone.name .. ", -" .. Config.tasking_requirements.tokens_required_for_capture_helicopter .. " tokens.", 10)
@@ -679,12 +885,12 @@ do
                     func = function (args)
                         local u = args.u
                         local to_zone = args.z
-                        if not checkRankRequirement(u, AITaskTypes.INTERCEPT) then return end
-                        if not checkTokens(u, Config.tasking_requirements.tokens_required_for_intercept) then return end
+                        if not checkRankRequirement(u, AITaskTypes.CAP) then return end
+                        if not checkTokens(u, Config.tasking_requirements.tokens_required_for_cap) then return end
                         
-                        if TaskManager:initiateAITask(AITaskTypes.INTERCEPT, side, false, to_zone, nil, true) then
-                            ExperienceManager:deductTokens(u, Config.tasking_requirements.tokens_required_for_intercept)
-                            trigger.action.outTextForUnit(u:getID(), "CAP dispatched to " .. to_zone.name .. ", -" .. Config.tasking_requirements.tokens_required_for_intercept .. " tokens.", 10)
+                        if TaskManager:initiateAITask(AITaskTypes.CAP, side, false, to_zone, nil, true) then
+                            ExperienceManager:deductTokens(u, Config.tasking_requirements.tokens_required_for_cap)
+                            trigger.action.outTextForUnit(u:getID(), "CAP dispatched to " .. to_zone.name .. ", -" .. Config.tasking_requirements.tokens_required_for_cap .. " tokens.", 10)
                         else
                             trigger.action.outTextForUnit(u:getID(), "CAP request failed (No assets available).", 10)
                         end
@@ -768,6 +974,19 @@ do
         else
              table.insert(main_tasking_list, {
                 name = "Request CAS (No Targets)",
+                func = function() end,
+                arg = nil
+            })
+        end
+
+        if #awacs_airbase_list > 0 then
+            table.insert(main_tasking_list, {
+                name = "Request AWACS",
+                submenu = awacs_airbase_list
+            })
+        else
+             table.insert(main_tasking_list, {
+                name = "Request AWACS (No Airbases)",
                 func = function() end,
                 arg = nil
             })

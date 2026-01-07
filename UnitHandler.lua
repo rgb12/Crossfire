@@ -568,4 +568,97 @@ do
         end
     end
 
+    ---@param group_name string
+    ---@param airbase_name string
+    ---@param side coalition.side
+    ---@param stock_types WarehouseManager.StockTypes[]|nil if none are provided, a random stock type will be chosen
+    function UnitHandler.simulateResupply(group_name,airbase_name, side, stock_types)
+        local possible_stocks_rnd =
+            {
+                {
+                    out_text = "AA Aircraft, AA Long Range and AA Short Range missiles",
+                    stocks = {
+                        WarehouseManager.StockTypes.AA_AIRCRAFT,
+                        WarehouseManager.StockTypes.AIR_AIR_LONG_RANGE,
+                        WarehouseManager.StockTypes.AIR_AIR_SHORT_RANGE,
+                    },
+                },
+                {
+                    out_text = "AG and Cargo Aircraft",
+                    stocks = {
+                        WarehouseManager.StockTypes.CARGO_AIRCRAFT,
+                        WarehouseManager.StockTypes.AG_AIRCRAFT,
+                    },
+                },
+                {
+                    out_text = "AG Missiles and Rockets",
+                    stocks = {
+                        WarehouseManager.StockTypes.AIR_GROUND_GUIDED_MISSILES,
+                        WarehouseManager.StockTypes.AIR_GROUND_ROCKETS,
+                    },
+                },
+                {
+                    out_text = "AG Unguided and Guided Bombs",
+                    stocks = {
+                        WarehouseManager.StockTypes.AIR_GROUND_BOMBS,
+                        WarehouseManager.StockTypes.AIR_GROUND_GUIDED_BOMBS,
+                    },
+                },
+                {
+                    out_text = "ECM, TGPs and Misc Equipment",
+                    stocks = {
+                        WarehouseManager.StockTypes.ECM,
+                        WarehouseManager.StockTypes.TGP,
+                        WarehouseManager.StockTypes.MISC,
+                    },
+                },
+            }
+
+        if not stock_types and Config.enabled_su25t_blufor then
+            table.insert(possible_stocks_rnd,
+            {
+                out_text = "SU-25T BLUFOR Package (AA Aircraft, AG Missiles, Guided Bombs, ECM and TGPs)",
+                stocks = {
+                    WarehouseManager.StockTypes.SU25T_BLUFOR,
+                },
+            })
+        end
+
+        local stock_type_choice = possible_stocks_rnd[math.random(1,#possible_stocks_rnd)]
+
+        stock_types = stock_types or {}
+
+        if #stock_types == 0 and Config.random_resupply_types then
+            stock_types = stock_type_choice.stocks
+        elseif #stock_types == 0 then
+            stock_types = {WarehouseManager.StockTypes.INITIAL}
+        end
+
+        local prefix = (side == coalition.side.RED) and "RED" or "BLUE"
+        trigger.action.outTextForCoalition(side, "RESUPPLY Airdrop packaged secured at " .. airbase_name.."\nAssets received: " .. stock_type_choice.out_text, 10)
+        trigger.action.outSoundForCoalition(side, "supply_package_received.ogg")
+
+        MissionLogger:info(prefix .. " Resupply airdrop delivered at " .. airbase_name)
+
+        
+        if side == coalition.side.RED then
+            WarehouseManager:attributeAirbaseStock(airbase_name, coalition.side.RED, stock_types or {WarehouseManager.StockTypes.INITIAL})
+            --WarehouseManager:handleIncomingSupplies(coalition.side.RED, stock_types or {WarehouseManager.StockTypes.INITIAL})
+        else
+            local stocks = stock_types or {WarehouseManager.StockTypes.INITIAL}
+            WarehouseManager:attributeAirbaseStock(airbase_name, coalition.side.BLUE, stocks)
+            -- WarehouseManager:handleIncomingSupplies(coalition.side.BLUE, stocks)
+        end
+
+        EnrouteManager:remove(group_name)
+
+        timer.scheduleFunction(function()
+            local g = Group.getByName(group_name)
+            if g and g:isExist() then
+                MissionLogger:info("Despawning resupply aircraft enroute.")
+                g:destroy()
+            end
+        end, {}, timer.getTime() + 60)
+    end
+
 end

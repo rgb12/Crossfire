@@ -1,11 +1,11 @@
-
 --[[
     DCS CROSSFIRE MISSION CONFIG FILE
 
     This file allows you to edit how the mission responds, how AI behaves depending on multiple variables.
 
+    Not all settings are editable from this file, some are hardcoded to ensure mission stability.
 
-    do not remove the commas at the end of each line
+    Do not remove the commas at the end of each line.
     Refer to the comments for details on each field
 
 ]]
@@ -13,9 +13,11 @@ Config = {
     persistence = {
         enable = true, -- enables or not persistence, has authority over everything below in this section
         save_interval = 5*51, -- (seconds) interval at which the mission state is saved
-        save_dir = "Missions/Saves/Crossfire/", -- this is your saves directory in Saved Games
+        -- You can use fixed values or multiplications like above
+        -- 51 seconds is used to avoid multiples of 15 to reduce lag spikes
+        save_dir = "Missions/Saves/Crossfire_dev/", -- this is your saves directory in Saved Games
         save_file = "mission.json", -- this is the name of the mission file
-        user_data_file = "user_data.json", -- this is the name of user data only file, note that this only records user xp, tokens ans rank
+        user_data_file = "user_data.json", -- this is the name of user data only file, note that this only saves user xp, tokens ans rank
 
         
         random_scenario_selection = false, -- allows the script to randomly choose a random scenario, authority over scenario selection
@@ -29,101 +31,130 @@ Config = {
         cap_max_radius_from_zone = 28*1000, -- (meters)
         max_distance_to_frontline_for_airdrops = 300*1000, -- (meters)
         airdrop_min_crates_landed = 6, -- minimum number of crates that must land to consider the airdrop successful
-        csar_rescue_radius = 200 -- (meters)
+        csar_rescue_radius = 200, -- (meters)
+        intercept_required_kills = 2, -- number of aircraft/helicopters to destroy to complete INTERCEPT
+        intercept_max_distance_to_enemy = 200*1000, -- (meters) max distance from friendly zone to enemy zone for INTERCEPT to be proposed
+        
+        -- Co-op operation settings
+        coop_max_members = 4, -- maximum number of players (including leader) in a co-op operation
     },
     jupiter_enabled = true, -- enables/disables the Jupiter command system
 
-    enabled_su25t_bluefor = true, -- adds the SU-25T to the bluefor warehouse inventory
+    enabled_su25t_blufor = true, -- adds the SU-25T to the blufor warehouse inventory
 
-    estimated_users = 1, -- used to scale warehouse stocks and resupply quantities
-    red_stock_multiplier = 4, -- multiplier for redfor warehouse stocks, compared to bluefor
+    red_stock_multiplier = 8, -- multiplier for redfor warehouse stocks, compared to blufor
 
-    std_resupply_time = 1*60*60, -- (seconds) respawn resupply aircraft delay
-    cooldown_before_capture_attempt = 3*60, -- (seconds)
+    cooldown_before_capture_attempt = 10*60, -- (seconds)
     retry_capture_chance = 50, -- (%)
-
+    
     allow_resupply = true, -- this will enable/disable resupply aircrafts, this will make the misison significantly harder
+    std_resupply_time = 45*60, -- (seconds) respawn resupply aircraft delay
+    random_resupply_types = true , -- enables/disables random resupply types, if disabled only INITIAL resupplies will arrive
+    -- INITIAL resupply is equivalent to what the warehouses were given at mission start
 
     zone_upgrade_costs_tokens = {
         [1] = 40, -- cost to upgrade from tier 1 to tier 2
         [2] = 60, -- cost to upgrade from tier 2 to tier 3
         [3] = 80, -- cost to upgrade from tier 3 to tier 4
     },
-    resupply_tokens_cost = 50, -- cost in tokens to request a resupply aircraft
-    farp_resupply_cost = 30,
+    resupply_costs = {
+
+        INITIAL = 400,
+        FARP = 100,
+
+        AA_AIRCRAFT = 100,
+        AG_AIRCRAFT = 120,
+        CARGO_AIRCRAFT = 80,
+
+        AIR_AIR_LONG_RANGE = 50,
+        AIR_GROUND_GUIDED_MISSILES = 60,
+        AIR_GROUND_GUIDED_BOMBS = 50,
+        ECM = 40,
+        TGP_MISC = 40,
+
+        AIR_AIR_SHORT_RANGE = 30,
+        AIR_GROUND_BOMBS = 20,
+        AIR_GROUND_ROCKETS = 15,
+    },
 
     reward_system = {
         enable = true, -- completely enables/disables the reward system
-        xp_per_mission_completed = 100,
-        xp_per_aircraft_destroyed = 25,
-        xp_per_helicopter_destroyed = 20,
-        xp_per_infantry_kill = 1,
-        xp_per_vehicle_destroyed = 5,
-        xp_per_sam_destroyed = 10,
-        xp_per_structure_destroyed = 40,
-        xp_per_ship_sunk = 150,
-        xp_per_intel_report = 25,
+        xp_per_mission_completed = 500,
+        xp_per_aircraft_destroyed = 100,
+        xp_per_helicopter_destroyed = 75,
+        xp_per_infantry_kill = 5,
+        xp_per_vehicle_destroyed = 15,
+        xp_per_sam_destroyed = 50,
+        xp_per_structure_destroyed = 60,
+        xp_per_ship_sunk = 300,
+        xp_per_intel_report = 50,
         landing_time = 15, -- (seconds) the time the player has to stay on the ground to be rewarded
 
         tokens_on_rank_up = 20, -- random between tokens awarded on rank up
         tokens_on_rank_up_variance = 10,
+        
+        -- Co-op reward bonuses
+        coop_xp_bonus = 0.20, -- 20% bonus to XP and tokens when playing co-op operations (multiplier applied to both XP and tokens)
 
         tokens_mission_complete = {
             [OperationTypes.AIRDROP] = 20,
-            [OperationTypes.CAP] = 10,
+            [OperationTypes.CAP] = 5,
             [OperationTypes.CAS] = 20,
             [OperationTypes.SEAD] = 15,
             [OperationTypes.STRIKE] = 15,
             [OperationTypes.DEAD] = 30,
             [OperationTypes.RECON] = 10,
+            [OperationTypes.INTERCEPT] = 10
         },
 
         xp_required = {
             [AITaskTypes.JTAC]           = 0,
-            [AITaskTypes.RECON]          = 6000,
-            [AITaskTypes.INTERCEPT]      = 10000,
-            [AITaskTypes.CAS]            = 15000,
-            [AITaskTypes.STRIKE]         = 20000,
-            [AITaskTypes.SEAD]           = 25000,
+            [AITaskTypes.RECON]          = 2000,   -- ~2-3 hours
+            [AITaskTypes.CAP]            = 5000,   -- ~5-8 hours
+            [AITaskTypes.CAS]            = 10000,  -- ~10-15 hours (Major milestone)
+            [AITaskTypes.STRIKE]         = 15000,  -- ~20 hours
+            [AITaskTypes.SEAD]           = 20000,  -- ~25 hours
             [AITaskTypes.CAPTURE_HELO]   = 30000,
-            [AITaskTypes.RESUPPLY_CARGO] = 50000,
-            [AITaskTypes.AWACS]          = 120000,
+            [AITaskTypes.RESUPPLY_CARGO] = 40000,
+            [AITaskTypes.AWACS]          = 60000,  -- High level role (~70 hours)
         },
 
         ranks = {
             [1]  = { name = "Airman Basic",      xp_required = 0 },
-            [2]  = { name = "Airman",            xp_required = 1000 },
-            [3]  = { name = "Airman First Class",xp_required = 3000 },
-            [4]  = { name = "Senior Airman",     xp_required = 6000 },
-            [5]  = { name = "Staff Sergeant",    xp_required = 10000 },
-            [6]  = { name = "Technical Sergeant",xp_required = 15000 },
-            [7]  = { name = "Master Sergeant",   xp_required = 20000 },
-            [8]  = { name = "Senior Master Sergeant", xp_required = 25000 },
-            [9]  = { name = "Chief Master Sergeant",  xp_required = 30000 },
+            [2]  = { name = "Airman",            xp_required = 1000 },  -- 1 Hour
+            [3]  = { name = "Airman First Class",xp_required = 2500 },
+            [4]  = { name = "Senior Airman",     xp_required = 5000 },  -- ~5 Hours
+            [5]  = { name = "Staff Sergeant",    xp_required = 8000 },
+            [6]  = { name = "Technical Sergeant",xp_required = 12000 },
+            [7]  = { name = "Master Sergeant",   xp_required = 16000 },
+            [8]  = { name = "Senior Master Sergeant", xp_required = 20000 }, -- ~20-25 Hours
+            [9]  = { name = "Chief Master Sergeant",  xp_required = 25000 },
 
-            -- Officer Ranks (Officiers)
-            [10] = { name = "Second Lieutenant", xp_required = 40000 },
-            [11] = { name = "First Lieutenant",  xp_required = 50000 },
-            [12] = { name = "Captain",           xp_required = 60000 },
-            [13] = { name = "Major",             xp_required = 90000 },
-            [14] = { name = "Lieutenant Colonel",xp_required = 100000 },
-            [15] = { name = "Colonel",          xp_required = 120000 },
-            [16] = { name = "Brigadier General",xp_required = 140000 },
-            [17] = { name = "Major General",    xp_required = 160000 },
-            [18] = { name = "Lieutenant General",xp_required = 200000 },
-            [19] = { name = "General",          xp_required = 300000 },
-            [20] = { name = "Commander",       xp_required = 1000000 },
+            [10] = { name = "Second Lieutenant", xp_required = 32000 },
+            [11] = { name = "First Lieutenant",  xp_required = 40000 },
+            [12] = { name = "Captain",           xp_required = 48000 }, -- ~50 Hours (Halfway)
+            [13] = { name = "Major",             xp_required = 58000 },
+            [14] = { name = "Lieutenant Colonel",xp_required = 68000 },
+            [15] = { name = "Colonel",           xp_required = 78000 },
+            [16] = { name = "Brigadier General", xp_required = 85000 },
+            [17] = { name = "Major General",     xp_required = 90000 },
+            [18] = { name = "Lieutenant General",xp_required = 95000 },
+            [19] = { name = "General",           xp_required = 98000 },
+            [20] = { name = "Commander",         xp_required = 100000 }, -- ~100 Hours
         }
 
     },
     theatre = {
 
         -- Weights for random generation (Airbases are excluded)
+        -- 60% of zones will be strongpoints
+        -- 15% logistics
+        -- etc.
         zone_type_weights = {
-            [ZoneTypes.STRONGPOINT] = 60,
-            [ZoneTypes.LOGISTICS]   = 15,
+            [ZoneTypes.STRONGPOINT] = 50,
+            [ZoneTypes.LOGISTICS]   = 20,
             [ZoneTypes.SAMSITE]     = 15,
-            [ZoneTypes.COMMS]       = 5,
+            [ZoneTypes.COMMS]       = 10,
             [ZoneTypes.EWSITE]      = 5,
         },
 
@@ -133,7 +164,7 @@ Config = {
         comms_zones_required_for_cas = 2,
         comms_zones_required_for_sead = 3,
         comms_zones_required_for_strike = 2,
-        comms_zones_required_for_intercept = 1,
+        comms_zones_required_for_cap = 1,
         comms_zones_required_for_awacs = 3,
         comms_zones_required_for_recon = 1,
 
@@ -141,12 +172,12 @@ Config = {
         tokens_required_for_cas = 10,
         tokens_required_for_sead = 15,
         tokens_required_for_strike = 15,
-        tokens_required_for_intercept = 10,
+        tokens_required_for_cap = 10,
         tokens_required_for_awacs = 30,
         tokens_required_for_recon = 10,
         tokens_required_for_capture_helicopter = 10,
     },
-    comms_tower_respawn_time = 40*60, -- (seconds), the timer decreases by 25% for every level
+    comms_tower_respawn_time = 1*60, -- (seconds), the timer decreases by 25% for every level
     comms_tower_lost_penalty = 1, -- the respawn time is multiplied by this much when a comms tower is lost
     -- the penalty is disabled by default to avoid excessive respawn times
 
@@ -159,7 +190,7 @@ Config = {
         max_cas_per_airbase = 1,
         max_sead_per_airbase = 2,
         max_strike_per_airbase = 2,
-        max_intercept_per_airbase = 2,
+        max_cap_per_airbase = 2,
         max_awacs_per_airbase = 1,
         max_recon_per_airbase = 2,
 
@@ -167,7 +198,7 @@ Config = {
         max_cas_theatre = 4,-- per coalition, only for AI auto tasking
         max_sead_theatre = 4,-- per coalition , only for AI auto tasking
         max_strike_theatre = 4,-- per coalition, only for AI auto tasking
-        max_intercept_theatre = 6,-- per coalition, only for AI auto tasking
+        max_cap_theatre = 6,-- per coalition, only for AI auto tasking
         max_recon_theatre = 4,-- per coalition, only for AI auto tasking
         max_awacs_per_theatre = 2,-- per coalition, only for AI auto tasking
         max_attack_convoy_per_theatre = 3,-- per coalition, only for AI auto tasking
@@ -212,13 +243,13 @@ Config = {
     EWRS = {
         enable = true, -- enables/disables the EWRS system
         standard_refresh_time = 20, -- (seconds)
-        max_aircraft_per_text = 8, -- maximum number of aircraft displayed per message
+        max_aircraft_per_text = 6, -- maximum number of aircraft displayed per message
     },
 
     draw_color_palette = {
         -- for rgb, divide values by 255 to get 0-1 range
         red_palette = {
-            {0.7, 0, 0, 0.9},   -- Border color (r g b: values from 0 to 1, a: alpha from 0 to 1)
+            {0.7, 0, 0, 0.9},   -- Border color (r g b: values from 0 to 1, a: transparency from 0 to 1)
             {0.7, 0, 0, 0.25},  -- Fill color
             {0.5, 0.1, 0.1, 1},   -- Text color
             {1, 0.5, 0.5, 0.3}    -- Text BG

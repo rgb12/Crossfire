@@ -25,6 +25,7 @@
 ---@field name string
 ---@field difficulty ScenarioDifficulty
 ---@field description string
+---@field estimated_users number
 ---@field coalition_setup CoalSetup
 ---@field red_airbase ZoneHandler|nil
 ---@field blue_airbase ZoneHandler|nil
@@ -35,171 +36,6 @@
 
 ---@type Scenario[]
 Scenarios = {
-    {
-        name = "Neptune Protocol",
-        description = "Regain control of lost Georgia.",
-        coalition_setup = {
-            initial_dist_blue_to_frontline = 55750, --meters
-            dist_variance = 5000, --meters
-            auto_coalition_designation = true, -- overrides the above
-        },
-        logistics_setup = {
-            upgrade_range = 50000, --meters
-            heli_capture_range = 100000, --meters
-            max_dist_to_frontline = 65000 --meters
-        },
-        resupply = {
-            blue_point = { x = 00006923, y = 6096, z = 00079849 },
-            red_point = { x = -00326782, y = 6096, z = 00932890 }
-        },
-        difficulty = ScenarioDifficulty.HARD,
-        red_airbase = ZoneHandler:new({
-            name = "ANAPA",
-            airbase_name = Airbases.Caucasus.Anapa_Vityazevo,
-            zone_type = ZoneTypes.AIRBASE,
-            acft_resupply_point = {
-                x = 00006923,
-                y = 6096, 
-                z = 00079849
-            }}),
-        blue_airbase =  ZoneHandler:new({
-            name = "VAZIANI",
-            zone_type = ZoneTypes.AIRBASE,
-            airbase_name = Airbases.Caucasus.Vaziani,
-            acft_resupply_point = {
-                x = -00326782,
-                y = 6096, --20k ft
-                z = 00932890
-            }
-        }),
-        zones = {
-            ZoneHandler:new({
-                name = "LOG",
-                zone_type = ZoneTypes.LOGISTICS,
-                next_level_up_avail = timer.getTime(),
-                capture_convoy_avail = 1,
-                capture_heli_avail = 2
-            }),
-            ZoneHandler:new({
-                name = "L2",
-                zone_type = ZoneTypes.LOGISTICS,
-                side = coalition.side.BLUE,
-                next_level_up_avail = timer.getTime(),
-        
-                capture_convoy_avail = 1,
-                capture_heli_avail = 2
-                --init_groups = { "RED GRND TEST" },
-                -- panel_only = true
-            }),
-            ZoneHandler:new({
-                name = "ALPHA",
-                zone_type = ZoneTypes.STRONGPOINT
-            }),
-            ZoneHandler:new({
-                name = "TEST",
-                zone_type = ZoneTypes.STRONGPOINT
-            }),
-            ZoneHandler:new({
-                name = "BRAVO",
-                zone_type = ZoneTypes.STRONGPOINT
-            }),
-            ZoneHandler:new({
-                name = "SAMH",
-                zone_type = ZoneTypes.SAMSITE,
-                sam_classification = SAM_TYPES.MEDIUM_RANGE,
-            }),
-            ZoneHandler:new({
-                name = "CHARLIE",
-                zone_type = ZoneTypes.SAMSITE,
-                sam_classification = SAM_TYPES.MEDIUM_RANGE,
-            }),
-            ZoneHandler:new({
-                name = "DELTA",
-                zone_type = ZoneTypes.SAMSITE,
-                sam_classification = SAM_TYPES.LONG_RANGE,
-            }),
-            ZoneHandler:new({
-                name = "STRONGHOLD-CHARLIE",
-                zone_type = ZoneTypes.LOGISTICS,
-                
-                next_level_up_avail = timer.getTime(),
-        
-                -- capture_convoy_avail = 1,
-                capture_heli_avail = 6
-            }),
-            ZoneHandler:new({
-                name = "COMMS1",
-                zone_type = ZoneTypes.COMMS
-            }),
-            ZoneHandler:new({
-                name = "COMMS2",
-                zone_type = ZoneTypes.COMMS
-            }),
-            ZoneHandler:new({
-                name = "SUKHUMI",
-                zone_type = ZoneTypes.AIRBASE,
-                airbase_name = Airbases.Caucasus.Sukhumi_Babushara,
-                acft_resupply_point = { --TO CHANGE
-                    x = -00326782,
-                    y = 6096, --20k ft
-                    z = 00932890
-                }
-            }),
-            -- ZoneHandler:new({
-            --     name = "COMMS3",
-            --     zone_type = ZoneTypes.COMMS
-            -- }),
-            -- ZoneHandler:new({
-            --     name = "COMMS4",
-            --     zone_type = ZoneTypes.COMMS
-            -- }),
-            -- ZoneHandler:new({
-            --     name = "COMMS5",
-            --     zone_type = ZoneTypes.COMMS
-            -- }),
-            ZoneHandler:new({
-                name = "KUTAISI",
-                zone_type = ZoneTypes.AIRBASE,
-                airbase_name = Airbases.Caucasus.Kutaisi,
-                acft_resupply_point = { --TO CHANGE
-                    x = -00326782,
-                    y = 6096, --20k ft
-                    z = 00932890
-                }
-            }),
-            ZoneHandler:new({
-                name = "SENAKI",
-                zone_type = ZoneTypes.AIRBASE,
-                airbase_name = Airbases.Caucasus.Senaki_Kolkhi,
-                acft_resupply_point = { --TO CHANGE
-                    x = -00326782,
-                    y = 6096, --20k ft
-                    z = 00932890
-                }
-            }),
-            ZoneHandler:new({
-                name = "RED COMMS1",
-                zone_type = ZoneTypes.COMMS
-            }),
-            ZoneHandler:new({
-                name = "RED COMMS2",
-                zone_type = ZoneTypes.COMMS
-            }),
-            ZoneHandler:new({
-                name = "RED COMMS3",
-                zone_type = ZoneTypes.COMMS
-            }),
-            ZoneHandler:new({
-                name = "RED COMMS4",
-                zone_type = ZoneTypes.COMMS
-            }),
-            ZoneHandler:new({
-                name = "RED COMMS5",
-                zone_type = ZoneTypes.COMMS
-            }),
-
-        }
-    },
     {
         name = "Mercury Rising",
         description = "Full map takeover of Caucasus.",
@@ -217,6 +53,7 @@ Scenarios = {
             blue_point = { x = 00006923, y = 6096, z = 00079849 },
             red_point = { x = -00326782, y = 6096, z = 00932890 }
         },
+        estimated_users = 1,
         difficulty = ScenarioDifficulty.EXPERT,
         red_airbase = ZoneHandler:new({
             name = "ANAPA",
@@ -265,7 +102,6 @@ Scenarios = {
             ZoneHandler:new({ name = "FOXTROT" }),
             ZoneHandler:new({ name = "GOLF" }),
             ZoneHandler:new({ name = "HOTEL" }),
-            ZoneHandler:new({ name = "INDIA" }),
             ZoneHandler:new({ name = "JULIETT" }),
             ZoneHandler:new({ name = "KILO" }),
             ZoneHandler:new({ name = "LIMA" }),
@@ -329,7 +165,6 @@ Scenarios = {
             ZoneHandler:new({ name = "QUEEN" }),
             ZoneHandler:new({ name = "KING" }),
             ZoneHandler:new({ name = "DEHVIRI" }),
-            ZoneHandler:new({ name = "LAILASHI" }),
             ZoneHandler:new({ name = "ABANOETI" }),
             ZoneHandler:new({ name = "LEDGEBE" }),
             ZoneHandler:new({ name = "KOKI" }),
@@ -416,6 +251,7 @@ Scenarios = {
             max_dist_to_frontline = 80000 --meters
         },
         resupply = {
+            --blue_point = { x=-00310000, y=2000,z=00901479}, --for dev
             blue_point = { x = -00318568, y = 6096, z = 00991378 },
             red_point = { x = -00290581, y = 6096, z = 00569411 }
         },
@@ -423,6 +259,7 @@ Scenarios = {
             carrier_unit_name = "Carrier",
             enabled = true
         },
+        estimated_users = 1,
         difficulty = ScenarioDifficulty.MEDIUM,
         red_airbase = ZoneHandler:new({
             name = "SENAKI",
@@ -441,7 +278,6 @@ Scenarios = {
             ZoneHandler:new({name = "OUTPOST-OSCAR"}),
             ZoneHandler:new({name = "STRONGHOLD-BRAVO"}),
             ZoneHandler:new({name = "ALPHA"}),
-            ZoneHandler:new({name = "LOG"}),
             ZoneHandler:new({name = "STRONGHOLD-CHARLIE"}),
             ZoneHandler:new({name = "VICTOR"}),
             ZoneHandler:new({name = "HEVSHA"}),
@@ -469,18 +305,16 @@ Scenarios = {
             ZoneHandler:new({name = "CHECKPOINT-QUEBEC"}),
             ZoneHandler:new({name = "TKVARCHELI"}),
             ZoneHandler:new({name = "LABRA"}),
-            
             ZoneHandler:new({name = "BRAVO", zone_type = ZoneTypes.FARP,}),
             ZoneHandler:new({name = "DELTA", zone_type = ZoneTypes.FARP}),
             ZoneHandler:new({name = "TRAINING-AIRFIELD", zone_type = ZoneTypes.FARP}),
             ZoneHandler:new({name = "SEASIDE", zone_type = ZoneTypes.FARP}),
-            
             ZoneHandler:new({name = "GUDAUTA", zone_type = ZoneTypes.AIRBASE, airbase_name = Airbases.Caucasus.Gudauta}),
             ZoneHandler:new({name = "SUKHUMI", zone_type = ZoneTypes.AIRBASE, airbase_name = Airbases.Caucasus.Sukhumi_Babushara}),
             ZoneHandler:new({name = "BATUMI", zone_type = ZoneTypes.AIRBASE, airbase_name = Airbases.Caucasus.Batumi}),
             ZoneHandler:new({name = "KOBULETI", zone_type = ZoneTypes.AIRBASE, airbase_name = Airbases.Caucasus.Kobuleti}),
             ZoneHandler:new({name = "KUTAISI", zone_type = ZoneTypes.AIRBASE, airbase_name = Airbases.Caucasus.Kutaisi}),
-        }
+        } -- 43 zones
     }
 }
 --[[

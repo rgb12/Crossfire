@@ -137,6 +137,14 @@ function Jupiter:onEvent(event)
             PersistenceManager:saveUserDataToFile()
             trigger.action.outText("Jupiter: Mission saved.", 15)
             cmd_executed = true
+        elseif command == "-sendattackconvoy" then
+            local closest_zone, dist = getClosestZone(vec3)
+            if closest_zone and dist <= 10000 then
+                TaskManager:initiateAITask(AITaskTypes.ATTACK_CONVOY,closest_zone.side,true,nil,closest_zone,true)
+                cmd_executed = true
+            else
+                trigger.action.outText("Jupiter: No zone found within 10km for Attack Convoy tasking.", 5)
+            end
         elseif command == "-additemwarehouse" then
             local item_flag = param1
             local quantity = tonumber(args[3]) or 10
@@ -289,13 +297,13 @@ function Jupiter:onEvent(event)
             else
                 trigger.action.outText("Jupiter: No zone found within 10km for SEAD tasking.", 5)
             end
-        elseif command == "-sendintercept" then
+        elseif command == "-sendcap" then
             local closest_zone, dist = getClosestZone(vec3)
             if closest_zone and dist <= 10000 then
-                TaskManager:initiateAITask(AITaskTypes.INTERCEPT,coalition.side.BLUE,true,closest_zone,nil,true)
+                TaskManager:initiateAITask(AITaskTypes.CAP,coalition.side.BLUE,true,closest_zone,nil,true)
                 cmd_executed = true
             else
-                trigger.action.outText("Jupiter: No zone found within 10km for Intercept tasking.", 5)
+                trigger.action.outText("Jupiter: No zone found within 10km for CAP tasking.", 5)
             end
         elseif command == "-sendawacs" then
             local closest_zone, dist = getClosestZone(vec3)
@@ -342,8 +350,8 @@ function Jupiter:onEvent(event)
             end
         elseif command == "-scalewarehouse" then
             local scale = tonumber(param1) or 1.0
-            Config.estimated_users = math.max(1,scale)
-            trigger.action.outText(string.format("Jupiter: Scaled warehouse stock calculations for %d users.", Config.estimated_users), 5)
+            Scenario.estimated_users = math.max(1,scale)
+            trigger.action.outText(string.format("Jupiter: Scaled warehouse stock calculations for %d users.", Scenario.estimated_users), 5)
             cmd_executed = true
         elseif command == "-addxp" then
             local xp_to_add = tonumber(param1) or 1000

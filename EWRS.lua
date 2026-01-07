@@ -39,7 +39,7 @@ do
             view_radius = view_radius
         }
         MissionLogger:info(unit:getID())
-        trigger.action.outTextForUnit(unit:getID(),"> EWRS enabled, radius set to "..mist.utils.metersToNM(view_radius).." NM",5)
+        trigger.action.outTextForGroup(unit:getGroup():getID(),"> EWRS enabled, radius set to "..mist.utils.metersToNM(view_radius).." NM",5)
 
     end
 
@@ -47,7 +47,7 @@ do
     ---@param unit Unit
     function EWRS:removeUser(name,unit)
         self.users[name] = nil
-        trigger.action.outTextForUnit(unit:getID(),"EWRS reports hidden.",5)
+        trigger.action.outTextForGroup(unit:getGroup():getID(),"EWRS reports hidden.",5)
     end
 
     function EWRS:cacheRadars()
@@ -172,7 +172,7 @@ do
                 end
                 -- sort by range
                 if #nearby_units ==0 then return
-                    trigger.action.outTextForUnit(data.unit:getID(),"EWRS Report\n\n PICTURE CLEAR",15)
+                    trigger.action.outTextForGroup(data.unit:getGroup():getID(),"EWRS Report\n\n PICTURE CLEAR",15)
                 end
                 table.sort(nearby_units, function(a, b) return a.range < b.range end)
 
@@ -194,7 +194,7 @@ do
                     report = report .. txt .. "\n"
 
                 end
-                trigger.action.outTextForUnit(data.unit:getID(),report,15)
+                trigger.action.outTextForGroup(data.unit:getGroup():getID(),report,15)
 
 
             else
@@ -233,8 +233,6 @@ do
 
         -- Enable
         missionCommands.addCommandForGroup(gr_id, "Enable EWRS reports", rootPath, function()
-            -- MissionLogger:info("clicked")
-            -- MissionLogger:info(unit:getName())
             self:addUser(unit:getName(), unit, mist.utils.NMToMeters(40)) -- default 40nm
         end)
 
@@ -245,6 +243,12 @@ do
         for _, nm in ipairs(choices) do
             missionCommands.addCommandForGroup(gr_id, nm .. " NM", radiusMenu, function()
                 self:addUser(unit:getName(), unit, mist.utils.NMToMeters(nm))
+            end)
+        end
+        local choices_km = {20, 40, 80, 150, 300} -- KM
+        for _, km in ipairs(choices_km) do
+            missionCommands.addCommandForGroup(gr_id, km .. " KM", radiusMenu, function()
+                self:addUser(unit:getName(), unit, km * 1000)
             end)
         end
 

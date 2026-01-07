@@ -16,123 +16,117 @@ function ev:onEvent(event)
                 end
             end
         end
-    end
 
-    if event.id == world.event.S_EVENT_PLAYER_ENTER_UNIT then
-        ---@type Unit
-        local unit = event.initiator
         if unit and unit.getCategory and unit:getCategory() == Object.Category.UNIT and unit.getCoalition and unit.isExist
-        and unit:isExist() and unit.getPlayerName then
+        and unit:isExist() and unit.getPlayerName and unit:getPlayerName() then
 
+            --MissionLogger:info("Player " .. unit:getPlayerName() .. " entering unit " .. unit:getName())
             local unit_coalition = unit:getCoalition()
 
+
             -- Checks if the player has the rigt to spawn in the airbase
+            local can_spawn = false
             for _,zone in ipairs(zones) do
                 if zone:isPointInsideZone(unit:getPoint()) then
+                    -- Only check warehouse if zone belongs to player's coalition and is airbase/FARP
+                    if zone.side == unit_coalition and (zone.zone_type == ZoneTypes.AIRBASE or zone.zone_type == ZoneTypes.FARP) then
+                        
+                        if unit.getTypeName and unit:getTypeName() then
+                            local acft_name = unit:getTypeName()
 
-                    -- checks if aircraft/helicopter in airbase or farp stock
-                    local can_spawn = false
-                    if unit.getTypeName and unit:getTypeName() then
-                        local acft_name = unit:getTypeName()
+                            local wh_name = nil
+                            if zone.zone_type == ZoneTypes.FARP and zone.linked_farp then
+                                wh_name = zone.linked_farp
+                            elseif zone.zone_type == ZoneTypes.AIRBASE then
+                                wh_name = zone.airbase_name
+                            end
 
-                        local wh_name = nil
-                        if zone.zone_type == ZoneTypes.FARP and zone.linked_farp then
-                            wh_name = zone.linked_farp
-                        elseif zone.zone_type == ZoneTypes.AIRBASE then
-                            wh_name = zone.airbase_name
-                        end
+                            if wh_name then
+                                local airbase = Airbase.getByName(wh_name)
+                                if airbase then
+                                    local warehouse = airbase:getWarehouse()
+                                    if warehouse then
+                                        local acft_count = warehouse:getItemCount(acft_name)
+                                        if acft_count > 0 then
+                                            can_spawn = true
+                                            
+                                            if acft_name == WarehouseManager.AircraftFlags.C130J_30 or
+                                            zone.zone_type == ZoneTypes.FARP then
+                                                warehouse:removeItem(acft_name,1)
+                                            end
 
-                        if wh_name then
-                            local airbase = Airbase.getByName(wh_name)
-                            if airbase then
-                                local warehouse = airbase:getWarehouse()
-                                if warehouse then
-                                    local acft_count = warehouse:getItemCount(acft_name)
-                                    if acft_count > 0 then
-                                        can_spawn = true
-                                        
-                                        if acft_name == WarehouseManager.AircraftFlags.C130J_30 or
-                                        zone.zone_type == ZoneTypes.FARP then
-                                            warehouse:removeItem(acft_name,1)
+                                        else
+                                            can_spawn = false
+                                            warehouse:addItem(acft_name,1)
                                         end
-
-                                    else
-                                        can_spawn = false
-                                        warehouse:addItem(acft_name,1)
                                     end
                                 end
                             end
+
                         end
-
+                        break
                     end
 
-                    if zone.side ~= unit_coalition then
-                        can_spawn = false
-                    end
-                    if zone.zone_type ~= ZoneTypes.AIRBASE and zone.zone_type~=ZoneTypes.FARP then
-                        can_spawn = false
-                    end
-
-                    MissionLogger:info("Player "..unit:getPlayerName().." spawned in zone "..zone.name..". Can spawn: "..tostring(can_spawn))
-                    if not can_spawn then
-
-                        -- not allowed, destroy the unit
-                        local unit_id = unit:getID()
-                        trigger.action.outSoundForUnit(unit_id, "error.ogg")
-                        trigger.action.outTextForUnit(unit_id, "****************\n\nThis slot is not allowed! Consult F10 map and warehouse stocks.\n\n****************", 20)
-                        timer.scheduleFunction(function ()
-                            if unit and unit:isExist() then
-                                unit:destroy()
-                            end
-                        end, {}, timer.getTime() + 2)
-                    end
                 end
             end
 
-            local group = unit:getGroup()
-            if not group then return end
+            if not can_spawn then
 
-            -- Init Commands
-            CommandHandler.clearF10(group)
+                local unit_id = unit:getID()
+                -- not allowed, destroy the unit
+                trigger.action.outSoundForUnit(unit_id, "error.ogg")
+                trigger.action.outTextForUnit(unit_id, "****************\n\nThis slot is not allowed! Consult F10 map and warehouse stocks.\n\n****************", 20)
+                
 
-            -- Initiate the command menus for the player
-            ExperienceManager:addUser(unit)
-            local group_id = group:getID()
-            local xprank_root = missionCommands.addCommandForGroup(group_id, "XP/Rank", nil, function()
-                local user = ExperienceManager:fetchUser(unit)
-                if user then
-                    local rank_name = "Unranked"
-                    local next_rank_xp = 999999
-                    local next_rank = "..."
-                    for i = #Config.reward_system.ranks, 1, -1 do
-                        local rank = Config.reward_system.ranks[i]
-                        if user.xp >= rank.xp_required then
-                            rank_name = rank.name
-                            if i < #Config.reward_system.ranks then
-                                next_rank_xp = Config.reward_system.ranks[i + 1].xp_required
-                                next_rank = Config.reward_system.ranks[i + 1].name
-                            end
-                            break
-                        end
+                timer.scheduleFunction(function ()
+                    if unit and unit:isExist() then
+                        unit:destroy()
                     end
-                    local out_text = string.format("< XP and Rank >\n\nRank: %s\n\nTokens: %d (+%d)\nXP: %d (+%d)\nMissions Completed: %d\n\nNext Rank: %s\n  %s XP",
-                        rank_name, user.tokens, user.unclaimed_tokens, user.xp, user.unclaimed_xp, user.missions_completed, next_rank, next_rank_xp)
-                    trigger.action.outTextForGroup(group_id, out_text, 15)
-                end
-            end)
-            CommandHandler.addToMenuTracking(group_id, xprank_root, "xp_rank_menu")
-        
-            
-            -- 2. Now initialize the fresh menus
-            CommandHandler.init(unit)
-            CommandHandler.resourcesRequests(group)
-            CommandHandler.initTaskingRequests(group)
-            CommandHandler.operationsMenu(group,unit)
-            CommandHandler.tallyZone(unit)
-            local ew = EWRS_coalition[unit_coalition]
-            ew:addRadioMenuForUser(unit)
-            --  CommandHandler.initCommandsForGroup(unit:getGroup())
+                end, {}, timer.getTime() + 2)
+            else
+                local group = unit:getGroup()
+                if not group then return end
 
+                -- Init Commands
+                CommandHandler.clearF10(group)
+
+                -- Initiate the command menus for the player
+                ExperienceManager:addUser(unit)
+                local group_id = group:getID()
+                local xprank_root = missionCommands.addCommandForGroup(group_id, "XP/Rank", nil, function()
+                    local user = ExperienceManager:fetchUser(unit)
+                    if user then
+                        local rank_name = "Unranked"
+                        local next_rank_xp = 1010101010
+                        local next_rank = "..."
+                        for i = #Config.reward_system.ranks, 1, -1 do
+                            local rank = Config.reward_system.ranks[i]
+                            if user.xp >= rank.xp_required then
+                                rank_name = rank.name
+                                if i < #Config.reward_system.ranks then
+                                    next_rank_xp = Config.reward_system.ranks[i + 1].xp_required
+                                    next_rank = Config.reward_system.ranks[i + 1].name
+                                end
+                                break
+                            end
+                        end
+                        local out_text = string.format("< XP and Rank >\n\nRank: %s\n\nTokens: %d (+%d)\nXP: %d (+%d)\nMissions Completed: %d\n\nNext Rank: %s\n  %s XP",
+                            rank_name, user.tokens, user.unclaimed_tokens, user.xp, user.unclaimed_xp, user.missions_completed, next_rank, next_rank_xp)
+                        trigger.action.outTextForGroup(group_id, out_text, 15)
+                    end
+                end)
+                CommandHandler.addToMenuTracking(group_id, xprank_root, "xp_rank_menu")
+            
+                
+                -- 2. Now initialize the fresh menus
+                CommandHandler.init(unit)
+                CommandHandler.resourcesRequests(group)
+                CommandHandler.initTaskingRequests(group)
+                CommandHandler.operationsMenu(group,unit)
+                CommandHandler.tallyZone(unit)
+                local ew = EWRS_coalition[unit_coalition]
+                ew:addRadioMenuForUser(unit)
+            end
         end
     end
 
@@ -140,7 +134,8 @@ function ev:onEvent(event)
         ---@type Unit
         local unit = event.initiator
         if unit and unit.getCategory and unit:getCategory() == Object.Category.UNIT and unit.getCoalition and unit.isExist
-        and unit:isExist() and unit.getPlayerName then
+        and unit:isExist() and unit.getPlayerName and unit:getPlayerName() then
+            MissionLogger:info("Player " .. unit:getPlayerName() .. " leaving unit " .. unit:getName())
             -- Clear F10 menus
             local group = unit:getGroup()
             if group then
@@ -240,6 +235,11 @@ function ev:onEvent(event)
                         timer.scheduleFunction(function ()
                             unit:getGroup():destroy()
                         end, {}, timer.getTime() + 10)
+                    else
+                        timer.scheduleFunction(function ()
+                            unit:getGroup():destroy()
+                        end, {}, timer.getTime() + 10)
+
                     end
             end
 
@@ -269,15 +269,14 @@ function ev:onEvent(event)
                     
                     trigger.action.outTextForCoalition(enroute_task.side, "RESUPPLY CARGO has landed", 10)
                     
-                    local enroute_task_side = enroute_task.side
                     -- Schedule the supply addition
                     timer.scheduleFunction(function ()
                     
-                        if enroute_task_side == coalition.side.RED then
+                        if enroute_task.side == coalition.side.RED then
                             WarehouseManager:handleIncomingSupplies(coalition.side.RED, {WarehouseManager.StockTypes.INITIAL})
                         else
-                            if Config.enabled_su25t_bluefor then
-                                WarehouseManager:handleIncomingSupplies(coalition.side.BLUE, {WarehouseManager.StockTypes.SU25T_BLUEFOR, WarehouseManager.StockTypes.INITIAL})
+                            if Config.enabled_su25t_blufor then
+                                WarehouseManager:handleIncomingSupplies(coalition.side.BLUE, {WarehouseManager.StockTypes.SU25T_BLUFOR, WarehouseManager.StockTypes.INITIAL})
                             else
                                 WarehouseManager:handleIncomingSupplies(coalition.side.BLUE, {WarehouseManager.StockTypes.INITIAL})
                             end
@@ -286,9 +285,6 @@ function ev:onEvent(event)
                     end,{},timer.getTime()+10)
     
                 end
-
-
-                
                 timer.scheduleFunction(function ()
                     EnrouteManager:remove(group_name)
                     MissionLogger:info("destroying landed cargo")
@@ -298,7 +294,7 @@ function ev:onEvent(event)
                     end
 
                 end, {}, timer.getTime() + 120)
-                -- MissionLogger:info("Removed LANDED"..enroute_task.ai_task_type.." from enroutes: " .. group_name)
+
             end
         end
     elseif event.id == world.event.S_EVENT_DEAD and event.initiator then

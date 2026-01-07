@@ -18,11 +18,13 @@ do
         if Config.persistence.enable and lfs and io then
             PersistenceManager.enabled = true
             PersistenceManager:checkPath()
-            trigger.action.outText("> Persistence enabled.",60)
+            trigger.action.outText("Persistence enabled.",60)
             return true
         elseif Config.persistence.enable then
             PersistenceManager.enabled = false
-            trigger.action.outText("> Persistence disabled, could not access io or lfs.", 60)
+            trigger.action.outText("Persistence disabled, could not access io or lfs.", 60)
+        elseif not Config.persistence.enable then
+            trigger.action.outText("Persistence disabled in config.", 60)
         end
         return false
     end
@@ -31,7 +33,6 @@ do
     --- Gathers all mission-critical data into the data table.
     function PersistenceManager:fetchState()
         if not PersistenceManager.enabled then return end  
-        MissionLogger:info("Gathering current mission state...")
         PersistenceManager.data = {} -- Clear old data
 
         -- 1. Save Scenario (the home bases)
@@ -102,14 +103,11 @@ do
                 end
             end
         end
-
-        MissionLogger:info("State successfully gathered.")
     end
 
     --- Simply places enroutes back into warehouses for next mission
     function PersistenceManager:enroutesRefund()
-        MissionLogger:info("Calculating virtual refunds for save file...")
-        
+
         for _, enroute in ipairs(EnrouteManager.enroutes) do
             local zone_data = nil
             if enroute.from_zone then
@@ -336,7 +334,7 @@ do
                         for category, items_table in pairs(saved_inventory) do
                             if type(items_table) == "table" and category ~= "liquids" then
                                 for item_name, count in pairs(items_table) do
-                                    warehouse:addItem(item_name, count)
+                                    warehouse:setItem(item_name, count)
                                 end
                             end
                         end

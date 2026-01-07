@@ -58,6 +58,7 @@ do
     AAQ_13_LANTIRN = "weapons.containers.F-15E_AAQ-13_LANTIRN",
     F14_LANTIRN = "weapons.containers.{F14-LANTIRN-TP}",
     AN_APG_78_APACHE_RADAR = "weapons.containers.ah-64d_radar",
+    AN_ASQ_228_ATFLIR = "weapons.containers.AN_ASQ_228",
 
     HTS_POD = "weapons.containers.16c_hts_pod",
     ALQ_184 = "weapons.containers.ALQ-184",
@@ -233,7 +234,7 @@ do
                         group_name = "BLUE VAZIANI STRIKE",
                         warehouse_name = WarehouseManager.AircraftFlags.F16C_BL50
                     },
-                    [AITaskTypes.INTERCEPT] = {
+                    [AITaskTypes.CAP] = {
                         group_name = "BLUE VAZIANI INTERCEPT",
                         warehouse_name = WarehouseManager.AircraftFlags.F15C
                     },
@@ -259,7 +260,7 @@ do
                         group_name = "RED VAZIANI STRIKE",
                         warehouse_name = WarehouseManager.AircraftFlags.SU24M
                     },
-                    [AITaskTypes.INTERCEPT] = {
+                    [AITaskTypes.CAP] = {
                         group_name = "RED VAZIANI INTERCEPT",
                         warehouse_name = WarehouseManager.AircraftFlags.SU27
                     },
@@ -287,7 +288,7 @@ do
                         group_name = "RED ANAPA STRIKE",
                         warehouse_name = WarehouseManager.AircraftFlags.SU24M
                     },
-                    [AITaskTypes.INTERCEPT] = {
+                    [AITaskTypes.CAP] = {
                         group_name = "RED ANAPA INTERCEPT",
                         warehouse_name = WarehouseManager.AircraftFlags.SU27
                     },
@@ -315,7 +316,7 @@ do
                         group_name = "RED KRYMSK STRIKE",
                         warehouse_name = WarehouseManager.AircraftFlags.SU24M
                     },
-                    [AITaskTypes.INTERCEPT] = {
+                    [AITaskTypes.CAP] = {
                         group_name = "RED KRYMSK INTERCEPT",
                         warehouse_name = WarehouseManager.AircraftFlags.SU27
                     },
@@ -339,7 +340,7 @@ do
                         group_name = "RED KRASNODAR STRIKE",
                         warehouse_name = WarehouseManager.AircraftFlags.SU24M
                     },
-                    [AITaskTypes.INTERCEPT] = {
+                    [AITaskTypes.CAP] = {
                         group_name = "RED KRASNODAR INTERCEPT",
                         warehouse_name = WarehouseManager.AircraftFlags.SU27
                     },
@@ -364,7 +365,7 @@ do
                         group_name = "RED MAYKOP STRIKE",
                         warehouse_name = WarehouseManager.AircraftFlags.SU24M
                     },
-                    [AITaskTypes.INTERCEPT] = {
+                    [AITaskTypes.CAP] = {
                         group_name = "RED MAYKOP INTERCEPT",
                         warehouse_name = WarehouseManager.AircraftFlags.SU27
                     },
@@ -392,7 +393,7 @@ do
                         group_name = "RED SOCHI STRIKE",
                         warehouse_name = WarehouseManager.AircraftFlags.SU24M
                     },
-                    [AITaskTypes.INTERCEPT] = {
+                    [AITaskTypes.CAP] = {
                         group_name = "RED SOCHI INTERCEPT",
                         warehouse_name = WarehouseManager.AircraftFlags.SU27
                     },
@@ -412,7 +413,7 @@ do
                         group_name = "RED GUDAUTA CAS",
                         warehouse_name = WarehouseManager.AircraftFlags.SU25T
                     },
-                    [AITaskTypes.INTERCEPT] = {
+                    [AITaskTypes.CAP] = {
                         group_name = "RED GUDAUTA INTERCEPT",
                         warehouse_name = WarehouseManager.AircraftFlags.SU27
                     },
@@ -430,7 +431,7 @@ do
                         group_name = "BLUE GUDAUTA CAS",
                         warehouse_name = WarehouseManager.AircraftFlags.A10C_TANK_KILLER_II
                     },
-                    [AITaskTypes.INTERCEPT] = {
+                    [AITaskTypes.CAP] = {
                         group_name = "BLUE GUDAUTA INTERCEPT",
                         warehouse_name = WarehouseManager.AircraftFlags.F15C
                     },
@@ -468,7 +469,7 @@ do
                         group_name = "RED SENAKI STRIKE",
                         warehouse_name = WarehouseManager.AircraftFlags.SU24M
                     },
-                    [AITaskTypes.INTERCEPT] = {
+                    [AITaskTypes.CAP] = {
                         group_name = "RED SENAKI INTERCEPT",
                         warehouse_name = WarehouseManager.AircraftFlags.SU27
                     },
@@ -498,7 +499,7 @@ do
                         group_name = "BLUE SENAKI STRIKE",
                         warehouse_name = WarehouseManager.AircraftFlags.F16C_BL50
                     },
-                    [AITaskTypes.INTERCEPT] = {
+                    [AITaskTypes.CAP] = {
                         group_name = "BLUE SENAKI INTERCEPT",
                         warehouse_name = WarehouseManager.AircraftFlags.F15C
                     },
@@ -527,7 +528,7 @@ do
                         group_name = "RED KUTAISI STRIKE",
                         warehouse_name = WarehouseManager.AircraftFlags.SU24M
                     },
-                    [AITaskTypes.INTERCEPT] = {
+                    [AITaskTypes.CAP] = {
                         group_name = "RED KUTAISI INTERCEPT",
                         warehouse_name = WarehouseManager.AircraftFlags.SU27
                     },
@@ -557,7 +558,7 @@ do
                         group_name = "BLUE KUTAISI STRIKE",
                         warehouse_name = WarehouseManager.AircraftFlags.F16C_BL50
                     },
-                    [AITaskTypes.INTERCEPT] = {
+                    [AITaskTypes.CAP] = {
                         group_name = "BLUE KUTAISI INTERCEPT",
                         warehouse_name = WarehouseManager.AircraftFlags.F15C
                     },
@@ -582,7 +583,7 @@ do
                         group_name = "RED KOBULETI CAS",
                         warehouse_name = WarehouseManager.AircraftFlags.SU25T
                     },
-                    [AITaskTypes.INTERCEPT] = {
+                    [AITaskTypes.CAP] = {
                         group_name = "RED KOBULETI INTERCEPT",
                         warehouse_name = WarehouseManager.AircraftFlags.SU27
                     },
@@ -601,7 +602,7 @@ do
                         group_name = "BLUE KOBULETI CAS",
                         warehouse_name = WarehouseManager.AircraftFlags.A10C_TANK_KILLER_II
                     },
-                    [AITaskTypes.INTERCEPT] = {
+                    [AITaskTypes.CAP] = {
                         group_name = "BLUE KOBULETI INTERCEPT",
                         warehouse_name = WarehouseManager.AircraftFlags.F15C
                     },
@@ -642,7 +643,7 @@ do
                 [WarehouseManager.Flags.HYDRA_70_M282_MPP_APKWS] = 7 *2
                 --WARN Missing items
             },
-            [AITaskTypes.INTERCEPT] = {
+            [AITaskTypes.CAP] = {
                 [WarehouseManager.Flags.AIM_120C] = 4 *2,
                 [WarehouseManager.Flags.AIM_9M] = 2 *2
             },
@@ -687,7 +688,7 @@ do
                 -- 2 * Kh-58U AS-11 Kilter ARM 
                 -- 1 * L-081 Fantasmagoria ELINT pod
             },
-            [AITaskTypes.INTERCEPT] = {
+            [AITaskTypes.CAP] = {
                 [WarehouseManager.Flags.R73_AA_11_ARCHER] = 2 *2,
                 [WarehouseManager.Flags.R27ER] = 2 *2,
                 [WarehouseManager.Flags.R27ET] = 2 *2,
@@ -717,8 +718,6 @@ do
     ---@enum WarehouseManager.StockTypes
     WarehouseManager.StockTypes = {
         INITIAL = 1,
-        LOGISTICS_CAPTURE = 100,
-
         AIR_AIR_LONG_RANGE = 2,
         AIR_AIR_SHORT_RANGE = 3,
         AIR_GROUND_GUIDED_MISSILES = 4,
@@ -728,15 +727,15 @@ do
         ECM = 8,
         TGP = 9,
         MISC = 10,
-        
-        AG_AIRCRAFT = 20,
-        MULTIROLE_AIRCRAFT = 21,
-        AA_AIRCRAFT = 22,
-        RECON_AIRCRAFT = 23,
-        CARGO_AIRCRAFT = 24,
-        SU25T_BLUEFOR = 25,
-        FARP = 26,
-        CARRIER_INITAL = 27,
+        LOGISTICS_CAPTURE = 11,
+        AG_AIRCRAFT = 12,
+        MULTIROLE_AIRCRAFT = 13,
+        AA_AIRCRAFT = 14,
+        RECON_AIRCRAFT = 15,
+        CARGO_AIRCRAFT = 16,
+        SU25T_BLUFOR = 17,
+        FARP = 18,
+        CARRIER_INITAL = 19,
     }
 
     WarehouseManager.Stocks = {
@@ -805,8 +804,10 @@ do
                 [WarehouseManager.Flags.AN_AAQ_33_SNIPER] = math.random(4,5),
                 [WarehouseManager.Flags.AAQ_14_LANTIRN] = math.random(6,10),
                 [WarehouseManager.Flags.AAQ_13_LANTIRN] = math.random(6,10),
+                [WarehouseManager.Flags.AN_ASQ_228_ATFLIR] = math.random(4,6),
                 [WarehouseManager.Flags.F14_LANTIRN] = math.random(2,3),
-
+                [WarehouseManager.Flags.ECLAIR_M_60] = math.random(2,4),
+                [WarehouseManager.Flags.ECLAIR_M_51] = math.random(2,4),
 
                 [WarehouseManager.Flags.HTS_POD] = math.random(4,6),
                 [WarehouseManager.Flags.ALQ_184] = math.random(2,3),
@@ -821,6 +822,10 @@ do
                 [WarehouseManager.Flags.AIM_9M] = math.random(20,28),
                 [WarehouseManager.Flags.AIM_9X] = math.random(8,14),
                 [WarehouseManager.Flags.AIM_9L] = math.random(8,14),
+                [WarehouseManager.Flags.AIM_7F] = math.random(14,18),
+                [WarehouseManager.Flags.AIM_7M] = math.random(14,18),
+                [WarehouseManager.Flags.AIM_7P] = math.random(14,18),
+                [WarehouseManager.Flags.AIM_7MH] = math.random(14,18),
                 [WarehouseManager.Flags.AIM_54C_MK47] = math.random(6,10),
                 [WarehouseManager.Flags.SUPER_530D] = math.random(8,14),
                 [WarehouseManager.Flags.MAGIC_II] = math.random(8,14),
@@ -917,6 +922,7 @@ do
 
                 [WarehouseManager.Flags.F14_LANTIRN] = 10,
                 [WarehouseManager.Flags.AAQ_28_LITENING] = 10,
+                [WarehouseManager.Flags.AN_ASQ_228_ATFLIR] = 16,
 
                 [WarehouseManager.AircraftFlags.FA18C_HORNET] = 12,
                 [WarehouseManager.AircraftFlags.E2C_HAWKEYE] = 2,
@@ -926,7 +932,7 @@ do
             [coalition.side.RED] = {}
         },
 
-        [WarehouseManager.StockTypes.SU25T_BLUEFOR] = {
+        [WarehouseManager.StockTypes.SU25T_BLUFOR] = {
             [coalition.side.BLUE] = {
                 [WarehouseManager.AircraftFlags.SU25T] = 6,
                 [WarehouseManager.Flags.R73_AA_11_ARCHER] = math.random(15,30),
@@ -977,11 +983,21 @@ do
             },
             [coalition.side.RED] = {}
         },
+        [WarehouseManager.StockTypes.CARGO_AIRCRAFT] = {
+            [coalition.side.BLUE] = {
+                [WarehouseManager.AircraftFlags.C130J_30] = 4,
+            },
+            [coalition.side.RED] = {
+                [WarehouseManager.AircraftFlags.IL76MD] = 4,
+            }
+        },
+
         [WarehouseManager.StockTypes.AIR_AIR_LONG_RANGE] = {
             [coalition.side.BLUE] = {
                 [WarehouseManager.Flags.AIM_120B] = math.random(8,14),
                 [WarehouseManager.Flags.AIM_120C] = math.random(6,10),
                 [WarehouseManager.Flags.AIM_54C_MK47] = math.random(6,10),
+                [WarehouseManager.Flags.AIM_54C_MK60] = math.random(6,10),
                 [WarehouseManager.Flags.SUPER_530D] = math.random(8,14),
                 [WarehouseManager.Flags.AIM_7F] = math.random(6,10),
                 [WarehouseManager.Flags.AIM_7M] = math.random(6,10),
@@ -1000,7 +1016,6 @@ do
                 [WarehouseManager.Flags.AIM_9X] = math.random(6,10),
                 [WarehouseManager.Flags.AIM_9L] = math.random(6,10),
                 [WarehouseManager.Flags.MAGIC_II] = math.random(8,14),
-
             },
             [coalition.side.RED] = {
                 [WarehouseManager.Flags.R73_AA_11_ARCHER] = math.random(40,60),
@@ -1112,6 +1127,7 @@ do
                 [WarehouseManager.Flags.AN_AAQ_33_SNIPER] = math.random(5,8),
                 [WarehouseManager.Flags.AAQ_14_LANTIRN] = math.random(5,8),
                 [WarehouseManager.Flags.AAQ_13_LANTIRN] = math.random(5,8),
+                [WarehouseManager.Flags.AN_ASQ_228_ATFLIR] = math.random(4,6),
             },
 
         },
@@ -1144,6 +1160,7 @@ do
                 [WarehouseManager.AircraftFlags.M2000C] = 2,
                 [WarehouseManager.AircraftFlags.F15C] = 2,
                 [WarehouseManager.AircraftFlags.F_14A_135_GR] = 2,
+                [WarehouseManager.AircraftFlags.E3A] = 1,
             },
             [coalition.side.RED] = {
                 [WarehouseManager.AircraftFlags.MIG29S] = 6,
@@ -1218,43 +1235,13 @@ do
      
     }
 
-    WarehouseManager.ResupplyCycle = {
-        -- Step 1: Air-to-Air
-        {
-            types = {
-                WarehouseManager.StockTypes.AIR_AIR_SHORT_RANGE,
-                WarehouseManager.StockTypes.AIR_AIR_LONG_RANGE,
-            },
-            text = "Air-to-Air Munitions"
-        },
-        -- Step 2: Air-to-Ground
-        {
-            types = {
-                WarehouseManager.StockTypes.AIR_GROUND_BOMBS,
-                WarehouseManager.StockTypes.AIR_GROUND_GUIDED_BOMBS,
-                WarehouseManager.StockTypes.AIR_GROUND_GUIDED_MISSILES,
-                WarehouseManager.StockTypes.AIR_GROUND_ROCKETS,
-            },
-            text = "Air-to-Ground Munitions"
-        },
-        -- Step 3: Support
-        {
-            types = {
-                WarehouseManager.StockTypes.ECM,
-                WarehouseManager.StockTypes.TGP,
-                WarehouseManager.StockTypes.MISC,
-            },
-            text = "Support Equipment"
-        }
-    }
-
     -- Compute a scaling factor based on estimated users.
     -- Linear scaling as requested:
     -- users=1 -> 1.0, users=4 -> 4.0 (before clamping)
     ---@param users_estimate number|nil
     function WarehouseManager:getStockScale(users_estimate)
         local baseline = 1
-        local users = users_estimate or Config.estimated_users or 1
+        local users = users_estimate or Scenario.estimated_users or 1
         if users < 0 then users = 0 end
         local scale = users / baseline
         return scale
