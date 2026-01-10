@@ -4,6 +4,7 @@ ctld = {}
 ctld.max_placed_assets = 500  -- Global limit for all placed assets
 ctld.load_cooldown_seconds = 5  -- Cooldown between load commands per player
 ctld.player_cooldowns = {}  -- store for player cooldowns
+ctld.supplies_cap = 10000  -- Max supplies per coalition
 
 ---@enum AssetTypes
 ctld.AssetTypes = {
@@ -22,6 +23,8 @@ ctld.CargoCrates = {
     SmallContainer = "iso_container_small",
     SuppliesCrate = "container_cargo"
 }
+
+ctld.allowed_load_zones = {ZoneTypes.FARP, ZoneTypes.AIRBASE, ZoneTypes.LOGISTICS}
 
 ---@class acft_limits
 ---@field aircraft_type string
@@ -56,8 +59,10 @@ ctld.aircraft_limits = {
 ctld.placed_assets = {} -- store for persistence, save function will check all units and statics are alive before saving
 
 ctld.cargo_crate_template = "container_cargo"
-ctld.unpack_radius = 50  -- meters
+ctld.search_radius = 50  -- meters
 ctld.random_crate_spacing = 7  -- meters
+ctld.allow_unpacking_in_zones = true
+ctld.supplies_per_minute_per_ammo_depot = 50
 
 ctld.dynamic_cargo_capable_units = {
    "CH-47Fbl1",
@@ -75,6 +80,7 @@ ctld.dynamic_cargo_capable_units = {
 ---@type ctld_user[]
 ctld.users = {}
 
+
 ctld.nextGroupId = 1
 ctld.getNextGroupId = function()
     ctld.nextGroupId = ctld.nextGroupId + 1
@@ -88,46 +94,50 @@ end
 ---@field type string
 ---@field crates_required number|nil 
 ---@field group_requirement string|nil
+---@field can_move boolean|nil
+---@field req_supplies number|nil
 
 ---@type part[]
 ctld.parts = {
-    {name = "Hawk ln",          desc = "HAWK Launcher",       weight = 2000, type = ctld.AssetTypes.SAM, group_requirement = "Hawk Battery"},
-    {name = "Hawk tr",          desc = "HAWK Track Radar",    weight = 500, type = ctld.AssetTypes.SAM, group_requirement = "Hawk Battery"},
-    {name = "Hawk sr",          desc = "HAWK Search Radar",   weight = 500, type = ctld.AssetTypes.SAM, group_requirement = "Hawk Battery"},
-    {name = "Hawk pcp",         desc = "HAWK PCP",            weight = 200, type = ctld.AssetTypes.SAM, group_requirement = "Hawk Battery"},
-    {name = "Hawk cwar",        desc = "HAWK CWAR",           weight = 200, type = ctld.AssetTypes.SAM, group_requirement = "Hawk Battery"},
+    {name = "Hawk ln",          desc = "HAWK Launcher",       weight = 2000, type = ctld.AssetTypes.SAM, group_requirement = "Hawk Battery", req_supplies = 50},
+    {name = "Hawk tr",          desc = "HAWK Track Radar",    weight = 500, type = ctld.AssetTypes.SAM, group_requirement = "Hawk Battery", req_supplies = 100},
+    {name = "Hawk sr",          desc = "HAWK Search Radar",   weight = 500, type = ctld.AssetTypes.SAM, group_requirement = "Hawk Battery", req_supplies = 100},
+    {name = "Hawk pcp",         desc = "HAWK PCP",            weight = 200, type = ctld.AssetTypes.SAM, group_requirement = "Hawk Battery", req_supplies = 100},
+    {name = "Hawk cwar",        desc = "HAWK CWAR",           weight = 200, type = ctld.AssetTypes.SAM, group_requirement = "Hawk Battery", req_supplies = 100},
 
-    {name = "NASAMS_LN_C",          desc = "NASAMS Launcher 120C",       weight = 2000, type = ctld.AssetTypes.SAM, group_requirement = "NASAMS System"},
-    {name = "NASAMS_Radar_MPQ64F1",          desc = "NASAMS Search/Track Radar",    weight = 500, type = ctld.AssetTypes.SAM, group_requirement = "NASAMS System"},
-    {name = "NASAMS_Command_Post",          desc = "NASAMS Command Post",   weight = 500, type = ctld.AssetTypes.SAM, group_requirement = "NASAMS System"},
+
+    {name = "NASAMS_LN_C",          desc = "NASAMS Launcher 120C",       weight = 2000, type = ctld.AssetTypes.SAM, group_requirement = "NASAMS System", req_supplies = 50},
+    {name = "NASAMS_Radar_MPQ64F1",          desc = "NASAMS Search/Track Radar",    weight = 500, type = ctld.AssetTypes.SAM, group_requirement = "NASAMS System", req_supplies = 100},
+    {name = "NASAMS_Command_Post",          desc = "NASAMS Command Post",   weight = 500, type = ctld.AssetTypes.SAM, group_requirement = "NASAMS System", req_supplies = 100},
 
 
     {name = "Soldier stinger",  desc = "Soldier Stinger",     weight = 100, type = ctld.AssetTypes.TROOPS},
     {name = "Soldier M4 GRG", desc = "Soldier", weight = 100, type = ctld.AssetTypes.TROOPS},
 
-    {name = "M1097 Avenger", desc="M1097 Avenger", weight = 3900, type = ctld.AssetTypes.SAM, crates_required = 2},
-    {name = "Roland ADS", desc="Roland ADS", weight = 5000, type = ctld.AssetTypes.SAM, crates_required = 2},
-    {name = "Gepard", desc="Gepard AAA", weight = 5000, type = ctld.AssetTypes.SAM, crates_required = 2},
-    {name = "HEMTT_C-RAM_Phalanx", desc="LPWS C-RAM", weight = 7000, type = ctld.AssetTypes.SAM, crates_required = 3},
+    {name = "M1097 Avenger", desc="M1097 Avenger", weight = 3900, type = ctld.AssetTypes.SAM, crates_required = 2, can_move = true},
+    {name = "Roland ADS", desc="Roland ADS", weight = 5000, type = ctld.AssetTypes.SAM, crates_required = 2, can_move = true, req_supplies = 500},
+    {name = "Gepard", desc="Gepard AAA", weight = 5000, type = ctld.AssetTypes.SAM, crates_required = 2, can_move = true},
+    {name = "HEMTT_C-RAM_Phalanx", desc="LPWS C-RAM", weight = 7000, type = ctld.AssetTypes.SAM, crates_required = 3, can_move = true},
 
-    {name = "M1043 HMMWV Armament", desc="Humvee - MG", weight = 4000, type = ctld.AssetTypes.VEHICLES},
-    {name = "M1045 HMMWV TOW", desc="Humvee - TOW", weight = 4000, type = ctld.AssetTypes.VEHICLES},
-    {name = "Light Tank - MRAP", desc="MaxxPro_MRAP", weight = 14500, type = ctld.AssetTypes.VEHICLES},
-    {name = "Med Tank - LAV-25", desc="LAV-25", weight = 12800, type = ctld.AssetTypes.VEHICLES},
-    {name = "M-1 Abrams", desc="Heavy Tank - Abrams", weight = 10000, type = ctld.AssetTypes.VEHICLES, crates_required = 4},
+    {name = "M1043 HMMWV Armament", desc="Humvee - MG", weight = 4000, type = ctld.AssetTypes.VEHICLES, can_move = true},
+    {name = "M1045 HMMWV TOW", desc="Humvee - TOW", weight = 4000, type = ctld.AssetTypes.VEHICLES, can_move = true},
+    {name = "MaxxPro_MRAP", desc="Light Tank - MRAP", weight = 14500, type = ctld.AssetTypes.VEHICLES, can_move = true},
 
-    {name = "Hummer - JTAC", desc="Hummer", weight = 1000, type = ctld.AssetTypes.VEHICLES},
-    {name = "M 818", desc="M-818 Ammo Truck", weight = 1000, type = ctld.AssetTypes.VEHICLES},
-    {name = "M978 HEMTT Tanker", desc="M978 HEMTT Tanker", weight = 1000, type = ctld.AssetTypes.VEHICLES},
+    {name = "LAV-25", desc="Med Tank - LAV-25", weight = 12800, type = ctld.AssetTypes.VEHICLES, can_move = true},
+    
+    {name = "M-1 Abrams", desc="Heavy Tank - Abrams", weight = 10000, type = ctld.AssetTypes.VEHICLES, crates_required = 4, can_move = true},
+
+    {name = "Hummer - JTAC", desc="Hummer", weight = 1000, type = ctld.AssetTypes.VEHICLES, can_move = true},
+    {name = "M 818", desc="M-818 Ammo Truck", weight = 1000, type = ctld.AssetTypes.VEHICLES, can_move = true},
+    {name = "M978 HEMTT Tanker", desc="M978 HEMTT Tanker", weight = 1000, type = ctld.AssetTypes.VEHICLES, can_move = true},
 
     {name = "FPS-117", desc="EWR Radar", weight = 10000, type = ctld.AssetTypes.VEHICLES, crates_required = 5},
 
-    {name = "MLRS", desc="MLRS", weight = 1000, type = ctld.AssetTypes.VEHICLES},
-    {name = "SpGH_Dana", desc="SpGH DANA", weight = 1000, type = ctld.AssetTypes.VEHICLES},
-    {name = "SpGH_Dana", desc="SpGH DANA", weight = 1000, type = ctld.AssetTypes.VEHICLES},
+    {name = "MLRS", desc="MLRS", weight = 1000, type = ctld.AssetTypes.VEHICLES, can_move = true},
+    {name = "SpGH_Dana", desc="SpGH DANA", weight = 1000, type = ctld.AssetTypes.VEHICLES, can_move = true},
 
 
-    {name = "container_cargo",  desc = "Crate",               weight = 1000, type = ctld.AssetTypes.CARGO_CRATES},
+    --{name = "container_cargo",  desc = "Crate",               weight = 1000, type = ctld.AssetTypes.CARGO_CRATES},
     {name = "iso_container",    desc = "Large Container",     weight = 4000, type = ctld.AssetTypes.CARGO_CRATES},
     {name = "iso_container_small",desc = "Small Container",   weight = 2000, type = ctld.AssetTypes.CARGO_CRATES},
     {name = "M92_10Ft_Container",desc = "Clean Container",    weight = 1500, type = ctld.AssetTypes.CARGO_CRATES},
@@ -161,10 +171,22 @@ function ctld.initF10RadioMenu(root_menu, group)
         ctld.unpack(unit)
     end)
 
+    missionCommands.addCommandForGroup(gr_id, "Load Nearby Crate", root_menu, function ()
+        ctld.loadNearbyCrate(unit)
+    end)
+
+    missionCommands.addCommandForGroup(gr_id, "Unit Attack", root_menu, function ()
+        ctld.unitAttack(unit)
+    end)
+
     missionCommands.addCommandForGroup(gr_id, "List Loaded Cargo", root_menu, function ()
         ctld.listOnboardCargo(unit)
-        
     end)
+
+    missionCommands.addCommandForGroup(gr_id, "List Supplies", root_menu, function ()
+        ctld.listSupplies(unit)
+    end)
+
 
     local troop_commands = {}
     local cargo_crate_commands = {}
@@ -221,6 +243,25 @@ function ctld.load(part, unit)
     -- If the unit is dynamic cargo capable, then spawn a cargo crate nearby, otherwise store in ctld.users
     local unit_id = unit:getID()
 
+    if unit:inAir() then
+        trigger.action.outTextForUnit(unit_id,"Cannot load while in air.", 5)
+        return
+    end
+
+    local is_in_ctld_zone = false
+    for _,zone in ipairs(zones) do
+        if zone:isPointInsideZone(unit:getPoint()) then
+            if utils.tableContains(ctld.allowed_load_zones, zone.zone_type) then
+                is_in_ctld_zone = true
+                break
+            end
+        end
+    end
+    if not is_in_ctld_zone then
+        trigger.action.outTextForUnit(unit_id,"Cannot load: Not in a valid load zone.", 5)
+        return
+    end
+
     if ctld.player_cooldowns[unit_id] == nil then
         ctld.player_cooldowns[unit_id] = 0
     end
@@ -249,6 +290,22 @@ function ctld.load(part, unit)
         trigger.action.outTextForUnit(unit_id, "Aircraft type not supported.", 5)
         return
     end
+
+    -- check coalition supplies
+    local unit_coal = unit:getCoalition()
+    local supply_count = 0
+    if unit_coal == coalition.side.BLUE then
+        supply_count = stats.blue_supplies
+    elseif unit_coal == coalition.side.RED then
+        supply_count = stats.red_supplies
+    end
+    if part.req_supplies then
+        if supply_count < part.req_supplies then
+            trigger.action.outTextForUnit(unit_id, "Cannot load: Not enough supplies for "..part.desc..". Requires "..part.req_supplies.." supplies.", 10)
+            return
+        end
+    end
+
     -- check max parts
     if part.type == ctld.AssetTypes.CARGO_CRATES or part.type == ctld.AssetTypes.VEHICLES or part.type == ctld.AssetTypes.SAM then
         if #user.parts >= aircraft_limit.max_parts then
@@ -300,9 +357,25 @@ end
 
 ---@param unit Unit
 function ctld.unpack(unit)
+    --[[
+        Finds all nearby crates that belong to ctld (name starts with CTLD_)
+    ]]
+
     local unit_pos = unit:getPoint()
     if unit:inAir() then
         trigger.action.outTextForUnit(unit:getID(),"Cannot unpack while in air.", 5)
+        return
+    end
+
+    local is_in_ctld_zone = false
+    for _,zone in ipairs(zones) do
+        if zone:isPointInsideZone(unit:getPoint()) then
+            is_in_ctld_zone = true
+            break
+        end
+    end
+    if not is_in_ctld_zone and not ctld.allow_unpacking_in_zones then
+        trigger.action.outTextForUnit(unit:getID(),"Cannot unpack in this area.", 5)
         return
     end
 
@@ -311,12 +384,14 @@ function ctld.unpack(unit)
         id = world.VolumeType.SPHERE,
         params = {
             point = unit_pos,
-            radius = ctld.unpack_radius
+            radius = ctld.search_radius
         }
     }
 
     -- Group crates by unit type
     local crates_by_type = {}  -- {unit_name = {objs = {obj1, obj2}, points = {p1, p2}}}  
+
+    local crates_nearby = {}
     world.searchObjects({Object.Category.CARGO}, vol, function(obj)
         if obj and obj:isExist() and obj.getName then
             local cargoName = obj:getName()
@@ -331,6 +406,7 @@ function ctld.unpack(unit)
 
 
             -- checks if cargo is starting with "CTLD_" to identify it as a valid crate
+
             if not cargoName:match("^CTLD_.+_%d+$") then
                 return true
             end
@@ -342,7 +418,7 @@ function ctld.unpack(unit)
             if utils.tableContains(ctld.CargoCrates, unit_name) then
                 return true
             end
-
+            table.insert(crates_nearby, obj)
             -- Group crates by type
             if not crates_by_type[unit_name] then
                 crates_by_type[unit_name] = {objs = {}, points = {}}
@@ -371,6 +447,7 @@ function ctld.unpack(unit)
     -- Check which groups have all parts present
     for group_name, required_part_names in pairs(group_requirements) do
         local all_present = true
+
         local missing_parts = {}
         for _, required_part_name in ipairs(required_part_names) do
             if not crates_by_type[required_part_name] then
@@ -379,6 +456,7 @@ function ctld.unpack(unit)
                 for _, part in ipairs(ctld.parts) do
                     if part.name == required_part_name then
                         table.insert(missing_parts, part.desc)
+
                         break
                     end
                 end
@@ -388,9 +466,12 @@ function ctld.unpack(unit)
         if all_present then
             groups_to_process[group_name] = {parts = required_part_names, all_present = true}
         else
-            -- Show warning about missing parts
-            trigger.action.outTextForUnit(unit:getID(), 
-                string.format("%s incomplete. Missing: %s", group_name, table.concat(missing_parts, ", ")), 5)
+            -- Do not show the message if no crates of any required parts are present
+            if #missing_parts ~= #required_part_names then
+                trigger.action.outTextForUnit(unit:getID(),
+                    string.format("%s incomplete. Missing : %s", group_name, table.concat(missing_parts, ", ")), 5)
+            end
+
         end
     end
     
@@ -449,7 +530,7 @@ function ctld.unpack(unit)
                     local unit_table = {
                         type = unit_name,
                         unitId = u_id,
-                        name = unit_name .. "_unpacked_" .. u_id,
+                        name = "unpacked"..unit_name .. "_" .. u_id,
                         x = closest_point.x,
                         y = closest_point.z,
                     }
@@ -588,19 +669,19 @@ function ctld.unload(unit)
     -- body
     local unit_id = unit:getID()
     if unit:inAir() then
-        trigger.action.outTextForUnit(unit_id,"Cannot unload while in air.", 15)
+        trigger.action.outTextForUnit(unit_id,"Cannot unload while in air.", 5)
         return
     end
 
     if ctld.isDynamicCargoCapable(unit) then
         -- reject, user has to unload using dcs cargo system
-        trigger.action.outTextForUnit(unit_id,"Cannot unload using CTLD. Use dynamic cargo system to unload.", 15)
+        trigger.action.outTextForUnit(unit_id,"Cannot unload using CTLD. Use dynamic cargo system to unload.", 5)
     else
         -- remove part from ctld.users and
         -- spawn the cratre
         local user = ctld.users[unit_id]
         if user == nil or #user.parts == 0 then
-            trigger.action.outTextForUnit(unit_id,"No cargo to unload.", 15)
+            trigger.action.outTextForUnit(unit_id,"No cargo to unload.", 5)
             return
         end
         local part_to_spawn = user.parts[#user.parts]
@@ -612,8 +693,191 @@ function ctld.unload(unit)
 
         local part = table.remove(user.parts)
         
-        trigger.action.outTextForUnit(unit_id,"Unloaded "..part.desc, 15)
+        trigger.action.outTextForUnit(unit_id,"Unloaded "..part.desc, 5)
     end
+end
+
+function ctld.loadNearbyCrate(unit)
+    local unit_id = unit:getID()
+
+    if unit:inAir() then
+        trigger.action.outTextForUnit(unit_id,"Cannot load while in air.", 5)
+        return
+    end
+
+    if ctld.isDynamicCargoCapable(unit) then
+        trigger.action.outTextForUnit(unit_id,"Cannot load nearby crate: Use dynamic cargo system to load crates.", 5)
+        return
+    end
+
+    -- Get aircraft limits
+    local aircraft_limit = ctld.getAircraftLimit(unit)
+    if not aircraft_limit then
+        trigger.action.outTextForUnit(unit_id, "Aircraft type not supported.", 5)
+        return
+    end
+
+    -- search for crates nearby
+    local vol = {
+        id = world.VolumeType.SPHERE,
+        params = {
+            point = unit:getPoint(),
+            radius = ctld.search_radius
+        }
+    }
+    local crates_nearby = {}
+    world.searchObjects({Object.Category.CARGO}, vol, function(obj)
+        if obj and obj:isExist() and obj.getName then
+            local cargoName = obj:getName()
+            -- Check coalition match
+            if obj:getCoalition() ~= unit:getCoalition() then
+                return true
+            end
+            -- checks if cargo is starting with "CTLD_" to identify it as a valid crate
+            if cargoName:match("^CTLD_.+_%d+$") then
+                table.insert(crates_nearby, obj)
+            end
+        end
+        return true
+    end)
+
+    local sorted_crates_by_distance = {}
+    for _, crate in ipairs(crates_nearby) do
+        if crate and crate:isExist() then
+            local dist = mist.utils.get2DDist(unit:getPoint(), crate:getPoint())
+            table.insert(sorted_crates_by_distance, {crate = crate, distance = dist})
+        end
+    end
+    table.sort(sorted_crates_by_distance, function(a,b) return a.distance < b.distance end)
+    if #sorted_crates_by_distance == 0 then
+        trigger.action.outTextForUnit(unit_id,"No crates nearby to load.", 5)
+        return
+    end
+    local closest_crate = sorted_crates_by_distance[1].crate
+    
+    -- Initialize user if needed
+    ctld.users[unit_id] = ctld.users[unit_id] or {
+        parts = {},
+        unit = unit,
+        is_dynamic_cargo = false
+    }
+    local user = ctld.users[unit_id]
+    
+    local crate_name = closest_crate:getName()
+    local part_name = crate_name:match("^CTLD_(.+)_%d+$")
+    local part_def = nil
+    for _, part in ipairs(ctld.parts) do
+        if part.name == part_name then
+            part_def = part
+            break
+        end
+    end
+    
+    if part_def == nil then return end
+
+    -- Check max parts/troops limits
+    if part_def.type == ctld.AssetTypes.CARGO_CRATES or part_def.type == ctld.AssetTypes.VEHICLES or part_def.type == ctld.AssetTypes.SAM then
+        if #user.parts >= aircraft_limit.max_parts then
+            trigger.action.outTextForUnit(unit_id,"Cannot load crate: Max parts limit reached.", 5)
+            return
+        end
+    elseif part_def.type == ctld.AssetTypes.TROOPS then
+        local current_troops = 0
+        for _, p in ipairs(user.parts) do
+            if p.type == ctld.AssetTypes.TROOPS then
+                current_troops = current_troops + 1
+            end
+        end
+        if (current_troops + 1) > aircraft_limit.max_troops then
+            trigger.action.outTextForUnit(unit_id,"Cannot load troop: Max troops limit reached ("..aircraft_limit.max_troops..").", 5)
+            return
+        end
+    end
+
+    -- Check weight limit
+    local total_weight = 0
+    for _, p in ipairs(user.parts) do
+        total_weight = total_weight + p.weight
+    end
+    total_weight = total_weight + part_def.weight
+    if total_weight > aircraft_limit.weight_limit then
+        trigger.action.outTextForUnit(unit_id,"Cannot load: Weight limit exceeded ("..aircraft_limit.weight_limit.." kg)", 5)
+        return
+    end
+
+    -- All checks passed - load the crate
+    if closest_crate:isExist() then
+        table.insert(user.parts, part_def)
+        closest_crate:destroy()
+        trigger.action.outTextForUnit(unit_id, "Loaded: "..part_def.desc, 5)
+    end
+end
+
+function ctld.unitAttack(unit)
+    -- Find nearby vehicles and assigns them a route for the nearest enemy zone
+    local vol =
+    {
+        id = world.VolumeType.SPHERE,
+        params =
+        {
+            point = unit:getPoint(),
+            radius = ctld.search_radius
+        }
+    }
+
+    local closest_enemy_zone = nil
+    local min_dist = 999999
+    local unit_pos = unit:getPoint()
+    local unit_coalition = unit:getCoalition()
+    for _, zone in ipairs(zones) do
+        if zone.side ~= unit_coalition then
+            local dist = mist.utils.get2DDist(unit_pos, zone.zone.point)
+            if dist < min_dist then
+                min_dist = dist
+                closest_enemy_zone = zone
+            end
+        end
+    end
+    if not closest_enemy_zone then return end
+
+
+    world.searchObjects({Object.Category.UNIT}, vol, function(obj)
+        if obj and obj:isExist() and obj.getName then
+            --starts with unpacked
+            if obj:getName():match("^unpacked.+") == nil then
+                return true
+            end
+
+            local objType = obj:getTypeName()
+            for _,part in ipairs(ctld.parts) do
+                if part.can_move and objType == part.name then
+                    mist.groupToPoint(obj:getGroup(), closest_enemy_zone.zone.point)
+                    trigger.action.outTextForUnit(unit:getID(),
+                        string.format("Assigned %s to attack %s", part.desc, closest_enemy_zone.name), 5)
+                    return false
+                end
+            end
+        end
+        return true
+    end)
+
+end
+
+
+---@param unit Unit
+function ctld.listSupplies(unit)
+    --List the supplies in the zone
+    local unit_coalition = unit:getCoalition()
+    local supply_count = 0
+    if unit_coalition == coalition.side.BLUE then
+        supply_count = stats.blue_supplies
+    elseif unit_coalition == coalition.side.RED then
+        supply_count = stats.red_supplies
+    end
+
+    trigger.action.outTextForUnit(unit:getID(), "Coalition has ".. supply_count .. " supplies.", 10)
+        
+
 end
 
 function ctld.getAircraftLimit(unit)
@@ -647,7 +911,16 @@ function ctld.listOnboardCargo(unit)
         end
     end
     for part_desc, count in pairs(part_count) do
-        cargo_list = cargo_list .. string.format("%s x%d\n", part_desc, count)
+        -- find the amount of crates required to build
+        local crates_required = 1
+        for _, part in ipairs(ctld.parts) do
+            if part.desc == part_desc then
+                crates_required = part.crates_required or 1
+                break
+            end
+        end
+
+        cargo_list = cargo_list .. string.format("%s x%d (required: %s)\n", part_desc, count,crates_required)
     end
 
     --weight
