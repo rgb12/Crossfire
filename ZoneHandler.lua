@@ -30,14 +30,12 @@ do
 
         if not obj.zone then 
             MissionLogger:error("ZoneHandler:new Could not find zone "..obj.name.." in mission triggers zones")
-            trigger.action.outText("Error while initiating the mission. See logs",20)
             return 
         end
 
         if obj.zone_type == ZoneTypes.SAMSITE then
             if not obj.sam_classification then 
                 MissionLogger:error("ZoneHandler:new Missing/Incorrect fields - SAMSITE zone "..obj.name)
-                trigger.action.outText("Error while initiating the mission. See logs",20)
                 return end
         end
 
@@ -82,7 +80,7 @@ do
             if airbase then
                 airbase:autoCapture(false)
                 airbase:setCoalition(obj.side)
-            else 
+            else
                 MissionLogger:error("ZoneHandler:new - AIRBASE zone "..obj.name.." could not find airbase "..obj.airbase_name)
             end
 
@@ -150,7 +148,8 @@ do
         return obj
     end
 
-    function ZoneHandler:drawF10()
+    ---@param addtional_text string|nil
+    function ZoneHandler:drawF10(addtional_text)
         -- 1. Define Color Palettes
         -- [Area Border, Area Fill, Text, Text Background]
         local red_palette = Config.draw_color_palette.red_palette
@@ -197,6 +196,10 @@ do
     
         text_display = text_display.."\nT:"..(self.level or 1).."/4"
     
+        if addtional_text then
+            text_display = text_display .. "\n" .. addtional_text
+        end
+
         -- 3. Cleanup Old Marks
         self._markIds = self._markIds or {
             blue=nil, blueText=nil,
@@ -755,18 +758,22 @@ do
         if self.zone_type ~= ZoneTypes.LOGISTICS then return false end
 
         -- MissionLogger:info("Checking logistcs zone "..self.name)
-        if not self.linked_ammo_depot then return false end
-        local ammo_depot = StaticObject.getByName(self.linked_ammo_depot)
+        local ammo_depot = nil
+        local is_alive = false
+        if not self.linked_ammo_depot then
+            self.ammo_depot_intact = false
+        else
+            ammo_depot = StaticObject.getByName(self.linked_ammo_depot)
+            is_alive = ammo_depot and ammo_depot:isExist() and ammo_depot:getLife() >= 1
+        end
         
-        -- First, check the actual status of the depot
-        local is_alive = ammo_depot and ammo_depot:isExist() and ammo_depot:getLife() >= 1
 
         -- If the script thinks the depot is intact, but it's NOT alive, mark it as destroyed.
         if self.ammo_depot_intact and not is_alive then
             self.ammo_depot_intact = false
             self.ammo_depot_last_destroyed = timer.getTime()
 
-            -- Also, destroy the "dead body" if it exists
+            -- destroy if it exists
             if ammo_depot and ammo_depot:isExist() then
                 ammo_depot:destroy()
             end
@@ -780,6 +787,11 @@ do
         if self.ammo_depot_last_destroyed and not self.ammo_depot_intact
         and self.ammo_depot_last_destroyed + Config.logistics_ammo_depot_respawn_time > timer.getTime() then
             MissionLogger:info(self.name .." ammo depot pending respawn")
+            -- display the time remaining for spawn
+            local time_remaining = math.ceil((self.ammo_depot_last_destroyed + Config.logistics_ammo_depot_respawn_time - timer.getTime())/60)
+            local time_text = "Rebuild in T-"..time_remaining.." min"
+            self:drawF10(time_text)
+
             return false
         elseif not self.ammo_depot_intact and self.ammo_depot_last_destroyed
         and self.ammo_depot_last_destroyed + Config.logistics_ammo_depot_respawn_time <= timer.getTime() then
@@ -805,10 +817,30 @@ do
                     self.ammo_depot_last_destroyed = nil
                     trigger.action.outSoundForCoalition(self.side,"chatter3.ogg")
                     trigger.action.outTextForCoalition(self.side, "Logistics zone "..self.name.." has reestablished its ammunition depot.",10)
-            else
+            self:drawF10()
+            else                                                            
                 MissionLogger:error("Could not spawn ammo depot for ".. self.name)
             end
         end
+
+        -- Ammo depot is intact
+        --First add supplies
+        local supply_count = 0
+        if self.side == coalition.side.BLUE then
+            supply_count = stats.blue_supplies
+        elseif self.side == coalition.side.RED then
+            supply_count = stats.red_supplies
+        end
+        supply_count = math.min(supply_count + ctld.supplies_per_minute_per_ammo_depot, ctld.supplies_cap)
+        
+        -- Update the stats with the new supply count
+        if self.side == coalition.side.BLUE then
+            stats.blue_supplies = supply_count
+        elseif self.side == coalition.side.RED then
+            stats.red_supplies = supply_count
+        end
+        
+        MissionLogger:info("supply count is now "..supply_count.." by zone "..self.name.." for side "..utils.coalitionToString(self.side))
 
         local _,dist_to_enemy_zone = self:getClosestZone(utils.getEnemyCoalition(self.side))
         if not dist_to_enemy_zone then return false end
@@ -907,12 +939,18 @@ do
         and self.comms_tower_last_destroyed + (Config.comms_tower_respawn_time) > timer.getTime() then
             -- Not enough time has passed
             MissionLogger:info(self.name .." comms tower pending respawn")
+            -- display remaining time in mins to zone
+            local time_remaining = math.ceil((self.comms_tower_last_destroyed + (Config.comms_tower_respawn_time) - timer.getTime()) / 60)
+            local time_text = "Rebuild in T-"..time_remaining.." min"
+            self:drawF10(time_text)
+
             return
             
         elseif not self.comms_tower_intact and self.comms_tower_last_destroyed
         and self.comms_tower_last_destroyed + (Config.comms_tower_respawn_time) <= timer.getTime() then
             -- Time is up, respawn the tower
             MissionLogger:info(self.name .." comms tower respawn")
+            
 
             local country_name
             if self.side == coalition.side.BLUE then country_name = country.id.CJTF_BLUE
@@ -937,7 +975,7 @@ do
                 else
                     stats.red_comms_antennas = stats.red_comms_antennas + 1
                 end
-                
+                self:drawF10()
                 -- Every level reduces the respawn time by 10%
                 local level_modifier = 1 - ((self.level -1) * 0.1)
                 Config.comms_tower_respawn_time = math.floor(Config.comms_tower_respawn_time * level_modifier)
@@ -947,7 +985,7 @@ do
                 MissionLogger:info("Comms tower respawn time is now "..Config.comms_tower_respawn_time)
            
                 trigger.action.outSoundForCoalition(self.side,"chatter3.ogg")
-                trigger.action.outTextForCoalition(self.side, "Comms zone "..self.name.." has reestablished its communications tower.",10)
+                trigger.action.outTextForCoalition(self.side, "Comms zone "..self.name.." has rebuilt its communications tower.",10)
             else
                 MissionLogger:error("Could not spawn comms tower for ".. self.name)
             end
@@ -999,7 +1037,7 @@ do
             if command_center then
                 table.insert(self.linked_statics, command_center.name)
                 trigger.action.outSoundForCoalition(self.side,"radio_beep.ogg")
-                trigger.action.outTextForCoalition(self.side, self.name.." has reestablished its command center.",10)
+                trigger.action.outTextForCoalition(self.side, self.name.." has rebuit its command center.",10)
             else
                 MissionLogger:error("Could not spawn command center for ".. self.name)
             end

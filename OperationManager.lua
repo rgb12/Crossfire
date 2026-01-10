@@ -12,12 +12,15 @@
 ---@field coop_leader_name string | nil -- Name of the unit who created the operation
 ---@field coop_members table<number, string> -- Map of unit IDs to unit names
 ---@field coop_join_code number | nil -- Code for other players to join this co-op operation
+---@field pilot_position vec3 | nil -- For CSAR operations: position of downed pilot
+---@field smoke_spawned boolean | nil -- For CSAR operations: whether smoke has been spawned
 
 ---@class OperationManager
 ---@field side coalition.side
 ---@field home_airbase ZoneHandler
 ---@field last_generation_time number
 ---@field generation_cooldown number seconds>0
+---@field downed_pilots vec3[]
 ---@field available_operations Operation[]
 ---@field active_operations Operation[]
 OperationManager = {}
@@ -41,6 +44,7 @@ do
         local obj = {
             side = side,
             home_airbase = home_airbase,
+            downed_pilots = {},
             available_operations = {},
             active_operations = {},
             last_generation_time = 0, -- Cache timestamp
@@ -73,6 +77,41 @@ do
 
         if not active_mission then
             trigger.action.outTextForUnit(unit:getID(), "No active operation.", 10)
+            return
+        end
+
+        -- Handle CSAR operations differently
+        if active_mission.type == OperationTypes.CSAR then
+            if not active_mission.pilot_position then
+                trigger.action.outTextForUnit(unit:getID(), "Error: Pilot position not found.", 10)
+                self:cancelOperation(unit)
+                return
+            end
+            
+            local lat, lon = coord.LOtoLL(active_mission.pilot_position)
+            local mgrs = coord.LLtoMGRS(lat, lon)
+            
+            local outtxt = string.format("ACTIVE OPERATION: %s\nType: %s\n\nMission: Rescue downed pilot",
+                active_mission.operation_name, active_mission.type)
+            
+            outtxt = outtxt .. string.format("\n\nDowned pilot location:\n%s\n%s\nMGRS: %s",
+                mist.tostringLL(lat, lon, 2), mist.tostringLL(lat, lon, 2, true), mist.tostringMGRS(mgrs, 3))
+            
+            outtxt = outtxt .. "\n\nObjectives:"
+            for i, obj in ipairs(active_mission.objectives) do
+                local status = obj.completed and "[Completed]" or "[Pending]"
+                outtxt = outtxt .. string.format("\n%d. %s %s", i, obj.description, status)
+            end
+            
+            -- Show distance to pilot
+            local player_pos = unit:getPoint()
+            if player_pos and active_mission.pilot_position then
+                local dist = mist.utils.get2DDist(player_pos, active_mission.pilot_position)
+                outtxt = outtxt .. string.format("\n\nDistance to pilot: %.0fm", dist)
+                outtxt = outtxt .. string.format("\nRequired proximity: %dm", Config.operations.csar_rescue_radius or 50)
+            end
+            
+            trigger.action.outTextForUnit(unit:getID(), outtxt, 120)
             return
         end
 
@@ -281,6 +320,17 @@ do
                     end
                 end
             end
+        elseif event.id == world.event.S_EVENT_EJECTION and event.initiator then
+            local eject_unit = event.initiator
+            if eject_unit and eject_unit.getPoint and eject_unit.getCoalition then
+                local eject_pos = eject_unit:getPoint()
+
+                if self.side == eject_unit:getCoalition() then
+                    table.insert(self.downed_pilots, eject_pos)
+                    MissionLogger:info("Recorded downed pilot")
+                    MissionLogger:info(eject_pos)
+                end
+            end
         end
     end
 
@@ -467,6 +517,33 @@ do
                 end
             end
         end
+        
+        -- CSAR operations for downed pilots
+        if #self.downed_pilots > 0 then
+            -- Check if we already have a CSAR operation for each downed pilot
+            local csar_count = 0
+            for _, op in ipairs(self.available_operations) do
+                if op.type == OperationTypes.CSAR then
+                    csar_count = csar_count + 1
+                end
+            end
+            for _, active_op in ipairs(self.active_operations) do
+                if active_op.type == OperationTypes.CSAR then
+                    csar_count = csar_count + 1
+                end
+            end
+            
+            -- Create CSAR operations for pilots that don't have one yet
+            while csar_count < #self.downed_pilots do
+                local csar_op = self:createCSAROperation()
+                if csar_op then
+                    table.insert(self.available_operations, csar_op)
+                    csar_count = csar_count + 1
+                else
+                    break
+                end
+            end
+        end
     end
 
     function OperationManager:createOperationCode()
@@ -509,6 +586,52 @@ do
                         if not zone then return false end
                         return zone.side == player_unit:getCoalition()
                         or zone.side == coalition.side.NEUTRAL
+                    end
+                }
+            }
+        }
+        return op
+    end
+
+    function OperationManager:createCSAROperation()
+        if #self.downed_pilots == 0 then return nil end
+        
+        -- Get the first downed pilot position
+        local pilot_pos = self.downed_pilots[1]
+        -- set the y coord to ground level
+        pilot_pos.y = land.getHeight({x = pilot_pos.x, y = pilot_pos.z})
+
+        local op = {
+            type = OperationTypes.CSAR,
+            code = self:createOperationCode(),
+            status = OperationStatus.AVAILABLE,
+            target_zone_name = "CSAR Location", -- Special identifier for CSAR
+            operation_name = operations_name[math.random(#operations_name)],
+            pilot_position = pilot_pos, -- Store the actual position
+            smoke_spawned = false, -- Track if smoke has been spawned
+            is_coop = false, -- CSAR is typically solo but can be changed
+            coop_leader_id = nil,
+            coop_leader_name = nil,
+            coop_members = {},
+            coop_join_code = nil,
+            objectives = {
+                {
+                    description = "Locate and rescue the downed pilot",
+                    completed = false,
+                    rescue_radius = Config.operations.csar_rescue_radius or 50,
+                    check = function(self, player_unit)
+                        local player_pos = player_unit:getPoint()
+                        if not player_pos then return false end
+                        
+                        -- Check distance from downed pilot
+                        local dist = mist.utils.get3DDist(pilot_pos, player_pos)
+                        
+                        if dist <= self.rescue_radius then
+                            -- Player is close enough - rescue successful
+                            return true
+                        end
+                        
+                        return false
                     end
                 }
             }
@@ -580,7 +703,7 @@ do
             operation_name = operations_name[math.random(#operations_name)],
             objectives = {
                 {
-                    description = "Successfully deliver ".. Config.operations.airdrop_min_crates_landed .. "x crates to " .. target_zone.name .. " via air drop.",
+                    description = "Successfully deliver ".. Config.operations.airdrop_min_crates_landed .. "x CDS CRATES to " .. target_zone.name .. " via air drop.",
                     completed = false,
                     check = function(self, player_unit)
                         local zone = ZoneHandler.getFromName(target_zone.name)
@@ -907,17 +1030,27 @@ do
         self:generateOperations()
 
         local unit_supported_operations = {}
-        local unit_is_transport = unit:hasAttribute("Transports")
+        local unit_type = unit:getTypeName()
+        
+        -- Filter operations based on aircraft_filter configuration
         for _, op in ipairs(self.available_operations) do
-            if op.type == OperationTypes.AIRDROP then
-                -- Only transports should see AIRDROP operations
-                if unit_is_transport then
-                    table.insert(unit_supported_operations, op)
+            local is_allowed = true
+            
+            -- Check if there's a filter for this operation type
+            if Config.operations.aircraft_filter and Config.operations.aircraft_filter[op.type] then
+                -- Filter exists for this operation type, check if unit type is in the list
+                is_allowed = false
+                for _, allowed_type in ipairs(Config.operations.aircraft_filter[op.type]) do
+                    if unit_type == allowed_type then
+                        is_allowed = true
+                        break
+                    end
                 end
-            else
-                if not unit_is_transport then
-                    table.insert(unit_supported_operations, op)
-                end
+            end
+            -- If no filter exists for this operation type, all aircraft are allowed (is_allowed remains true)
+            
+            if is_allowed then
+                table.insert(unit_supported_operations, op)
             end
         end
         
@@ -940,6 +1073,8 @@ do
                 local tgt_zone = op.target_zone_name
                 if op.type == OperationTypes.RECON then
                     tgt_zone = "Undiscovered Location"
+                elseif op.type == OperationTypes.CSAR then
+                    tgt_zone = "Emergency Rescue"
                 end
 
                 outtext = outtext .. string.format("\n\n %s - %s", op.type, tgt_zone)
@@ -1204,7 +1339,8 @@ do
         
 
         -- Check if the target zone was taken by someone else between the time the menu was generated and now.
-        if self:isZoneActive(accepted_mission.target_zone_name) then
+        -- Skip this check for CSAR operations
+        if accepted_mission.type ~= OperationTypes.CSAR and self:isZoneActive(accepted_mission.target_zone_name) then
             trigger.action.outTextForUnit(unit:getID(), "Operation Aborted: Target zone " .. accepted_mission.target_zone_name .. " is already being engaged by another unit.", 10)
             
             -- Optional: Remove it from available list so they don't try again immediately
@@ -1212,10 +1348,17 @@ do
             return
         end
 
-        local zone_tgt = ZoneHandler.getFromName(accepted_mission.target_zone_name)
-        if not zone_tgt then
-            trigger.action.outTextForUnit(unit:getID(), "Target zone not found for this operation.", 10)
-            return
+        -- For CSAR operations, handle differently
+        local zone_tgt = nil
+        if accepted_mission.type == OperationTypes.CSAR then
+            -- CSAR doesn't need a zone, it uses pilot_position
+            if not accepted_mission.pilot_position then
+                trigger.action.outTextForUnit(unit:getID(), "Error: Pilot position not found.", 10)
+                return
+            end
+        else
+            zone_tgt = ZoneHandler.getFromName(accepted_mission.target_zone_name)
+
         end
 
         -- Move from available to active
@@ -1238,15 +1381,35 @@ do
 
         local outtxt = string.format("\n%s Operation %s Initiated", accepted_mission.type, accepted_mission.operation_name)
 
-        local lat, lon = coord.LOtoLL(zone_tgt.zone.point)
-        local mgrs = coord.LLtoMGRS(lat, lon)
+        -- Handle CSAR-specific activation
+        if accepted_mission.type == OperationTypes.CSAR then
+            -- Spawn smoke at pilot location
+            if not accepted_mission.smoke_spawned then
+                trigger.action.smoke(accepted_mission.pilot_position, trigger.smokeColor.Green)
+                accepted_mission.smoke_spawned = true
+            end
+            
+            local lat, lon = coord.LOtoLL(accepted_mission.pilot_position)
+            local mgrs = coord.LLtoMGRS(lat, lon)
+            outtxt = outtxt .. string.format("\n\nDowned pilot location (approximate):\n%s\n%s\nMGRS: %s", 
+                mist.tostringLL(lat, lon, 1), mist.tostringLL(lat, lon, 1, true), mist.tostringMGRS(mgrs, 3))
+            outtxt = outtxt .. "\n\nGreen smoke has been deployed at the pilot's location."
+            outtxt = outtxt .. string.format("\n\nLand within %dm of the pilot to complete the rescue.", Config.operations.csar_rescue_radius or 50)
+        else
+            if not zone_tgt then
+                trigger.action.outTextForUnit(unit:getID(), "Target zone not found for this operation.", 10)
+                return
+            end
+            local lat, lon = coord.LOtoLL(zone_tgt.zone.point)
+            local mgrs = coord.LLtoMGRS(lat, lon)
 
-        if not utils.tableContains({OperationTypes.RECON, OperationTypes.INTERCEPT}, accepted_mission.type) then
-            outtxt = outtxt .. "\n\nTarget area: " .. accepted_mission.target_zone_name
-        end
+            if not utils.tableContains({OperationTypes.RECON, OperationTypes.INTERCEPT}, accepted_mission.type) then
+                outtxt = outtxt .. "\n\nTarget area: " .. accepted_mission.target_zone_name
+            end
 
-        if accepted_mission.type ~= OperationTypes.INTERCEPT then
-            outtxt = outtxt .. string.format("\n\nApproximate location coordinates:\n%s\n%s\nMGRS: %s", mist.tostringLL(lat, lon, 1), mist.tostringLL(lat, lon, 1, true), mist.tostringMGRS(mgrs, 3))
+            if accepted_mission.type ~= OperationTypes.INTERCEPT then
+                outtxt = outtxt .. string.format("\n\nApproximate location coordinates:\n%s\n%s\nMGRS: %s", mist.tostringLL(lat, lon, 1), mist.tostringLL(lat, lon, 1, true), mist.tostringMGRS(mgrs, 3))
+            end
         end
 
         -- Add co-op join code if this is a co-op operation
@@ -1358,6 +1521,19 @@ do
                                 reward_msg = reward_msg .. "\nReturn to base to claim your rewards."
                                 
                                 trigger.action.outTextForUnit(participant_unit:getID(), reward_msg, 10)
+                            end
+                        end
+
+                        -- For CSAR operations, remove the rescued pilot from the downed_pilots list
+                        if op.type == OperationTypes.CSAR and op.pilot_position then
+                            for j = #self.downed_pilots, 1, -1 do
+                                local pilot_pos = self.downed_pilots[j]
+                                -- Check if this is the same pilot (within 1 meter tolerance)
+                                if pilot_pos and mist.utils.get3DDist(pilot_pos, op.pilot_position) < 1 then
+                                    table.remove(self.downed_pilots, j)
+                                    MissionLogger:info("Removed rescued pilot from downed_pilots list")
+                                    break
+                                end
                             end
                         end
 

@@ -40,6 +40,11 @@ do
             end, nil)
 
             CommandHandler.addToMenuTracking(group_id, sitmap_path, "sitmap")
+
+                            
+            local CTLD_submenu = missionCommands.addSubMenuForGroup(group_id, "CTLD", nil)
+            ctld.initF10RadioMenu(CTLD_submenu, group)
+
         end
     end
 
@@ -174,12 +179,11 @@ do
         local gr_id = gr:getID()
 
         -- Clear existing resources menu before rebuilding
-        CommandHandler.clearMenu(gr, "resources_main")
+        CommandHandler.clearMenu(gr, "logistics_main")
 
           -- Create the root menu for this update
-        local resources_main_submenu = missionCommands.addSubMenuForGroup(gr_id,"Resources",nil)
-        CommandHandler.addToMenuTracking(gr_id, resources_main_submenu, "resources_main")
-
+        local logistics_main_submenu = missionCommands.addSubMenuForGroup(gr_id,"Logistics",nil)
+        CommandHandler.addToMenuTracking(gr_id, logistics_main_submenu, "logistics_main")
         local unit = gr:getUnit(1)
         if unit and unit:isExist() and unit.getCoalition then
             local side = unit:getCoalition()
@@ -238,18 +242,18 @@ do
             ---------------------------------------------------------------
             -- CARGO CRATES LOGIC
             
-            ---@param u Unit
-            ---@return boolean
-            local function checkAircraftIsCargoCapable(u)
-                if not u or not u.isExist or not u:isExist() then return false end
-                local type_name = u:getTypeName()
-                for _, cargo_aircraft in ipairs(Config.cargo_aircraft) do
-                    if type_name == cargo_aircraft then
-                        return true
-                    end
-                end
-                return false
-            end
+            -- ---@param u Unit
+            -- ---@return boolean
+            -- local function checkAircraftIsCargoCapable(u)
+            --     if not u or not u.isExist or not u:isExist() then return false end
+            --     local type_name = u:getTypeName()
+            --     for _, cargo_aircraft in ipairs(Config.cargo_aircraft) do
+            --         if type_name == cargo_aircraft then
+            --             return true
+            --         end
+            --     end
+            --     return false
+            -- end
 
             --- returns true if aircraft is moving
             ---@param u Unit
@@ -264,100 +268,119 @@ do
                 return false
             end
 
-            local cargo_crates_submenu = missionCommands.addSubMenuForGroup(gr_id, "Cargo Crates", resources_main_submenu)
 
-            missionCommands.addCommandForGroup(gr_id, "CDS Barrels", cargo_crates_submenu, function()
-                local u = gr:getUnit(1)
-                if not u or not u:isExist() then return end
-                if not u.getTypeName or not u:getTypeName() then return end
+            -- local cargo_crates_submenu = missionCommands.addSubMenuForGroup(gr_id, "Cargo Crates", logistics_main_submenu)
 
-                if not checkAircraftIsCargoCapable(u) then
-                    trigger.action.outTextForUnit(u:getID(), "> Cargo crates cannot be deployed from this aircraft.", 10)
-                    return
-                end
+            --  missionCommands.addCommandForGroup(gr_id, "Supplies Crate", cargo_crates_submenu, function()
+            --     local u = gr:getUnit(1)
+            --     if not u or not u:isExist() then return end
+            --     if not u.getTypeName or not u:getTypeName() then return end
 
-                if aircraftMoving(u) then
-                    trigger.action.outTextForUnit(u:getID(), "> Aircraft must be stationary to deploy cargo crates.", 10)
-                    return
-                end
+            --     if not checkAircraftIsCargoCapable(u) then
+            --         trigger.action.outTextForUnit(u:getID(), "> Cargo crates cannot be deployed from this aircraft.", 10)
+            --         return
+            --     end
 
-                UnitHandler.staticCargoSpawn(u, CargoCrates.CDS_BARRELS, 2, 12)
-            end, nil)
+            --     if aircraftMoving(u) then
+            --         trigger.action.outTextForUnit(u:getID(), "> Aircraft must be stationary to deploy cargo crates.", 10)
+            --         return
+            --     end
 
-            missionCommands.addCommandForGroup(gr_id, "CDS Crates", cargo_crates_submenu, function()
-                local u = gr:getUnit(1)
-                if not u or not u:isExist() then return end
-                if not u.getTypeName or not u:getTypeName() then return end
+            --     UnitHandler.staticCargoSpawn(u, CargoCrates.SuppliesCrate)
+            -- end, nil)
 
-                if not checkAircraftIsCargoCapable(u) then
-                    trigger.action.outTextForUnit(u:getID(), "> Cargo crates cannot be deployed from this aircraft.", 10)
-                    return
-                end
+            -- missionCommands.addCommandForGroup(gr_id, "CDS Barrels", cargo_crates_submenu, function()
+            --     local u = gr:getUnit(1)
+            --     if not u or not u:isExist() then return end
+            --     if not u.getTypeName or not u:getTypeName() then return end
 
-                if aircraftMoving(u) then
-                    trigger.action.outTextForUnit(u:getID(), "> Aircraft must be stationary to deploy cargo crates.", 10)
-                    return
-                end
+            --     if not checkAircraftIsCargoCapable(u) then
+            --         trigger.action.outTextForUnit(u:getID(), "> Cargo crates cannot be deployed from this aircraft.", 10)
+            --         return
+            --     end
 
-                UnitHandler.staticCargoSpawn(u, CargoCrates.CDS_CRATES, 2, 12)
-            end, nil)
+            --     if aircraftMoving(u) then
+            --         trigger.action.outTextForUnit(u:getID(), "> Aircraft must be stationary to deploy cargo crates.", 10)
+            --         return
+            --     end
 
-            missionCommands.addCommandForGroup(gr_id, "Cargo Container", cargo_crates_submenu, function()
-                local u = gr:getUnit(1)
-                if not u or not u:isExist() then return end
-                if not u.getTypeName or not u:getTypeName() then return end
+            --     UnitHandler.staticCargoSpawn(u, CargoCrates.CDS_BARRELS)
+            -- end, nil)
 
-                if not checkAircraftIsCargoCapable(u) then
-                    trigger.action.outTextForUnit(u:getID(), "> Cargo crates cannot be deployed from this aircraft.", 10)
-                    return
-                end
+            -- missionCommands.addCommandForGroup(gr_id, "CDS Crates", cargo_crates_submenu, function()
+            --     local u = gr:getUnit(1)
+            --     if not u or not u:isExist() then return end
+            --     if not u.getTypeName or not u:getTypeName() then return end
 
-                if aircraftMoving(u) then
-                    trigger.action.outTextForUnit(u:getID(), "> Aircraft must be stationary to deploy cargo crates.", 10)
-                    return
-                end
+            --     if not checkAircraftIsCargoCapable(u) then
+            --         trigger.action.outTextForUnit(u:getID(), "> Cargo crates cannot be deployed from this aircraft.", 10)
+            --         return
+            --     end
 
-                UnitHandler.staticCargoSpawn(u, CargoCrates.ContainerClean, 5, 4)
-            end, nil)
+            --     if aircraftMoving(u) then
+            --         trigger.action.outTextForUnit(u:getID(), "> Aircraft must be stationary to deploy cargo crates.", 10)
+            --         return
+            --     end
 
-            missionCommands.addCommandForGroup(gr_id, "MOAB", cargo_crates_submenu, function()
-                local u = gr:getUnit(1)
-                if not u or not u:isExist() then return end
-                if not u.getTypeName or not u:getTypeName() then return end
+            --     UnitHandler.staticCargoSpawn(u, CargoCrates.CDS_CRATES)
+            -- end, nil)
 
-                if not checkAircraftIsCargoCapable(u) then
-                    trigger.action.outTextForUnit(u:getID(), "> Cargo crates cannot be deployed from this aircraft.", 10)
-                    return
-                end
+            -- missionCommands.addCommandForGroup(gr_id, "Equipment Container", cargo_crates_submenu, function()
+            --     local u = gr:getUnit(1)
+            --     if not u or not u:isExist() then return end
+            --     if not u.getTypeName or not u:getTypeName() then return end
 
-                if aircraftMoving(u) then
-                    trigger.action.outTextForUnit(u:getID(), "> Aircraft must be stationary to deploy cargo crates.", 10)
-                    return
-                end
+            --     if not checkAircraftIsCargoCapable(u) then
+            --         trigger.action.outTextForUnit(u:getID(), "> Cargo crates cannot be deployed from this aircraft.", 10)
+            --         return
+            --     end
 
-                -- Checks if MOAB in warehouse
-                local airbase = utils.getZoneOfUnitFromPosition(u:getPoint())
-                if not airbase or not airbase.airbase_name then
-                    trigger.action.outTextForUnit(u:getID(), "> Unable to determine airbase for MOAB deployment.", 10)
-                    return
-                end
-                local in_stock = false
-                ab = Airbase.getByName(airbase.airbase_name)
-                if ab then
-                    local warehouse = ab:getWarehouse()
-                        local moab_count = warehouse:getItemCount(WarehouseManager.Flags.GBU_43)
-                        if moab_count and moab_count > 0 then
-                            in_stock = true
-                            warehouse:removeItem(WarehouseManager.Flags.GBU_43, 1)
-                        end
-                end
-                if not in_stock then
-                    trigger.action.outTextForUnit(u:getID(), "> No MOABs available in warehouse for deployment.", 10)
-                    return
-                end
+            --     if aircraftMoving(u) then
+            --         trigger.action.outTextForUnit(u:getID(), "> Aircraft must be stationary to deploy cargo crates.", 10)
+            --         return
+            --     end
 
-                UnitHandler.staticCargoSpawn(u, CargoCrates.MOAB, 10, 1)
-            end, nil)
+            --     UnitHandler.staticCargoSpawn(u, CargoCrates.ContainerClean)
+            -- end, nil)
+
+            -- missionCommands.addCommandForGroup(gr_id, "MOAB", cargo_crates_submenu, function()
+            --     local u = gr:getUnit(1)
+            --     if not u or not u:isExist() then return end
+            --     if not u.getTypeName or not u:getTypeName() then return end
+
+            --     if not checkAircraftIsCargoCapable(u) then
+            --         trigger.action.outTextForUnit(u:getID(), "> Cargo crates cannot be deployed from this aircraft.", 10)
+            --         return
+            --     end
+
+            --     if aircraftMoving(u) then
+            --         trigger.action.outTextForUnit(u:getID(), "> Aircraft must be stationary to deploy cargo crates.", 10)
+            --         return
+            --     end
+
+            --     -- Checks if MOAB in warehouse
+            --     local airbase = utils.getZoneOfUnitFromPosition(u:getPoint())
+            --     if not airbase or not airbase.airbase_name then
+            --         trigger.action.outTextForUnit(u:getID(), "> Unable to determine airbase for MOAB deployment.", 10)
+            --         return
+            --     end
+            --     local in_stock = false
+            --     ab = Airbase.getByName(airbase.airbase_name)
+            --     if ab then
+            --         local warehouse = ab:getWarehouse()
+            --             local moab_count = warehouse:getItemCount(WarehouseManager.Flags.GBU_43)
+            --             if moab_count and moab_count > 0 then
+            --                 in_stock = true
+            --                 warehouse:removeItem(WarehouseManager.Flags.GBU_43, 1)
+            --             end
+            --     end
+            --     if not in_stock then
+            --         trigger.action.outTextForUnit(u:getID(), "> No MOABs available in warehouse for deployment.", 10)
+            --         return
+            --     end
+
+            --     UnitHandler.staticCargoSpawn(u, CargoCrates.MOAB)
+            -- end, nil)
 
             -----------------------------------------------------------------------
             -- RESUPPLY REQUEST LOGIC
@@ -392,7 +415,7 @@ do
                 return airbase_list
             end
 
-            local resupply_menu = missionCommands.addSubMenuForGroup(gr_id, "Request Resupply", resources_main_submenu)
+            local resupply_menu = missionCommands.addSubMenuForGroup(gr_id, "Request Resupply", logistics_main_submenu)
             
             local resupply_stock_list = {}
             
@@ -530,24 +553,24 @@ do
                 end
             end
 
-            local farp_resupply_menu = missionCommands.addSubMenuForGroup(gr_id,"FARP Resupply", resources_main_submenu)
+            local farp_resupply_menu = missionCommands.addSubMenuForGroup(gr_id,"FARP Resupply", logistics_main_submenu)
             if #farps_resupply_list > 0 then
                 CommandHandler.buildPagedMenuForGroup(gr_id, farp_resupply_menu, farps_resupply_list, 1)
             else
-                missionCommands.addCommandForGroup(gr_id, "No FARPs Available", resources_main_submenu, function() end, nil)
+                missionCommands.addCommandForGroup(gr_id, "No FARPs Available", logistics_main_submenu, function() end, nil)
             end
 
 
-            local  upgrade_submenu = missionCommands.addSubMenuForGroup(gr_id, "Request Upgrade", resources_main_submenu)
+            local  upgrade_submenu = missionCommands.addSubMenuForGroup(gr_id, "Request Upgrade", logistics_main_submenu)
             if #upgrade_zone_list > 0 then
                 CommandHandler.buildPagedMenuForGroup(gr_id, upgrade_submenu, upgrade_zone_list, 1)
             else
-                missionCommands.addCommandForGroup(gr_id, "No Zones Available", resources_main_submenu, function() end, nil)
+                missionCommands.addCommandForGroup(gr_id, "No Zones Available", logistics_main_submenu, function() end, nil)
             end
 
             ---------------------------------------------------------------
             -- Restock Aircraft
-            local restock_submenu = missionCommands.addSubMenuForGroup(gr_id, "Restock Aircraft", resources_main_submenu)
+            local restock_submenu = missionCommands.addSubMenuForGroup(gr_id, "Restock Aircraft", logistics_main_submenu)
             missionCommands.addCommandForGroup(gr_id, "Confirm (destroy)", restock_submenu, function()
                 local point = unit:getPoint()
                 -- Checks if aircraft is not moving and on ground
@@ -678,6 +701,16 @@ do
         local tasking_main_submenu = missionCommands.addSubMenuForGroup(gr_id,"Request Tasking",nil)
         CommandHandler.addToMenuTracking(gr_id, tasking_main_submenu, "tasking_main")
 
+        local function getSideCommsTowers(coal)
+            local side_comms_towers = 0
+            if coal == coalition.side.BLUE then
+                side_comms_towers = stats.blue_comms_antennas
+            elseif coal == coalition.side.RED then
+                side_comms_towers = stats.red_comms_antennas
+            end
+            return side_comms_towers
+        end
+
         ---@param unit Unit
         ---@param required_tokens number
         ---@return boolean
@@ -740,6 +773,12 @@ do
                         if not checkRankRequirement(u, AITaskTypes.CAS) then return end
                         if not checkTokens(u, Config.tasking_requirements.tokens_required_for_cas) then return end
                         
+                        local side_comms_towers = getSideCommsTowers(side)
+                        if side_comms_towers < Config.tasking_requirements.comms_zones_required_for_cas then
+                            trigger.action.outTextForUnit(u:getID(), "CAS tasking requires " .. side_comms_towers .. "/"..Config.tasking_requirements.comms_zones_required_for_cas.." active COMMS towers.", 10)
+                            return
+                        end
+
                         if TaskManager:initiateAITask(AITaskTypes.CAS, side, false, to_zone, nil, true) then
                             ExperienceManager:deductTokens(u, Config.tasking_requirements.tokens_required_for_cas)
                             trigger.action.outTextForUnit(u:getID(), "CAS dispatched to " .. to_zone.name .. ", -" .. Config.tasking_requirements.tokens_required_for_cas .. " tokens.", 10)
@@ -764,6 +803,13 @@ do
                         local from_zone = args.z
                         if not checkRankRequirement(u, AITaskTypes.AWACS) then return end
                         if not checkTokens(u, Config.tasking_requirements.tokens_required_for_awacs) then return end
+
+                        -- check comms towers requirement
+                        local side_comms_towers = getSideCommsTowers(side)
+                        if side_comms_towers < Config.tasking_requirements.comms_zones_required_for_awacs then
+                            trigger.action.outTextForUnit(u:getID(), "AWACS tasking requires " .. side_comms_towers .. "/"..Config.tasking_requirements.comms_zones_required_for_awacs.." active COMMS towers.", 10)
+                            return
+                        end
 
                         if TaskManager:initiateAITask(AITaskTypes.AWACS, side, false, nil, from_zone, true) then
                             ExperienceManager:deductTokens(u, Config.tasking_requirements.tokens_required_for_awacs)
@@ -790,6 +836,12 @@ do
                         local to_zone = args.z
                         if not checkRankRequirement(u, AITaskTypes.SEAD) then return end
                         if not checkTokens(u, Config.tasking_requirements.tokens_required_for_sead) then return end
+
+                        local side_comms_towers = getSideCommsTowers(side)
+                        if side_comms_towers < Config.tasking_requirements.comms_zones_required_for_sead then
+                            trigger.action.outTextForUnit(u:getID(), "SEAD tasking requires " .. side_comms_towers .. "/"..Config.tasking_requirements.comms_zones_required_for_sead.." active COMMS towers.", 10)
+                            return
+                        end
 
                         if TaskManager:initiateAITask(AITaskTypes.SEAD, side, false, to_zone, nil, true) then
                             ExperienceManager:deductTokens(u, Config.tasking_requirements.tokens_required_for_sead)
@@ -856,13 +908,12 @@ do
                         if not checkTokens(u, Config.tasking_requirements.tokens_required_for_jtac) then return end
                         if not u.getCoalition then return end
 
-                        local live_comms = (u:getCoalition() == coalition.side.BLUE) and stats.blue_comms_zones or stats.red_comms_zones
-                        local total_comms = (u:getCoalition() == coalition.side.BLUE) and stats.blue_total_comms_zones or stats.red_total_comms_zones
-                        
-                        if live_comms < Config.tasking_requirements.comms_zones_required_for_jtac then
-                            trigger.action.outTextForUnit(u:getID(), "JTAC tasking requires " .. total_comms .. "/"..Config.tasking_requirements.comms_zones_required_for_jtac.." active COMMS antennas.", 10)
-                        return
-                    end
+
+                        local side_comms_towers = getSideCommsTowers(side)
+                        if side_comms_towers < Config.tasking_requirements.comms_zones_required_for_jtac then
+                            trigger.action.outTextForUnit(u:getID(), "JTAC tasking requires " .. side_comms_towers .. "/"..Config.tasking_requirements.comms_zones_required_for_jtac.." active COMMS towers.", 10)
+                            return
+                        end
 
                         if TaskManager:initiateAITask(AITaskTypes.JTAC, side, false, to_zone, nil, true) then
                             ExperienceManager:deductTokens(u, Config.tasking_requirements.tokens_required_for_jtac)
@@ -888,6 +939,12 @@ do
                         if not checkRankRequirement(u, AITaskTypes.CAP) then return end
                         if not checkTokens(u, Config.tasking_requirements.tokens_required_for_cap) then return end
                         
+                        local side_comms_towers = getSideCommsTowers(side)
+                        if side_comms_towers < Config.tasking_requirements.comms_zones_required_for_cap then
+                            trigger.action.outTextForUnit(u:getID(), "CAP tasking requires " .. side_comms_towers .. "/"..Config.tasking_requirements.comms_zones_required_for_cap.." active COMMS towers.", 10)
+                            return
+                        end
+
                         if TaskManager:initiateAITask(AITaskTypes.CAP, side, false, to_zone, nil, true) then
                             ExperienceManager:deductTokens(u, Config.tasking_requirements.tokens_required_for_cap)
                             trigger.action.outTextForUnit(u:getID(), "CAP dispatched to " .. to_zone.name .. ", -" .. Config.tasking_requirements.tokens_required_for_cap .. " tokens.", 10)
@@ -914,6 +971,12 @@ do
                         if not checkRankRequirement(u, AITaskTypes.STRIKE) then return end
                         if not checkTokens(u, Config.tasking_requirements.tokens_required_for_strike) then return end
                         
+                        local side_comms_towers = getSideCommsTowers(side)
+                        if side_comms_towers < Config.tasking_requirements.comms_zones_required_for_strike then
+                            trigger.action.outTextForUnit(u:getID(), "Strike tasking requires " .. side_comms_towers .. "/"..Config.tasking_requirements.comms_zones_required_for_strike.." active COMMS towers.", 10)
+                            return
+                        end
+
                         if TaskManager:initiateAITask(AITaskTypes.STRIKE, side, false, to_zone, nil, true) then
                             ExperienceManager:deductTokens(u, Config.tasking_requirements.tokens_required_for_strike)
                             trigger.action.outTextForUnit(u:getID(), "Strike dispatched to " .. to_zone.name .. ", -" .. Config.tasking_requirements.tokens_required_for_strike .. " tokens.", 10)
@@ -1024,10 +1087,16 @@ do
         end
     end
 
+    ---@class CommandItemPagedMenu
+    ---@field submenu any
+    ---@field name string
+    ---@field func function|nil
+    ---@field arg any|nil
+
     -- Helper function for GROUP menus (Supports Nested Menus)
     ---@param group_id number
     ---@param parent_menu any
-    ---@param command_list table
+    ---@param command_list CommandItemPagedMenu[]
     ---@param start_index number
     function CommandHandler.buildPagedMenuForGroup(group_id, parent_menu, command_list, start_index)
         start_index = start_index or 1

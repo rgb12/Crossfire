@@ -15,13 +15,14 @@ Config = {
         save_interval = 5*51, -- (seconds) interval at which the mission state is saved
         -- You can use fixed values or multiplications like above
         -- 51 seconds is used to avoid multiples of 15 to reduce lag spikes
-        save_dir = "Missions/Saves/Crossfire_dev/", -- this is your saves directory in Saved Games
+        save_dir = "Missions/Saves/Crossfire/", -- this is your saves directory in Saved Games
         save_file = "mission.json", -- this is the name of the mission file
         user_data_file = "user_data.json", -- this is the name of user data only file, note that this only saves user xp, tokens ans rank
 
-        
+        enable_ctld_persistence = true, -- enables/disables CTLD placed asset persistence
+
         random_scenario_selection = false, -- allows the script to randomly choose a random scenario, authority over scenario selection
-        scenario_selected = "Georgia Liberation", -- subject to the field above, choose your own scenario 
+        scenario_selected = "Eastbound", -- subject to the field above, choose your own scenario 
     },
     operations = {
         recon_minimum_altitude = 1524, -- (meters)
@@ -31,15 +32,79 @@ Config = {
         cap_max_radius_from_zone = 28*1000, -- (meters)
         max_distance_to_frontline_for_airdrops = 300*1000, -- (meters)
         airdrop_min_crates_landed = 6, -- minimum number of crates that must land to consider the airdrop successful
-        csar_rescue_radius = 200, -- (meters)
+        csar_rescue_radius = 50, -- (meters) distance from downed pilot required to complete rescue
         intercept_required_kills = 2, -- number of aircraft/helicopters to destroy to complete INTERCEPT
         intercept_max_distance_to_enemy = 200*1000, -- (meters) max distance from friendly zone to enemy zone for INTERCEPT to be proposed
+
         
+        aircraft_filter = {
+            [OperationTypes.CSAR] = {
+                "UH-1H",
+                "Mi-8MT",
+                "Mi-24P",
+                "CH-47Fbl1",
+                "SA342L",
+                "SA342M",
+                "SA342Mistral",
+                "SA342Minigun",
+                "UH-60L",
+                "AH-64D_BLK_II"
+            },
+            [OperationTypes.AIRDROP] = {
+                "C-130J-30",
+            },
+            [OperationTypes.CAS] = {
+                "A-10C_2",
+                "F-15ESE",
+                "F-16C_50",
+                "FA-18C_hornet",
+                "M-2000C",
+                "Su-25T",
+                "F-14A-135-GR"
+            },
+            [OperationTypes.DEAD] = {
+                "A-10C_2",
+                "F-15ESE",
+                "F-16C_50",
+                "FA-18C_hornet",
+                "M-2000C",
+                "Su-25T",
+            },
+            [OperationTypes.STRIKE] = {
+                "A-10C_2",
+                "F-15ESE",
+                "F-16C_50",
+                "FA-18C_hornet",
+                "M-2000C",
+                "Su-25T",
+            },
+            [OperationTypes.CAP] = {
+                "F-15C",
+                "F-14A-135-GR",
+                "F-16C_50",
+                "M-2000C",
+                "F-14B",
+                "F-15ESE",
+            },
+            [OperationTypes.INTERCEPT] = {
+                "F-15C",
+                "F-14A-135-GR",
+                "F-16C_50",
+                "M-2000C",
+                "F-14B",
+                "F-15ESE",
+            },
+            [OperationTypes.SEAD] = {
+                "F-16C_50",
+                "FA-18C_hornet",
+                "A-10C_2",
+            }
+        },
         -- Co-op operation settings
         coop_max_members = 4, -- maximum number of players (including leader) in a co-op operation
     },
     jupiter_enabled = true, -- enables/disables the Jupiter command system
-
+    allow_air_spawn = true, -- prevents or not air spawns for players
     enabled_su25t_blufor = true, -- adds the SU-25T to the blufor warehouse inventory
 
     red_stock_multiplier = 8, -- multiplier for redfor warehouse stocks, compared to blufor
@@ -104,7 +169,8 @@ Config = {
             [OperationTypes.STRIKE] = 15,
             [OperationTypes.DEAD] = 30,
             [OperationTypes.RECON] = 10,
-            [OperationTypes.INTERCEPT] = 10
+            [OperationTypes.INTERCEPT] = 10,
+            [OperationTypes.CSAR] = 30
         },
 
         xp_required = {
@@ -177,7 +243,7 @@ Config = {
         tokens_required_for_recon = 10,
         tokens_required_for_capture_helicopter = 10,
     },
-    comms_tower_respawn_time = 1*60, -- (seconds), the timer decreases by 25% for every level
+    comms_tower_respawn_time = 40*60, -- (seconds), the timer decreases by 25% for every level
     comms_tower_lost_penalty = 1, -- the respawn time is multiplied by this much when a comms tower is lost
     -- the penalty is disabled by default to avoid excessive respawn times
 
@@ -212,8 +278,18 @@ Config = {
         min_cleareance_dist_for_awacs = 70*1000 -- (meters) from the nearest enemy zone
     },
     cargo_aircraft = {
-        "C-130J-30"
+        "C-130J-30",
+        "SA342Minigun",
+        "SA342L",
+        "SA342Mistral",
+        "SA342M",
+        "UH-1H",
     },
+    crates_spawn_params = { -- not functional anymore
+        cargo_crates_spawn_radius_max = 35,
+        cargo_crates_spawn_radius_min = 20,
+    },
+
 
     capture_helicopter_max_range = 100*1000 , -- (meters)
 
@@ -288,7 +364,7 @@ stats = {
     blue_comms_antennas = 0,
     blue_discovered_zones = {},
     blue_enroute_resupply = {},
-    blue_resupply_step = 1, -- prevents random resupply type repetition
+    blue_supplies = 1000,
 
     red_sam_sites = 0,
     red_farp_zones = 0,
@@ -302,8 +378,7 @@ stats = {
     red_comms_antennas = 0,
     red_discovered_zones = {},
     red_enroute_resupply = {},
-    red_resupply_step = 1 -- prevents random resupply type repetition
-
+    red_supplies = 1000
 }
 
 

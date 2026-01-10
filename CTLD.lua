@@ -2,7 +2,7 @@ ctld = {}
 
 
 ctld.max_placed_assets = 500  -- Global limit for all placed assets
-ctld.load_cooldown_seconds = 5  -- Cooldown between load commands per player
+ctld.load_cooldown_seconds = 1  -- Cooldown between load commands per player
 ctld.player_cooldowns = {}  -- store for player cooldowns
 ctld.supplies_cap = 10000  -- Max supplies per coalition
 
@@ -40,7 +40,7 @@ ctld.aircraft_limits = {
     {aircraft_type = "CH-47Fbl1",   max_parts = 6,  max_troops = 30, weight_limit = 10000},
     {aircraft_type = "C-130J-30",   max_parts = 12, max_troops = 60, weight_limit = 20000},
     {aircraft_type = "SA342L",     max_parts = 1,  max_troops = 4, weight_limit = 800},
-    {aircraft_type = "SA342M",     max_parts = 200,  max_troops = 200, weight_limit = 8000000},
+    {aircraft_type = "SA342M",     max_parts = 1,  max_troops = 4, weight_limit = 800},
     {aircraft_type = "SA342Mistral",max_parts = 1,  max_troops = 4, weight_limit = 800},
     {aircraft_type = "SA342Minigun",max_parts = 1,  max_troops = 4, weight_limit = 800},
 }
@@ -99,50 +99,50 @@ end
 
 ---@type part[]
 ctld.parts = {
-    {name = "Hawk ln",          desc = "HAWK Launcher",       weight = 2000, type = ctld.AssetTypes.SAM, group_requirement = "Hawk Battery", req_supplies = 50},
-    {name = "Hawk tr",          desc = "HAWK Track Radar",    weight = 500, type = ctld.AssetTypes.SAM, group_requirement = "Hawk Battery", req_supplies = 100},
-    {name = "Hawk sr",          desc = "HAWK Search Radar",   weight = 500, type = ctld.AssetTypes.SAM, group_requirement = "Hawk Battery", req_supplies = 100},
-    {name = "Hawk pcp",         desc = "HAWK PCP",            weight = 200, type = ctld.AssetTypes.SAM, group_requirement = "Hawk Battery", req_supplies = 100},
-    {name = "Hawk cwar",        desc = "HAWK CWAR",           weight = 200, type = ctld.AssetTypes.SAM, group_requirement = "Hawk Battery", req_supplies = 100},
+    {name = "Hawk ln",          desc = "HAWK Launcher",       weight = 2000, type = ctld.AssetTypes.SAM, group_requirement = "Hawk Battery", req_supplies = 400},
+    {name = "Hawk tr",          desc = "HAWK Track Radar",    weight = 500, type = ctld.AssetTypes.SAM, group_requirement = "Hawk Battery", req_supplies = 200},
+    {name = "Hawk sr",          desc = "HAWK Search Radar",   weight = 500, type = ctld.AssetTypes.SAM, group_requirement = "Hawk Battery", req_supplies = 200},
+    {name = "Hawk pcp",         desc = "HAWK PCP",            weight = 200, type = ctld.AssetTypes.SAM, group_requirement = "Hawk Battery", req_supplies = 200},
+    {name = "Hawk cwar",        desc = "HAWK CWAR",           weight = 200, type = ctld.AssetTypes.SAM, group_requirement = "Hawk Battery", req_supplies = 200},
 
 
-    {name = "NASAMS_LN_C",          desc = "NASAMS Launcher 120C",       weight = 2000, type = ctld.AssetTypes.SAM, group_requirement = "NASAMS System", req_supplies = 50},
-    {name = "NASAMS_Radar_MPQ64F1",          desc = "NASAMS Search/Track Radar",    weight = 500, type = ctld.AssetTypes.SAM, group_requirement = "NASAMS System", req_supplies = 100},
-    {name = "NASAMS_Command_Post",          desc = "NASAMS Command Post",   weight = 500, type = ctld.AssetTypes.SAM, group_requirement = "NASAMS System", req_supplies = 100},
+    {name = "NASAMS_LN_C",          desc = "NASAMS Launcher 120C",       weight = 2000, type = ctld.AssetTypes.SAM, group_requirement = "NASAMS System", req_supplies = 400},
+    {name = "NASAMS_Radar_MPQ64F1",          desc = "NASAMS Search/Track Radar",    weight = 500, type = ctld.AssetTypes.SAM, group_requirement = "NASAMS System", req_supplies = 200},
+    {name = "NASAMS_Command_Post",          desc = "NASAMS Command Post",   weight = 500, type = ctld.AssetTypes.SAM, group_requirement = "NASAMS System", req_supplies = 200},
 
 
-    {name = "Soldier stinger",  desc = "Soldier Stinger",     weight = 100, type = ctld.AssetTypes.TROOPS},
-    {name = "Soldier M4 GRG", desc = "Soldier", weight = 100, type = ctld.AssetTypes.TROOPS},
+    {name = "Soldier stinger",  desc = "Soldier Stinger",     weight = 100, type = ctld.AssetTypes.TROOPS, req_supplies = 5},
+    {name = "Soldier M4 GRG", desc = "Soldier", weight = 100, type = ctld.AssetTypes.TROOPS, req_supplies = 5},
 
-    {name = "M1097 Avenger", desc="M1097 Avenger", weight = 3900, type = ctld.AssetTypes.SAM, crates_required = 2, can_move = true},
-    {name = "Roland ADS", desc="Roland ADS", weight = 5000, type = ctld.AssetTypes.SAM, crates_required = 2, can_move = true, req_supplies = 500},
-    {name = "Gepard", desc="Gepard AAA", weight = 5000, type = ctld.AssetTypes.SAM, crates_required = 2, can_move = true},
-    {name = "HEMTT_C-RAM_Phalanx", desc="LPWS C-RAM", weight = 7000, type = ctld.AssetTypes.SAM, crates_required = 3, can_move = true},
+    {name = "M1097 Avenger", desc="M1097 Avenger", weight = 3900, type = ctld.AssetTypes.SAM, crates_required = 2, can_move = true, req_supplies = 300},
+    {name = "Roland ADS", desc="Roland ADS", weight = 5000, type = ctld.AssetTypes.SAM, crates_required = 2, can_move = true, req_supplies = 400},
+    {name = "Gepard", desc="Gepard AAA", weight = 5000, type = ctld.AssetTypes.SAM, crates_required = 2, can_move = true, req_supplies = 400},
+    {name = "HEMTT_C-RAM_Phalanx", desc="LPWS C-RAM", weight = 7000, type = ctld.AssetTypes.SAM, crates_required = 3, can_move = true, req_supplies = 600},
 
-    {name = "M1043 HMMWV Armament", desc="Humvee - MG", weight = 4000, type = ctld.AssetTypes.VEHICLES, can_move = true},
-    {name = "M1045 HMMWV TOW", desc="Humvee - TOW", weight = 4000, type = ctld.AssetTypes.VEHICLES, can_move = true},
-    {name = "MaxxPro_MRAP", desc="Light Tank - MRAP", weight = 14500, type = ctld.AssetTypes.VEHICLES, can_move = true},
+    {name = "M1043 HMMWV Armament", desc="Humvee - MG", weight = 4000, type = ctld.AssetTypes.VEHICLES, can_move = true, req_supplies = 150},
+    {name = "M1045 HMMWV TOW", desc="Humvee - TOW", weight = 4000, type = ctld.AssetTypes.VEHICLES, can_move = true, req_supplies = 200},
+    {name = "MaxxPro_MRAP", desc="Light Tank - MRAP", weight = 14500, type = ctld.AssetTypes.VEHICLES, can_move = true, req_supplies = 300},
 
-    {name = "LAV-25", desc="Med Tank - LAV-25", weight = 12800, type = ctld.AssetTypes.VEHICLES, can_move = true},
+    {name = "LAV-25", desc="Med Tank - LAV-25", weight = 12800, type = ctld.AssetTypes.VEHICLES, can_move = true, req_supplies = 400},
     
-    {name = "M-1 Abrams", desc="Heavy Tank - Abrams", weight = 10000, type = ctld.AssetTypes.VEHICLES, crates_required = 4, can_move = true},
+    {name = "M-1 Abrams", desc="Heavy Tank - Abrams", weight = 10000, type = ctld.AssetTypes.VEHICLES, crates_required = 4, can_move = true, req_supplies = 700},
 
-    {name = "Hummer - JTAC", desc="Hummer", weight = 1000, type = ctld.AssetTypes.VEHICLES, can_move = true},
-    {name = "M 818", desc="M-818 Ammo Truck", weight = 1000, type = ctld.AssetTypes.VEHICLES, can_move = true},
-    {name = "M978 HEMTT Tanker", desc="M978 HEMTT Tanker", weight = 1000, type = ctld.AssetTypes.VEHICLES, can_move = true},
+    {name = "Hummer - JTAC", desc="Hummer", weight = 1000, type = ctld.AssetTypes.VEHICLES, can_move = true, req_supplies = 50},
+    {name = "M 818", desc="M-818 Ammo Truck", weight = 1000, type = ctld.AssetTypes.VEHICLES, can_move = true, req_supplies = 80},
+    {name = "M978 HEMTT Tanker", desc="M978 HEMTT Tanker", weight = 1000, type = ctld.AssetTypes.VEHICLES, can_move = true, req_supplies = 80},
 
-    {name = "FPS-117", desc="EWR Radar", weight = 10000, type = ctld.AssetTypes.VEHICLES, crates_required = 5},
+    {name = "FPS-117", desc="EWR Radar", weight = 10000, type = ctld.AssetTypes.VEHICLES, crates_required = 5, req_supplies = 800},
 
-    {name = "MLRS", desc="MLRS", weight = 1000, type = ctld.AssetTypes.VEHICLES, can_move = true},
-    {name = "SpGH_Dana", desc="SpGH DANA", weight = 1000, type = ctld.AssetTypes.VEHICLES, can_move = true},
+    {name = "MLRS", desc="MLRS", weight = 1000, type = ctld.AssetTypes.VEHICLES, can_move = true, req_supplies = 600},
+    {name = "SpGH_Dana", desc="SpGH DANA", weight = 1000, type = ctld.AssetTypes.VEHICLES, can_move = true, req_supplies = 500},
 
 
     --{name = "container_cargo",  desc = "Crate",               weight = 1000, type = ctld.AssetTypes.CARGO_CRATES},
-    {name = "iso_container",    desc = "Large Container",     weight = 4000, type = ctld.AssetTypes.CARGO_CRATES},
-    {name = "iso_container_small",desc = "Small Container",   weight = 2000, type = ctld.AssetTypes.CARGO_CRATES},
-    {name = "M92_10Ft_Container",desc = "Clean Container",    weight = 1500, type = ctld.AssetTypes.CARGO_CRATES},
+    {name = "iso_container",    desc = "Large Container",     weight = 4000, type = ctld.AssetTypes.CARGO_CRATES, req_supplies = 25},
+    {name = "iso_container_small",desc = "Small Container",   weight = 2000, type = ctld.AssetTypes.CARGO_CRATES, req_supplies = 15},
+    {name = "M92_10Ft_Container",desc = "Clean Container",    weight = 1500, type = ctld.AssetTypes.CARGO_CRATES, req_supplies = 10},
     {name = "gbu_43b_airdrop",  desc = "MOAB",                 weight = 9000, type = ctld.AssetTypes.CARGO_CRATES},
-    {name = "cds_barrels",     desc = "CDS Barrels",        weight = 200, type = ctld.AssetTypes.CARGO_CRATES},
+    {name = "cds_barrels",     desc = "CDS Barrels",        weight = 200, type = ctld.AssetTypes.CARGO_CRATES, req_supplies = 5},
     {name = "cds_crate",       desc = "CDS Crate",           weight = 200, type = ctld.AssetTypes.CARGO_CRATES},
 }
 
@@ -338,7 +338,41 @@ function ctld.load(part, unit)
         end
     end
 
+    -- Check if MOAB in stock
+     -- Checks if MOAB in warehouse
+    if part.name == ctld.CargoCrates.MOAB then
+        local airbase = utils.getZoneOfUnitFromPosition(unit:getPoint())
+        if not airbase or not airbase.airbase_name then
+            trigger.action.outTextForUnit(unit_id, "> Unable to determine airbase for MOAB deployment.", 10)
+            return
+        end
+        local in_stock = false
+        ab = Airbase.getByName(airbase.airbase_name)
+        if ab then
+            local warehouse = ab:getWarehouse()
+                local moab_count = warehouse:getItemCount(WarehouseManager.Flags.GBU_43)
+                if moab_count and moab_count > 0 then
+                    in_stock = true
+                    warehouse:removeItem(WarehouseManager.Flags.GBU_43, 1)
+                end
+        end
+        if not in_stock then
+            trigger.action.outTextForUnit(unit_id, "> No MOABs available in warehouse for deployment.", 10)
+            return
+        end
+    end
+
     -- Add part to user's cargo
+    if unit:getCoalition() == coalition.side.BLUE then
+        if part.req_supplies then
+            stats.blue_supplies = stats.blue_supplies - part.req_supplies
+        end
+    elseif unit:getCoalition() == coalition.side.RED then
+        if part.req_supplies then
+            stats.red_supplies = stats.red_supplies - part.req_supplies
+        end
+    end
+
     table.insert(user.parts, part)
     if user.is_dynamic_cargo then
 
@@ -348,7 +382,7 @@ function ctld.load(part, unit)
         elseif part.type == ctld.AssetTypes.CARGO_CRATES or part.type == ctld.AssetTypes.VEHICLES or part.type == ctld.AssetTypes.SAM then
             -- spawn cargo crate nearby 
             ctld.spawnCargoCrate(unit, part)
-            trigger.action.outTextForUnit(unit_id, string.format("A %s crate weighing %d kg has been brought out and is at your 12 o'clock", part.desc, part.weight), 5)
+            trigger.action.outTextForUnit(unit_id, string.format("A %s crate weighing %d kg has been brought out and is at your 12 or 6 o'clock", part.desc, part.weight), 5)
         end
     else
         trigger.action.outTextForUnit(unit_id, "Loaded: "..part.desc, 5)

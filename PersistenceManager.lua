@@ -66,8 +66,10 @@ do
                 
                 -- State tracking
                 ammo_depot_intact = z.ammo_depot_intact,
+                ammo_depot_time_since_destroyed = z.ammo_depot_last_destroyed and (timer.getTime() - z.ammo_depot_last_destroyed) or nil,
 
-                comms_tower_intact = z.comms_tower_intact
+                comms_tower_intact = z.comms_tower_intact,
+                comms_tower_time_since_destroyed = z.comms_tower_last_destroyed and (timer.getTime() - z.comms_tower_last_destroyed) or nil
             }
             PersistenceManager.data.zones[z.name] = zone_data
         end
@@ -100,6 +102,78 @@ do
                 local warehouse = carrier:getWarehouse()
                 if warehouse then
                     PersistenceManager.data.warehouses[Scenario.carrier_setup.carrier_unit_name] = warehouse:getInventory()
+                end
+            end
+        end
+
+        PersistenceManager.data.placed_assets = {}
+        if Config.persistence.enable_ctld_persistence then
+            for _, asset in ipairs(ctld.placed_assets) do
+                -- Handle groups (SAM systems, etc.)
+                if asset.is_group and asset.group_name then
+                    local group = Group.getByName(asset.group_name)
+                    if group and group:isExist() then
+                        local units = group:getUnits()
+                        local all_alive = true
+                        local group_units_data = {}
+                        
+                        -- Check if all units are alive and collect their data
+                        for _, unit in ipairs(units) do
+                            if unit and unit:isExist() and unit:getLife() > 1 then
+                                table.insert(group_units_data, {
+                                    type = unit:getTypeName(),
+                                    name = unit:getName(),
+                                    point = unit:getPoint()
+                                })
+                            else
+                                all_alive = false
+                                break
+                            end
+                        end
+                        
+                        -- Save group if all units are alive
+                        if all_alive and #group_units_data > 0 then
+                            table.insert(PersistenceManager.data.placed_assets, {
+                                is_group = true,
+                                group_name = asset.group_name,
+                                asset_name = asset.asset_name,
+                                type = asset.type,
+                                coalition = asset.coalition,
+                                units = group_units_data
+                            })
+                        end
+                    end
+                else
+                    -- Handle individual units and statics
+                    local obj = nil
+                    local obj_exists = false
+                    
+                    -- Check if it's a static object (cargo crates)
+                    if asset.type == ctld.AssetTypes.CARGO_CRATES then
+                        obj = StaticObject.getByName(asset.unit_name)
+                        if obj and obj.isExist and obj:isExist() and obj:getLife() > 1 then
+                            obj_exists = true
+                        end
+                    -- Check if it's a unit (troops, vehicles, unpacked units)
+                    elseif asset.type == ctld.AssetTypes.TROOPS or asset.type == ctld.AssetTypes.VEHICLES then
+                        obj = Unit.getByName(asset.unit_name)
+                        if obj and obj:isExist() and obj:getLife() > 1 then
+                            obj_exists = true
+                        end
+                    end
+                    
+                    -- Save if object exists and is alive
+                    if obj_exists and obj then
+                        if not obj:inAir() then
+                            table.insert(PersistenceManager.data.placed_assets, {
+                                unit_name = asset.unit_name,
+                                asset_name = asset.asset_name,
+                                type = asset.type,
+                                point = obj:getPoint(),
+                                coalition = asset.coalition or obj:getCoalition()
+                            })
+                        end
+                    end
                 end
             end
         end
@@ -237,6 +311,9 @@ do
     function PersistenceManager:restoreState()
         if not PersistenceManager.enabled then return false end
 
+        -- -- Load user data regardless of mission data existence
+        -- PersistenceManager:loadUserData()
+
         if not PersistenceManager.data or not PersistenceManager.data.zones then
             MissionLogger:error("Restore failed: No data loaded.")
             return false
@@ -287,12 +364,20 @@ do
                 
                 -- Restore state tracking
                 zone.ammo_depot_intact = saved_zone.ammo_depot_intact
+                if saved_zone.ammo_depot_time_since_destroyed then
+                    zone.ammo_depot_last_destroyed = timer.getTime() - saved_zone.ammo_depot_time_since_destroyed
+                end
+                
                 zone.comms_tower_intact = saved_zone.comms_tower_intact
+                if saved_zone.comms_tower_time_since_destroyed then
+                    zone.comms_tower_last_destroyed = timer.getTime() - saved_zone.comms_tower_time_since_destroyed
+                end
                 
                 -- Clear runtime tracking arrays - will be repopulated by spawn functions
                 zone.linked_groups = {}
                 zone.linked_statics = {}
-                
+
+
                 -- Spawn the correct units for the zone's side and level
                 UnitHandler.initZoneUnits(zone)
                 UnitHandler.initStatics(zone)
@@ -344,7 +429,104 @@ do
             end
         end
         
-        PersistenceManager:loadUserData()
+        -- 5. Restore Placed Assets (CTLD cargo, troops, vehicles, groups)
+        if PersistenceManager.data.placed_assets then
+            ctld.placed_assets = {} -- Clear current list
+            for _, saved_asset in ipairs(PersistenceManager.data.placed_assets) do
+                
+                -- Handle groups (SAM systems, etc.)
+                if saved_asset.is_group and saved_asset.units and saved_asset.coalition then
+
+                        local country_id = saved_asset.coalition == coalition.side.BLUE and country.id["CJTF_BLUE"] or country.id["CJTF_RED"]
+                        
+                        -- Build units table for the group
+                        local units_table = {}
+                        for _, unit_data in ipairs(saved_asset.units) do
+                            local u_id = mist.getNextUnitId()
+                            table.insert(units_table, {
+                                type = unit_data.type,
+                                unitId = u_id,
+                                name = unit_data.name,
+                                x = unit_data.point.x,
+                                y = unit_data.point.z,
+                            })
+                        end
+                        
+                        -- Spawn the group with all its units
+                        local spawned_group = mist.dynAdd({
+                            units = units_table,
+                            country = country_id,
+                            category = Group.Category.GROUND,
+                            groupName = saved_asset.group_name,
+                        })
+                        
+                        if spawned_group then
+                            table.insert(ctld.placed_assets, {
+                                is_group = true,
+                                group_name = saved_asset.group_name,
+                                asset_name = saved_asset.asset_name,
+                                type = saved_asset.type,
+                                coalition = saved_asset.coalition,
+                                unit_count = #units_table
+                            })
+                            MissionLogger:info(string.format("Restored group %s with %d units", saved_asset.group_name, #units_table))
+                        end
+                    
+                else
+                    -- Handle individual units and statics
+                    if not saved_asset.point or not saved_asset.asset_name or not saved_asset.coalition then
+                        MissionLogger:warn("Skipping invalid placed asset: missing required data")
+                    else
+                        local part = nil
+                        for _, p in ipairs(ctld.parts) do
+                            if p.name == saved_asset.asset_name then
+                                part = p
+                                break
+                            end
+                        end
+                        
+                        if part then
+                            -- Determine country from coalition
+                            local country_id = saved_asset.coalition == coalition.side.BLUE and country.id["CJTF_BLUE"] or country.id["CJTF_RED"]
+
+                            if saved_asset.type == ctld.AssetTypes.TROOPS or saved_asset.type == ctld.AssetTypes.VEHICLES then
+                                -- Respawn as unit with "unpacked" prefix for vehicles to enable unitAttack
+                                local u_id = mist.getNextUnitId()
+                                local unit_name = saved_asset.type == ctld.AssetTypes.VEHICLES 
+                                    and "unpacked" .. part.name .. "_" .. u_id 
+                                    or part.name .. "_" .. u_id
+                                
+                                local spawned_group = mist.dynAdd({
+                                    units = {{
+                                        type = part.name,
+                                        unitId = u_id,
+                                        name = unit_name,
+                                        x = saved_asset.point.x,
+                                        y = saved_asset.point.z,
+                                    }},
+                                    country = country_id,
+                                    category = Group.Category.GROUND,
+                                })
+                                
+                                if spawned_group then
+                                    table.insert(ctld.placed_assets, {
+                                        unit_name = unit_name,
+                                        asset_name = part.name,
+                                        point = saved_asset.point,
+                                        type = saved_asset.type,
+                                        coalition = saved_asset.coalition
+                                    })
+                                end
+                            end
+                        end
+                    end
+                end
+            end
+        end
+        
+        -- Updates check
+        if not stats.blue_supplies then stats.blue_supplies = 0 end
+        if not stats.red_supplies then stats.red_supplies = 0 end
         
         MissionLogger:info("Mission state successfully restored.")
         trigger.action.outText("Mission state restored from last save.", 10)
@@ -367,13 +549,14 @@ function PersistenceManager:saveUserDataToFile()
         end
     end
 
+    ---@return boolean
     function PersistenceManager:loadUserData()
-        if not PersistenceManager.enabled then return end
-        if not PersistenceManager.user_data_file_path then return end
+        if not PersistenceManager.enabled then return false end
+        if not PersistenceManager.user_data_file_path then return false end
 
         if not lfs.attributes(PersistenceManager.user_data_file_path) then
             MissionLogger:info("No user data file found.")
-            return
+            return false
         end
 
         local file = io.open(PersistenceManager.user_data_file_path, "r")
@@ -387,6 +570,7 @@ function PersistenceManager:saveUserDataToFile()
                 return true
             end
         end
+        return false
     end
 
     function PersistenceManager:autoSave()

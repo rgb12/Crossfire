@@ -653,7 +653,7 @@ do
                 stock_types_str = "{" .. table.concat(stock_types, ", ") .. "}"
             end
             
-            local scriptCommand = string.format("UnitHandler.simulateResupply('%s', '%s', %d, %s)", new_group_name, destination_airbase.name, side, stock_types_str)
+            local scriptCommand = string.format("UnitHandler.simulateResupply('%s', '%s', %d, %s)", new_group_name, destination_airbase.airbase_name, side, stock_types_str)
             local waypointScriptTask = {
                 id = "ComboTask",
                 params = {
@@ -751,6 +751,24 @@ do
             
             TheatreCommander.dispatchAI()
         end, nil, timer.getTime()+Config.tasking.dispatcher_interval)
+    end
+
+    function TheatreCommander.checkAirbasesCoalition()
+        if not blue_airbase or not red_airbase then
+            return trigger.action.outText("ERROR: Mission has not been initialized correctly.", 30)
+        end
+        -- MissionLogger:info(blue_airbase)
+        local b_airbase = Airbase.getByName(blue_airbase.airbase_name)
+        if b_airbase then
+            b_airbase:autoCapture(false)
+            b_airbase:setCoalition(blue_airbase.side)
+        end
+        local r_airbase = Airbase.getByName(red_airbase.airbase_name)
+        if r_airbase then
+            r_airbase:autoCapture(false)
+            r_airbase:setCoalition(red_airbase.side)
+        end
+        
     end
 
     ---@return ZoneHandler, ZoneHandler
@@ -1058,7 +1076,8 @@ do
         -- Establish the theatre and get home airbases
         local persistor = PersistenceManager
         
-        if persistor:isEnabled() and persistor:loadFromFile() then
+
+        if persistor:isEnabled() and persistor:loadUserData() and persistor:loadFromFile() then
             if not persistor:restoreState()then
                 MissionLogger:error("Failed to restore state. Establishing new theatre.")
                 blue_airbase, red_airbase = TheatreCommander.establishTheatre()
@@ -1067,7 +1086,8 @@ do
             MissionLogger:info("No save file found. Establishing new theatre.")
             blue_airbase, red_airbase = TheatreCommander.establishTheatre()
         end
-        
+        TheatreCommander.checkAirbasesCoalition()
+
         CommandHandler.refreshJtacCmds(coalition.side.BLUE)
         CommandHandler.refreshJtacCmds(coalition.side.RED)
 

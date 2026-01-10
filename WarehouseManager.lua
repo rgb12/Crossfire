@@ -275,6 +275,32 @@ do
                 }
             },
             [Airbases.Caucasus.Anapa_Vityazevo] = {
+                [coalition.side.BLUE] = {
+                    [AITaskTypes.CAS] = {
+                        group_name = "BLUE ANAPA CAS",
+                        warehouse_name = WarehouseManager.AircraftFlags.A10C_TANK_KILLER_II
+                    },
+                    [AITaskTypes.SEAD] = {
+                        group_name = "BLUE ANAPA SEAD",
+                        warehouse_name = WarehouseManager.AircraftFlags.F16C_BL50
+                    },
+                    [AITaskTypes.STRIKE] = {
+                        group_name = "BLUE ANAPA STRIKE",
+                        warehouse_name = WarehouseManager.AircraftFlags.F16C_BL50
+                    },
+                    [AITaskTypes.CAP] = {
+                        group_name = "BLUE ANAPA INTERCEPT",
+                        warehouse_name = WarehouseManager.AircraftFlags.F15C
+                    },
+                    [AITaskTypes.AWACS] = {
+                        group_name = "BLUE ANAPA AWACS",
+                        warehouse_name = WarehouseManager.AircraftFlags.E3A
+                    },
+                    [AITaskTypes.RECON] = {
+                        group_name = "BLUE ANAPA RECON",
+                        warehouse_name = WarehouseManager.AircraftFlags.F16C_BL50
+                    }
+                },
                 [coalition.side.RED] = {
                     [AITaskTypes.CAS] = {
                         group_name = "RED ANAPA CAS",
@@ -303,6 +329,28 @@ do
                 }
             },
             [Airbases.Caucasus.Krymsk] = {
+                [coalition.side.BLUE] = {
+                    [AITaskTypes.CAS] = {
+                        group_name = "BLUE KRYMSK CAS",
+                        warehouse_name = WarehouseManager.AircraftFlags.A10C_TANK_KILLER_II
+                    },
+                    [AITaskTypes.SEAD] = {
+                        group_name = "BLUE KRYMSK SEAD",
+                        warehouse_name = WarehouseManager.AircraftFlags.F16C_BL50
+                    },
+                    [AITaskTypes.STRIKE] = {
+                        group_name = "BLUE KRYMSK STRIKE",
+                        warehouse_name = WarehouseManager.AircraftFlags.F16C_BL50
+                    },
+                    [AITaskTypes.CAP] = {
+                        group_name = "BLUE KRYMSK INTERCEPT",
+                        warehouse_name = WarehouseManager.AircraftFlags.F15C
+                    },
+                    [AITaskTypes.RECON] = {
+                        group_name = "BLUE KRYMSK RECON",
+                        warehouse_name = WarehouseManager.AircraftFlags.F16C_BL50
+                    }
+                },
                 [coalition.side.RED] = {
                     [AITaskTypes.CAS] = {
                         group_name = "RED KRYMSK CAS",
@@ -1035,7 +1083,7 @@ do
                 [WarehouseManager.Flags.CBU_105] = math.random(4,8),
                 [WarehouseManager.Flags.CBU_103] = math.random(4,8),
                 [WarehouseManager.Flags.GBU_54_V_1B] = math.random(10,16),
-                [WarehouseManager.Flags.GBU_43] = math.random(4,6),
+                [WarehouseManager.Flags.GBU_43] = math.random(2,4),
             },
             [coalition.side.RED] = {
                 [WarehouseManager.Flags.KAB_500KR] = math.random(10,15),

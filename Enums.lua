@@ -80,7 +80,8 @@ OperationTypes = {
     CAS = "CAS",
     RECON = "Recon",
     AIRDROP = "Airdrop",
-    INTERCEPT = "Intercept"
+    INTERCEPT = "Intercept",
+    CSAR = "CSAR"
 }
 
 
@@ -99,10 +100,8 @@ CargoCrates = {
     ContainerClean = "M92_10Ft_Container",
     MOAB = "gbu_43b_airdrop",
     LargeContainer = "iso_container",
-    SmallContainer = "iso_container_small"
-
-
-
+    SmallContainer = "iso_container_small",
+    SuppliesCrate = "container_cargo"
 }
 
 MissionLogger = mist.Logger:new("MissionLogger", 3)

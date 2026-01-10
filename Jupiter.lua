@@ -103,6 +103,10 @@ function Jupiter:onEvent(event)
             else
                 trigger.action.outText("Jupiter: No zone found within 10km to set level.", 5)
             end
+        elseif command == "-clearctldassets" then
+            ctld.placed_assets = {}
+            trigger.action.outText("Jupiter: Cleared all CTLD cached placed assets.", 5)
+            cmd_executed = true
         elseif command == "-logstats" then
             MissionLogger:info(stats)
             cmd_executed = true

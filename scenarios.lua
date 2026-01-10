@@ -315,6 +315,67 @@ Scenarios = {
             ZoneHandler:new({name = "KOBULETI", zone_type = ZoneTypes.AIRBASE, airbase_name = Airbases.Caucasus.Kobuleti}),
             ZoneHandler:new({name = "KUTAISI", zone_type = ZoneTypes.AIRBASE, airbase_name = Airbases.Caucasus.Kutaisi}),
         } -- 43 zones
+    },
+     {
+        name = "Eastbound",
+        description = "Achieve control over the the Russian Caucasus area.",
+        coalition_setup = {
+            initial_dist_blue_to_frontline = 27000, --meters
+            dist_variance = 5000, --meters
+            auto_coalition_designation = true, -- overrides the above
+        },
+        logistics_setup = {
+            upgrade_range = 30000, --meters
+            heli_capture_range = 60000, --meters
+            max_dist_to_frontline = 40000 --meters
+        },
+        resupply = {
+            --blue_point = { x=-00005476, y=2000,z=00224066}, --for dev
+            -- Metric: X-00005476 Z+00224066
+
+            blue_point = { x = -2839, y = 6096, z = 192302 },
+            red_point = { x = 42692, y = 6096, z = 429197 }
+        },
+        carrier_setup = {
+            carrier_unit_name = "Carrier",
+            enabled = true
+        },
+        estimated_users = 1,
+        difficulty = ScenarioDifficulty.EASY,
+        red_airbase = ZoneHandler:new({
+            name = "KRASNODAR",
+            airbase_name = Airbases.Caucasus.Krasnodar_Pashkovsky,
+            zone_type = ZoneTypes.AIRBASE}),
+        blue_airbase =  ZoneHandler:new({
+            name = "ANAPA",
+            airbase_name = Airbases.Caucasus.Anapa_Vityazevo,
+            zone_type = ZoneTypes.AIRBASE}),
+        zones = {
+            ZoneHandler:new({name = "NORTH-FIELDS"}),
+            ZoneHandler:new({name = "KING"}),
+            ZoneHandler:new({name = "JACK"}),
+            ZoneHandler:new({name = "SUKKO"}),
+            ZoneHandler:new({name = "PORT"}),
+            ZoneHandler:new({name = "SUPSEH"}),
+            ZoneHandler:new({name = "NORTH-BAY"}),
+            ZoneHandler:new({name = "OUTPOST-CHARLIE"}),
+            ZoneHandler:new({name = "CLUB"}),
+            ZoneHandler:new({name = "QUEEN"}),
+            ZoneHandler:new({name = "ABINSK"}),
+            ZoneHandler:new({name = "OUTPOST-BRAVO"}),
+            ZoneHandler:new({name = "STRONGHOLD"}),
+            ZoneHandler:new({name = "SPADE"}),
+            ZoneHandler:new({name = "JOKER"}),
+            ZoneHandler:new({name = "CHECKPOINT-UNIFORM"}),
+            ZoneHandler:new({name = "CHECKPOINT-TANGO"}),
+            ZoneHandler:new({name = "CHECKPOINT-YANKEE"}),
+            ZoneHandler:new({name = "OUTPOST-DELTA"}),
+            ZoneHandler:new({name = "ACE"}),
+            
+            ZoneHandler:new({name = "HEART", zone_type = ZoneTypes.FARP}),
+            ZoneHandler:new({name = "FARP-A1", zone_type = ZoneTypes.FARP}),
+            ZoneHandler:new({name = "KRYMSK", zone_type = ZoneTypes.AIRBASE, airbase_name = Airbases.Caucasus.Krymsk}),
+        }
     }
 }
 --[[

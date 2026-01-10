@@ -483,9 +483,10 @@ do
 
     ---@param unit Unit
     ---@param cargo_type CargoCrates
-    ---@param dist_apart number|nil
-    ---@param amount_to_spawn number|nil
-    function UnitHandler.staticCargoSpawn(unit, cargo_type, dist_apart, amount_to_spawn)
+    function UnitHandler.staticCargoSpawn(unit, cargo_type)
+        local min_radius = Config.crates_spawn_params.cargo_crates_spawn_radius_min or 20
+        local max_radius = Config.crates_spawn_params.cargo_crates_spawn_radius_max or 50
+
         if not unit or not unit.isExist or not unit:isExist() then return end
         local unit_coalition = unit:getCoalition()
         if unit_coalition == coalition.side.NEUTRAL then return end
@@ -494,61 +495,53 @@ do
         if unit_coalition == coalition.side.BLUE then country_name = country.id.CJTF_BLUE
         else country_name = country.id.CJTF_RED end
 
-        amount_to_spawn = amount_to_spawn or 6
-
+        -- Set default radii
+        min_radius = min_radius or 15
+        max_radius = max_radius or 25
+        
         local unit_pos = unit:getPoint()
-
-        -- First check if there are no cargo aircrafts nearby
-        local nearby_cargo_count = 0
-        local vol = {
-            id = world.VolumeType.SPHERE,
-            params = { point = unit_pos, radius = 200 } }
-        world.searchObjects({Object.Category.UNIT}, vol, function(obj)
-            if obj and obj:isExist() then
-                local obj_type = obj:getTypeName()
-                if obj_type and utils.tableContains(Config.cargo_aircraft, obj_type) then
-                    nearby_cargo_count = nearby_cargo_count + 1
-                    return true
-                end
-            end
-        end)
-        if nearby_cargo_count > 1 then
-            trigger.action.outTextForUnit(unit:getID(), "Could not spawn cargo crates asa a Cargo aircraft nearby.", 10    )
-        end
-
-        -- Second remove the crates that might already be there
-        local vol = {
-            id = world.VolumeType.SPHERE, 
-            params = { point = unit_pos, radius = 100 } }
-        world.searchObjects({Object.Category.CARGO}, vol, function(obj)
-            if obj and obj:isExist() then
-                obj:destroy()
-            end
-            return true
-        end)
-
+        local unit_type = unit:getTypeName()
         local unit_heading = mist.getHeading(unit) or 0
-        local behind_distance = 20 -- meters behind the unit 
-        local behind_point = {
-            unit_pos.x - behind_distance * math.cos(unit_heading),
-            unit_pos.z - behind_distance * math.sin(unit_heading)
+
+        -- Determine if helicopter or cargo aircraft
+        local is_cargo_aircraft = unit_type == "C-130J-30"
+        if not is_cargo_aircraft then
+            -- For helicopters, reduce max radius
+            min_radius = 10
+            max_radius = 15
+        end
+        
+        -- Random spacing parameters (similar to CTLD)
+        local random_spacing = 10 -- meters of random variation
+        local random_offset_x = math.random(0, random_spacing * 2) - random_spacing -- -10 to +10
+        local random_offset_z = math.random(0, random_spacing) -- 0 to +10
+        
+        -- Base distance with randomization
+        local base_distance = math.random(min_radius, max_radius) + random_offset_z
+        
+        -- Direction: behind for cargo aircraft (π radians), in front for helicopters (0 radians)
+        local direction = is_cargo_aircraft and math.pi or 0
+
+        -- Calculate spawn position with random offset
+        local angle = unit_heading + direction
+        local x_offset = math.cos(angle) * base_distance + random_offset_x * math.cos(unit_heading + math.pi / 2)
+        local z_offset = math.sin(angle) * base_distance + random_offset_x * math.sin(unit_heading + math.pi / 2)
+        
+        local spawn_point = {
+            x = unit_pos.x + x_offset,
+            y = unit_pos.z + z_offset
         }
+        
+        -- Spawn single crate with delay to prevent stacking
         timer.scheduleFunction(function()
-            for i = 1, amount_to_spawn do
-                local offset = (i - (amount_to_spawn + 1) / 2) * (dist_apart or 2) -- 2 meters apart by default
-                local offset_point = {
-                    behind_point[1] + offset * math.cos(unit_heading + math.pi / 2),
-                    behind_point[2] + offset * math.sin(unit_heading + math.pi / 2)
-                }
-                -- cds_barrels
-                mist.dynAddStatic({
-                    type = cargo_type or CargoCrates.CDS_BARRELS,
-                    country = country_name,
-                    category = "Cargos",
-                    x = offset_point[1],
-                    y = offset_point[2]})
-            end
-        end, {}, timer.getTime()+1) -- to prevent crates stacking
+            mist.dynAddStatic({
+                type = cargo_type or CargoCrates.CDS_CRATES,
+                country = country_name,
+                category = "Cargos",
+                x = spawn_point.x,
+                y = spawn_point.y
+            })
+        end, {}, timer.getTime() + 0.1)
     end
 
     function UnitHandler.carrierCheck()
@@ -571,7 +564,7 @@ do
     ---@param group_name string
     ---@param airbase_name string
     ---@param side coalition.side
-    ---@param stock_types WarehouseManager.StockTypes[]|nil if none are provided, a random stock type will be chosen
+    ---@param stock_types WarehouseManager.StockTypes[] if none are provided, a random stock type will be chosen
     function UnitHandler.simulateResupply(group_name,airbase_name, side, stock_types)
         local possible_stocks_rnd =
             {
@@ -614,7 +607,10 @@ do
                 },
             }
 
-        if not stock_types and Config.enabled_su25t_blufor then
+        if not stock_types then
+            stock_types = stock_types or {}
+        end
+        if #stock_types==0 and Config.enabled_su25t_blufor then
             table.insert(possible_stocks_rnd,
             {
                 out_text = "SU-25T BLUFOR Package (AA Aircraft, AG Missiles, Guided Bombs, ECM and TGPs)",
@@ -624,28 +620,54 @@ do
             })
         end
 
+        
+
         local stock_type_choice = possible_stocks_rnd[math.random(1,#possible_stocks_rnd)]
 
-        stock_types = stock_types or {}
-
+        local out_text = ""
+        local chosen_stocks = {}
         if #stock_types == 0 and Config.random_resupply_types then
-            stock_types = stock_type_choice.stocks
+            chosen_stocks = stock_type_choice.stocks
+            out_text = stock_type_choice.out_text
         elseif #stock_types == 0 then
-            stock_types = {WarehouseManager.StockTypes.INITIAL}
+            chosen_stocks = {WarehouseManager.StockTypes.INITIAL}
+            out_text = "Initial Stock Package"
+        else 
+            chosen_stocks = mist.utils.deepCopy(stock_types)
+            local stock_descs = {
+                [WarehouseManager.StockTypes.AA_AIRCRAFT] = "AA Aircraft",
+                [WarehouseManager.StockTypes.AIR_AIR_LONG_RANGE] = "AA Long Range Missiles",
+                [WarehouseManager.StockTypes.AIR_AIR_SHORT_RANGE] = "AA Short Range Missiles",
+                [WarehouseManager.StockTypes.CARGO_AIRCRAFT] = "Cargo Aircraft",
+                [WarehouseManager.StockTypes.AG_AIRCRAFT] = "AG Aircraft",
+                [WarehouseManager.StockTypes.AIR_GROUND_GUIDED_MISSILES] = "AG Missiles",
+                [WarehouseManager.StockTypes.AIR_GROUND_ROCKETS] = "AG Rockets",
+                [WarehouseManager.StockTypes.AIR_GROUND_BOMBS] = "AG Unguided Bombs",
+                [WarehouseManager.StockTypes.AIR_GROUND_GUIDED_BOMBS] = "AG Guided Bombs",
+                [WarehouseManager.StockTypes.ECM] = "ECM Equipment",
+                [WarehouseManager.StockTypes.TGP] = "TGPs",
+                [WarehouseManager.StockTypes.MISC] = "Misc Equipment",
+                [WarehouseManager.StockTypes.SU25T_BLUFOR] = "SU-25T BLUFOR Package",
+                [WarehouseManager.StockTypes.INITIAL] = "Initial Stock Package",
+            }
+            for _, stock in ipairs(chosen_stocks) do
+                if out_text ~= "" then out_text = out_text .. ", " end
+                out_text = out_text .. (stock_descs[stock] or "Unknown Stock Type")
+            end
         end
 
         local prefix = (side == coalition.side.RED) and "RED" or "BLUE"
-        trigger.action.outTextForCoalition(side, "RESUPPLY Airdrop packaged secured at " .. airbase_name.."\nAssets received: " .. stock_type_choice.out_text, 10)
+        trigger.action.outTextForCoalition(side, "RESUPPLY Airdrop packaged secured at " .. airbase_name.."\nAssets received: " ..out_text, 10)
         trigger.action.outSoundForCoalition(side, "supply_package_received.ogg")
 
         MissionLogger:info(prefix .. " Resupply airdrop delivered at " .. airbase_name)
 
         
         if side == coalition.side.RED then
-            WarehouseManager:attributeAirbaseStock(airbase_name, coalition.side.RED, stock_types or {WarehouseManager.StockTypes.INITIAL})
+            WarehouseManager:attributeAirbaseStock(airbase_name, coalition.side.RED, chosen_stocks or {WarehouseManager.StockTypes.INITIAL})
             --WarehouseManager:handleIncomingSupplies(coalition.side.RED, stock_types or {WarehouseManager.StockTypes.INITIAL})
         else
-            local stocks = stock_types or {WarehouseManager.StockTypes.INITIAL}
+            local stocks = chosen_stocks or {WarehouseManager.StockTypes.INITIAL}
             WarehouseManager:attributeAirbaseStock(airbase_name, coalition.side.BLUE, stocks)
             -- WarehouseManager:handleIncomingSupplies(coalition.side.BLUE, stocks)
         end
