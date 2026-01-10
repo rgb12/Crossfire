@@ -119,12 +119,13 @@ do
                         
                         -- Check if all units are alive and collect their data
                         for _, unit in ipairs(units) do
-                            if unit and unit:isExist() and unit:getLife() > 1 then
-                                table.insert(group_units_data, {
-                                    type = unit:getTypeName(),
-                                    name = unit:getName(),
-                                    point = unit:getPoint()
-                                })
+                            if unit and unit:isExist() and unit:getLife() > 1
+                            and unit.inAir and not unit:inAir() then
+                                    table.insert(group_units_data, {
+                                        type = unit:getTypeName(),
+                                        name = unit:getName(),
+                                        point = unit:getPoint()
+                                    })
                             else
                                 all_alive = false
                                 break
