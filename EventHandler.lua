@@ -20,12 +20,12 @@ function ev:onEvent(event)
   
             local function checkSpawnAllowed()
                 if not unit or not unit.isExist or not unit:isExist() or not unit.getCoalition then return end
-
+                local unit_pos = unit:getPoint()
                 local unit_coalition = unit:getCoalition()
                 -- Checks if the player has the rigt to spawn in the airbase
                 local can_spawn = false
                 for _,zone in ipairs(zones) do
-                    if zone:isPointInsideZone(unit:getPoint()) then
+                    if zone:isPointInsideZone(unit_pos) then
                         -- Only check warehouse if zone belongs to player's coalition and is airbase/FARP
                         if zone.side == unit_coalition and (zone.zone_type == ZoneTypes.AIRBASE or zone.zone_type == ZoneTypes.FARP) then
                             if unit.getTypeName and unit:getTypeName() then
@@ -80,6 +80,12 @@ function ev:onEvent(event)
 
                 -- Allows airborne units
                 if unit:inAir() and Config.allow_air_spawn then 
+                    can_spawn = true
+                end
+
+                -- Allows carrier spawn
+                local land_type = land.getSurfaceType({x = unit_pos.x, y = unit_pos.z})
+                if land_type == land.SurfaceType.WATER then
                     can_spawn = true
                 end
 
