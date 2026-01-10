@@ -60,15 +60,16 @@ ctld.placed_assets = {} -- store for persistence, save function will check all u
 
 ctld.cargo_crate_template = "container_cargo"
 ctld.search_radius = 50  -- meters
-ctld.random_crate_spacing = 7  -- meters
+ctld.random_crate_spacing = 10  -- meters
 ctld.allow_unpacking_in_zones = true
 ctld.supplies_per_minute_per_ammo_depot = 50
+ctld.enable_weighted_loading = false
 
 ctld.dynamic_cargo_capable_units = {
-   "CH-47Fbl1",
-   "UH-1H",
-   "Mi-8MT",
-   "Mi-24P",
+--    "CH-47Fbl1",
+--    "UH-1H",
+--    "Mi-8MT",
+--    "Mi-24P",
    "C-130J-30"
 }
 
@@ -154,85 +155,86 @@ function ctld.initF10RadioMenu(root_menu, group)
     local unit = group:getUnit(1)
     if not unit then return end
 
-    local load_submenu = missionCommands.addSubMenuForGroup(gr_id, "Load", root_menu)
-
-    local load_troops_submenu = missionCommands.addSubMenuForGroup(gr_id, "Troops", load_submenu)
+    local aircraft_limit = ctld.getAircraftLimit(unit)
+    if aircraft_limit then
+        local load_submenu = missionCommands.addSubMenuForGroup(gr_id, "Load", root_menu)
     
-    local load_CARGO_CRATES_submenu = missionCommands.addSubMenuForGroup(gr_id, "Cargo Crates", load_submenu)
-    local load_vehicles_submenu = missionCommands.addSubMenuForGroup(gr_id, "Vehicles", load_submenu)
-    local load_sam_submenu = missionCommands.addSubMenuForGroup(gr_id, "SAM", load_submenu)
+        local load_troops_submenu = missionCommands.addSubMenuForGroup(gr_id, "Troops", load_submenu)
+        
+        local load_CARGO_CRATES_submenu = missionCommands.addSubMenuForGroup(gr_id, "Cargo Crates", load_submenu)
+        local load_vehicles_submenu = missionCommands.addSubMenuForGroup(gr_id, "Vehicles", load_submenu)
+        local load_sam_submenu = missionCommands.addSubMenuForGroup(gr_id, "SAM", load_submenu)
+    
+    
+        missionCommands.addCommandForGroup(gr_id, "Unload", root_menu, function ()
+            ctld.unload(unit)
+        end)
+    
+        missionCommands.addCommandForGroup(gr_id, "Unpack", root_menu, function ()
+            ctld.unpack(unit)
+        end)
+    
+        missionCommands.addCommandForGroup(gr_id, "Load Nearby Crate", root_menu, function ()
+            ctld.loadNearbyCrate(unit)
+        end)
+    
+        missionCommands.addCommandForGroup(gr_id, "Unit Attack", root_menu, function ()
+            ctld.unitAttack(unit)
+        end)
+    
+        missionCommands.addCommandForGroup(gr_id, "List Loaded Cargo", root_menu, function ()
+            ctld.listOnboardCargo(unit)
+        end)
 
+         local troop_commands = {}
+        local cargo_crate_commands = {}
+        local vehicle_commands = {}
+        local sam_commands = {}
 
-    missionCommands.addCommandForGroup(gr_id, "Unload", root_menu, function ()
-        ctld.unload(unit)
-    end)
+        for _, part in ipairs(ctld.parts) do
+            if part.type == ctld.AssetTypes.TROOPS then
+                table.insert(troop_commands, {
+                    name = part.desc,
+                    func = function ()
+                        ctld.load(part, unit)
+                    end,
+                    arg = nil
+                })
+            elseif part.type == ctld.AssetTypes.CARGO_CRATES then
+                table.insert(cargo_crate_commands, {
+                    name = part.desc,
+                    func = function ()
+                        ctld.load(part, unit)
+                    end,
+                    arg = nil
+                })
+            elseif part.type == ctld.AssetTypes.VEHICLES then
+                table.insert(vehicle_commands, {
+                    name = part.desc,
+                    func = function ()
+                        ctld.load(part, unit)
+                    end,
+                    arg = nil
+                })
+            elseif part.type == ctld.AssetTypes.SAM then
+                table.insert(sam_commands, {
+                    name = part.desc,
+                    func = function ()
+                        ctld.load(part, unit)
+                    end,
+                    arg = nil
+                })
+            end
+        end
 
-    missionCommands.addCommandForGroup(gr_id, "Unpack", root_menu, function ()
-        ctld.unpack(unit)
-    end)
-
-    missionCommands.addCommandForGroup(gr_id, "Load Nearby Crate", root_menu, function ()
-        ctld.loadNearbyCrate(unit)
-    end)
-
-    missionCommands.addCommandForGroup(gr_id, "Unit Attack", root_menu, function ()
-        ctld.unitAttack(unit)
-    end)
-
-    missionCommands.addCommandForGroup(gr_id, "List Loaded Cargo", root_menu, function ()
-        ctld.listOnboardCargo(unit)
-    end)
-
+        CommandHandler.buildPagedMenuForGroup(gr_id, load_troops_submenu, troop_commands, 1)
+        CommandHandler.buildPagedMenuForGroup(gr_id, load_CARGO_CRATES_submenu, cargo_crate_commands, 1)
+        CommandHandler.buildPagedMenuForGroup(gr_id, load_vehicles_submenu, vehicle_commands, 1)
+        CommandHandler.buildPagedMenuForGroup(gr_id, load_sam_submenu, sam_commands, 1)
+    end
     missionCommands.addCommandForGroup(gr_id, "List Supplies", root_menu, function ()
         ctld.listSupplies(unit)
     end)
-
-
-    local troop_commands = {}
-    local cargo_crate_commands = {}
-    local vehicle_commands = {}
-    local sam_commands = {}
-
-    for _, part in ipairs(ctld.parts) do
-        if part.type == ctld.AssetTypes.TROOPS then
-            table.insert(troop_commands, {
-                name = part.desc,
-                func = function ()
-                    ctld.load(part, unit)
-                end,
-                arg = nil
-            })
-        elseif part.type == ctld.AssetTypes.CARGO_CRATES then
-            table.insert(cargo_crate_commands, {
-                name = part.desc,
-                func = function ()
-                    ctld.load(part, unit)
-                end,
-                arg = nil
-            })
-        elseif part.type == ctld.AssetTypes.VEHICLES then
-            table.insert(vehicle_commands, {
-                name = part.desc,
-                func = function ()
-                    ctld.load(part, unit)
-                end,
-                arg = nil
-            })
-        elseif part.type == ctld.AssetTypes.SAM then
-            table.insert(sam_commands, {
-                name = part.desc,
-                func = function ()
-                    ctld.load(part, unit)
-                end,
-                arg = nil
-            })
-        end
-    end
-    CommandHandler.buildPagedMenuForGroup(gr_id, load_troops_submenu, troop_commands, 1)
-    CommandHandler.buildPagedMenuForGroup(gr_id, load_CARGO_CRATES_submenu, cargo_crate_commands, 1)
-    CommandHandler.buildPagedMenuForGroup(gr_id, load_vehicles_submenu, vehicle_commands, 1)
-    CommandHandler.buildPagedMenuForGroup(gr_id, load_sam_submenu, sam_commands, 1)
-
 
 end
 
@@ -326,15 +328,17 @@ function ctld.load(part, unit)
     end
 
     -- Checks weight limit
-    if not ctld.isDynamicCargoCapable(unit) then
-        local total_weight = 0
-        for _, p in ipairs(user.parts) do
-            total_weight = total_weight + p.weight
-        end
-        total_weight = total_weight + part.weight
-        if total_weight > aircraft_limit.weight_limit then
-            trigger.action.outTextForUnit(unit_id,"Cannot load: "..part.desc..". Weight limit exceeded ("..aircraft_limit.weight_limit.." kg)", 5)
-            return
+    if ctld.enable_weighted_loading then
+        if not ctld.isDynamicCargoCapable(unit) then
+            local total_weight = 0
+            for _, p in ipairs(user.parts) do
+                total_weight = total_weight + p.weight
+            end
+            total_weight = total_weight + part.weight
+            if total_weight > aircraft_limit.weight_limit then
+                trigger.action.outTextForUnit(unit_id,"Cannot load: "..part.desc..". Weight limit exceeded ("..aircraft_limit.weight_limit.." kg)", 5)
+                return
+            end
         end
     end
 
