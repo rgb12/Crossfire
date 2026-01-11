@@ -61,7 +61,7 @@ ctld.placed_assets = {} -- store for persistence, save function will check all u
 ctld.cargo_crate_template = "container_cargo"
 ctld.search_radius = 50  -- meters
 ctld.random_crate_spacing = 10  -- meters
-ctld.allow_unpacking_in_zones = true
+ctld.allow_unpacking_in_zones = false
 ctld.supplies_per_minute_per_ammo_depot = 50
 ctld.enable_weighted_loading = false
 
@@ -405,13 +405,7 @@ function ctld.unpack(unit)
         return
     end
 
-    local is_in_ctld_zone = false
-    for _,zone in ipairs(zones) do
-        if zone:isPointInsideZone(unit:getPoint()) then
-            is_in_ctld_zone = true
-            break
-        end
-    end
+    local is_in_ctld_zone = utils.getZoneOfUnitFromPosition(unit_pos) ~= nil
     if not is_in_ctld_zone and not ctld.allow_unpacking_in_zones then
         trigger.action.outTextForUnit(unit:getID(),"Cannot unpack in this area.", 5)
         return
