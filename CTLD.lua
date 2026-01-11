@@ -62,6 +62,7 @@ ctld.cargo_crate_template = "container_cargo"
 ctld.search_radius = 50  -- meters
 ctld.random_crate_spacing = 10  -- meters
 ctld.allow_unpacking_in_zones = false
+ctld.allow_unloading_in_zones = false
 ctld.supplies_per_minute_per_ammo_depot = 50
 ctld.enable_weighted_loading = false
 
@@ -704,6 +705,13 @@ function ctld.unload(unit)
         trigger.action.outTextForUnit(unit_id,"Cannot unload while in air.", 5)
         return
     end
+    local unit_pos = unit:getPoint()
+    local is_in_allowed_zone = utils.getZoneOfUnitFromPosition(unit_pos) ~= nil
+    if not is_in_allowed_zone and not ctld.allow_unloading_in_zones then
+        trigger.action.outTextForUnit(unit:getID(),"Cannot unload in this area.", 5)
+        return
+    end
+
 
     if ctld.isDynamicCargoCapable(unit) then
         -- reject, user has to unload using dcs cargo system
