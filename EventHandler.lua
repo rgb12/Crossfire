@@ -19,6 +19,7 @@ function ev:onEvent(event)
         and unit:isExist() and unit.getPlayerName and unit:getPlayerName() then
   
             local function checkSpawnAllowed()
+
                 if not unit or not unit.isExist or not unit:isExist() or not unit.getCoalition then return end
                 local unit_pos = unit:getPoint()
                 local unit_coalition = unit:getCoalition()
@@ -71,6 +72,10 @@ function ev:onEvent(event)
                         end
 
                     end
+                end
+
+                if not Config.enable_slot_blocker then
+                    can_spawn = true
                 end
 
                 -- Allows player redfor for dev purposes

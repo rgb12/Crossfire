@@ -105,6 +105,7 @@ Config = {
     },
     jupiter_enabled = true, -- enables/disables the Jupiter command system
     allow_air_spawn = true, -- prevents or not air spawns for players
+    enable_slot_blocker = false, -- enables/disables the slot blocker system to prevent players spawning in enemy airbases
     enabled_su25t_blufor = true, -- adds the SU-25T to the blufor warehouse inventory
 
     red_stock_multiplier = 8, -- multiplier for redfor warehouse stocks, compared to blufor
