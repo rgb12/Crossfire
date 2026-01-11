@@ -52,10 +52,6 @@ do
                     trigger.action.outTextForUnit(user.id,"Vehicle destroyed, +" .. Config.reward_system.xp_per_vehicle_destroyed .. "XP",5)
                     user.unclaimed_xp = user.unclaimed_xp + Config.reward_system.xp_per_vehicle_destroyed
                     tokens_added = tokens_added + math.random(0,1)
-                elseif target:hasAttribute('Buildings') then
-                    trigger.action.outTextForUnit(user.id,"Structure destroyed, +" .. Config.reward_system.xp_per_structure_destroyed .. "XP",5)
-                    user.unclaimed_xp = user.unclaimed_xp + Config.reward_system.xp_per_structure_destroyed
-                    tokens_added = tokens_added + 2
                 else return end
 
                 if tokens_added > 0 then

@@ -17,6 +17,7 @@ do
     end
 
     ---@param position vec3|vec2
+    ---@return ZoneHandler|nil
     function utils.getZoneOfUnitFromPosition(position)
         for i, zone in ipairs(zones) do
             if zone:isPointInsideZone(position) then

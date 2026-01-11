@@ -840,8 +840,6 @@ do
             stats.red_supplies = supply_count
         end
         
-        MissionLogger:info("supply count is now "..supply_count.." by zone "..self.name.." for side "..utils.coalitionToString(self.side))
-
         local _,dist_to_enemy_zone = self:getClosestZone(utils.getEnemyCoalition(self.side))
         if not dist_to_enemy_zone then return false end
         if dist_to_enemy_zone and dist_to_enemy_zone > Scenario.logistics_setup.max_dist_to_frontline then return false end

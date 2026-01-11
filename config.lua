@@ -15,14 +15,14 @@ Config = {
         save_interval = 5*51, -- (seconds) interval at which the mission state is saved
         -- You can use fixed values or multiplications like above
         -- 51 seconds is used to avoid multiples of 15 to reduce lag spikes
-        save_dir = "Missions/Saves/Crossfire/", -- this is your saves directory in Saved Games
+        save_dir = "Missions/Saves/Crossfire_dev/", -- this is your saves directory in Saved Games
         save_file = "mission.json", -- this is the name of the mission file
         user_data_file = "user_data.json", -- this is the name of user data only file, note that this only saves user xp, tokens ans rank
 
         enable_ctld_persistence = true, -- enables/disables CTLD placed asset persistence
 
         random_scenario_selection = false, -- allows the script to randomly choose a random scenario, authority over scenario selection
-        scenario_selected = "Eastbound", -- subject to the field above, choose your own scenario 
+        scenario_selected = "Georgia Liberation", -- subject to the field above, choose your own scenario 
     },
     operations = {
         recon_minimum_altitude = 1524, -- (meters)
@@ -104,6 +104,7 @@ Config = {
         coop_max_members = 4, -- maximum number of players (including leader) in a co-op operation
     },
     jupiter_enabled = true, -- enables/disables the Jupiter command system
+    
     allow_air_spawn = true, -- prevents or not air spawns for players
     enable_slot_blocker = false, -- enables/disables the slot blocker system to prevent players spawning in enemy airbases
     enabled_su25t_blufor = true, -- adds the SU-25T to the blufor warehouse inventory
@@ -151,7 +152,6 @@ Config = {
         xp_per_infantry_kill = 5,
         xp_per_vehicle_destroyed = 15,
         xp_per_sam_destroyed = 50,
-        xp_per_structure_destroyed = 60,
         xp_per_ship_sunk = 300,
         xp_per_intel_report = 50,
         landing_time = 15, -- (seconds) the time the player has to stay on the ground to be rewarded
