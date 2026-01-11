@@ -443,69 +443,6 @@ do
         end
     end
 
-    ---@param unit Unit
-    ---@param cargo_type CargoCrates
-    function UnitHandler.staticCargoSpawn(unit, cargo_type)
-        local min_radius = Config.crates_spawn_params.cargo_crates_spawn_radius_min or 20
-        local max_radius = Config.crates_spawn_params.cargo_crates_spawn_radius_max or 50
-
-        if not unit or not unit.isExist or not unit:isExist() then return end
-        local unit_coalition = unit:getCoalition()
-        if unit_coalition == coalition.side.NEUTRAL then return end
-
-        local country_name
-        if unit_coalition == coalition.side.BLUE then country_name = country.id.CJTF_BLUE
-        else country_name = country.id.CJTF_RED end
-
-        -- Set default radii
-        min_radius = min_radius or 15
-        max_radius = max_radius or 25
-        
-        local unit_pos = unit:getPoint()
-        local unit_type = unit:getTypeName()
-        local unit_heading = mist.getHeading(unit) or 0
-
-        -- Determine if helicopter or cargo aircraft
-        local is_cargo_aircraft = unit_type == "C-130J-30"
-        if not is_cargo_aircraft then
-            -- For helicopters, reduce max radius
-            min_radius = 10
-            max_radius = 15
-        end
-        
-        -- Random spacing parameters (similar to CTLD)
-        local random_spacing = 10 -- meters of random variation
-        local random_offset_x = math.random(0, random_spacing * 2) - random_spacing -- -10 to +10
-        local random_offset_z = math.random(0, random_spacing) -- 0 to +10
-        
-        -- Base distance with randomization
-        local base_distance = math.random(min_radius, max_radius) + random_offset_z
-        
-        -- Direction: behind for cargo aircraft (π radians), in front for helicopters (0 radians)
-        local direction = is_cargo_aircraft and math.pi or 0
-
-        -- Calculate spawn position with random offset
-        local angle = unit_heading + direction
-        local x_offset = math.cos(angle) * base_distance + random_offset_x * math.cos(unit_heading + math.pi / 2)
-        local z_offset = math.sin(angle) * base_distance + random_offset_x * math.sin(unit_heading + math.pi / 2)
-        
-        local spawn_point = {
-            x = unit_pos.x + x_offset,
-            y = unit_pos.z + z_offset
-        }
-        
-        -- Spawn single crate with delay to prevent stacking
-        timer.scheduleFunction(function()
-            mist.dynAddStatic({
-                type = cargo_type or CargoCrates.CDS_CRATES,
-                country = country_name,
-                category = "Cargos",
-                x = spawn_point.x,
-                y = spawn_point.y
-            })
-        end, {}, timer.getTime() + 0.1)
-    end
-
     function UnitHandler.carrierCheck()
         if not Scenario then return end
 
@@ -582,8 +519,6 @@ do
             })
         end
 
-        
-
         local stock_type_choice = possible_stocks_rnd[math.random(1,#possible_stocks_rnd)]
 
         local out_text = ""
@@ -627,11 +562,9 @@ do
         
         if side == coalition.side.RED then
             WarehouseManager:attributeAirbaseStock(airbase_name, coalition.side.RED, chosen_stocks or {WarehouseManager.StockTypes.INITIAL})
-            --WarehouseManager:handleIncomingSupplies(coalition.side.RED, stock_types or {WarehouseManager.StockTypes.INITIAL})
         else
             local stocks = chosen_stocks or {WarehouseManager.StockTypes.INITIAL}
             WarehouseManager:attributeAirbaseStock(airbase_name, coalition.side.BLUE, stocks)
-            -- WarehouseManager:handleIncomingSupplies(coalition.side.BLUE, stocks)
         end
 
         EnrouteManager:remove(group_name)

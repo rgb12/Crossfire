@@ -649,7 +649,7 @@ do
             end
             
             local stock_types_str = "{}"
-            if stock_types ~= nil then
+            if stock_types ~= nil and #stock_types > 0 then
                 stock_types_str = "{" .. table.concat(stock_types, ", ") .. "}"
             end
             
