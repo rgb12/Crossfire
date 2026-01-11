@@ -194,7 +194,7 @@ function ctld.initF10RadioMenu(root_menu, group)
         for _, part in ipairs(ctld.parts) do
             if part.type == ctld.AssetTypes.TROOPS then
                 table.insert(troop_commands, {
-                    name = part.desc,
+                    name = part.desc .. " ("..part.req_supplies or "0"..")",
                     func = function ()
                         ctld.load(part, unit)
                     end,
@@ -202,7 +202,7 @@ function ctld.initF10RadioMenu(root_menu, group)
                 })
             elseif part.type == ctld.AssetTypes.CARGO_CRATES then
                 table.insert(cargo_crate_commands, {
-                    name = part.desc,
+                    name = part.desc .. " ("..part.req_supplies or "0"..")",
                     func = function ()
                         ctld.load(part, unit)
                     end,
@@ -210,7 +210,7 @@ function ctld.initF10RadioMenu(root_menu, group)
                 })
             elseif part.type == ctld.AssetTypes.VEHICLES then
                 table.insert(vehicle_commands, {
-                    name = part.desc,
+                    name = part.desc .. " ("..part.req_supplies or "0"..")",
                     func = function ()
                         ctld.load(part, unit)
                     end,
@@ -218,7 +218,7 @@ function ctld.initF10RadioMenu(root_menu, group)
                 })
             elseif part.type == ctld.AssetTypes.SAM then
                 table.insert(sam_commands, {
-                    name = part.desc,
+                    name = part.desc .. " ("..part.req_supplies or "0"..")",
                     func = function ()
                         ctld.load(part, unit)
                     end,
