@@ -862,7 +862,7 @@ function ctld.unitAttack(unit)
     local unit_pos = unit:getPoint()
     local unit_coalition = unit:getCoalition()
     for _, zone in ipairs(zones) do
-        if zone.side ~= unit_coalition then
+        if zone.side ~= unit_coalition and utils.tableContains(stats.blue_discovered_zones, zone.name) then
             local dist = mist.utils.get2DDist(unit_pos, zone.zone.point)
             if dist < min_dist then
                 min_dist = dist
@@ -870,7 +870,7 @@ function ctld.unitAttack(unit)
             end
         end
     end
-    if not closest_enemy_zone then return end
+    if not closest_enemy_zone then return trigger.action.outTextForUnit(unit:getID(), "No enemy assets nearby.", 5) end
 
 
     world.searchObjects({Object.Category.UNIT}, vol, function(obj)
@@ -883,7 +883,29 @@ function ctld.unitAttack(unit)
             local objType = obj:getTypeName()
             for _,part in ipairs(ctld.parts) do
                 if part.can_move and objType == part.name then
-                    mist.groupToPoint(obj:getGroup(), closest_enemy_zone.zone.point)
+                
+                    local gr = obj:getGroup()
+                    if not gr or not gr:isExist() then return true end
+                    local controller = gr:getController()
+                    if not controller then return true end
+
+                    local groups_to_attack = closest_enemy_zone.linked_groups
+                    if not groups_to_attack or #groups_to_attack == 0 then return true end
+
+                    local targetGroup = Group.getByName(groups_to_attack[math.random(1, #groups_to_attack)])
+                    if not targetGroup or not targetGroup:isExist() then return true end
+                    -- assign attack route to closest enemy zone
+                    local targetId = targetGroup:getID()
+                    -- Define the task
+                    local attackTask = {
+                        id = 'AttackGroup',
+                        params = {
+                            groupId = targetId,
+                            attackQtyLimit = false
+                        }
+                    }
+                    controller:pushTask(attackTask)
+
                     trigger.action.outTextForUnit(unit:getID(),
                         string.format("Assigned %s to attack %s", part.desc, closest_enemy_zone.name), 5)
                     return false
