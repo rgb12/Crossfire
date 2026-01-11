@@ -551,6 +551,16 @@ do
         local new_group_name
         local destination_airbase
 
+        local blue_airbases = {}
+        local red_airbases = {}
+        for _, zone in ipairs(zones) do
+            if zone.zone_type == ZoneTypes.AIRBASE and zone.side == coalition.side.BLUE then
+                table.insert(blue_airbases, zone)
+            elseif zone.zone_type == ZoneTypes.AIRBASE and zone.side == coalition.side.RED then
+                table.insert(red_airbases, zone)
+            end
+        end
+
         -- [Standard Spawning Logic - No Changes]
         if side == coalition.side.BLUE and Scenario.resupply.blue_point then
             if stats.blue_airbases == 0 then return end
@@ -562,7 +572,7 @@ do
             })
             if not cargo_sent_table or not cargo_sent_table.name then return MissionLogger:error("Could not send BLUE resupply.") end
             new_group_name = cargo_sent_table.name
-            destination_airbase = target_airbase or blue_airbase
+            destination_airbase = target_airbase or blue_airbases[math.random(#blue_airbases)] or blue_airbase
 
         elseif side == coalition.side.RED and Scenario.resupply.red_point then
             if stats.red_airbases == 0 then return end
@@ -574,7 +584,7 @@ do
             })
             if not cargo_sent_table or not cargo_sent_table.name then return MissionLogger:error("Could not send RED resupply.") end
             new_group_name = cargo_sent_table.name
-            destination_airbase = target_airbase or red_airbase
+            destination_airbase = target_airbase or red_airbases[math.random(#red_airbases)] or red_airbase
 
         else
             return
