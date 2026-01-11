@@ -701,6 +701,11 @@ do
             status = OperationStatus.AVAILABLE,
             target_zone_name = target_zone.name,
             operation_name = operations_name[math.random(#operations_name)],
+            is_coop = false,
+            coop_leader_id = nil,
+            coop_leader_name = nil,
+            coop_members = {},
+            coop_join_code = nil,
             objectives = {
                 {
                     description = "Successfully deliver ".. Config.operations.airdrop_min_crates_landed .. "x CDS CRATES to " .. target_zone.name .. " via air drop.",
@@ -721,7 +726,6 @@ do
                             local foundCargo = false
                             local cargo_count = 0
                             world.searchObjects({Object.Category.CARGO}, volume, function(obj)
-                                MissionLogger:info(1)
                                 if obj and obj:isExist() and obj.getVelocity and obj.getName then
                                     table.insert(cargo_names, obj:getName())
                                     MissionLogger:info("Found cargo: "..obj:getName())
@@ -740,6 +744,7 @@ do
                             end)
                             
                             if foundCargo then
+                                MissionLogger:info("Airdrop objective completed! Cargo landed count: "..cargo_count)
                                 if zone.level < 4 then
                                     zone.level = zone.level + 1
                                     UnitHandler.updateZoneUnits(zone)
@@ -768,6 +773,8 @@ do
 
                                 return true
                             end
+                        MissionLogger:info("Airdrop objective not yet completed.")
+                        MissionLogger:info("Cargo landed count: "..cargo_count)
                         return false
                     end
                 }
@@ -898,6 +905,11 @@ do
             status = OperationStatus.AVAILABLE,
             target_zone_name = target_zone.name,
             operation_name = operations_name[math.random(#operations_name)],
+            is_coop = false,
+            coop_leader_id = nil,
+            coop_leader_name = nil,
+            coop_members = {},
+            coop_join_code = nil,
             objectives = {
                 {
                     description = "Patrol the airspace above " .. target_zone.name .. " for 5 minutes.",
@@ -948,6 +960,11 @@ do
             status = OperationStatus.AVAILABLE,
             target_zone_name = target_zone.name,
             operation_name = operations_name[math.random(#operations_name)],
+            is_coop = false,
+            coop_leader_id = nil,
+            coop_leader_name = nil,
+            coop_members = {},
+            coop_join_code = nil,
             objectives = {
                 {
                     description = "Conduct aerial reconnaissance near given coordinates",
@@ -1385,7 +1402,7 @@ do
         if accepted_mission.type == OperationTypes.CSAR then
             -- Spawn smoke at pilot location
             if not accepted_mission.smoke_spawned then
-                trigger.action.smoke(accepted_mission.pilot_position, trigger.smokeColor.Green)
+                trigger.action.smoke(accepted_mission.pilot_position, trigger.smokeColor.Blue)
                 accepted_mission.smoke_spawned = true
             end
             
@@ -1434,7 +1451,11 @@ do
                 ---@type Unit
                 local player_unit = player_unit_for_cap or Unit.getByName(op.assigned_unit_name)
 
-                if player_unit and player_unit:isExist() then
+                -- AIRDROP operations can be checked even if player unit doesn't exist
+                -- (crates can land after player RTB/ejects/crashes)
+                local can_check_objectives = (player_unit and player_unit:isExist()) or op.type == OperationTypes.AIRDROP
+                
+                if can_check_objectives then
                     for _, obj in ipairs(op.objectives) do
                         if not obj.completed then
 
