@@ -608,19 +608,20 @@ do
                     -- Add the aircraft back to the warehouse
                     if on_carrier then
                         if gr and gr:isExist() then
-                            gr:destroy()
+                            return gr:destroy()
                         end
                     else
                         for _,zone in ipairs(zones) do
                             if (zone.zone_type == ZoneTypes.AIRBASE or zone.zone_type == ZoneTypes.FARP) and zone.side == side
                             and zone:isPointInsideZone(point)then
                                 if gr and gr:isExist() then
-                                    gr:destroy()
+                                    return gr:destroy()
                                 end
                             end
                         end
 
                     end
+                    trigger.action.outTextForGroup(gr_id, "> Restock aborted: No friendly airbase or FARP nearby.", 10)
                 end, {}, timer.getTime() + 10)
             end, nil)
 
