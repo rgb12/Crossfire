@@ -321,7 +321,7 @@ Scenarios = {
         description = "Achieve control over the the Russian Caucasus area.",
         coalition_setup = {
             initial_dist_blue_to_frontline = 27000, --meters
-            dist_variance = 5000, --meters
+            dist_variance = 0, --meters
             auto_coalition_designation = true, -- overrides the above
         },
         logistics_setup = {
