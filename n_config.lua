@@ -1,0 +1,2 @@
+-- New config template for mission
+-- this file holds configs options and scenario data
