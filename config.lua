@@ -35,6 +35,7 @@ Config = {
         csar_rescue_radius = 50, -- (meters) distance from downed pilot required to complete rescue
         intercept_required_kills = 2, -- number of aircraft/helicopters to destroy to complete INTERCEPT
         intercept_max_distance_to_enemy = 200*1000, -- (meters) max distance from friendly zone to enemy zone for INTERCEPT to be proposed
+        attributes_for_SEAD_targeting = { 'SAM SR', 'SAM TR', 'IR Guided SAM', 'EWR' }, -- unit attributes that make them valid SEAD targets
 
         
         aircraft_filter = {

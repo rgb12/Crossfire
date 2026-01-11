@@ -465,10 +465,14 @@ do
 
                     -- SEAD/DEAD against a SAMSITE
                     if zone.zone_type == ZoneTypes.SAMSITE then
-                        local sead_op = self:createSEADOperation(zone)
-                        table.insert(self.available_operations, sead_op)
-                        local dead_op = self:createDEADOperation(zone)
-                        table.insert(self.available_operations, dead_op)
+                        -- Check if SAM site still has active radar units
+                        if UnitHandler.checkIfZoneHasUnitWithAttributes(zone, Config.operations.attributes_for_SEAD_targeting) == true then
+                            local sead_op = self:createSEADOperation(zone)
+                            table.insert(self.available_operations, sead_op)
+                            local dead_op = self:createDEADOperation(zone)
+                            table.insert(self.available_operations, dead_op)
+                        end
+
                     end
 
                     -- STRIKE against COMMS or LOGISTICS
@@ -798,30 +802,16 @@ do
             coop_join_code = nil,
             objectives = {
                 {
-                    description = "Take down critical radar components of SAM site situated near " .. target_zone.name,
+                    description = "Clear all SAM SR, SAM TR, IR Guided SAM and/or EWR components of SAM site situated near " .. target_zone.name,
                     completed = false,
                     check = function()
                         local zone = ZoneHandler.getFromName(target_zone.name)
                         if not zone then return false end
                         if #zone.linked_groups == 0 then return true end
 
-                        local sam_units_alive = false
-                        for _, gr in ipairs(zone.linked_groups) do
-                            local group_obj = Group.getByName(gr)
-                            if group_obj and group_obj:isExist() then
-                                local units = group_obj:getUnits()
-                                for _, unit in ipairs(units) do
-                                    if unit and unit:isActive() and unit:isExist() then
-                                        if unit:hasAttribute('SAM SR') or unit:hasAttribute('SAM TR')
-                                        or unit:hasAttribute('IR Guided SAM') or unit:hasAttribute("EWR") then
-                                            sam_units_alive = true
-                                            break
-                                        end
-                                    end
-                                end
-                            end
+                        if UnitHandler.checkIfZoneHasUnitWithAttributes(zone, Config.operations.attributes_for_SEAD_targeting) == false then
+                            return true
                         end
-                        if not sam_units_alive then return true end
                         return false
                     end
                 }

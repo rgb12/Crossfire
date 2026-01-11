@@ -579,3 +579,27 @@ do
     end
 
 end
+
+---@param zone ZoneHandler
+---@param attributes string[]
+---@return boolean
+function UnitHandler.checkIfZoneHasUnitWithAttributes(zone, attributes)
+    local groups_in_zone = zone.linked_groups
+    if not groups_in_zone or #groups_in_zone == 0 then return false end
+    for _, group_name in ipairs(groups_in_zone) do
+        local group = Group.getByName(group_name)
+        if group and group:isExist() then
+            local units = group:getUnits()
+            for _, unit in ipairs(units) do
+                if unit and unit:isActive() and unit:isExist() then
+                    for _, attr in ipairs(attributes) do
+                        if unit:hasAttribute(attr) then
+                            return true
+                        end
+                    end
+                end
+            end
+        end
+    end
+    return false
+end
