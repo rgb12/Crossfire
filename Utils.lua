@@ -206,4 +206,39 @@ do
         end
         return false
     end
+
+    function utils.editCommsAntennasCount(coalition_side, delta)
+        if coalition_side == coalition.side.BLUE then
+            stats.blue_comms_antennas = stats.blue_comms_antennas + delta
+        elseif coalition_side == coalition.side.RED then
+            stats.red_comms_antennas = stats.red_comms_antennas + delta
+        end
+    end
+
+    function utils.editCommandPostsCount(coalition_side, delta)
+        if coalition_side == coalition.side.BLUE then
+            stats.blue_command_posts = stats.blue_command_posts + delta
+        elseif coalition_side == coalition.side.RED then
+            stats.red_command_posts = stats.red_command_posts + delta
+        end
+    end
+
+    function utils.editAmmoDepotsCount(coalition_side, delta)
+        if coalition_side == coalition.side.BLUE then
+            stats.blue_ammo_depots = stats.blue_ammo_depots + delta
+        elseif coalition_side == coalition.side.RED then
+            stats.red_ammo_depots = stats.red_ammo_depots + delta
+        end
+    end
+
+    function utils.calculateSuppliesCAPforCoalition(coalition_side)
+        local cap = 0
+        if coalition_side == coalition.side.BLUE then
+            cap = stats.blue_command_posts * Config.supplies.suppplies_cap_for_command_post
+        elseif coalition_side == coalition.side.RED then
+            cap = stats.red_command_posts * Config.supplies.suppplies_cap_for_command_post
+        end
+        return cap
+    end
+
 end

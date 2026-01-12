@@ -299,32 +299,10 @@ function ev:onEvent(event)
 
 
         elseif desc.category == Unit.Category.AIRPLANE then
-
-            MissionLogger:info("Aircraft landed: " .. group_name)
             local enroute_task = EnrouteManager:findByGroup(group_name)
             if enroute_task then
                 local landed_gr_name = enroute_task.group_name
  
-                if enroute_task.ai_task_type == AITaskTypes.RESUPPLY_CARGO then
-                    
-                    trigger.action.outTextForCoalition(enroute_task.side, "RESUPPLY CARGO has landed", 10)
-                    
-                    -- Schedule the supply addition
-                    timer.scheduleFunction(function ()
-                    
-                        if enroute_task.side == coalition.side.RED then
-                            WarehouseManager:handleIncomingSupplies(coalition.side.RED, {WarehouseManager.StockTypes.INITIAL})
-                        else
-                            if Config.enabled_su25t_blufor then
-                                WarehouseManager:handleIncomingSupplies(coalition.side.BLUE, {WarehouseManager.StockTypes.SU25T_BLUFOR, WarehouseManager.StockTypes.INITIAL})
-                            else
-                                WarehouseManager:handleIncomingSupplies(coalition.side.BLUE, {WarehouseManager.StockTypes.INITIAL})
-                            end
-                        end
-                    
-                    end,{},timer.getTime()+10)
-    
-                end
                 timer.scheduleFunction(function ()
                     EnrouteManager:remove(group_name)
                     MissionLogger:info("destroying landed cargo")
@@ -332,9 +310,7 @@ function ev:onEvent(event)
                     if gr and gr.isExist and gr:isExist() then
                         gr:destroy()
                     end
-
                 end, {}, timer.getTime() + 120)
-
             end
         end
     elseif event.id == world.event.S_EVENT_DEAD and event.initiator then
@@ -347,14 +323,13 @@ function ev:onEvent(event)
             local side = unit:getCoalition()
             if EWRS_coalition[side] then
                 local radar_list = EWRS_coalition[side].radars
-                -- Iterate backwards to safely remove
                 for i = #radar_list, 1, -1 do
                     local radar = radar_list[i]
                     if radar and radar.isExist and radar:isExist() and radar.getID then
                         if radar:getID() == unit:getID() then
                             table.remove(radar_list, i)
                             MissionLogger:info("EWRS: Removed destroyed/dead radar unit " .. unit:getName() .. " from cache.")
-                            break -- Exit loop once found
+                            break
                         end
                     else
                         -- Clean up non-existing radar entries

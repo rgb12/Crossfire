@@ -595,17 +595,34 @@ do
                 table.insert(stats.blue_discovered_zones, self.name)
             end
 
-            trigger.action.outText(self.name .. " is now Blue", 5) --TO CHANGE
+            
+            trigger.action.outTextForCoalition(1,"Allied forces lost control of " .. self.name .. ".", 5)
+            trigger.action.outTextForCoalition(2,"Allied forces have occupied " .. self.name .. ". Integration into the coalition network is complete.", 5)
+            -- Adds supplies on capture
+            timer.scheduleFunction(function ()
+                local added_supplies = Config.supplies.supplies_looted_on_destroyed + math.random(-Config.supplies.supplies_looted_on_destroyed_variance,Config.supplies.supplies_looted_on_destroyed_variance)
+                stats.blue_supplies = stats.blue_supplies + added_supplies
+                trigger.action.outTextForCoalition(2,"Frontline forces looted " .. added_supplies .. " supplies from "..self.name, 10)
+                trigger.action.outSoundForCoalition(2, "radio_beep3.ogg")
+            end,{},timer.getTime()+math.random(30,60))
+
         elseif self.side == coalition.side.RED then
             --Add discovered zone to blue players
             if not utils.tableContains(stats.red_discovered_zones, self.name) then
                 table.insert(stats.red_discovered_zones, self.name)
             end
+            -- Adds supplies on capture
+            timer.scheduleFunction(function ()
+                    local added_supplies = Config.supplies.supplies_looted_on_destroyed + math.random(-Config.supplies.supplies_looted_on_destroyed_variance,Config.supplies.supplies_looted_on_destroyed_variance)
+                stats.red_supplies = stats.red_supplies + added_supplies
+                trigger.action.outTextForCoalition(1,"Frontline forces looted " .. added_supplies .. " supplies from "..self.name, 10)
+                trigger.action.outSoundForCoalition(1, "radio_beep3.ogg")
+            end,{},timer.getTime()+math.random(30,60))
 
-
-            trigger.action.outText(self.name .. " is now Red", 5) --TO CHANGE
+            trigger.action.outTextForCoalition(2,"Allied forces lost control of " .. self.name .. ".", 5)
+            trigger.action.outTextForCoalition(1,"Allied forces have occupied " .. self.name .. ". Integration into the coalition network is complete.", 5)
         else
-            trigger.action.outText(self.name .. " is now neutral.", 5)
+            trigger.action.outText("Ground forces have evacuated " .. self.name .. ". The area is now neutral territory.", 5)
 
         end
 
@@ -777,6 +794,7 @@ do
             if ammo_depot and ammo_depot:isExist() then
                 ammo_depot:destroy()
             end
+            utils.editAmmoDepotsCount(self.side, -1)
         end
         if not self.ammo_depot_intact and not self.ammo_depot_last_destroyed then
             -- depot was destroyed but time not recorded, record it now
@@ -815,6 +833,7 @@ do
                     self.ammo_depot_intact = true
                     self.linked_ammo_depot = ammo_depot_gr.name
                     self.ammo_depot_last_destroyed = nil
+                    utils.editAmmoDepotsCount(self.side, 1)
                     trigger.action.outSoundForCoalition(self.side,"chatter3.ogg")
                     trigger.action.outTextForCoalition(self.side, "Logistics zone "..self.name.." has reestablished its ammunition depot.",10)
             self:drawF10()
@@ -831,7 +850,9 @@ do
         elseif self.side == coalition.side.RED then
             supply_count = stats.red_supplies
         end
-        supply_count = math.min(supply_count + ctld.supplies_per_minute_per_ammo_depot, ctld.supplies_cap)
+        
+
+        supply_count = math.min(math.min(supply_count + ctld.supplies_per_minute_per_ammo_depot, utils.calculateSuppliesCAPforCoalition(self.side)), Config.supplies.absolute_max_supplies)
         
         -- Update the stats with the new supply count
         if self.side == coalition.side.BLUE then
@@ -898,10 +919,6 @@ do
         if self.side == coalition.side.NEUTRAL then return end
         if self.zone_type ~= ZoneTypes.COMMS then return end
 
-        -- MissionLogger:info("COMMS ZONES total for BLUE: "..TheatreCommander.COMMS_towers[coalition.side.BLUE]..", RED: "..TheatreCommander.COMMS_towers[coalition.side.RED])
-        
-        -- MissionLogger:info("Checking COMMS zone "..self.name)
-
         if not self.linked_comms_tower then return end
         local comms_tower = StaticObject.getByName(self.linked_comms_tower)
         
@@ -917,11 +934,7 @@ do
         if self.comms_tower_intact and not is_alive then
             self.comms_tower_intact = false
             self.comms_tower_last_destroyed = timer.getTime()
-            if self.side == coalition.side.BLUE then
-                stats.blue_comms_antennas = stats.blue_comms_antennas - 1
-            else
-                stats.red_comms_antennas = stats.red_comms_antennas - 1
-            end
+            utils.editCommandPostsCount(self.side, -1)
 
             -- trigger.action.outSoundForCoalition(self.side,"chatter3.ogg")
             -- trigger.action.outTextForCoalition(self.side,self.name.." has lost its communications tower. EWRS impaired, reports are 50% slower.",10)
@@ -941,14 +954,11 @@ do
             local time_remaining = math.ceil((self.comms_tower_last_destroyed + (Config.comms_tower_respawn_time) - timer.getTime()) / 60)
             local time_text = "Rebuild in T-"..time_remaining.." min"
             self:drawF10(time_text)
-
             return
-            
         elseif not self.comms_tower_intact and self.comms_tower_last_destroyed
         and self.comms_tower_last_destroyed + (Config.comms_tower_respawn_time) <= timer.getTime() then
             -- Time is up, respawn the tower
             MissionLogger:info(self.name .." comms tower respawn")
-            
 
             local country_name
             if self.side == coalition.side.BLUE then country_name = country.id.CJTF_BLUE
@@ -968,11 +978,7 @@ do
                 self.linked_comms_tower = comms_tower_gr.name
                 self.comms_tower_last_destroyed = nil
                 
-                if self.side == coalition.side.BLUE then
-                    stats.blue_comms_antennas = stats.blue_comms_antennas + 1
-                else
-                    stats.red_comms_antennas = stats.red_comms_antennas + 1
-                end
+                utils.editCommsAntennasCount(self.side, 1)
                 self:drawF10()
                 -- Every level reduces the respawn time by 10%
                 local level_modifier = 1 - ((self.level -1) * 0.1)
@@ -1006,12 +1012,26 @@ do
         if self.linked_statics[1] and not is_alive then
             self.cmdc_last_destroyed = timer.getTime()
             self.linked_statics[1] = nil
+            utils.editCommandPostsCount(self.side, -1)
+            -- The coalition will loose 1/(# of cmd posts)of their supplies immediately
+            if self.side == coalition.side.BLUE then
+                local supply_loss = math.floor(stats.blue_supplies / math.max(1, stats.blue_command_posts))
+                stats.blue_supplies = math.max(0, stats.blue_supplies - supply_loss)
+                trigger.action.outTextForCoalition(self.side, "Sector ALERT: "..self.name.." command center has collapsed. Field reports indicate "..supply_loss.." supplies were lost in the blast and subsequent fires.",20)
+                --Sector Alert: self.name command center has collapsed. Field reports indicate ..supply_loss .. supplies were lost in the blast and subsequent fires.
+                trigger.action.outSoundForCoalition(self.side,"radio_beep2.ogg")
+            end
         end
 
  
         if not is_alive and self.cmdc_last_destroyed
         and self.cmdc_last_destroyed + Config.airbase_command_center_respawn_time > timer.getTime() then
+            
+            
             MissionLogger:info(self.name .." command center pending respawn")
+            local time_remaining = math.ceil((self.cmdc_last_destroyed + (Config.airbase_command_center_respawn_time) - timer.getTime()) / 60)
+            local time_text = "Rebuild in T-"..time_remaining.." min"
+            self:drawF10(time_text)
             return
         elseif not is_alive and self.cmdc_last_destroyed
         and self.cmdc_last_destroyed + Config.airbase_command_center_respawn_time <= timer.getTime() then
@@ -1033,6 +1053,7 @@ do
             })
 
             if command_center then
+                utils.editCommandPostsCount(self.side, 1)
                 table.insert(self.linked_statics, command_center.name)
                 trigger.action.outSoundForCoalition(self.side,"radio_beep.ogg")
                 trigger.action.outTextForCoalition(self.side, self.name.." has rebuit its command center.",10)

@@ -5,7 +5,11 @@
 
     Not all settings are editable from this file, some are hardcoded to ensure mission stability.
 
-    Do not remove the commas at the end of each line.
+    Some values contains *, this means that you can use multiplications to get your desired value.
+    Ex: 5*60 = 300 seconds, or 5 minutes.
+
+    Do not remove the commas at the end of each line. For example: 
+        enable = true,  <--- comma must be here
     Refer to the comments for details on each field
 
 ]]
@@ -110,7 +114,7 @@ Config = {
     enable_slot_blocker = false, -- enables/disables the slot blocker system to prevent players spawning in enemy airbases
     enabled_su25t_blufor = true, -- adds the SU-25T to the blufor warehouse inventory
 
-    red_stock_multiplier = 8, -- multiplier for redfor warehouse stocks, compared to blufor
+    red_stock_multiplier = 10, -- multiplier for redfor warehouse stocks, compared to blufor
 
     cooldown_before_capture_attempt = 10*60, -- (seconds)
     retry_capture_chance = 50, -- (%)
@@ -120,29 +124,116 @@ Config = {
     random_resupply_types = true , -- enables/disables random resupply types, if disabled only INITIAL resupplies will arrive
     -- INITIAL resupply is equivalent to what the warehouses were given at mission start
 
-    zone_upgrade_costs_tokens = {
-        [1] = 40, -- cost to upgrade from tier 1 to tier 2
-        [2] = 60, -- cost to upgrade from tier 2 to tier 3
-        [3] = 80, -- cost to upgrade from tier 3 to tier 4
-    },
-    resupply_costs = {
+    supplies = {
+        initial_stock = 2000, -- starting supplies per coalition
+        supplies_income = 25, -- supplies gained per minute from each alive ammo depot in logistics zones
+        supplies_looted_on_destroyed = 500, -- supplies gained when capturing an enemy zone
+        supplies_looted_on_destroyed_variance = 200, -- (+/-) supplies variance when capturing an enemy zone
+        suppplies_cap_for_command_post = 5000, -- maximum supplies a command post can hold
+        absolute_max_supplies = 20000, -- maximum supplies a coalition can hold no matter what
 
-        INITIAL = 400,
-        FARP = 100,
+        resupply_costs = {
+            -- Warehouse aircraft resupply costs (balance: 1-2 aircraft per 5 minutes of income)
+            INITIAL = 600,           -- Full initial warehouse stock restoration
+            FARP = 400,              -- FARP complete resupply
+            
+            AA_AIRCRAFT = 200,       -- Air-to-air focused aircraft
+            AG_AIRCRAFT = 250,       -- Air-to-ground focused aircraft (more expensive due to ordnance)
+            CARGO_AIRCRAFT = 150,    -- Transport/utility aircraft
+            
+            -- Weapons resupply costs (balance: 2-4 loadouts per 5 minutes of income)
+            AIR_AIR_LONG_RANGE = 100,           -- AIM-120, AIM-54, etc.
+            AIR_AIR_SHORT_RANGE = 50,           -- AIM-9, R-73, etc.
+            
+            AIR_GROUND_GUIDED_MISSILES = 120,   -- AGM-65, Hellfire, etc.
+            AIR_GROUND_GUIDED_BOMBS = 100,      -- GBU-12, GBU-38, etc.
+            AIR_GROUND_BOMBS = 40,              -- Mk-82, Mk-84, etc.
+            AIR_GROUND_ROCKETS = 30,            -- Hydra, S-8, etc.
+            
+            ECM = 60,                -- Jamming pods, countermeasures
+            TGP_MISC = 60,           -- Targeting pods, misc equipment
+        }
 
-        AA_AIRCRAFT = 100,
-        AG_AIRCRAFT = 120,
-        CARGO_AIRCRAFT = 80,
-
-        AIR_AIR_LONG_RANGE = 50,
-        AIR_GROUND_GUIDED_MISSILES = 60,
-        AIR_GROUND_GUIDED_BOMBS = 50,
-        ECM = 40,
-        TGP_MISC = 40,
-
-        AIR_AIR_SHORT_RANGE = 30,
-        AIR_GROUND_BOMBS = 20,
-        AIR_GROUND_ROCKETS = 15,
+        --[[
+        ═══════════════════════════════════════════════════════════════════════
+        SUPPLIES ECONOMY OVERVIEW
+        ═══════════════════════════════════════════════════════════════════════
+        
+        INCOME RATES (per ammo depot alive):
+        • Each ammo depot: 25 supplies/minute
+        • Tier 1 logistics: 1 depot  = 25/min
+        • Tier 2 logistics: 2 depots = 50/min  
+        • Tier 3 logistics: 3 depots = 75/min
+        • Tier 4 logistics: 4 depots = 100/min
+        
+        Expected income with 2-3 logistics zones: 100-300 supplies/minute
+        
+        ───────────────────────────────────────────────────────────────────────
+        CTLD OPERATIONS COSTS (see CTLD.lua for complete list):
+        ───────────────────────────────────────────────────────────────────────
+        Infantry & Light Assets:
+        • Soldier/Stinger Infantry:    5 supplies each
+        • JTAC Humvee:                 50 supplies
+        • Ammo/Fuel Trucks:            80 supplies each
+        • Small Containers:            10-25 supplies
+        
+        Light Vehicles & SAMs:
+        • Humvee (MG):                 150 supplies
+        • Humvee (TOW):                200 supplies
+        • M1097 Avenger (mobile SAM):  300 supplies
+        • MRAP Light Tank:             300 supplies
+        
+        Medium Assets:
+        • LAV-25 Medium Tank:          400 supplies
+        • Roland ADS / Gepard:         400 supplies each
+        • HAWK Battery Components:     200-400 each (1,200 total for full battery)
+        • NASAMS Components:           200-400 each (1,000 total for full system)
+        
+        Heavy Assets:
+        • LPWS C-RAM:                  600 supplies
+        • M-1 Abrams Heavy Tank:       700 supplies
+        • EWR Radar:                   800 supplies
+        • MLRS:                        600 supplies
+        • SpGH DANA Artillery:         500 supplies
+        
+        ───────────────────────────────────────────────────────────────────────
+        WAREHOUSE RESUPPLY COSTS (F10 menu requests):
+        ───────────────────────────────────────────────────────────────────────
+        Aircraft:
+        • AA Aircraft:                 200 supplies
+        • AG Aircraft:                 250 supplies
+        • Cargo Aircraft:              150 supplies
+        • FARP Complete Resupply:      150 supplies
+        • Initial Stock Restoration:   600 supplies
+        
+        Weapons:
+        • Long Range AA (AIM-120):     100 supplies
+        • Short Range AA (AIM-9):      50 supplies
+        • Guided Missiles (AGM-65):    120 supplies
+        • Guided Bombs (GBU-12):       100 supplies
+        • Unguided Bombs (Mk-82):      40 supplies
+        • Rockets (Hydra):             30 supplies
+        • ECM Pods:                    60 supplies
+        • TGP/Misc Equipment:          60 supplies
+        
+        ───────────────────────────────────────────────────────────────────────
+        ECONOMY BALANCE PHILOSOPHY:
+        ───────────────────────────────────────────────────────────────────────
+        • Sustainable Operations: Infantry, light vehicles, and basic resupply
+          can be maintained continuously with steady income
+        
+        • Strategic Investment: Heavy tanks, SAM systems, and aircraft resupply
+          require planning and resource accumulation
+        
+        • Territory Control: More logistics zones = more income = more capability
+          Losing zones significantly impacts your strategic options
+        
+        • Combined Arms: Balance between CTLD ground ops and air resupply creates
+          meaningful strategic choices
+        
+        • Time Investment: ~2-5 minutes of income for light ops, ~10-30 minutes
+          for heavy ops, encouraging forward planning
+        ]]
     },
 
     reward_system = {
@@ -215,8 +306,8 @@ Config = {
     theatre = {
 
         -- Weights for random generation (Airbases are excluded)
-        -- 60% of zones will be strongpoints
-        -- 15% logistics
+        -- 50% of zones will be strongpoints
+        -- 20% logistics
         -- etc.
         zone_type_weights = {
             [ZoneTypes.STRONGPOINT] = 50,
@@ -246,8 +337,7 @@ Config = {
         tokens_required_for_capture_helicopter = 10,
     },
     comms_tower_respawn_time = 40*60, -- (seconds), the timer decreases by 25% for every level
-    comms_tower_lost_penalty = 1, -- the respawn time is multiplied by this much when a comms tower is lost
-    -- the penalty is disabled by default to avoid excessive respawn times
+    comms_tower_lost_penalty = 1.1, -- the respawn time is multiplied by this much when a comms tower is lost
 
     tasking = {
         enable = true, -- enables/disables AI tasking system, does not affect resupply and capture mechanics
@@ -279,20 +369,6 @@ Config = {
         max_cas_range = 200*1000, -- (meters)
         min_cleareance_dist_for_awacs = 70*1000 -- (meters) from the nearest enemy zone
     },
-    cargo_aircraft = {
-        "C-130J-30",
-        "SA342Minigun",
-        "SA342L",
-        "SA342Mistral",
-        "SA342M",
-        "UH-1H",
-    },
-    crates_spawn_params = { -- not functional anymore
-        cargo_crates_spawn_radius_max = 35,
-        cargo_crates_spawn_radius_min = 20,
-    },
-
-
     capture_helicopter_max_range = 100*1000 , -- (meters)
 
     max_ground_recon_range = 30000, -- (meters) the range at which enemy zones will be discovered from friendly zones
@@ -363,6 +439,8 @@ stats = {
     blue_strongpoints = 0,
     blue_total_comms_zones = 0,
 
+    blue_ammo_depots = 0,
+    blue_command_posts = 0,
     blue_comms_antennas = 0,
     blue_discovered_zones = {},
     blue_enroute_resupply = {},
@@ -377,6 +455,8 @@ stats = {
     red_strongpoints = 0,
     red_total_comms_zones = 0,
 
+    red_ammo_depots = 0,
+    red_command_posts = 0,
     red_comms_antennas = 0,
     red_discovered_zones = {},
     red_enroute_resupply = {},
