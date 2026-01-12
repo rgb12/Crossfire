@@ -144,7 +144,9 @@ do
             end
 
             -- Co-op Operations Menu
-            local join_coop_menu = missionCommands.addSubMenuForGroup(group_id, "Join Co-op", missions_submenu)
+            local coop_submenu = missionCommands.addSubMenuForGroup(group_id, "Co-op Operations", missions_submenu)
+
+            local join_coop_menu = missionCommands.addSubMenuForGroup(group_id, "Join Co-op", coop_submenu)
             
             for i1 = 1, 9 do
                 local digit1 = missionCommands.addSubMenuForGroup(group_id, i1 .. ' _ _', join_coop_menu)
@@ -162,11 +164,11 @@ do
                 end
             end
 
-            missionCommands.addCommandForGroup(group_id, "Leave Co-op", missions_submenu, function()
+            missionCommands.addCommandForGroup(group_id, "Leave Co-op", coop_submenu, function()
                 operation_manager:leaveCoopOperation(unit)
             end)
 
-            missionCommands.addCommandForGroup(group_id, "Co-op Status", missions_submenu, function()
+            missionCommands.addCommandForGroup(group_id, "Co-op Status", coop_submenu, function()
                 operation_manager:showCoopOperationStatus(unit)
             end)
         end
@@ -290,14 +292,6 @@ do
             
             local resupply_stock_list = {}
             
-            -- Initial Stock
-            local initial_airbases = buildAirbaseSubmenu({WarehouseManager.StockTypes.INITIAL}, Config.resupply_costs.INITIAL, "Initial Stock")
-            if #initial_airbases > 0 then
-                table.insert(resupply_stock_list, {
-                    name = "Initial Stock - " .. Config.resupply_costs.INITIAL .. " tokens",
-                    submenu = initial_airbases
-                })
-            end
             
             -- AA Aircraft
             local aa_aircraft_airbases = buildAirbaseSubmenu({WarehouseManager.StockTypes.AA_AIRCRAFT}, Config.resupply_costs.AA_AIRCRAFT, "AA Aircraft")
@@ -398,14 +392,23 @@ do
                 })
             end
             
+            -- Initial Stock
+            local initial_airbases = buildAirbaseSubmenu({WarehouseManager.StockTypes.INITIAL}, Config.resupply_costs.INITIAL, "Initial Stock")
+            if #initial_airbases > 0 then
+                table.insert(resupply_stock_list, {
+                    name = "Initial Stock - " .. Config.resupply_costs.INITIAL .. " tokens",
+                    submenu = initial_airbases
+                })
+            end
+            
             if #resupply_stock_list > 0 then
                 CommandHandler.buildPagedMenuForGroup(gr_id, resupply_menu, resupply_stock_list, 1)
             else
                 missionCommands.addCommandForGroup(gr_id, "No Airbases Available", resupply_menu, function() end, nil)
             end
-        
-
-
+            
+            
+            
             local farps_resupply_list = {}
             for _,zone in ipairs(zones) do
                 if zone.side == side and zone.zone_type == ZoneTypes.FARP and zone.linked_farp then
