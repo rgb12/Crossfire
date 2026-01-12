@@ -396,9 +396,7 @@ end
 
 ---@param unit Unit
 function ctld.unpack(unit)
-    --[[
-        Finds all nearby crates that belong to ctld (name starts with CTLD_)
-    ]]
+    --Finds all nearby crates that belong to ctld (name starts with CTLD_)
 
     local unit_pos = unit:getPoint()
     if unit:inAir() then
@@ -406,8 +404,8 @@ function ctld.unpack(unit)
         return
     end
 
-    local is_in_ctld_zone = utils.getZoneOfUnitFromPosition(unit_pos) ~= nil
-    if not is_in_ctld_zone and not ctld.allow_unpacking_in_zones then
+    local is_in_allowed_zone = utils.getZoneOfUnitFromPosition(unit_pos) ~= nil
+    if not is_in_allowed_zone and not ctld.allow_unpacking_in_zones then
         trigger.action.outTextForUnit(unit:getID(),"Cannot unpack in this area.", 5)
         return
     end
@@ -937,7 +935,9 @@ function ctld.listSupplies(unit)
         supply_count = stats.red_supplies
     end
 
-    trigger.action.outTextForUnit(unit:getID(), "Coalition has ".. supply_count .. " supplies.", 10)
+    local supplies_cap = math.min(utils.calculateSuppliesCAPforCoalition(unit_coalition), Config.supplies.absolute_max_supplies)
+
+    trigger.action.outTextForUnit(unit:getID(), "Coalition has ".. supply_count .. " / " .. supplies_cap .. " supplies.", 10)
         
 
 end
