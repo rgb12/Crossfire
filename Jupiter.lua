@@ -44,11 +44,23 @@ function Jupiter:onEvent(event)
         local vec3 = event.pos
         local markId = event.idx
         MissionLogger:info(text)
-        -- 1. Validation: Must have text and start with "-"
+
+        -- 1. Check for password if set
+        if Config.jupiter_password and Config.jupiter_password ~= "" then
+            local password_prefix = Config.jupiter_password .. "-"
+            if text:sub(1, #password_prefix) ~= password_prefix then
+                return
+            else
+                text = "-" .. text:sub(#password_prefix + 1)
+            end
+        end
+
+        -- 2. Validation: Must have text and start with "-"
         if not text or text:sub(1, 1) ~= "-" then
             return
         end
-        -- 2. Parse command and arguments
+
+        -- 3. Parse command and arguments
         -- e.g., "-explosion 300" becomes {"-explosion", "300"}
         local args = {}
         for word in text:gmatch("%S+") do
@@ -90,6 +102,16 @@ function Jupiter:onEvent(event)
             else
                 trigger.action.outText("Jupiter: No zone found within 10km to level up.", 5)
             end
+        elseif command == "-addsuppliesblue" then
+            local supplies_to_add = tonumber(param1) or 500
+            stats.blue_supplies = stats.blue_supplies + supplies_to_add
+            trigger.action.outText("Jupiter: Added "..supplies_to_add.." supplies to BLUE coalition. Total: "..stats.blue_supplies, 5)
+            cmd_executed = true
+        elseif command == "-addsuppliesred" then
+            local supplies_to_add = tonumber(param1) or 500
+            stats.red_supplies = stats.red_supplies + supplies_to_add
+            trigger.action.outText("Jupiter: Added "..supplies_to_add.." supplies to RED coalition. Total: "..stats.red_supplies, 5)
+            cmd_executed = true
         elseif command == "-setlevel" then
             local level = tonumber(param1) or 1
             -- Set level of the closest zone within 10km

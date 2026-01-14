@@ -109,7 +109,8 @@ Config = {
         coop_max_members = 4, -- maximum number of players (including leader) in a co-op operation
     },
     jupiter_enabled = true, -- enables/disables the Jupiter command system
-    
+    jupiter_password = "8", -- password required before the -, example password = 12 then the command is 12-discover
+
     allow_air_spawn = true, -- prevents or not air spawns for players
     enable_slot_blocker = false, -- enables/disables the slot blocker system to prevent players spawning in enemy airbases
     enabled_su25t_blufor = true, -- adds the SU-25T to the blufor warehouse inventory
