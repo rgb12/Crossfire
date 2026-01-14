@@ -177,6 +177,8 @@ do
                     end
                 end
             end
+            PersistenceManager.data.ctld_last_group_id = mist.getNextGroupId()
+            PersistenceManager.data.ctld_last_unit_id = mist.getNextUnitId()
         end
     end
 
@@ -344,6 +346,10 @@ do
         stats = PersistenceManager.data.stats
         stats.blue_comms_antennas = 0
         stats.red_comms_antennas = 0
+        stats.blue_command_posts = 0
+        stats.red_command_posts = 0
+        stats.blue_ammo_depots = 0
+        stats.red_ammo_depots = 0
         MissionLogger:info("Stats table restored.")
 
         -- 3. Restore Zones
@@ -431,6 +437,9 @@ do
         end
         
         -- 5. Restore Placed Assets (CTLD cargo, troops, vehicles, groups)
+        mist.nextGroupId = PersistenceManager.data.ctld_last_group_id or mist.getNextGroupId()
+        mist.nextUnitId = PersistenceManager.data.ctld_last_unit_id or mist.getNextUnitId()
+
         if PersistenceManager.data.placed_assets then
             ctld.placed_assets = {} -- Clear current list
             for _, saved_asset in ipairs(PersistenceManager.data.placed_assets) do
@@ -493,8 +502,8 @@ do
                             if saved_asset.type == ctld.AssetTypes.TROOPS or saved_asset.type == ctld.AssetTypes.VEHICLES then
                                 -- Respawn as unit with "unpacked" prefix for vehicles to enable unitAttack
                                 local u_id = mist.getNextUnitId()
-                                local unit_name = saved_asset.type == ctld.AssetTypes.VEHICLES 
-                                    and "unpacked" .. part.name .. "_" .. u_id 
+                                local unit_name = saved_asset.type == ctld.AssetTypes.VEHICLES
+                                    and Config.ctld.unpacked_asset_prefix ..part.name .. "_" .. u_id
                                     or part.name .. "_" .. u_id
                                 
                                 local spawned_group = mist.dynAdd({
