@@ -38,8 +38,10 @@ do
             unit = unit,
             view_radius = view_radius
         }
+        local u_id = unit:getGroup():getID()
         MissionLogger:info(unit:getID())
-        trigger.action.outTextForGroup(unit:getGroup():getID(),"> EWRS enabled, radius set to "..mist.utils.metersToNM(view_radius).." NM",5)
+        trigger.action.outTextForGroup(unit:getGroup():getID(),"EWRS enabled, detection radius set to "..mist.utils.metersToNM(view_radius).." NM",5)
+        trigger.action.outSoundForGroup(u_id,"radio_txrx.ogg")
 
     end
 
@@ -47,7 +49,9 @@ do
     ---@param unit Unit
     function EWRS:removeUser(name,unit)
         self.users[name] = nil
-        trigger.action.outTextForGroup(unit:getGroup():getID(),"EWRS reports hidden.",5)
+        local gr_id = unit:getGroup():getID()
+        trigger.action.outTextForGroup(gr_id,"EWRS reports hidden.",5)
+        trigger.action.outSoundForGroup(gr_id,"radio_txrx.ogg")
     end
 
     function EWRS:cacheRadars()
@@ -243,12 +247,6 @@ do
         for _, nm in ipairs(choices) do
             missionCommands.addCommandForGroup(gr_id, nm .. " NM", radiusMenu, function()
                 self:addUser(unit:getName(), unit, mist.utils.NMToMeters(nm))
-            end)
-        end
-        local choices_km = {20, 40, 80, 150, 300} -- KM
-        for _, km in ipairs(choices_km) do
-            missionCommands.addCommandForGroup(gr_id, km .. " KM", radiusMenu, function()
-                self:addUser(unit:getName(), unit, km * 1000)
             end)
         end
 
