@@ -137,6 +137,7 @@ function ev:onEvent(event)
                             local out_text = string.format("< XP and Rank >\n\nRank: %s\n\nTokens: %d (+%d)\nXP: %d (+%d)\nMissions Completed: %d\n\nNext Rank: %s\n  %s XP",
                                 rank_name, user.tokens, user.unclaimed_tokens, user.xp, user.unclaimed_xp, user.missions_completed, next_rank, next_rank_xp)
                             trigger.action.outTextForGroup(group_id, out_text, 15)
+                            trigger.action.outSoundForGroup(group_id, "radio_beep4.ogg")
                         end
                     end)
                     CommandHandler.addToMenuTracking(group_id, xprank_root, "xp_rank_menu")
@@ -221,24 +222,6 @@ function ev:onEvent(event)
         end
     end
 
-    if event.id == world.event.S_EVENT_ENGINE_SHUTDOWN and event.initiator then
-        -- Make sure its AI
-        local unit = event.initiator
-        if event.place and unit.getPlayerName and not unit:getPlayerName() then
-            local gr = unit:getGroup()
-            if not gr then return end
-
-            local gr_name = gr:getName()
-            local gr_coalition = gr:getCoalition()
-            local airbase_name = event.place:getName()
-            local unit_type = unit:getTypeName()
-
-            MissionLogger:info("Unit shutdown: " .. unit_type .. " at " .. airbase_name)
-            
-
-        end
-    end
-
     if event.id == world.event.S_EVENT_LAND and event.initiator then
         local unit = event.initiator
         if not unit or not unit.isExist or not unit:isExist() then return end
@@ -270,7 +253,7 @@ function ev:onEvent(event)
                     end
             elseif enroute_heli then
                 -- POSSIBLE CAPTURE HELI
-                    --check if in zone, if yes abort all ot hers inbound to the zone
+                    --check if in zone, if so abort all others inbound to the zone
                     if  TheatreCommander.checkIfCaptureGroupArrived(enroute_heli) then
                         timer.scheduleFunction(function ()
                             unit:getGroup():destroy()
@@ -285,13 +268,16 @@ function ev:onEvent(event)
 
             if unit and unit.getPlayerName and unit:getPlayerName() then
                 local unit_coalition = unit:getCoalition()
+                local u_id = unit:getID()
                 -- check if heli landed in neutral zone
                 for _,zone in ipairs(zones) do
                     if zone.side == coalition.side.NEUTRAL and zone:isPointInsideZone(unit:getPoint()) then
-                        trigger.action.outTextForCoalition(unit_coalition, "> You have captured ".. zone.name, 15)
-                        trigger.action.outSoundForCoalition(unit_coalition, "radio_beep2.ogg")
+                        trigger.action.outTextForUnit(u_id, "Allied forces deployed at ".. zone.name..". Great work.", 15)
+                        trigger.action.outSoundForUnit(u_id, "radio click.ogg")
                         
-                        zone:capture(unit_coalition)
+                        timer.scheduleFunction(function ()
+                            zone:capture(unit_coalition)
+                        end, {}, timer.getTime() + math.random(10,30))
                     end
                 end
                 
