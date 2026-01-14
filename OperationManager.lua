@@ -48,7 +48,7 @@ do
             available_operations = {},
             active_operations = {},
             last_generation_time = 0, -- Cache timestamp
-            generation_cooldown = 30 -- Regenerate at most every 30 seconds
+            generation_cooldown = Config.operations.operation_refresh_time or 30, -- seconds
         }
         setmetatable(obj, self)
         table.insert(OperationManager.instances, obj) -- Add this new instance to our list
@@ -409,7 +409,7 @@ do
         if self.last_generation_time > 0 and (current_time - self.last_generation_time < self.generation_cooldown) then
             return -- Use cached operations
         end
-        
+        MissionLogger:info("Regenerating operations")
         self.last_generation_time = current_time
         
         local reference_pos = self.home_airbase.zone.point
@@ -717,7 +717,6 @@ do
                     check = function(self, player_unit)
                         local zone = ZoneHandler.getFromName(target_zone.name)
                         if not zone then return false end
-                            MissionLogger:info("Checking airdrop objective for zone: "..zone.name)
                             local volume = {
                                 id = world.VolumeType.SPHERE,
                                 params = {
@@ -777,8 +776,6 @@ do
 
                                 return true
                             end
-                        MissionLogger:info("Airdrop objective not yet completed.")
-                        MissionLogger:info("Cargo landed count: "..cargo_count)
                         return false
                     end
                 }
