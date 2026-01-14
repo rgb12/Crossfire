@@ -397,6 +397,28 @@ do
                         warehouse_name = WarehouseManager.AircraftFlags.SU24MR
                     }
 
+                },
+                [coalition.side.BLUE] = {
+                    [AITaskTypes.CAS] = {
+                        group_name = "BLUE KRASNODAR CAS",
+                        warehouse_name = WarehouseManager.AircraftFlags.A10C_TANK_KILLER_II
+                    },
+                    [AITaskTypes.SEAD] = {
+                        group_name = "BLUE KRASNODAR SEAD",
+                        warehouse_name = WarehouseManager.AircraftFlags.F16C_BL50
+                    },
+                    [AITaskTypes.STRIKE] = {
+                        group_name = "BLUE KRASNODAR STRIKE",
+                        warehouse_name = WarehouseManager.AircraftFlags.F16C_BL50
+                    },
+                    [AITaskTypes.CAP] = {
+                        group_name = "BLUE KRASNODAR INTERCEPT",
+                        warehouse_name = WarehouseManager.AircraftFlags.F15C
+                    },
+                    [AITaskTypes.RECON] = {
+                        group_name = "BLUE KRASNODAR RECON",
+                        warehouse_name = WarehouseManager.AircraftFlags.F16C_BL50
+                    }
                 }
             },
             [Airbases.Caucasus.Maykop_Khanskaya] = {
@@ -425,6 +447,32 @@ do
                         group_name = "RED MAYKOP AWACS",
                         warehouse_name = WarehouseManager.AircraftFlags.A50
                     },
+                },
+                [coalition.side.BLUE] = {
+                    [AITaskTypes.CAS] = {
+                        group_name = "BLUE MAYKOP CAS",
+                        warehouse_name = WarehouseManager.AircraftFlags.A10C_TANK_KILLER_II
+                    },
+                    [AITaskTypes.SEAD] = {
+                        group_name = "BLUE MAYKOP SEAD",
+                        warehouse_name = WarehouseManager.AircraftFlags.F16C_BL50
+                    },
+                    [AITaskTypes.STRIKE] = {
+                        group_name = "BLUE MAYKOP STRIKE",
+                        warehouse_name = WarehouseManager.AircraftFlags.F16C_BL50
+                    },
+                    [AITaskTypes.CAP] = {
+                        group_name = "BLUE MAYKOP INTERCEPT",
+                        warehouse_name = WarehouseManager.AircraftFlags.F15C
+                    },
+                    [AITaskTypes.AWACS] = {
+                        group_name = "BLUE MAYKOP AWACS",
+                        warehouse_name = WarehouseManager.AircraftFlags.E3A
+                    },
+                    [AITaskTypes.RECON] = {
+                        group_name = "BLUE MAYKOP RECON",
+                        warehouse_name = WarehouseManager.AircraftFlags.F16C_BL50
+                    }
                 }
             },
             [Airbases.Caucasus.Sochi_Adler] = {
@@ -453,6 +501,32 @@ do
                         group_name = "RED SOCHI AWACS",
                         warehouse_name = WarehouseManager.AircraftFlags.A50
                     },
+                },
+                [coalition.side.BLUE] = {
+                    [AITaskTypes.CAS] = {
+                        group_name = "BLUE SOCHI CAS",
+                        warehouse_name = WarehouseManager.AircraftFlags.A10C_TANK_KILLER_II
+                    },
+                    [AITaskTypes.SEAD] = {
+                        group_name = "BLUE SOCHI SEAD",
+                        warehouse_name = WarehouseManager.AircraftFlags.F16C_BL50
+                    },
+                    [AITaskTypes.STRIKE] = {
+                        group_name = "BLUE SOCHI STRIKE",
+                        warehouse_name = WarehouseManager.AircraftFlags.F16C_BL50
+                    },
+                    [AITaskTypes.CAP] = {
+                        group_name = "BLUE SOCHI INTERCEPT",
+                        warehouse_name = WarehouseManager.AircraftFlags.F15C
+                    },
+                    [AITaskTypes.AWACS] = {
+                        group_name = "BLUE SOCHI AWACS",
+                        warehouse_name = WarehouseManager.AircraftFlags.E3A
+                    },
+                    [AITaskTypes.RECON] = {
+                        group_name = "BLUE SOCHI RECON",
+                        warehouse_name = WarehouseManager.AircraftFlags.F16C_BL50
+                    }
                 }
             },
             [Airbases.Caucasus.Gudauta] = {
@@ -483,10 +557,6 @@ do
                         group_name = "BLUE GUDAUTA INTERCEPT",
                         warehouse_name = WarehouseManager.AircraftFlags.F15C
                     },
-                    [AITaskTypes.JTAC] = {
-                        group_name = "BLUE GUDAUTA JTAC",
-                        warehouse_name = WarehouseManager.AircraftFlags.RQ_1A_PREDATOR
-                    }
                 }
             },
             [Airbases.Caucasus.Sukhumi_Babushara] = {
@@ -679,6 +749,91 @@ do
                     }
                 }
             },
+            [Airbases.Caucasus.Mozdok] = {
+                [coalition.side.RED] = {
+                    [AITaskTypes.CAS] = {
+                        group_name = "RED MOZDOK CAS",
+                        warehouse_name = WarehouseManager.AircraftFlags.SU25T
+                    },
+                    [AITaskTypes.SEAD] = {
+                        group_name = "RED MOZDOK SEAD",
+                        warehouse_name = WarehouseManager.AircraftFlags.SU24M
+                    },
+                    [AITaskTypes.STRIKE] = {
+                        group_name = "RED MOZDOK STRIKE",
+                        warehouse_name = WarehouseManager.AircraftFlags.SU24M
+                    },
+                    [AITaskTypes.CAP] = {
+                        group_name = "RED MOZDOK INTERCEPT",
+                        warehouse_name = WarehouseManager.AircraftFlags.SU27
+                    },
+                    [AITaskTypes.RECON] = {
+                        group_name = "RED MOZDOK RECON",
+                        warehouse_name = WarehouseManager.AircraftFlags.SU24MR
+                    },
+                    [AITaskTypes.AWACS] = {
+                        group_name = "RED MOZDOK AWACS",
+                        warehouse_name = WarehouseManager.AircraftFlags.A50
+                    },
+                },
+                [coalition.side.BLUE] = {
+                    [AITaskTypes.CAS] = {
+                        group_name = "BLUE MOZDOK CAS",
+                        warehouse_name = WarehouseManager.AircraftFlags.A10C_TANK_KILLER_II
+                    },
+                    [AITaskTypes.SEAD] = {
+                        group_name = "BLUE MOZDOK SEAD",
+                        warehouse_name = WarehouseManager.AircraftFlags.F16C_BL50
+                    },
+                    [AITaskTypes.STRIKE] = {
+                        group_name = "BLUE MOZDOK STRIKE",
+                        warehouse_name = WarehouseManager.AircraftFlags.F16C_BL50
+                    },
+                    [AITaskTypes.CAP] = {
+                        group_name = "BLUE MOZDOK INTERCEPT",
+                        warehouse_name = WarehouseManager.AircraftFlags.F15C
+                    },
+                    [AITaskTypes.AWACS] = {
+                        group_name = "BLUE MOZDOK AWACS",
+                        warehouse_name = WarehouseManager.AircraftFlags.E3A
+                    },
+                    [AITaskTypes.RECON] = {
+                        group_name = "BLUE MOZDOK RECON",
+                        warehouse_name = WarehouseManager.AircraftFlags.F16C_BL50
+                    }
+
+                }
+            },
+            [Airbases.Caucasus.Mineralnye_Vody] = {
+                [coalition.side.RED] = {
+                    [AITaskTypes.RECON] = {
+                        group_name = "RED MINERALNYE RECON",
+                        warehouse_name = WarehouseManager.AircraftFlags.SU24MR
+                    },
+                    [AITaskTypes.CAS] = {
+                        group_name = "RED MINERALNYE CAS",
+                        warehouse_name = WarehouseManager.AircraftFlags.SU25T
+                    },
+                    [AITaskTypes.INTERCEPT] = {
+                        group_name = "RED MINERALNYE INTERCEPT",
+                        warehouse_name = WarehouseManager.AircraftFlags.SU27
+                    },
+                },
+                [coalition.side.BLUE] = {
+                    [AITaskTypes.RECON] = {
+                        group_name = "BLUE MINERALNYE RECON",
+                        warehouse_name = WarehouseManager.AircraftFlags.F16C_BL50
+                    },
+                    [AITaskTypes.CAS] = {
+                        group_name = "BLUE MINERALNYE CAS",
+                        warehouse_name = WarehouseManager.AircraftFlags.A10C_TANK_KILLER_II
+                    },
+                    [AITaskTypes.INTERCEPT] = {
+                        group_name = "BLUE MINERALNYE INTERCEPT",
+                        warehouse_name = WarehouseManager.AircraftFlags.F15C
+                }
+            }
+        }
     }
 
     WarehouseManager.AIPayloads = {
@@ -722,11 +877,6 @@ do
                 [WarehouseManager.Flags.S_8O0FP2_MPP] = 2*20 *2,
                 [WarehouseManager.Flags.VIKHR_M] = 2*8 *2,
                 [WarehouseManager.Flags.KH_29T] = 2 *2,
-                -- 2 * R-73 AA 11 Archer
-                -- 2 * B-8M1 20*UnGd Rkts 80mm S-80FP2 MPP
-                -- 2 * APU-8 8* 9M127 Vikhr ATGM
-                -- 2 * Kh-29T AS-14 Kedge
-
             },
             [AITaskTypes.SEAD] = {
                 [WarehouseManager.Flags.KH25ML] = 2 *2,

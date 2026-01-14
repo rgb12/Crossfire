@@ -280,6 +280,7 @@ do
                 local valid_strike_targets = {
                     ZoneTypes.LOGISTICS,
                     ZoneTypes.COMMS,
+                    ZoneTypes.AIRBASE
                 }
                 for _, zone in ipairs(zones) do
                     if zone.side == enemy_side and utils.tableContains(valid_strike_targets, zone.zone_type) 

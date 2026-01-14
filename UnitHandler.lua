@@ -274,7 +274,7 @@ do
                 zone.linked_ammo_depot = ammo_depot.name
                 
                 table.insert(zone.linked_statics, ammo_depot.name)
-               
+                utils.editAmmoDepotsCount(zone.side, 1)
             else
                 MissionLogger:error("Could not spawn ammo depot for ".. zone.name)
             end
@@ -319,6 +319,7 @@ do
             if command_center then
 
                 table.insert(zone.linked_statics, command_center.name)
+                utils.editCommandPostsCount(zone.side, 1)
             else
                 MissionLogger:error("Could not spawn comms tower for ".. zone.name)
             end
