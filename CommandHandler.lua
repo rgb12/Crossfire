@@ -444,7 +444,8 @@ do
 
                 if not aircraft_on_carrier then
                     if aircraftMoving(unit) or unit:inAir() then
-                        trigger.action.outTextForGroup(gr_id, "> Restock aborted: Aircraft is not stationary.", 10)
+                        trigger.action.outTextForGroup(gr_id, "Restock aborted: Aircraft is not stationary.", 10)
+                        trigger.action.outSoundForGroup(gr_id, "radio_beep2")
                         return
                     end
                 else
@@ -455,15 +456,18 @@ do
                         if dist_to_carrier <= 500 then
                             on_carrier = true
                         else
-                            trigger.action.outTextForGroup(gr_id, "> Restock aborted: Aircraft is not on carrier deck.", 10)
+                            trigger.action.outTextForGroup(gr_id, "Restock aborted: Aircraft is not on carrier deck.", 10)
+                            trigger.action.outSoundForGroup(gr_id, "radio_beep2")
                             return
                         end
                     else
-                        trigger.action.outTextForGroup(gr_id, "> Restock aborted: Carrier unit not found.", 10)
+                        trigger.action.outTextForGroup(gr_id, "Restock aborted: Carrier unit not found.", 10)
+                        trigger.action.outSoundForGroup(gr_id, "radio_beep2")
                         return
                     end
                 end
-                trigger.action.outTextForGroup(gr_id, "> Aircraft will be restocked to warehouse in 10 seconds...", 10)
+                trigger.action.outTextForGroup(gr_id, "Aircraft and loaded equipment will be restocked in the warehouse in 10 seconds…", 10)
+                trigger.action.outSoundForGroup(gr_id, "radio_beep2")
                 timer.scheduleFunction(function()
 
                     -- Add the aircraft back to the warehouse
@@ -482,7 +486,8 @@ do
                         end
 
                     end
-                    trigger.action.outTextForGroup(gr_id, "> Restock aborted: No friendly airbase or FARP nearby.", 10)
+                    trigger.action.outTextForGroup(gr_id, "Restock aborted: No friendly airbase or FARP nearby.", 10)
+                    trigger.action.outSoundForGroup(gr_id, "radio_beep2")
                 end, {}, timer.getTime() + 10)
             end, nil)
 
@@ -1093,18 +1098,20 @@ do
         if not u or not u.isExist or not u:isExist() then return end
         local function checkTallyZone()
             if not u or not u.isExist or not u:isExist() then return end
+            local unit_id = u:getID()
 
             local gr = u:getGroup()
             if gr and gr.isExist and gr:isExist() and u.getCoalition then
                 if not u:inAir() then
-                    trigger.action.outTextForUnit(u:getID(), "Recon report\n> Can only perform recon while airborne.",10)
+                    trigger.action.outSoundForUnit(unit_id, "radio click.ogg")
+                    trigger.action.outTextForUnit(unit_id, "Recon report\n Can only perform recon while airborne.",10)
                     return
                 end
                 
-                local unit_id = u:getID()
                 for i,p in ipairs(player_cooldowns) do
                     if p.id == unit_id and timer.getTime() < p.next_avail_report then
-                        return trigger.action.outTextForUnit(unit_id, "Recon report\n> Next report available shortly.",5)
+                        trigger.action.outSoundForUnit(unit_id, "radio click.ogg")
+                        return trigger.action.outTextForUnit(unit_id, "Recon report\n Next report available shortly.",5)
                     else
                         table.remove(player_cooldowns,i)
                     end
@@ -1139,7 +1146,8 @@ do
                 end
                 
                 if not found_zone then
-                    trigger.action.outTextForUnit(unit_id, "Recon report\n> Nothing in the vicinity. Next report available shortly.",10)
+                    trigger.action.outTextForUnit(unit_id, "Recon report\n Nothing in the vicinity. Next report available shortly.",10)
+                    trigger.action.outSoundForUnit(unit_id, "radio click.ogg")
                     for _,p in ipairs(player_cooldowns) do
                         if p.id == unit_id then return end
                     end
@@ -1152,7 +1160,8 @@ do
                         
                         trigger.action.outTextForUnit(unit_id,"Intel report, +" .. Config.reward_system.xp_per_intel_report .. "XP",10)
                     end
-                    trigger.action.outTextForCoalition(unit_coalition, "Recon report\n> Newly detected ground targets displayed on your F10 map.",15)
+                    trigger.action.outTextForCoalition(unit_coalition, "Recon report\n Newly detected ground targets displayed on your F10 map.",15)
+                    trigger.action.outSoundForCoalition(unit_coalition, "radio click.ogg")
                 end
             end
         end
