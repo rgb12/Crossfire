@@ -60,6 +60,7 @@ do
     ---@param unit Unit
     function OperationManager:showActiveOperation(unit)
         if not unit or not unit.getPlayerName then return end
+        local unit_id = unit:getID()
 
         local active_mission = nil
         for _, op in ipairs(self.active_operations) do
@@ -76,14 +77,15 @@ do
         end
 
         if not active_mission then
-            trigger.action.outTextForUnit(unit:getID(), "No active operation.", 10)
+            trigger.action.outTextForUnit(unit_id, "No active operation.", 10)
+            trigger.action.outSoundForUnit(unit_id, "radio_txrx.ogg")
             return
         end
 
         -- Handle CSAR operations differently
         if active_mission.type == OperationTypes.CSAR then
             if not active_mission.pilot_position then
-                trigger.action.outTextForUnit(unit:getID(), "Error: Pilot position not found.", 10)
+                trigger.action.outTextForUnit(unit_id, "Error: Pilot position not found.", 10)
                 self:cancelOperation(unit)
                 return
             end
@@ -99,7 +101,7 @@ do
             
             outtxt = outtxt .. "\n\nObjectives:"
             for i, obj in ipairs(active_mission.objectives) do
-                local status = obj.completed and "[Completed]" or "[Pending]"
+                local status = ""--obj.completed and "[Completed]" or "[Pending]"
                 outtxt = outtxt .. string.format("\n%d. %s %s", i, obj.description, status)
             end
             
@@ -110,14 +112,14 @@ do
                 outtxt = outtxt .. string.format("\n\nDistance to pilot: %.0fm", dist)
                 outtxt = outtxt .. string.format("\nRequired proximity: %dm", Config.operations.csar_rescue_radius or 50)
             end
-            
-            trigger.action.outTextForUnit(unit:getID(), outtxt, 120)
+            trigger.action.outTextForUnit(unit_id, outtxt, 120)
+            trigger.action.outSoundForUnit(unit_id, "radio_txrx.ogg")
             return
         end
 
         local zone_tgt = ZoneHandler.getFromName(active_mission.target_zone_name)
         if not zone_tgt or not zone_tgt.zone or not zone_tgt.zone.point then
-            trigger.action.outTextForUnit(unit:getID(), "Target zone not found for this operation.", 10)
+            trigger.action.outTextForUnit(unit_id, "Target zone not found for this operation.", 10)
             self:cancelOperation(unit)
             return
         end
@@ -134,18 +136,20 @@ do
                 active_mission.operation_name, active_mission.type, active_mission.target_zone_name)
         end
         
-        if not active_mission.type == OperationTypes.INTERCEPT then
+        if active_mission.type ~= OperationTypes.INTERCEPT then
             outtxt = outtxt .. string.format("\n\nCoordinates:\n%s\n%s\nMGRS: %s",
                 mist.tostringLL(lat, lon, 2), mist.tostringLL(lat, lon, 2, true), mist.tostringMGRS(mgrs, 3))
         end
 
         outtxt = outtxt .. "\n\nObjectives:"
         for i, obj in ipairs(active_mission.objectives) do
-            local status = obj.completed and "[Completed]" or "[Pending]"
+            -- local status = obj.completed and "[Completed]" or "[Pending]"
+            local status = ""
             outtxt = outtxt .. string.format("\n%d. %s %s", i, obj.description, status)
         end
 
-        trigger.action.outTextForUnit(unit:getID(), outtxt, 120)
+        trigger.action.outTextForUnit(unit_id, outtxt, 120)
+        trigger.action.outSoundForUnit(unit_id, "radio_txrx.ogg")
     end
 
     --- @param event table
@@ -335,71 +339,16 @@ do
     end
 
     local operations_name = {
-        "Steel Horizon",
-        "Thunder Spear",
-        "Phantom Dagger",
-        "Nightfire",
-        "Stormbreaker",
-        "Ember Strike",
-        "Black Echo",
-        "Granite Shield",
-        "Stormfront",
-        "Sunfire",
-        "Silent Avalanche",
-        "Ghost Veil",
-        "Eclipse Fury",
-        "Diamond Spear",
-        "Radiant Dagger",
-        "Cerulean Shield",
-        "Iron Fist",
-        "Crimson Dawn",
-        "Viper Strike",
-        "Obsidian Shadow",
-        "Blazing Inferno",
-        "Midnight Valor",
-        "Silver Talon",
-        "Tempest Fury",
-        "Scarlet Thunder",
-        "Arctic Serpent",
-        "Infernal Hammer",
-        "Sovereign Blade",
-        "Raven Descent",
-        "Titan's Roar",
-        "Phantom Echo",
-        "Nemesis Rising",
-        "Wildfire Assault",
-        "Frostbite",
-        "Thunderstorm",
-        "Inferno Blaze",
-        "Shadow Strike",
-        "Golden Eagle",
-        "Crimson Force",
-        "Venom Fang",
-        "Apex Predator",
-        "Forge Hammer",
-        "Eternal Storm",
-        "Midnight Blade",
-        "Valkyrie Wings",
-        "Serpent's Wrath",
-        "Avalanche Force",
-        "Crimson Shield",
-        "Thunderbolt",
-        "Obsidian Spear",
-        "Infernal Reign",
-        "Midnight Storm",
-        "Raging Inferno",
-        "Victory Rising",
-        "Phantom Assault",
-        "Vengeance Strike",
-        "Steel Fury",
-        "Blazing Justice",
-        "Nexus Hammer",
-        "Primal Fury",
-        "Titan Force",
-        "Void Strike",
-        "Savage Talon",
-        "Vortex Fury"
-    }
+    "Direct Resolve", "Rapid Talon", "Iron Sabre", "Titan Hammer",
+    "Apex Strike", "Vanguard Fury", "Bold Predator", "Crimson Dagger",
+    "Sincere Accord", "Quiet Vigil", "Noble Support", "Unified Assistance",
+    "Guardian Shield", "Steady Anchor", "Pacific Relief", "Kindred Spirit",
+    "Distant Horizon", "Indigo Prism", "Obsidian Lens", "Silent Echo",
+    "Amber Signal", "Vector Trace", "Canyon Mist", "Arctic Frontier",
+    "Desert Pulse", "Oceanic Surge", "Mountain Path", "Savanna Gate",
+    "Global Sentinel", "Atlantic Link","Kinetic Flow","Rolling Thunder",
+    "Copper Shield","Desert Sentry"
+}
 
     function OperationManager:generateOperations()
         -- Performance optimization: Use cached operations if recently generated
@@ -469,21 +418,58 @@ do
                         if UnitHandler.checkIfZoneHasUnitWithAttributes(zone, Config.operations.attributes_for_SEAD_targeting) == true then
                             local sead_op = self:createSEADOperation(zone)
                             table.insert(self.available_operations, sead_op)
+                        else
                             local dead_op = self:createDEADOperation(zone)
                             table.insert(self.available_operations, dead_op)
                         end
 
                     end
 
+                    if zone.zone_type == ZoneTypes.AIRBASE then
+                        if zone.linked_statics then
+                            if #zone.linked_statics > 0 then
+                                local strike_op = self:createStrikeOperation(zone, "COMMANDCENTER")
+                                table.insert(self.available_operations, strike_op)
+                            else 
+                                local op = self:createCASOperation(zone)
+                                table.insert(self.available_operations, op)
+                            end
+                        end
+                    end
                     -- STRIKE against COMMS or LOGISTICS
-                    if zone.zone_type == ZoneTypes.COMMS and zone.comms_tower_intact then
-                        local strike_op = self:createStrikeOperation(zone, "COMMS")
-                        table.insert(self.available_operations, strike_op)
+                    if zone.zone_type == ZoneTypes.COMMS then
+                        if zone.comms_tower_intact then
+                            local strike_op = self:createStrikeOperation(zone, "COMMS")
+                            table.insert(self.available_operations, strike_op)
+                        else
+                            local op = self:createCASOperation(zone)
+                            table.insert(self.available_operations, op)
+                        end
                     end
 
-                    if zone.zone_type == ZoneTypes.LOGISTICS and zone.ammo_depot_intact then
-                        local strike_op = self:createStrikeOperation(zone, "LOGISTICS")
-                        table.insert(self.available_operations, strike_op)
+                    if zone.zone_type == ZoneTypes.EWSITE then
+                        local op = self:createCASOperation(zone)
+                        table.insert(self.available_operations, op)
+                    end
+
+                    if zone.zone_type == ZoneTypes.FARP then
+                        if zone.linked_statics and #zone.linked_statics > 0 then
+                            local strike_op = self:createStrikeOperation(zone, "FARP")
+                            table.insert(self.available_operations, strike_op)
+                        else
+                            local op = self:createCASOperation(zone)
+                            table.insert(self.available_operations, op)
+                        end
+                    end
+
+                    if zone.zone_type == ZoneTypes.LOGISTICS then
+                        if zone.ammo_depot_intact then
+                            local strike_op = self:createStrikeOperation(zone, "LOGISTICS")
+                            table.insert(self.available_operations, strike_op)
+                        else
+                            local op = self:createCASOperation(zone)
+                            table.insert(self.available_operations, op)
+                        end
                     end
                 end
 
@@ -754,10 +740,10 @@ do
                                     zone:drawF10()
                                     zone.next_level_up_avail = timer.getTime() + Config.logistics_level_up_interval
                                     trigger.action.outSoundForCoalition(zone.side,"radio_beep.ogg")
-                                    trigger.action.outTextForCoalition(zone.side, "> AIRDROP: "..zone.name.." has been upgraded to tier "..zone.level.."/4",10)
+                                    trigger.action.outTextForCoalition(zone.side, "SITREP: Successful chute deployment over " .. zone.name .. ". Airdrop supplies have been processed, upgrading the sector to Tier " .. zone.level .. " of the 4-tier standard.",10)
                                     
                                 else 
-                                    trigger.action.outTextForCoalition(zone.side, "> AIRDROP: "..zone.name.." is already at tier 4/4.",10)
+                                    trigger.action.outTextForUnit(player_unit:getID(), "AIRDROP: "..zone.name.." is already at tier 4/4.",10)
                                 end
 
                                 -- Delete cargo crates from world
@@ -860,6 +846,27 @@ do
                 local zone = ZoneHandler.getFromName(target_zone.name)
                 if not zone then return false end
                 return not zone.ammo_depot_intact
+            end
+        elseif strike_type == "COMMANDCENTER" then
+            target_desc = "Command Center"
+            check_func = function()
+                local zone = ZoneHandler.getFromName(target_zone.name)
+                if not zone then return false end
+                return zone.linked_statics and #zone.linked_statics == 0
+            end
+        elseif strike_type == "FARP" then
+            target_desc = "FARP Assets"
+            check_func = function()
+                local zone = ZoneHandler.getFromName(target_zone.name)
+                if not zone then return false end
+                return zone.linked_statics and #zone.linked_statics == 0
+            end
+        else
+            target_desc = "Target"
+            check_func = function()
+                local zone = ZoneHandler.getFromName(target_zone.name)
+                if not zone then return false end
+                return zone.side == coalition.side.NEUTRAL
             end
         end
 
@@ -1036,6 +1043,16 @@ do
         local unit_supported_operations = {}
         local unit_type = unit:getTypeName()
         
+        -- Filter operations based on distance from home base
+        table.sort(self.available_operations, function(a, b)
+            local zone_a = ZoneHandler.getFromName(a.target_zone_name)
+            local zone_b = ZoneHandler.getFromName(b.target_zone_name)
+            if not zone_a or not zone_b then return false end
+            local dist_a = mist.utils.get2DDist(self.home_airbase.zone.point, zone_a.zone.point)
+            local dist_b = mist.utils.get2DDist(self.home_airbase.zone.point, zone_b.zone.point)
+            return dist_a < dist_b
+        end)
+
         -- Filter operations based on aircraft_filter configuration
         for _, op in ipairs(self.available_operations) do
             local is_allowed = true
@@ -1087,19 +1104,22 @@ do
                     outtext = outtext .. "\n - " .. obj.description
                 end
 
-                outtext = outtext .. "\n Reward: " .. (Config.reward_system.xp_per_mission_completed or 100) .. " XP, " .. (Config.reward_system.tokens_mission_complete[op.type] or 0) .. " tokens"
+                outtext = outtext .. "\n Reward: " .. (Config.reward_system.xp_per_mission_completed or 100) .. " XP"
                 outtext = outtext .. "\n Operation code: " .. op.code
                 operations_displayed = operations_displayed + 1
                 table.insert(operation_types_displayed, op.type)
             end
         end
-        trigger.action.outTextForUnit(unit:getID(), outtext, 30)
+        local unit_id = unit:getID()
+        trigger.action.outTextForUnit(unit_id, outtext, 30)
+        trigger.action.outSoundForUnit(unit_id,"radio_txrx.ogg")
     end
 
     ---@param unit Unit
     function OperationManager:cancelOperation(unit)
         if not unit then return end
         if not unit.getPlayerName then return end
+        local unit_id = unit:getID()
 
         for i, active_op in ipairs(self.active_operations) do
             if active_op.assigned_player_id == unit:getID() then
@@ -1112,18 +1132,20 @@ do
                 end
                 
                 table.remove(self.active_operations, i)
-                trigger.action.outSoundForUnit(unit:getID(),"chatter3.ogg")
-                trigger.action.outTextForUnit(unit:getID(), "Operation " .. active_op.operation_name .. " cancelled.", 10)
+                trigger.action.outSoundForUnit(unit_id,"chatter3.ogg")
+                trigger.action.outTextForUnit(unit_id, "Operation " .. active_op.operation_name .. " cancelled.", 10)
                 return
             end
             
             -- Check if this player is a co-op member
-            if active_op.is_coop and active_op.coop_members and active_op.coop_members[unit:getID()] then
+            if active_op.is_coop and active_op.coop_members and active_op.coop_members[unit_id] then
                 self:leaveCoopOperation(unit, active_op)
                 return
             end
         end
 
+        trigger.action.outTextForUnit(unit_id, "You have no active operation to cancel.", 10)
+        trigger.action.outSoundForUnit(unit_id,"radio_txrx.ogg")
     end
 
     ---@param unit Unit
@@ -1178,6 +1200,7 @@ do
         local max_members = Config.operations.coop_max_members or 4
         if current_members >= max_members then
             trigger.action.outTextForUnit(unit:getID(), "Co-op operation is full.", 10)
+            trigger.action.outSoundForUnit(unit:getID(),"radio_txrx.ogg")
             return
         end
         
@@ -1192,6 +1215,7 @@ do
         trigger.action.outTextForUnit(target_op.assigned_player_id, join_msg, 10)
         for member_id, _ in pairs(target_op.coop_members) do
             trigger.action.outTextForUnit(member_id, join_msg, 10)
+            trigger.action.outSoundForUnit(member_id,"radio_txrx.ogg")
         end
         
         trigger.action.outSoundForUnit(unit:getID(),"chatter1.ogg")
@@ -1234,6 +1258,7 @@ do
         -- Notify remaining members
         for member_id, _ in pairs(target_op.coop_members) do
             trigger.action.outTextForUnit(member_id, leave_msg, 10)
+            trigger.action.outSoundForUnit(member_id,"radio_txrx.ogg")
         end
         
         trigger.action.outTextForUnit(unit:getID(), "You have left the co-op operation.", 10)
@@ -1291,6 +1316,7 @@ do
         outtext = outtext .. string.format("\n\nCo-op Bonus: +%d%% XP and Tokens", coop_bonus_pct)
         
         trigger.action.outTextForUnit(unit:getID(), outtext, 30)
+        trigger.action.outSoundForUnit(unit:getID(),"radio_txrx.ogg")
     end
 
     ---@param zone_name any
@@ -1321,6 +1347,7 @@ do
         for _, active_op in ipairs(self.active_operations) do
             if active_op.assigned_player_id == unit:getID() then
                 trigger.action.outTextForUnit(unit:getID(), "You are already on an operation: " .. active_op.operation_name, 10)
+                trigger.action.outSoundForUnit(unit:getID(),"radio_txrx.ogg")
                 return
             end
         end
@@ -1337,6 +1364,7 @@ do
 
         if not accepted_mission then
             trigger.action.outTextForUnit(unit:getID(), "Invalid operation code.", 10)
+            trigger.action.outSoundForUnit(unit:getID(),"radio_txrx.ogg")
             return
         end
 
@@ -1346,7 +1374,7 @@ do
         -- Skip this check for CSAR operations
         if accepted_mission.type ~= OperationTypes.CSAR and self:isZoneActive(accepted_mission.target_zone_name) then
             trigger.action.outTextForUnit(unit:getID(), "Operation Aborted: Target zone " .. accepted_mission.target_zone_name .. " is already being engaged by another unit.", 10)
-            
+            trigger.action.outSoundForUnit(unit:getID(),"radio_txrx.ogg")
             -- Optional: Remove it from available list so they don't try again immediately
             table.remove(self.available_operations, mission_index)
             return
@@ -1508,17 +1536,7 @@ do
                                 local total_xp = math.floor(base_xp * coop_bonus_multiplier)
                                 user.unclaimed_xp = user.unclaimed_xp + total_xp
 
-                                -- Apply token reward with co-op bonus (only if 2+ players)
-                                local base_tokens = 0
-                                if Config.reward_system.tokens_mission_complete[op.type] then
-                                    base_tokens = Config.reward_system.tokens_mission_complete[op.type]
-                                else
-                                    base_tokens = 5 -- default
-                                end
-                                local total_tokens = math.floor(base_tokens * coop_bonus_multiplier)
-                                user.unclaimed_tokens = user.unclaimed_tokens + total_tokens
-
-                                local reward_msg = "+" .. total_xp .. " XP; +" .. total_tokens .. " Tokens."
+                                local reward_msg = "+" .. total_xp .. " XP"
                                 
                                 -- Only show bonus message if there were actually 2+ players
                                 if coop_participant_count >= 2 then
