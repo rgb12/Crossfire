@@ -35,7 +35,7 @@ ctld.aircraft_limits = {
     {aircraft_type = "CH-47Fbl1",   max_parts = 6,  max_troops = 30, weight_limit = 10000},
     {aircraft_type = "C-130J-30",   max_parts = 12, max_troops = 60, weight_limit = 20000},
     {aircraft_type = "SA342L",     max_parts = 1,  max_troops = 4, weight_limit = 800},
-    {aircraft_type = "SA342M",     max_parts = 100,  max_troops = 4, weight_limit = 80000},
+    {aircraft_type = "SA342M",     max_parts = 1,  max_troops = 4, weight_limit = 800},
     {aircraft_type = "SA342Mistral",max_parts = 1,  max_troops = 4, weight_limit = 800},
     {aircraft_type = "SA342Minigun",max_parts = 1,  max_troops = 4, weight_limit = 800},
 }
@@ -89,15 +89,20 @@ end
 ---@type part[]
 ctld.parts = {
     {name = "Hawk ln",          desc = "HAWK Launcher",       weight = 2000, type = ctld.AssetTypes.SAM, group_requirement = "Hawk Battery", req_supplies = 400},
-    {name = "Hawk tr",          desc = "HAWK Track Radar",    weight = 500, type = ctld.AssetTypes.SAM, group_requirement = "Hawk Battery", req_supplies = 200},
-    {name = "Hawk sr",          desc = "HAWK Search Radar",   weight = 500, type = ctld.AssetTypes.SAM, group_requirement = "Hawk Battery", req_supplies = 200},
+    {name = "Hawk tr",          desc = "HAWK Track Radar",    weight = 500, type = ctld.AssetTypes.SAM, group_requirement = "Hawk Battery", req_supplies = 600},
+    {name = "Hawk sr",          desc = "HAWK Search Radar",   weight = 500, type = ctld.AssetTypes.SAM, group_requirement = "Hawk Battery", req_supplies = 600},
     {name = "Hawk pcp",         desc = "HAWK PCP",            weight = 200, type = ctld.AssetTypes.SAM, group_requirement = "Hawk Battery", req_supplies = 200},
     {name = "Hawk cwar",        desc = "HAWK CWAR",           weight = 200, type = ctld.AssetTypes.SAM, group_requirement = "Hawk Battery", req_supplies = 200},
 
 
     {name = "NASAMS_LN_C",          desc = "NASAMS Launcher 120C",       weight = 2000, type = ctld.AssetTypes.SAM, group_requirement = "NASAMS System", req_supplies = 400},
-    {name = "NASAMS_Radar_MPQ64F1",          desc = "NASAMS Search/Track Radar",    weight = 500, type = ctld.AssetTypes.SAM, group_requirement = "NASAMS System", req_supplies = 200},
+    {name = "NASAMS_Radar_MPQ64F1",          desc = "NASAMS Search/Track Radar",    weight = 500, type = ctld.AssetTypes.SAM, group_requirement = "NASAMS System", req_supplies = 600},
     {name = "NASAMS_Command_Post",          desc = "NASAMS Command Post",   weight = 500, type = ctld.AssetTypes.SAM, group_requirement = "NASAMS System", req_supplies = 200},
+
+    {name = "Patriot ln", desc = "Patriot Launcher",    weight = 2000, type = ctld.AssetTypes.SAM, group_requirement = "Patriot Battery", req_supplies = 800},
+    {name = "Patriot str", desc = "Patriot Radar", weight = 1000, type = ctld.AssetTypes.SAM, group_requirement = "Patriot Battery", req_supplies = 1000},
+    {name = "Patriot ECS", desc = "Patriot ECS", weight = 500, type = ctld.AssetTypes.SAM, group_requirement = "Patriot Battery", req_supplies = 500},
+    {name = "Patriot AMG", desc = "Patriot AMG (optional)", weight = 500, type = ctld.AssetTypes.SAM, group_requirement = "Patriot Battery", req_supplies = 300},
 
 
     {name = "Soldier stinger",  desc = "Soldier Stinger",     weight = 100, type = ctld.AssetTypes.TROOPS, req_supplies = 5},
@@ -108,17 +113,17 @@ ctld.parts = {
     {name = "Gepard", desc="Gepard AAA", weight = 5000, type = ctld.AssetTypes.SAM, crates_required = 2, can_move = true, req_supplies = 400},
     {name = "HEMTT_C-RAM_Phalanx", desc="LPWS C-RAM", weight = 7000, type = ctld.AssetTypes.SAM, crates_required = 3, can_move = true, req_supplies = 600},
 
-    {name = "M1043 HMMWV Armament", desc="Humvee - MG", weight = 4000, type = ctld.AssetTypes.VEHICLES, can_move = true, req_supplies = 150},
-    {name = "M1045 HMMWV TOW", desc="Humvee - TOW", weight = 4000, type = ctld.AssetTypes.VEHICLES, can_move = true, req_supplies = 200},
+    {name = "M1043 HMMWV Armament", desc="Humvee - MG", weight = 2000, type = ctld.AssetTypes.VEHICLES, can_move = true, req_supplies = 150},
+    {name = "M1045 HMMWV TOW", desc="Humvee - TOW", weight = 2000, type = ctld.AssetTypes.VEHICLES, can_move = true, req_supplies = 200},
     {name = "MaxxPro_MRAP", desc="Light Tank - MRAP", weight = 14500, type = ctld.AssetTypes.VEHICLES, can_move = true, req_supplies = 300, crates_required = 2},
 
     {name = "LAV-25", desc="Med Tank - LAV-25", weight = 12800, type = ctld.AssetTypes.VEHICLES, can_move = true, req_supplies = 400, crates_required = 3},
     
     {name = "M-1 Abrams", desc="Heavy Tank - Abrams", weight = 10000, type = ctld.AssetTypes.VEHICLES, crates_required = 4, can_move = true, req_supplies = 700},
 
-    {name = "Hummer", desc="Hummer - JTAC", weight = 1000, type = ctld.AssetTypes.VEHICLES, can_move = true, req_supplies = 50},
-    {name = "M 818", desc="M-818 Ammo Truck", weight = 1000, type = ctld.AssetTypes.VEHICLES, can_move = true, req_supplies = 80},
-    {name = "M978 HEMTT Tanker", desc="M978 HEMTT Tanker", weight = 1000, type = ctld.AssetTypes.VEHICLES, can_move = true, req_supplies = 80},
+    {name = "Hummer", desc="Hummer - JTAC", weight = 1000, type = ctld.AssetTypes.VEHICLES, req_supplies = 50},
+    {name = "M 818", desc="M-818 Ammo Truck", weight = 1000, type = ctld.AssetTypes.VEHICLES, req_supplies = 80},
+    {name = "M978 HEMTT Tanker", desc="M978 HEMTT Tanker", weight = 1000, type = ctld.AssetTypes.VEHICLES, req_supplies = 80},
 
     {name = "FPS-117", desc="EWR Radar", weight = 10000, type = ctld.AssetTypes.VEHICLES, crates_required = 5, req_supplies = 800},
 
@@ -402,8 +407,7 @@ function ctld.unpack(unit)
         return
     end
 
-    local is_in_zone = utils.getZoneOfUnitFromPosition(unit_pos) ~= nil
-    if is_in_zone and not Config.ctld.allow_unpacking_in_zones then
+    if utils.getZoneOfUnitFromPosition(unit_pos) and not Config.ctld.allow_unpacking_in_zones then
         trigger.action.outTextForUnit(unit_id,"Negative, cannot unpack in this area.", 5)
         trigger.action.outSoundForUnit(unit_id, "transmission1.ogg")
         return
@@ -931,7 +935,18 @@ function ctld.listSupplies(unit)
         return
     end
 
-    trigger.action.outTextForUnit(u_id, "Logistics SITREP: ".. supply_count .. " / " .. supplies_cap .. " available supplies.", 10)
+    local out_test = "Logistics SITREP: ".. supply_count .. " / " .. supplies_cap .. " available supplies.\n"
+
+    -- Detail the production rates
+    for _, zone in ipairs(zones) do
+        if zone.side == unit_coalition and zone.zone_type == ZoneTypes.LOGISTICS then
+            if zone.ammo_depot_intact then
+                out_test = out_test .. "\n - ".. zone.name .. ": +".. Config.supplies.supplies_income .. " supplies per minute"
+            end
+        end
+    end
+
+    trigger.action.outTextForUnit(u_id, out_test, 10)
     trigger.action.outSoundForUnit(u_id, "Radio squelch.ogg")
 
 end
