@@ -961,9 +961,7 @@ do
                 [WarehouseManager.Flags.IR_DEFLECTOR] = 2,
                 [WarehouseManager.Flags.AN_APG_78_APACHE_RADAR] = 4,
             },
-            [coalition.side.RED] = {
-
-            }
+            [coalition.side.RED] = {}
         },
 
         [WarehouseManager.StockTypes.INITIAL] = {
@@ -1028,17 +1026,17 @@ do
                 [WarehouseManager.Flags.SUPER_530D] = math.random(8,14),
                 [WarehouseManager.Flags.MAGIC_II] = math.random(8,14),
 
-                [WarehouseManager.AircraftFlags.A10C_TANK_KILLER_II] = 6,
+                [WarehouseManager.AircraftFlags.A10C_TANK_KILLER_II] = 4,
                 [WarehouseManager.AircraftFlags.E3A] = 1,
                 [WarehouseManager.AircraftFlags.F15E_SE] = 4,
-                [WarehouseManager.AircraftFlags.F16C_BL50] = 6,
+                [WarehouseManager.AircraftFlags.F16C_BL50] = 2,
                 [WarehouseManager.AircraftFlags.FA18C_HORNET] = 6,
                 [WarehouseManager.AircraftFlags.M2000C] = 4,
                 [WarehouseManager.AircraftFlags.MIRAGE_2000_5] = 4,
-                [WarehouseManager.AircraftFlags.F15C] = 8,
-                [WarehouseManager.AircraftFlags.F_14A_135_GR] = 6,
+                [WarehouseManager.AircraftFlags.F15C] = 4,
+                [WarehouseManager.AircraftFlags.F_14A_135_GR] = 4,
                 [WarehouseManager.AircraftFlags.RQ_1A_PREDATOR] = 3,
-                [WarehouseManager.AircraftFlags.C130J_30] = 4,
+                [WarehouseManager.AircraftFlags.C130J_30] = 2,
 
             },
             [coalition.side.RED] = {
@@ -1132,7 +1130,7 @@ do
 
         [WarehouseManager.StockTypes.SU25T_BLUFOR] = {
             [coalition.side.BLUE] = {
-                [WarehouseManager.AircraftFlags.SU25T] = 6,
+                [WarehouseManager.AircraftFlags.SU25T] = 4,
                 [WarehouseManager.Flags.R73_AA_11_ARCHER] = math.random(15,30),
                 [WarehouseManager.Flags.S_8O0FP2_MPP] = math.random(100,400),
                 [WarehouseManager.Flags.VIKHR_M] = math.random(100,200),
@@ -1327,12 +1325,20 @@ do
                 [WarehouseManager.Flags.AAQ_13_LANTIRN] = math.random(5,8),
                 [WarehouseManager.Flags.AN_ASQ_228_ATFLIR] = math.random(4,6),
             },
+            [coalition.side.RED] = {
+                [WarehouseManager.Flags.MERCURY_LLTV_POD] = math.random(2,4),
+            }
 
         },
         [WarehouseManager.StockTypes.MISC] = {
             [coalition.side.BLUE] = {
                 [WarehouseManager.Flags.HTS_POD] = math.random(4,6),
                 [WarehouseManager.Flags.ADM_141_TALD] = math.random(16,24),
+            },
+            [coalition.side.RED] = {
+                [WarehouseManager.Flags.L081_FANTASMAGORIA] = math.random(4,6),
+                [WarehouseManager.Flags.L005_SORBSIYA_ECM_POD_LEFT] = math.random(4,6),
+                [WarehouseManager.Flags.L005_SORBSIYA_ECM_POD_RIGHT] = math.random(4,6),
             }
         },
         
@@ -1464,7 +1470,7 @@ do
         end
     end
 
-    --- Warning: ensure the side is correctly set before execution
+--- Warning: ensure the side is correctly set before execution
     ---@param airbase_name string
     ---@param side coalition.side
     ---@param stock_types WarehouseManager.StockTypes[]
@@ -1487,22 +1493,26 @@ do
                     }, stock_type) then
                         -- Aircraft are added without user scaling
                         local stock = stock_c[side]
-                        for id,amount in pairs(stock) do
-                            warehouse:addItem(id, amount)
-                            table.insert(added_stuff_tbl, {id, amount})
+                        if stock then
+                            for id,amount in pairs(stock) do
+                                warehouse:addItem(id, amount)
+                                table.insert(added_stuff_tbl, {id, amount})
+                            end
                         end
                         break
                     else
                         local stock = stock_c[side]
-                        local user_scale = WarehouseManager:getStockScale()
-                        if side == coalition.side.RED and Config.red_stock_multiplier then
-                            user_scale = user_scale * Config.red_stock_multiplier
-                        end
+                        if stock then
+                            local user_scale = WarehouseManager:getStockScale()
+                            if side == coalition.side.RED and Config.red_stock_multiplier then
+                                user_scale = user_scale * Config.red_stock_multiplier
+                            end
 
-                        for id,amount in pairs(stock) do
-                            local scaled_amount = math.max(1, math.floor(amount * user_scale))
-                            warehouse:addItem(id, scaled_amount)
-                            table.insert(added_stuff_tbl, {id, scaled_amount})
+                            for id,amount in pairs(stock) do
+                                local scaled_amount = math.max(1, math.floor(amount * user_scale))
+                                warehouse:addItem(id, scaled_amount)
+                                table.insert(added_stuff_tbl, {id, scaled_amount})
+                            end
                         end
                         break
                     end
@@ -1511,7 +1521,6 @@ do
             end
         end
         return added_stuff_tbl
-
     end
 
     ---@param side coalition.side

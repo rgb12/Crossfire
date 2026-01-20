@@ -594,10 +594,11 @@ do
             if not utils.tableContains(stats.blue_discovered_zones, self.name) then
                 table.insert(stats.blue_discovered_zones, self.name)
             end
-
             
-            trigger.action.outTextForCoalition(1,"Allied forces lost control of " .. self.name .. ".", 5)
-            trigger.action.outTextForCoalition(2,"Allied forces have occupied " .. self.name .. ". Integration into the coalition network is complete.", 5)
+            trigger.action.outTextForCoalition(1,"SITEP: Allied forces lost control of " .. self.name .. ".", 15)
+
+            trigger.action.outTextForCoalition(2,"SITREP: Allied forces have occupied " .. self.name .. ".", 15)
+
             -- Adds supplies on capture
             timer.scheduleFunction(function ()
                 local added_supplies = Config.supplies.supplies_looted_on_destroyed + math.random(-Config.supplies.supplies_looted_on_destroyed_variance,Config.supplies.supplies_looted_on_destroyed_variance)
@@ -619,11 +620,11 @@ do
                 trigger.action.outSoundForCoalition(1, "radio_beep3.ogg")
             end,{},timer.getTime()+math.random(30,60))
 
-            trigger.action.outTextForCoalition(2,"Allied forces lost control of " .. self.name .. ".", 5)
-            trigger.action.outTextForCoalition(1,"Allied forces have occupied " .. self.name .. ". Integration into the coalition network is complete.", 5)
+            trigger.action.outTextForCoalition(2,"SITEP: Allied forces lost control of " .. self.name .. ".", 15)
+            
+            trigger.action.outTextForCoalition(1,"SITREP: Allied forces have occupied " .. self.name .. ".", 15)
         else
-            trigger.action.outText("Ground forces have evacuated " .. self.name .. ". The area is now neutral territory.", 5)
-
+            trigger.action.outText("SITREP: ".. self.name .. " is now neutral territory.", 15)
         end
 
         if self.side == coalition.side.NEUTRAL then
@@ -641,7 +642,7 @@ do
             
         end
 
-        trigger.action.outSound("transmission1.ogg")
+        trigger.action.outSound("radio click.ogg")
         MissionLogger:info("Zone " .. self.zone.name .. " captured by " .. utils.coalitionToString(self.side))
 
         timer.scheduleFunction(function ()
@@ -690,7 +691,7 @@ do
         end
 
         local statics_count=0
-        for i = #self.linked_statics, 1, -1 do 
+        for i = #self.linked_statics, 1, -1 do
             local static_name = self.linked_statics[i]
             local static = StaticObject.getByName(static_name)
 
@@ -795,6 +796,12 @@ do
                 ammo_depot:destroy()
             end
             utils.editAmmoDepotsCount(self.side, -1)
+            trigger.action.outTextForCoalition(self.side, "Sector ALERT: Secondary explosions confirmed at "..self.name..". The ammunition depot is a total loss",20)
+            trigger.action.outSoundForCoalition(self.side,"alert1.ogg")
+            timer.scheduleFunction(function ()
+                trigger.action.outSoundForCoalition(self.side,"alert1.ogg")
+            end,{},timer.getTime()+1)
+
         end
         if not self.ammo_depot_intact and not self.ammo_depot_last_destroyed then
             -- depot was destroyed but time not recorded, record it now
@@ -835,9 +842,9 @@ do
                     self.ammo_depot_last_destroyed = nil
                     utils.editAmmoDepotsCount(self.side, 1)
                     trigger.action.outSoundForCoalition(self.side,"chatter3.ogg")
-                    trigger.action.outTextForCoalition(self.side, "Logistics zone "..self.name.." has reestablished its ammunition depot.",10)
+                    trigger.action.outTextForCoalition(self.side, "Logistics SITREP: Logistics zone "..self.name.." has reestablished its ammunition depot.",10)
             self:drawF10()
-            else                                                            
+            else                                                        
                 MissionLogger:error("Could not spawn ammo depot for ".. self.name)
             end
         end
@@ -852,7 +859,7 @@ do
         end
         
 
-        supply_count = math.min(math.min(supply_count + ctld.supplies_per_minute_per_ammo_depot, utils.calculateSuppliesCAPforCoalition(self.side)), Config.supplies.absolute_max_supplies)
+        supply_count = math.min(math.min(supply_count + Config.supplies.supplies_income, utils.calculateSuppliesCAPforCoalition(self.side)), Config.supplies.absolute_max_supplies)
         
         -- Update the stats with the new supply count
         if self.side == coalition.side.BLUE then
@@ -867,6 +874,19 @@ do
 
 
         if math.random(1,100) > Config.logistics_upgrade_chance then return false end
+
+        -- Prevents level ups of zones with players assigned AIRDROP operations
+        local airdop_restricted_zones = {}
+        ---@type Operation[]
+        local op_manager = TheatreCommander.blue_op_manager.active_operations
+
+        if op_manager then
+            for _, active_op in ipairs(op_manager) do
+                if active_op.type == OperationTypes.AIRDROP then
+                    table.insert(airdop_restricted_zones, active_op.target_zone_name)
+                end
+            end
+        end
 
         -- levels up lowest level zones nearby
         -- allow level ups only of ammo depot intact (not destroyed)
@@ -883,7 +903,8 @@ do
                 while level_zone and dist < Scenario.logistics_setup.upgrade_range
                 and loop_prevention < 400 do
 
-                    if (not lowest_level_zone_nearby) or (level_zone.level < lowest_level_zone_nearby.level) then
+                    if (not lowest_level_zone_nearby) or (level_zone.level < lowest_level_zone_nearby.level)
+                    and not utils.tableContains(airdop_restricted_zones, level_zone.name) then
                         lowest_level_zone_nearby = level_zone
                     end
                     table.insert(tried_zones,level_zone.name)
@@ -897,17 +918,19 @@ do
             end
 
             if lowest_level_zone_nearby and lowest_level_zone_nearby.level < 4 then
+
+                
                 -- lowest nearby level zones has been found
                 lowest_level_zone_nearby.level = lowest_level_zone_nearby.level + 1
                 UnitHandler.updateZoneUnits(lowest_level_zone_nearby)
                 lowest_level_zone_nearby:drawF10()
                 self.next_level_up_avail = timer.getTime() + Config.logistics_level_up_interval
                 MissionLogger:info("Logistics zone "..self.name.." leveled up "..lowest_level_zone_nearby.name .. " to level "..lowest_level_zone_nearby.level.."/4")
-                trigger.action.outSoundForCoalition(self.side,"radio_beep.ogg")
+                trigger.action.outSoundForCoalition(self.side,"radio_beep3.ogg")
                 if self.name == lowest_level_zone_nearby.name then
-                    trigger.action.outTextForCoalition(self.side, "Logistics "..self.name.." has been upgraded to tier "..lowest_level_zone_nearby.level.."/4",10)
+                    trigger.action.outTextForCoalition(self.side, self.name.." has reached operational tier "..lowest_level_zone_nearby.level.."/4",10)
                 else
-                    trigger.action.outTextForCoalition(self.side, "Logistics "..self.name.." provided additional support for "..lowest_level_zone_nearby.name.."\nT: "..lowest_level_zone_nearby.level.."/4",10)
+                    trigger.action.outTextForCoalition(self.side,self.name.." provided additional support for "..lowest_level_zone_nearby.name.."\nT: "..lowest_level_zone_nearby.level.."/4",10)
                 end
                 return true
             end
@@ -934,10 +957,13 @@ do
         if self.comms_tower_intact and not is_alive then
             self.comms_tower_intact = false
             self.comms_tower_last_destroyed = timer.getTime()
-            utils.editCommandPostsCount(self.side, -1)
+            utils.editCommsAntennasCount(self.side, -1)
 
-            -- trigger.action.outSoundForCoalition(self.side,"chatter3.ogg")
-            -- trigger.action.outTextForCoalition(self.side,self.name.." has lost its communications tower. EWRS impaired, reports are 50% slower.",10)
+            trigger.action.outTextForCoalition(self.side, "Sector ALERT: "..self.name.." has lost its communications tower.",20)
+            trigger.action.outSoundForCoalition(self.side,"alert1.ogg")
+            timer.scheduleFunction(function ()
+                trigger.action.outSoundForCoalition(self.side,"alert1.ogg")
+            end,{},timer.getTime()+1)
 
             -- Destroy the "dead body"
             if comms_tower and comms_tower:isExist() then
@@ -1018,8 +1044,10 @@ do
                 local supply_loss = math.floor(stats.blue_supplies / math.max(1, stats.blue_command_posts))
                 stats.blue_supplies = math.max(0, stats.blue_supplies - supply_loss)
                 trigger.action.outTextForCoalition(self.side, "Sector ALERT: "..self.name.." command center has collapsed. Field reports indicate "..supply_loss.." supplies were lost in the blast and subsequent fires.",20)
-                --Sector Alert: self.name command center has collapsed. Field reports indicate ..supply_loss .. supplies were lost in the blast and subsequent fires.
-                trigger.action.outSoundForCoalition(self.side,"radio_beep2.ogg")
+                trigger.action.outSoundForCoalition(self.side,"alert1.ogg")
+                timer.scheduleFunction(function ()
+                    trigger.action.outSoundForCoalition(self.side,"alert1.ogg")
+                end,{},timer.getTime()+1)
             end
         end
 

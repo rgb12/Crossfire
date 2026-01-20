@@ -3,238 +3,76 @@
     Crossfire Mission Scenarios
 
 ]]
----@class CoalSetup
----@field initial_dist_blue_to_frontline number
----@field auto_coalition_designation boolean
----@field dist_variance number
-
----@class LogisticsSetup
----@field upgrade_range number
----@field heli_capture_range number
----@field max_dist_to_frontline number
-
----@class CarrierSetup
----@field carrier_unit_name string
----@field enabled boolean
-
----@class Resupply
----@field blue_point vec3
----@field red_point vec3
-
----@class Scenario
----@field name string
----@field difficulty ScenarioDifficulty
----@field description string
----@field estimated_users number
----@field coalition_setup CoalSetup
----@field red_airbase ZoneHandler|nil
----@field blue_airbase ZoneHandler|nil
----@field logistics_setup LogisticsSetup
----@field carrier_setup CarrierSetup|nil
----@field resupply Resupply
----@field zones ZoneHandler[]
 
 ---@type Scenario[]
 Scenarios = {
     {
-        name = "Mercury Rising",
-        description = "Full map takeover of Caucasus.",
+        name = "Eastbound",
+        description = "Achieve control over the the Russian Caucasus area.",
         coalition_setup = {
-            initial_dist_blue_to_frontline = 75000, --meters
-            dist_variance = 10000, --meters
-            auto_coalition_designation = true, -- overrides the above if false
+            initial_dist_blue_to_frontline = 33000, -- (meters) all zones under that distance from the main airbase will be blue
+            dist_variance = 0, -- (meters) add +/- variance to the field above
+            auto_coalition_designation = true, -- overrides the above
         },
         logistics_setup = {
-            upgrade_range = 40000, --meters
-            heli_capture_range = 120000, --meters
-            max_dist_to_frontline = 65000 --meters
+            upgrade_range = 30000, -- (meters) maximum range at which a logistics zone can upgrade a zone nearby
+            heli_capture_range = 60000, -- (meters) max range for capture AI helicopters
+            max_dist_to_frontline = 40000 -- (meters) Logistics zones will not upgrade other zones if the nearest enemy zone is further than this distance
         },
         resupply = {
-            blue_point = { x = 00006923, y = 6096, z = 00079849 },
-            red_point = { x = -00326782, y = 6096, z = 00932890 }
+            --blue_point = { x=-00005476, y=2000,z=00224066}, --for dev
+            -- Metric: X-00005476 Z+00224066
+
+            -- This is where the resupply C130J will spawn
+            blue_point = { x = -2839, y = 6096, z = 192302 },
+            red_point = { x = 42692, y = 6096, z = 429197 },
         },
-        estimated_users = 1,
-        difficulty = ScenarioDifficulty.EXPERT,
+        carrier_setup = {
+            carrier_unit_name = "Carrier",
+            enabled = true
+        },
+        estimated_users = 1, -- IMPORTANT: if you plan on using multiplayer, set this value accordingly, it will scale the warehouse stocks
+        difficulty = ScenarioDifficulty.EASY, -- no function
+        
+        -- MAIN RED AIRBASE
         red_airbase = ZoneHandler:new({
-            name = "ANAPA",
-            airbase_name = Airbases.Caucasus.Anapa_Vityazevo,
-            zone_type = ZoneTypes.AIRBASE,
-            acft_resupply_point = {
-                x = 00006923,
-                y = 6096, 
-                z = 00079849
-            }
-            }),
+            name = "KRASNODAR", -- must match EXACTLY the trigger zone name
+            airbase_name = Airbases.Caucasus.Krasnodar_Pashkovsky,
+            zone_type = ZoneTypes.AIRBASE}),
+
+        -- MAIN BLUE AIRBASE
         blue_airbase =  ZoneHandler:new({
-            name = "VAZIANI",
-            zone_type = ZoneTypes.AIRBASE,
-            airbase_name = Airbases.Caucasus.Vaziani,
-            acft_resupply_point = {
-                x = -00326782,
-                y = 6096, --20k ft
-                z = 00932890
-            }
-            }),
+            name = "ANAPA",  -- must match EXACTLY the trigger zone name
+            airbase_name = Airbases.Caucasus.Anapa_Vityazevo,
+            zone_type = ZoneTypes.AIRBASE}),
+
+
+        -- Sets up the zones that will generate, make sure the trigger zone names match exactly with the names below
         zones = {
-            -- Airbases
-            ZoneHandler:new({ name = "BESLAN", zone_type = ZoneTypes.AIRBASE, airbase_name = Airbases.Caucasus.Beslan }),
-            ZoneHandler:new({ name = "MOZDOK", zone_type = ZoneTypes.AIRBASE, airbase_name = Airbases.Caucasus.Mozdok }),
-            ZoneHandler:new({ name = "NALCHIK", zone_type = ZoneTypes.AIRBASE, airbase_name = Airbases.Caucasus.Nalchik }),
-            ZoneHandler:new({ name = "MINERALNYE-VODY", zone_type = ZoneTypes.AIRBASE, airbase_name = Airbases.Caucasus.Mineralnye_Vody }),
-            ZoneHandler:new({ name = "SOCHI", zone_type = ZoneTypes.AIRBASE, airbase_name = Airbases.Caucasus.Sochi_Adler }),
-            ZoneHandler:new({ name = "SUKHUMI", zone_type = ZoneTypes.AIRBASE, airbase_name = Airbases.Caucasus.Sukhumi_Babushara }),
-            ZoneHandler:new({ name = "SENAKI", zone_type = ZoneTypes.AIRBASE, airbase_name = Airbases.Caucasus.Senaki_Kolkhi }),
-            ZoneHandler:new({ name = "KUTAISI", zone_type = ZoneTypes.AIRBASE, airbase_name = Airbases.Caucasus.Kutaisi }),
-            ZoneHandler:new({ name = "BATUMI", zone_type = ZoneTypes.AIRBASE, airbase_name = Airbases.Caucasus.Batumi }),
-            ZoneHandler:new({ name = "KRYMSK", zone_type = ZoneTypes.AIRBASE, airbase_name = Airbases.Caucasus.Krymsk }),
-            ZoneHandler:new({ name = "KOBULETI", zone_type = ZoneTypes.AIRBASE, airbase_name = Airbases.Caucasus.Kobuleti }),
-            ZoneHandler:new({ name = "MAYKOP", zone_type = ZoneTypes.AIRBASE, airbase_name = Airbases.Caucasus.Maykop_Khanskaya }),
-            ZoneHandler:new({ name = "KRASNODAR", zone_type = ZoneTypes.AIRBASE, airbase_name = Airbases.Caucasus.Krasnodar_Pashkovsky }),
-            ZoneHandler:new({ name = "NOVOROSSIYSK", zone_type = ZoneTypes.AIRBASE, airbase_name = Airbases.Caucasus.Novorossiysk }),
-            ZoneHandler:new({ name = "GELENDZHIK", zone_type = ZoneTypes.AIRBASE, airbase_name = Airbases.Caucasus.Gelendzhik }),
+            ZoneHandler:new({name = "NORTH-FIELDS"}),
+            ZoneHandler:new({name = "KING"}),            
+            ZoneHandler:new({name = "JACK"}),
+
+            ZoneHandler:new({name = "PORT"}),
+            ZoneHandler:new({name = "SUPSEH"}),
+            ZoneHandler:new({name = "NORTH-BAY"}),
+            ZoneHandler:new({name = "OUTPOST-CHARLIE"}),
+            ZoneHandler:new({name = "CLUB"}),
+            ZoneHandler:new({name = "QUEEN"}),
+            ZoneHandler:new({name = "ABINSK"}),
+            ZoneHandler:new({name = "OUTPOST-BRAVO"}),
+            ZoneHandler:new({name = "STRONGHOLD"}),
+            ZoneHandler:new({name = "SPADE"}),
+            ZoneHandler:new({name = "JOKER"}),
+            ZoneHandler:new({name = "CHECKPOINT-UNIFORM"}),
+            ZoneHandler:new({name = "CHECKPOINT-TANGO"}),
+            ZoneHandler:new({name = "CHECKPOINT-YANKEE"}),
+            ZoneHandler:new({name = "OUTPOST-DELTA"}),
+            ZoneHandler:new({name = "ACE"}),
             
-            -- Strongpoints
-            ZoneHandler:new({ name = "ALPHA" }),
-            ZoneHandler:new({ name = "BRAVO" }),
-            ZoneHandler:new({ name = "CHARLIE" }),
-            ZoneHandler:new({ name = "DELTA" }),
-            ZoneHandler:new({ name = "ECHO" }),
-            ZoneHandler:new({ name = "FOXTROT" }),
-            ZoneHandler:new({ name = "GOLF" }),
-            ZoneHandler:new({ name = "HOTEL" }),
-            ZoneHandler:new({ name = "JULIETT" }),
-            ZoneHandler:new({ name = "KILO" }),
-            ZoneHandler:new({ name = "LIMA" }),
-            ZoneHandler:new({ name = "MIKE" }),
-            ZoneHandler:new({ name = "NOVEMBER" }),
-            ZoneHandler:new({ name = "OSCAR" }),
-            ZoneHandler:new({ name = "PAPA" }),
-            ZoneHandler:new({ name = "QUEBEC" }),
-            ZoneHandler:new({ name = "ROMEO" }),
-            ZoneHandler:new({ name = "TANGO" }),
-            ZoneHandler:new({ name = "UNIFORM" }),
-            ZoneHandler:new({ name = "VICTOR" }),
-            ZoneHandler:new({ name = "WHISKEY" }),
-            ZoneHandler:new({ name = "XRAY" }),
-            ZoneHandler:new({ name = "YANKEE" }),
-            ZoneHandler:new({ name = "ZULU" }),
-            ZoneHandler:new({ name = "FIELDS" }),
-            ZoneHandler:new({ name = "TEST" }),
-            ZoneHandler:new({ name = "GOLD" }),
-            ZoneHandler:new({ name = "GUDAUTA" }),
-            ZoneHandler:new({ name = "ONI" }),
-            ZoneHandler:new({ name = "AIRFIELD" }),
-            ZoneHandler:new({ name = "FARM" }),
-            ZoneHandler:new({ name = "SENAKI-CENTER" }),
-            ZoneHandler:new({ name = "LAKE" }),
-            ZoneHandler:new({ name = "AHALSOPELI" }),
-            ZoneHandler:new({ name = "SEASIDE" }),
-            ZoneHandler:new({ name = "PEREDOVAYA" }),
-            ZoneHandler:new({ name = "OUTPOST" }),
-            ZoneHandler:new({ name = "VALLEY" }),
-            ZoneHandler:new({ name = "MOUNTAIN" }),
-            ZoneHandler:new({ name = "GRIGOLISHI" }),
-            ZoneHandler:new({ name = "HOUSES" }),
-            ZoneHandler:new({ name = "ASSOKOLAY" }),
-            ZoneHandler:new({ name = "LESOGORSKAYA" }),
-            ZoneHandler:new({ name = "ACE" }),
-            ZoneHandler:new({ name = "JOKER" }),
-            ZoneHandler:new({ name = "ABINSK" }),
-            ZoneHandler:new({ name = "JACK" }),
-            ZoneHandler:new({ name = "HEVSHA" }),
-            ZoneHandler:new({ name = "EDISA" }),
-            ZoneHandler:new({ name = "GVERKI" }),
-            ZoneHandler:new({ name = "SACHHERE" }),
-            ZoneHandler:new({ name = "HEART" }),
-            ZoneHandler:new({ name = "CLUB" }),
-            ZoneHandler:new({ name = "PORT" }),
-            ZoneHandler:new({ name = "BAY" }),
-            ZoneHandler:new({ name = "STRONGHOLD" }),
-            ZoneHandler:new({ name = "REFUGE" }),
-            ZoneHandler:new({ name = "OBSERVATORY" }),
-            ZoneHandler:new({ name = "COAST" }),
-            ZoneHandler:new({ name = "VARDANE" }),
-            ZoneHandler:new({ name = "LOO" }),
-            ZoneHandler:new({ name = "SOCHI-CENTER" }),
-            ZoneHandler:new({ name = "HOSTA" }),
-            ZoneHandler:new({ name = "GUBSKAYA" }),
-            ZoneHandler:new({ name = "TOWN" }),
-            ZoneHandler:new({ name = "PSEBAY" }),
-            ZoneHandler:new({ name = "DIAMOND" }),
-            ZoneHandler:new({ name = "SPADE" }),
-            ZoneHandler:new({ name = "QUEEN" }),
-            ZoneHandler:new({ name = "KING" }),
-            ZoneHandler:new({ name = "DEHVIRI" }),
-            ZoneHandler:new({ name = "ABANOETI" }),
-            ZoneHandler:new({ name = "LEDGEBE" }),
-            ZoneHandler:new({ name = "KOKI" }),
-            ZoneHandler:new({ name = "GALI" }),
-            ZoneHandler:new({ name = "LABRA" }),
-            ZoneHandler:new({ name = "ARADU" }),
-            ZoneHandler:new({ name = "TKVARCHELI" }),
-            ZoneHandler:new({ name = "HURZUK" }),
-            ZoneHandler:new({ name = "KARACHAEVSK" }),
-            ZoneHandler:new({ name = "SADON" }),
-            ZoneHandler:new({ name = "VERHNIY" }),
-            ZoneHandler:new({ name = "BURON" }),
-            ZoneHandler:new({ name = "GLOLA" }),
-            ZoneHandler:new({ name = "KEVIN" }),
-            ZoneHandler:new({ name = "BYLYM" }),
-            ZoneHandler:new({ name = "TEBERDA" }),
-            ZoneHandler:new({ name = "SUBURBS" }),
-            ZoneHandler:new({ name = "ATOTSI" }),
-            ZoneHandler:new({ name = "ABISI" }),
-            ZoneHandler:new({ name = "ALAGIR" }),
-            ZoneHandler:new({ name = "TRAINING-AIRFIELD" }),
-            ZoneHandler:new({ name = "LOG" }),
-            ZoneHandler:new({ name = "CHECKPOINT-NORTH" }),
-            ZoneHandler:new({ name = "CHECKPOINT-EAST" }),
-            ZoneHandler:new({ name = "CHECKPOINT-WEST" }),
-            ZoneHandler:new({ name = "CHECKPOINT-SOUTH" }),
-            ZoneHandler:new({ name = "CHECKPOINT-ALPHA" }),
-            ZoneHandler:new({ name = "CHECKPOINT-BRAVO" }),
-            ZoneHandler:new({ name = "CHECKPOINT-CHARLIE" }),
-            ZoneHandler:new({ name = "CHECKPOINT-DELTA" }),
-            ZoneHandler:new({ name = "CHECKPOINT-ECHO" }),
-            ZoneHandler:new({ name = "CHECKPOINT-FOXTROT" }),
-            ZoneHandler:new({ name = "CHECKPOINT-GOLF" }),
-            ZoneHandler:new({ name = "CHECKPOINT-HOTEL" }),
-            ZoneHandler:new({ name = "CHECKPOINT-INDIA" }),
-            ZoneHandler:new({ name = "CHECKPOINT-JULIETT" }),
-            ZoneHandler:new({ name = "CHECKPOINT-KILO" }),
-            ZoneHandler:new({ name = "CHECKPOINT-LIMA" }),
-            ZoneHandler:new({ name = "CHECKPOINT-MIKE" }),
-            ZoneHandler:new({ name = "CHECKPOINT-NOVEMBER" }),
-            ZoneHandler:new({ name = "CHECKPOINT-OSCAR" }),
-            ZoneHandler:new({ name = "CHECKPOINT-PAPA" }),
-            ZoneHandler:new({ name = "CHECKPOINT-QUEBEC" }),
-            ZoneHandler:new({ name = "CHECKPOINT-ROMEO" }),
-            ZoneHandler:new({ name = "CHECKPOINT-SIERRA" }),
-            ZoneHandler:new({ name = "CHECKPOINT-TANGO" }),
-            ZoneHandler:new({ name = "CHECKPOINT-UNIFORM" }),
-            ZoneHandler:new({ name = "CHECKPOINT-VICTOR" }),
-            ZoneHandler:new({ name = "CHECKPOINT-WHISKEY" }),
-            ZoneHandler:new({ name = "CHECKPOINT-XRAY" }),
-            ZoneHandler:new({ name = "CHECKPOINT-YANKEE" }),
-            ZoneHandler:new({ name = "CHECKPOINT-ZULU" }),
-            ZoneHandler:new({ name = "OUTPOST-ALPHA" }),
-            ZoneHandler:new({ name = "OUTPOST-BRAVO" }),
-            ZoneHandler:new({ name = "OUTPOST-CHARLIE" }),
-            ZoneHandler:new({ name = "OUTPOST-DELTA" }),
-            ZoneHandler:new({ name = "OUTPOST-ECHO" }),
-            ZoneHandler:new({ name = "OUTPOST-FOXTROT" }),
-            ZoneHandler:new({ name = "OUTPOST-GOLF" }),
-            ZoneHandler:new({ name = "OUTPOST-HOTEL" }),
-            ZoneHandler:new({ name = "OUTPOST-INDIA" }),
-            ZoneHandler:new({ name = "OUTPOST-JULIETT" }),
-            ZoneHandler:new({ name = "OUTPOST-KILO" }),
-            ZoneHandler:new({ name = "OUTPOST-LIMA" }),
-            ZoneHandler:new({ name = "OUTPOST-MIKE" }),
-            ZoneHandler:new({ name = "OUTPOST-NOVEMBER" }),
-            ZoneHandler:new({ name = "OUTPOST-OSCAR" }),
-            ZoneHandler:new({ name = "OUTPOST-ZULU" }),
-            ZoneHandler:new({ name = "OUTPOST-DECEMBER" }),
-            ZoneHandler:new({ name = "OUTPOST-SEPTEMBER" }),
+            ZoneHandler:new({name = "HEART", zone_type = ZoneTypes.FARP}), -- make sure you add aircraft clients so users can spawn
+            ZoneHandler:new({name = "LONDON", zone_type = ZoneTypes.FARP}),
+            ZoneHandler:new({name = "KRYMSK", zone_type = ZoneTypes.AIRBASE, airbase_name = Airbases.Caucasus.Krymsk}),
         }
     },
     {
@@ -287,7 +125,6 @@ Scenarios = {
             ZoneHandler:new({name = "ONI"}),
             ZoneHandler:new({name = "GLOLA"}),
             ZoneHandler:new({name = "SACHHERE"}),
-            ZoneHandler:new({name = "LAKE"}),
             ZoneHandler:new({name = "OSCAR"}),
             ZoneHandler:new({name = "DEHVIRI"}),
             ZoneHandler:new({name = "GVERKI"}),
@@ -316,79 +153,10 @@ Scenarios = {
             ZoneHandler:new({name = "KUTAISI", zone_type = ZoneTypes.AIRBASE, airbase_name = Airbases.Caucasus.Kutaisi}),
         } -- 43 zones
     },
-     {
-        name = "Eastbound",
-        description = "Achieve control over the the Russian Caucasus area.",
-        coalition_setup = {
-            initial_dist_blue_to_frontline = 27000, --meters
-            dist_variance = 0, --meters
-            auto_coalition_designation = true, -- overrides the above
-        },
-        logistics_setup = {
-            upgrade_range = 30000, --meters
-            heli_capture_range = 60000, --meters
-            max_dist_to_frontline = 40000 --meters
-        },
-        resupply = {
-            --blue_point = { x=-00005476, y=2000,z=00224066}, --for dev
-            -- Metric: X-00005476 Z+00224066
-
-            blue_point = { x = -2839, y = 6096, z = 192302 },
-            red_point = { x = 42692, y = 6096, z = 429197 }
-        },
-        carrier_setup = {
-            carrier_unit_name = "Carrier",
-            enabled = true
-        },
-        estimated_users = 1,
-        difficulty = ScenarioDifficulty.EASY,
-        red_airbase = ZoneHandler:new({
-            name = "KRASNODAR",
-            airbase_name = Airbases.Caucasus.Krasnodar_Pashkovsky,
-            zone_type = ZoneTypes.AIRBASE}),
-        blue_airbase =  ZoneHandler:new({
-            name = "ANAPA",
-            airbase_name = Airbases.Caucasus.Anapa_Vityazevo,
-            zone_type = ZoneTypes.AIRBASE}),
-        zones = {
-            ZoneHandler:new({name = "NORTH-FIELDS"}),
-            ZoneHandler:new({name = "KING"}),
-            ZoneHandler:new({name = "JACK"}),
-            ZoneHandler:new({name = "SUKKO"}),
-            ZoneHandler:new({name = "PORT"}),
-            ZoneHandler:new({name = "SUPSEH"}),
-            ZoneHandler:new({name = "NORTH-BAY"}),
-            ZoneHandler:new({name = "OUTPOST-CHARLIE"}),
-            ZoneHandler:new({name = "CLUB"}),
-            ZoneHandler:new({name = "QUEEN"}),
-            ZoneHandler:new({name = "ABINSK"}),
-            ZoneHandler:new({name = "OUTPOST-BRAVO"}),
-            ZoneHandler:new({name = "STRONGHOLD"}),
-            ZoneHandler:new({name = "SPADE"}),
-            ZoneHandler:new({name = "JOKER"}),
-            ZoneHandler:new({name = "CHECKPOINT-UNIFORM"}),
-            ZoneHandler:new({name = "CHECKPOINT-TANGO"}),
-            ZoneHandler:new({name = "CHECKPOINT-YANKEE"}),
-            ZoneHandler:new({name = "OUTPOST-DELTA"}),
-            ZoneHandler:new({name = "ACE"}),
-            
-            ZoneHandler:new({name = "HEART", zone_type = ZoneTypes.FARP}),
-            ZoneHandler:new({name = "FARP-A1", zone_type = ZoneTypes.FARP}),
-            ZoneHandler:new({name = "KRYMSK", zone_type = ZoneTypes.AIRBASE, airbase_name = Airbases.Caucasus.Krymsk}),
-        }
-    }
 }
---[[
-####################################################
-    MISSION START SCRIPT
-####################################################
-]]
 
 ---@type ZoneHandler[]
 zones = {}
-
-
-
     ---@type Scenario|nil
     Scenario = nil
     for _,scenario in pairs(Scenarios) do
@@ -400,7 +168,7 @@ zones = {}
     if Config.persistence.random_scenario_selection == true then
         Scenario = Scenarios[math.random(1,#Scenarios)]
     end
-
+    
     if Scenario == nil then
         trigger.action.outText("ERROR: Scenario '" .. Config.persistence.scenario_selected .. "' not found! Check your config.", 120)
     elseif not Scenario.blue_airbase or not Scenario.red_airbase then
@@ -408,7 +176,7 @@ zones = {}
     else
         -- table.insert(zones,Scenario.zones)
         zones = mist.utils.deepCopy(Scenario.zones)
-    
+        MissionLogger:info("Total zones loaded for scenario '" .. Scenario.name .. "': " .. #zones)
         ---@type ZoneHandler,ZoneHandler
         blue_airbase = Scenario.blue_airbase
         red_airbase = Scenario.red_airbase

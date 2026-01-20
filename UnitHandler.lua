@@ -510,7 +510,7 @@ do
         if not stock_types then
             stock_types = stock_types or {}
         end
-        if #stock_types==0 and Config.enabled_su25t_blufor then
+        if #stock_types==0 and Config.enabled_su25t_blufor and side==coalition.side.BLUE then
             table.insert(possible_stocks_rnd,
             {
                 out_text = "SU-25T BLUFOR Package (AA Aircraft, AG Missiles, Guided Bombs, ECM and TGPs)",

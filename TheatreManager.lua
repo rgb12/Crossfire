@@ -733,6 +733,7 @@ do
             
             cargo_ctr:setTask(missionTask)
             trigger.action.outTextForCoalition(side, "RESUPPLY Cargo aircraft inbound for " .. destination_airbase.name, 10)
+            trigger.action.outSoundForCoalition(side, "Radio squelch.ogg")
         end, {}, timer.getTime() + 12) -- Short delay to ensure unit is ready
 
         if repeat_tasking then
