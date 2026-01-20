@@ -134,8 +134,8 @@ function ev:onEvent(event)
                                     break
                                 end
                             end
-                            local out_text = string.format("< XP and Rank >\n\nRank: %s\n\nTokens: %d (+%d)\nXP: %d (+%d)\nMissions Completed: %d\n\nNext Rank: %s\n  %s XP",
-                                rank_name, user.tokens, user.unclaimed_tokens, user.xp, user.unclaimed_xp, user.missions_completed, next_rank, next_rank_xp)
+                            local out_text = string.format("< XP and Rank >\n\nRank: %s\n\nXP: %d (+%d)\nMissions Completed: %d\n\nNext Rank: %s\n  %s XP",
+                                rank_name, user.xp, user.unclaimed_xp, user.missions_completed, next_rank, next_rank_xp)
                             trigger.action.outTextForGroup(group_id, out_text, 15)
                             trigger.action.outSoundForGroup(group_id, "radio_beep4.ogg")
                         end

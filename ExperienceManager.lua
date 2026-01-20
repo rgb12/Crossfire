@@ -71,21 +71,13 @@ do
                     local unit_check = Unit.getByName(unit_name)
                     if unit_check and unit_check:isExist() and unit_check:getLife() > 0 and unit_check.getCoalition then
                         local user = ExperienceManager:fetchUser(unit_check)
-                        if user and (user.unclaimed_xp>0 or user.unclaimed_tokens>0)then
+                        if user and (user.unclaimed_xp>0)then
                             ExperienceManager:addXP(user, user.unclaimed_xp) -- to check for rank up
-                            user.tokens = user.tokens + user.unclaimed_tokens
-                            
-                            local out_text = "> "
-                            if user.unclaimed_xp > 0 then
-                                out_text = out_text .. " +" .. user.unclaimed_xp .. " XP"
-                            end
-                            if user.unclaimed_tokens > 0 then
-                                out_text = out_text .. " +" .. user.unclaimed_tokens .. " Tokens"
-                            end
 
-                            trigger.action.outTextForCoalition(unit_check:getCoalition(), out_text,10)
+                            local u_id = unit_check:getID()
+                            trigger.action.outTextForUnit(u_id, "Post-Flight Debrief: +".. user.unclaimed_xp .. " XP",10)
+                            trigger.action.outSoundForUnit(u_id,"radio click.ogg")
                             user.unclaimed_xp = 0
-                            user.unclaimed_tokens = 0
                         end
                     end
                 end, {}, timer.getTime() + Config.reward_system.landing_time)
@@ -162,11 +154,9 @@ do
             MissionLogger:info(user.rank.. " -> "..new_rank)
             if new_rank ~= user.rank then
                 user.rank = new_rank
-                local tokens_awarded = math.max(0, Config.reward_system.tokens_on_rank_up + math.random(-Config.reward_system.tokens_on_rank_up_variance, Config.reward_system.tokens_on_rank_up_variance))
-                user.tokens = user.tokens + tokens_awarded
 
                 trigger.action.outSoundForUnit(user.id,"rank_up.ogg")
-                trigger.action.outTextForUnit(user.id,"Rank Up! New Rank: " .. new_rank..", +" .. tokens_awarded .. " Tokens",10)
+                trigger.action.outTextForUnit(user.id,"Rank Up! New Rank: " .. new_rank.."",10)
             end
             return true
         end
