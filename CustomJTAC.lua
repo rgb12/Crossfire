@@ -80,15 +80,18 @@ do
             local zone = ZoneHandler.getFromName(jtac_obj.to_zone.name)
             if not zone then return end
             if zone.side == jtac_obj.side or zone.side == coalition.side.NEUTRAL then
-                trigger.action.outTextForCoalition(jtac_obj.side, jtac_obj.callsign.." JTAC: Task complete. RTB", 10)
                 EnrouteManager:remove(jtac_obj.jtac_gr_name)
                 jtac_obj:destroy()
+                timer.scheduleFunction(function ()
+                    trigger.action.outTextForCoalition(jtac_obj.side, jtac_obj.callsign.." JTAC: RTB", 10)
+                    trigger.action.outSoundForCoalition(jtac_obj.side,"radio_beep4.ogg")
+                end, {}, timer.getTime() + 10)
                 return
             end
 
             if jtac_obj.target then
                 if not jtac_obj.target:isExist() or jtac_obj.target:getLife() < 1 then
-                    trigger.action.outTextForCoalition(jtac_obj.side, jtac_obj.callsign.." JTAC: Target destroyed.", 10)
+                    --trigger.action.outTextForCoalition(jtac_obj.side, jtac_obj.callsign.." JTAC: Target destroyed.", 10)
                     jtac_obj:clearTarget()
                     jtac_obj:searchTarget(true)
                     jtac_obj:startLasing(1688)
@@ -121,7 +124,8 @@ do
             self.lasers.laser = Spot.createLaser(unit,{ x = 0, y = 1, z = 0 },self.target:getPoint(), self.laser_code)
             self.lasers.ir = Spot.createInfraRed(unit, { x = 0, y = 1, z = 0 }, self.target:getPoint())
     
-            trigger.action.outTextForCoalition(self.side, self.callsign.." JTAC targeting: ".. self.target:getTypeName() .."\nLaser Code: "..self.laser_code, 10)
+            trigger.action.outTextForCoalition(self.side, self.callsign.." JTAC targeting ".. self.target:getTypeName() .."\nLaser Code: "..self.laser_code, 10)
+            trigger.action.outSoundForCoalition(self.side, "radio_beep4.ogg")
         end
     end
 
@@ -246,7 +250,7 @@ do
                     jtac:setTarget(target_list[jtac.search_index])
                     jtac:startLasing(1688)
                 else
-                    trigger.action.outTextForCoalition(jtac.side, jtac.callsign..' JTAC: No targets available to cycle.', 10)
+                    trigger.action.outTextForCoalition(jtac.side, jtac.callsign..' JTAC: No targets available', 10)
                 end
             else
                 missionCommands.removeItemForCoalition(jtac.side, jtac.jtac_menu)
@@ -254,7 +258,7 @@ do
             end
         end, self)
 
-        missionCommands.addCommandForCoalition(self.side,"Target Data",self.jtac_menu, function (jtac)
+        missionCommands.addCommandForCoalition(self.side,"Request 9-Line",self.jtac_menu, function (jtac)
             local jtac_gr = Group.getByName(jtac.jtac_gr_name)
             if jtac_gr and jtac_gr:getUnit(1):inAir() then
                 if not jtac.target or not jtac.target:isExist() then
@@ -287,23 +291,73 @@ do
             end
         end,self)
 
-        missionCommands.addCommandForCoalition(self.side, "Deploy Smoke (Red)",self.jtac_menu, function (jtac)
+        missionCommands.addCommandForCoalition(self.side, "Intelligence Report", self.jtac_menu, function (jtac)
+            local jtac_gr = Group.getByName(jtac.jtac_gr_name)
+            if jtac_gr and jtac_gr:getUnit(1):inAir() then
+                local zone = ZoneHandler.getFromName(jtac.to_zone.name)
+                if not zone then return end
+
+                local outtxt = jtac.callsign.." JTAC Intelligence Report\n"
+                outtxt = outtxt.."Zone: "..jtac.to_zone.name.."\n\n"
+                
+                local unit_count = 0
+                local unit_types = {}
+                
+                for _,gr_name in pairs(zone.linked_groups) do
+                    local gr = Group.getByName(gr_name)
+                    if gr and gr:isExist() then
+                        for _,unit in pairs(gr:getUnits()) do
+                            if unit and unit.isExist and unit:isExist() and unit:getLife() >= 1 then
+                                local type_name = unit:getTypeName()
+                                unit_types[type_name] = (unit_types[type_name] or 0) + 1
+                                unit_count = unit_count + 1
+                            end
+                        end
+                    end
+                end
+                
+                if unit_count == 0 then
+                    outtxt = outtxt.."Area appears clear. No enemy contacts."
+                else
+                    outtxt = outtxt.."Visual confirmation of hostiles in AO:\n"
+                    for type_name, count in pairs(unit_types) do
+                        if count == 1 then
+                            outtxt = outtxt.."- "..type_name.."\n"
+                        else
+                            outtxt = outtxt.."- "..count.."x "..type_name.."\n"
+                        end
+                    end
+                end
+
+                trigger.action.outTextForCoalition(jtac.side, outtxt, 15)
+                trigger.action.outSoundForCoalition(jtac.side, "radio_beep4.ogg")
+            else
+                missionCommands.removeItemForCoalition(jtac.side, jtac.jtac_menu)
+                jtac.jtac_menu = nil
+            end
+        end,self)
+
+        missionCommands.addCommandForCoalition(self.side, "Mark Target (Red)",self.jtac_menu, function (jtac)
             local jtac_gr = Group.getByName(jtac.jtac_gr_name)
             if jtac_gr and jtac_gr:getUnit(1):inAir() then
                 if not (jtac.target and jtac.target:isExist()) then 
+                    trigger.action.outSoundForCoalition(jtac.side, "radio_beep4.ogg")
                     return trigger.action.outTextForCoalition(jtac.side, jtac.callsign..' JTAC: No active target for smoke.', 5)
                 end
                 
                 if self.smoke_count <= 0 then
+                    trigger.action.outSoundForCoalition(jtac.side, "radio_beep4.ogg")
                     return trigger.action.outTextForCoalition(jtac.side, jtac.callsign..' JTAC: Out of smoke canisters.', 5)
                 end
 
                 if mist.utils.get2DDist(jtac_gr:getUnit(1):getPoint(), jtac.target:getPoint()) < 20000 then
                     self.smoke_count = self.smoke_count -1
                     trigger.action.smoke(jtac.target:getPosition().p, trigger.smokeColor.Red)
-                    trigger.action.outTextForCoalition(jtac.side, jtac.callsign.." JTAC: Tally smoke! ("..self.smoke_count.." remaining)", 10)
+                    trigger.action.outTextForCoalition(jtac.side, jtac.callsign.." JTAC: Tally RED smoke! ("..self.smoke_count.." left)", 10)
+                    trigger.action.outSoundForCoalition(jtac.side, "radio_beep4.ogg")
                 else
                     trigger.action.outTextForCoalition(jtac.side, jtac.callsign..' JTAC: Too far to deploy smoke accurately.', 10)
+                    trigger.action.outSoundForCoalition(jtac.side, "radio_beep4.ogg")
                 end
             else
                 missionCommands.removeItemForCoalition(jtac.side, jtac.jtac_menu)
@@ -337,5 +391,21 @@ do
                 end
             end,self)
         end
+        missionCommands.addCommandForCoalition(self.side, "Clear Priority", priority_menu, function(jtac)
+            local jtac_gr = Group.getByName(jtac.jtac_gr_name)
+            if jtac_gr and jtac_gr:getUnit(1):inAir() then
+                jtac.priority = nil
+                jtac.search_index = 1 -- Reset index on priority switch
+                trigger.action.outTextForCoalition(jtac.side, jtac.callsign .. " JTAC priority cleared.", 5)
+                trigger.action.outSoundForCoalition(jtac.side, "radio_beep4.ogg")
+           
+                jtac:clearTarget()
+                jtac:searchTarget(false)
+                jtac:startLasing(1688)
+            else
+                missionCommands.removeItemForCoalition(jtac.side, jtac.jtac_menu)
+                jtac.jtac_menu = nil
+            end
+        end,self)
     end
 end
