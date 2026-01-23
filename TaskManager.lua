@@ -395,22 +395,6 @@ do
                 from_zone:drawF10()
                 return true
             end
-    
-        elseif ai_task_type == AITaskTypes.CAPTURE_CONVOY and to_zone and from_zone then
-            local convoy_sent
-            if side == coalition.side.RED then      --capture convoy
-                convoy_sent = mist.cloneInZone(GroupData.COMMON_ASSETS.RED.capture_convoy, from_zone.name)
-            elseif side == coalition.side.BLUE then -- capture convoy
-                convoy_sent = mist.cloneInZone(GroupData.COMMON_ASSETS.BLUE.capture_convoy, from_zone.name)
-            end
-    
-            if not convoy_sent then MissionLogger:info("Capture Convoy spawn failed, no convoy sent") return false end
-            self:setCAPTURECONVOYTask(convoy_sent.name,side,to_zone,from_zone)
-
-            from_zone.capture_convoy_avail = from_zone.capture_convoy_avail - 1
-            from_zone:drawF10()
-            MissionLogger:info(utils.coalitionToString(side) .." convoy from " ..from_zone.name .. " sent to capture zone: " .. to_zone.name)
-            return true
         elseif ai_task_type == AITaskTypes.CAPTURE_HELO and to_zone and from_zone then
 
             if prevent_duplicates and EnrouteManager:findByToZone(to_zone, side, {AITaskTypes.CAPTURE_HELO}) then
@@ -689,43 +673,6 @@ do
 
             end
         timer.scheduleFunction(startMoving, {}, timer.getTime() + 5)
-    end
-    ---@param convoy_gr_name string
-    ---@param side coalition.side
-    ---@param to_zone ZoneHandler
-    ---@param from_zone ZoneHandler
-    function TaskManager:setCAPTURECONVOYTask(convoy_gr_name,side,to_zone,from_zone)
-        timer.scheduleFunction(function ()
-            local convoy_gr = Group.getByName(convoy_gr_name)
-            if not convoy_gr or not convoy_gr:isExist() then MissionLogger:info("Capture Convoy spawn failed, no convoy sent") return end
-            
-            self:ConvoyToPoint(convoy_gr,to_zone.zone.point)
-
-            EnrouteManager:add({
-                group_name = convoy_gr_name,
-                to_zone = to_zone,
-                from_zone = from_zone,
-                side = side,
-                ai_task_type = AITaskTypes.CAPTURE_CONVOY
-            })
-
-            --- [ check if convoy is moving after 2 mins, if not, respawn it ]
-            timer.scheduleFunction(function ()
-                if not convoy_gr or not convoy_gr:isExist() then return end
-                if not UnitHandler.checkConvoyMoving(convoy_gr) then
-                    MissionLogger:info("Convoy:" .. convoy_gr_name .. " not moving")
-                    convoy_gr:destroy()
-
-                    from_zone.capture_convoy_avail = from_zone.capture_convoy_avail+1
-                    from_zone:drawF10()
-
-                    EnrouteManager:remove(convoy_gr_name)
-
-                end
-            end,{},timer.getTime()+120)
-
-        
-        end,{},timer.getTime()+15)
     end
 
     ---@param convoy_gr_name string

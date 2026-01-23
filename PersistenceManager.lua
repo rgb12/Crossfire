@@ -61,7 +61,6 @@ do
                 
                 -- Dynamic counters (must save, can't reconstruct)
                 capture_heli_avail = z.capture_heli_avail or 0,
-                capture_convoy_avail = z.capture_convoy_avail or 0,
                 attack_convoy = z.attack_convoy or 0,
                 
                 -- State tracking
@@ -203,7 +202,6 @@ do
             -- Refund Aircraft & Payloads to the Warehouse Data
             -- (Skip ground assets that don't use warehouses)
             if enroute.ai_task_type ~= AITaskTypes.CAPTURE_HELO
-            and enroute.ai_task_type ~= AITaskTypes.CAPTURE_CONVOY
             and enroute.ai_task_type ~= AITaskTypes.ATTACK_CONVOY
             and enroute.ai_task_type ~= AITaskTypes.RESUPPLY_CARGO then
                 
@@ -366,7 +364,6 @@ do
                 
                 -- Restore dynamic counters
                 zone.capture_heli_avail = saved_zone.capture_heli_avail or 0
-                zone.capture_convoy_avail = saved_zone.capture_convoy_avail or 0
                 zone.attack_convoy = saved_zone.attack_convoy or 0
                 
                 -- Restore state tracking

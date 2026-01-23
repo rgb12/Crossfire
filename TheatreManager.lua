@@ -66,18 +66,6 @@ do
         end
 
         ------------[cancelling all other enemy helicopters inbound for this zone]------------
-        ------------[cancelling all other enemy convoys inbound for this zone]------------
-        for i=#EnrouteManager.enroutes,1,-1 do
-            local possible_enroute = EnrouteManager.enroutes[i]
-            if possible_enroute.ai_task_type == AITaskTypes.CAPTURE_CONVOY
-            and possible_enroute.to_zone.name == enroute_group.to_zone.name then
-                UnitHandler.abortConvoyCapture(
-                    possible_enroute.group_name,
-                    possible_enroute.from_zone)
-                MissionLogger:info("Aborted convoy capture: " ..possible_enroute.group_name .." from zone: " .. possible_enroute.to_zone.zone.name)
-                EnrouteManager.enroutes[i] = nil
-            end
-        end
 
         -- flip zone ownership
         if enroute_group.side == coalition.side.RED then
@@ -904,7 +892,6 @@ do
                 unassigned[idx].zone_type = ZoneTypes.LOGISTICS
                 unassigned[idx].next_level_up_avail = timer.getTime()
                 unassigned[idx].capture_heli_avail = 4
-                unassigned[idx].capture_convoy_avail = 0
                 idx = idx + 1
                 assigned_guaranteed = assigned_guaranteed + 1
             end
@@ -971,7 +958,6 @@ do
                         zone.zone_type = ZoneTypes.LOGISTICS
                         zone.next_level_up_avail = timer.getTime()
                         zone.capture_heli_avail = 4
-                        zone.capture_convoy_avail = 0
                         budget_logistics = budget_logistics - 1
                     elseif budget_ew > 0 then
                         zone.zone_type = ZoneTypes.EWSITE

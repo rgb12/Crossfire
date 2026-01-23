@@ -420,7 +420,6 @@ GroupData = {
     COMMON_ASSETS = {
         BLUE = {
             resupply_aircraft = "C130",
-            capture_convoy = "BLUE Capture Convoy",
             capture_helicopter = "BLUE Capture Helo",
             attack_convoy = "BLUE Attack Convoy",
             jtac = "BLUE JTAC",
@@ -429,7 +428,6 @@ GroupData = {
     
         RED = {
             resupply_aircraft = "IL76",
-            capture_convoy = "RED Capture Convoy",
             capture_helicopter = "RED Capture Helo",
             attack_convoy = "RED Attack Convoy",
             farp = "RED FARP VEHICLES",
