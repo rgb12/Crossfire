@@ -16,11 +16,11 @@
 ]]
 Config = {
     persistence = {
-        enable = true, -- enables or not persistence, has authority over everything below in this section
+        enable = false, -- enables or not persistence, has authority over everything below in this section
         save_interval = 5*51, -- (seconds) interval at which the mission state is saved
         -- You can use fixed values or multiplications like above
         -- 51 seconds is used to avoid multiples of 15 to reduce lag spikes
-        save_dir = "Missions/Saves/Crossfire Georgia Liberation/", -- this is your saves directory in Saved Games
+        save_dir = "Missions/Saves/Crossfire Syria/", -- this is your saves directory in Saved Games
         -- If you would like to create a new mission, simple change the last folder name
         save_file = "mission.json", -- this is the name of the mission file
         user_data_file = "user_data.json", -- this is the name of user data only file, note that this only saves user xp, tokens ans rank
@@ -28,7 +28,7 @@ Config = {
         enable_ctld_persistence = true, -- enables/disables CTLD placed asset persistence
 
         random_scenario_selection = false, -- allows the script to randomly choose a random scenario, authority over scenario selection
-        scenario_selected = "Georgia Liberation", -- subject to the field above, choose your own scenario from the scenarios found below
+        scenario_selected = "Syria", -- subject to the field above, choose your own scenario from the scenarios found below
     },
     operations = {
         recon_minimum_altitude = 1524, -- (meters)
@@ -118,7 +118,7 @@ Config = {
     jupiter_password = "", -- password required before the -, example password = 12 then the command is 12-discover
 
     allow_air_spawn = false, -- prevents or not air spawns for players
-    enable_slot_blocker = true, -- enables/disables the slot blocker system to prevent players spawning in enemy airbases
+    enable_slot_blocker = false, -- enables/disables the slot blocker system to prevent players spawning in enemy airbases
     enabled_su25t_blufor = true, -- adds the SU-25T to the blufor warehouse inventory
 
     red_stock_multiplier = 5, -- multiplier for redfor warehouse stocks, compared to blufor
