@@ -45,7 +45,6 @@ do
             end
             obj.ammo_depot_intact = false
             obj.capture_heli_avail = obj.capture_heli_avail or 0
-            obj.capture_convoy_avail = obj.capture_convoy_avail or 0
         end
 
         if obj.zone_type == ZoneTypes.STRONGPOINT then
@@ -65,7 +64,6 @@ do
         --         obj.zone.name,
         --         utils.coalitionToString(obj.side),
         --         obj.capture_heli_avail or 0,
-        --         obj.capture_convoy_avail or 0)
         --     trigger.action.markToAll(obj.zone.id, marker_text, obj.zone.point, true)
         -- end
 
@@ -459,7 +457,7 @@ do
             end
         elseif self.zone_type == ZoneTypes.FARP and self.side ~= coalition.side.NEUTRAL then
             -- first delete the invisiblefarp if exits
-            timer.scheduleFunction(function ()
+            timer.scheduleFunction(function ()           
                 UnitHandler.initFARP(self)
             end,{},timer.getTime()+5)
 
@@ -636,7 +634,6 @@ do
             
             self.attack_convoy = 0
             self.capture_heli_avail = 0
-            self.capture_convoy_avail = 0
             self:drawF10()
             self:updateDiscoveredZones()
             
@@ -673,9 +670,6 @@ do
 
     function ZoneHandler:hasCaptureHeliAvailable()
         return self.capture_heli_avail > 0
-    end
-    function ZoneHandler:hasCaptureConvoyAvailable()
-        return self.capture_convoy_avail > 0
     end
 
     function ZoneHandler:checkIfEmpty()
