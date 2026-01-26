@@ -16,7 +16,8 @@ do
     AIM_7MH = "weapons.missiles.AIM-7MH",
     AIM_54C_MK60 = "weapons.missiles.AIM_54C_Mk60",
     AIM_54C_MK47 = "weapons.missiles.AIM_54C_Mk47",
-    
+    MISTRAL = "weapons.missiles.Mistral",
+
     AGM_65D = "weapons.missiles.AGM_65D",
     AGM_65E = "weapons.missiles.AGM_65E",
     AGM_65F = "weapons.missiles.AGM_65F",
@@ -70,6 +71,11 @@ do
     HYDRA_70_M274 = "weapons.nurs.HYDRA_70_M274",
     HYDRA_70_MK1 = "weapons.nurs.HYDRA_70_MK1",
     ZUNI_127 = "weapons.nurs.Zuni_127",
+    SNEB_254_SM_RED = "weapons.nurs.SNEB_TYPE254_H1_RED", -- smoke red
+    SNEB_254_SM_GREEN = "weapons.nurs.SNEB_TYPE254_H1_GREEN", -- smoke green
+    SNEB_251_HE = "weapons.nurs.SNEB_TYPE251_H1",
+    SNEB_253_HEAT = "weapons.nurs.SNEB_TYPE253_H1",
+    SNEB_259_IL = "weapons.nurs.SNEB_TYPE259E_H1", -- Illuminating
 
 
     SUPER_530D = "weapons.missiles.Matra Super 530D",
@@ -833,7 +839,105 @@ do
                         warehouse_name = WarehouseManager.AircraftFlags.F15C
                 }
             }
-        }
+            },
+            [Airbases.Syria.Khalkhalah] = {
+                [coalition.side.BLUE] = {
+                    [AITaskTypes.CAS] = {
+                        group_name = "BLUE KHALKHALAH CAS",
+                        warehouse_name = WarehouseManager.AircraftFlags.A10C_TANK_KILLER_II
+                    },
+                    [AITaskTypes.CAP] = {
+                        group_name = "BLUE KHALKHALAH INTERCEPT",
+                        warehouse_name = WarehouseManager.AircraftFlags.F15C
+                    },
+                    [AITaskTypes.RECON] = {
+                        group_name = "BLUE KHALKHALAH RECON",
+                        warehouse_name = WarehouseManager.AircraftFlags.F16C_BL50
+                    }
+                },
+                [coalition.side.RED] = {}
+            },
+            [Airbases.Syria.Marj_Ruhayyil] = {
+                [coalition.side.BLUE] = {
+                    [AITaskTypes.CAS] = {
+                        group_name = "BLUE MARJ CAS",
+                        warehouse_name = WarehouseManager.AircraftFlags.A10C_TANK_KILLER_II
+                    },
+                    [AITaskTypes.AWACS] = {
+                        group_name = "BLUE MARJ AWACS",
+                        warehouse_name = WarehouseManager.AircraftFlags.A50
+                    },
+                },
+                [coalition.side.RED] = {
+                    [AITaskTypes.CAS] = {
+                        group_name = "RED MARJ CAS",
+                        warehouse_name = WarehouseManager.AircraftFlags.SU25T
+                    },
+                    [AITaskTypes.AWACS] = {
+                        group_name = "RED MARJ AWACS",
+                        warehouse_name = WarehouseManager.AircraftFlags.A50
+                    },
+                    [AITaskTypes.INTERCEPT] = {
+                        group_name = "RED MARJ INTERCEPT",
+                        warehouse_name = WarehouseManager.AircraftFlags.SU27
+                    },
+                }
+            },
+            [Airbases.Syria.Mezzeh] = {
+                [coalition.side.RED] = {
+                    [AITaskTypes.RECON] = {
+                        group_name = "RED MEZZEH RECON",
+                        warehouse_name = WarehouseManager.AircraftFlags.SU24MR
+                    },
+                    [AITaskTypes.STRIKE] = {
+                        group_name = "RED MEZZEH STRIKE",
+                        warehouse_name = WarehouseManager.AircraftFlags.SU24M
+                    },
+                    [AITaskTypes.SEAD] = {
+                        group_name = "RED MEZZEH SEAD",
+                        warehouse_name = WarehouseManager.AircraftFlags.SU24M
+                    },
+                },
+                [coalition.side.BLUE] = {
+                    [AITaskTypes.RECON] = {
+                        group_name = "BLUE MEZZEH RECON",
+                        warehouse_name = WarehouseManager.AircraftFlags.F16C_BL50
+                    },
+                    [AITaskTypes.STRIKE] = {
+                        group_name = "BLUE MEZZEH STRIKE",
+                        warehouse_name = WarehouseManager.AircraftFlags.F16C_BL50
+                    },
+                    [AITaskTypes.SEAD] = {
+                        group_name = "BLUE MEZZEH SEAD",
+                        warehouse_name = WarehouseManager.AircraftFlags.F16C_BL50
+                    },
+                }
+            },
+            [Airbases.Syria.Al_Dumayr] = {
+                [coalition.side.RED] = {
+                    [AITaskTypes.RECON] = {
+                        group_name = "RED AL-DUMAYR RECON",
+                        warehouse_name = WarehouseManager.AircraftFlags.SU24MR
+                    },
+                    [AITaskTypes.STRIKE] = {
+                        group_name = "RED AL-DUMAYR STRIKE",
+                        warehouse_name = WarehouseManager.AircraftFlags.SU24M
+                    },
+                    [AITaskTypes.SEAD] = {
+                        group_name = "RED AL-DUMAYR SEAD",
+                        warehouse_name = WarehouseManager.AircraftFlags.SU24M
+                    },
+                    [AITaskTypes.CAS] = {
+                        group_name = "RED AL-DUMAYR CAS",
+                        warehouse_name = WarehouseManager.AircraftFlags.SU25T
+                    },
+                    [AITaskTypes.INTERCEPT] = {
+                        group_name = "RED AL-DUMAYR INTERCEPT",
+                        warehouse_name = WarehouseManager.AircraftFlags.SU27
+                    },
+                },
+                [coalition.side.BLUE] = {}
+            }
     }
 
     WarehouseManager.AIPayloads = {
@@ -844,7 +948,6 @@ do
                 [WarehouseManager.Flags.AAQ_28_LITENING] = 1 *2,
                 [WarehouseManager.Flags.AIM_9M] = 1 *2,
                 [WarehouseManager.Flags.HYDRA_70_M282_MPP_APKWS] = 7 *2
-                --WARN Missing items
             },
             [AITaskTypes.CAP] = {
                 [WarehouseManager.Flags.AIM_120C] = 4 *2,
@@ -945,6 +1048,8 @@ do
                 [WarehouseManager.AircraftFlags.OH_58D] = 2,
                 [WarehouseManager.AircraftFlags.AH64D_BLKII] = 4,
 
+                [WarehouseManager.Flags.MISTRAL] = 8,
+
 
                 [WarehouseManager.Flags.HOT3] = math.random(16,18),
                 [WarehouseManager.Flags.AGM_114K] = math.random(12,20),
@@ -957,9 +1062,16 @@ do
                 [WarehouseManager.Flags.HYDRA_70_MK5_HEAT] = math.random(50,100),
                 [WarehouseManager.Flags.ZUNI_127] = math.random(50,100),
 
+                [WarehouseManager.Flags.SNEB_254_SM_RED] = math.random(20,40),
+                [WarehouseManager.Flags.SNEB_254_SM_GREEN] = math.random(20,40),
+                [WarehouseManager.Flags.SNEB_251_HE] = math.random(50,100),
+                [WarehouseManager.Flags.SNEB_253_HEAT] = math.random(50,100),
+                [WarehouseManager.Flags.SNEB_259_IL] = math.random(20,40),
+
                 [WarehouseManager.Flags.SAND_FILTER] = 5,
                 [WarehouseManager.Flags.IR_DEFLECTOR] = 2,
                 [WarehouseManager.Flags.AN_APG_78_APACHE_RADAR] = 4,
+
             },
             [coalition.side.RED] = {}
         },
@@ -1618,7 +1730,7 @@ do
                 mult_l4 = multiplier
             end
         end
-        
+
         MissionLogger:info("HandleIncomingSupplies: Distributing to L1: " .. count_l1 .. " bases, L2: " .. count_l2 .. " bases, L3: " .. count_l3 .. " bases, L4: " .. count_l4 .. " bases.")
 
         -- 3. Get the full list of items to add (pre-multiplication)
@@ -1797,6 +1909,7 @@ do
                 return false
             end
         end
+        return false
     end
 
 
