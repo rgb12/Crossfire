@@ -188,7 +188,7 @@ function Jupiter:onEvent(event)
                 end
             end
         elseif command == "-getwarehouse" then
-            param1 = Airbases.Caucasus.Beslan
+            param1 = Airbases.Syria.Ruwayshid
             if param1 then
                 local airbase = Airbase.getByName(param1)
                 if airbase then

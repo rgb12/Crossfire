@@ -195,7 +195,7 @@ Scenarios = {
             ZoneHandler:new({name = "SAND"}),
             ZoneHandler:new({name = "HOTEL"}),
             ZoneHandler:new({name = "FOXTROT"}),
-            ZoneHandler:new({name = "LAGOON", zone_type = ZoneTypes.FARP,}),
+            ZoneHandler:new({name = "RESORT", zone_type = ZoneTypes.FARP,}),
             ZoneHandler:new({name = "GOLF", zone_type = ZoneTypes.FARP,}),
             ZoneHandler:new({name = "CHARLIE", zone_type = ZoneTypes.FARP,}),
             ZoneHandler:new({name = "MARJ-RUHAYYIL", zone_type = ZoneTypes.AIRBASE, airbase_name = Airbases.Syria.Marj_Ruhayyil}),

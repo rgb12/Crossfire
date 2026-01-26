@@ -16,7 +16,7 @@
 ]]
 Config = {
     persistence = {
-        enable = false, -- enables or not persistence, has authority over everything below in this section
+        enable =  true, -- enables or not persistence, has authority over everything below in this section
         save_interval = 5*51, -- (seconds) interval at which the mission state is saved
         -- You can use fixed values or multiplications like above
         -- 51 seconds is used to avoid multiples of 15 to reduce lag spikes
