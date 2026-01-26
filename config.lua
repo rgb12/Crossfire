@@ -69,7 +69,10 @@ Config = {
                 "FA-18C_hornet",
                 "M-2000C",
                 "Su-25T",
-                "F-14A-135-GR"
+                "F-14A-135-GR",
+                "AH-64D_BLK_II",
+                "SA342L",
+                "SA342M",
             },
             [OperationTypes.DEAD] = {
                 "A-10C_2",
@@ -86,6 +89,7 @@ Config = {
                 "FA-18C_hornet",
                 "M-2000C",
                 "Su-25T",
+                "AH-64D_BLK_II",
             },
             [OperationTypes.CAP] = {
                 "F-15C",
