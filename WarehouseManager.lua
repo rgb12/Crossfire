@@ -947,6 +947,30 @@ do
                     },
                 },
                 [coalition.side.BLUE] = {}
+            },
+            [Airbases.Syria.Shayrat] = {
+                [coalition.side.BLUE] = {
+                    [AITaskTypes.CAS] = {
+                        group_name = "BLUE SHAYRAT CAS",
+                        warehouse_name = WarehouseManager.AircraftFlags.A10C_TANK_KILLER_II
+                    },
+                    [AITaskTypes.CAP] = {
+                        group_name = "BLUE SHAYRAT INTERCEPT",
+                        warehouse_name = WarehouseManager.AircraftFlags.F15C
+                    },
+                    [AITaskTypes.RECON] = {
+                        group_name = "BLUE SHAYRAT RECON",
+                        warehouse_name = WarehouseManager.AircraftFlags.F16C_BL50
+                    },
+                    [AITaskTypes.SEAD] = {
+                        group_name = "BLUE SHAYRAT SEAD",
+                        warehouse_name = WarehouseManager.AircraftFlags.F16C_BL50
+                    },
+                    [AITaskTypes.STRIKE] = {
+                        group_name = "BLUE SHAYRAT STRIKE",
+                        warehouse_name = WarehouseManager.AircraftFlags.F16C_BL50
+                    }
+                }
             }
     }
 
