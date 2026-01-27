@@ -201,6 +201,59 @@ Scenarios = {
             ZoneHandler:new({name = "MARJ-RUHAYYIL", zone_type = ZoneTypes.AIRBASE, airbase_name = Airbases.Syria.Marj_Ruhayyil}),
             ZoneHandler:new({name = "MEZZEH", zone_type = ZoneTypes.AIRBASE, airbase_name = Airbases.Syria.Mezzeh}),
         }
+    },
+    {
+        name = "Syrian Resolve",
+        description = "Dedicated scenario set in Syria.",
+        coalition_setup = {
+            initial_dist_blue_to_frontline = 16000, --meters
+            dist_variance = 0, --meters
+            auto_coalition_designation = true, -- overrides the above
+        },
+        logistics_setup = {
+            upgrade_range = 30000, --meters
+            heli_capture_range = 150000, --meters
+            max_dist_to_frontline = 50000 --meters
+        },
+        resupply = {
+            --blue_point = { x=-00310000, y=2000,z=00901479}, --for dev
+            blue_point = { x = -00212555, y = 6096, z = 00151669 },
+            red_point = { x = -00025609, y = 6096, z = 00118626 }
+        },
+        carrier_setup = {
+            carrier_unit_name = "Carrier",
+            enabled = false
+        },
+        estimated_users = 1,
+        difficulty = ScenarioDifficulty.MEDIUM,
+        blue_airbase = ZoneHandler:new({
+            name = "SHAYRAT",
+            airbase_name = Airbases.Syria.Shayrat,
+            zone_type = ZoneTypes.AIRBASE}),
+        red_airbase =  ZoneHandler:new({
+            name = "AL-DUMAYR",
+            airbase_name = Airbases.Syria.Al_Dumayr,
+            zone_type = ZoneTypes.AIRBASE}),
+        zones = {
+            ZoneHandler:new({name = "GREEN"}),
+            ZoneHandler:new({name = "JULIETT"}),
+
+            ZoneHandler:new({name = "KILO"}),
+            ZoneHandler:new({name = "LIMA"}),
+
+            ZoneHandler:new({name = "PAPA"}),
+            ZoneHandler:new({name = "MIKE"}),
+            ZoneHandler:new({name = "OSCAR"}),
+            ZoneHandler:new({name = "HOTEL"}),
+            ZoneHandler:new({name = "STREAM"}),
+            ZoneHandler:new({name = "NOVEMBER", zone_type = ZoneTypes.FARP,}),
+            ZoneHandler:new({name = "GREEN", zone_type = ZoneTypes.FARP,}),
+            ZoneHandler:new({name = "MAQNE", zone_type = ZoneTypes.FARP,}),
+            ZoneHandler:new({name = "QUEBEC", zone_type = ZoneTypes.FARP,}),
+
+            ZoneHandler:new({name = "AN NASIRIYAH", zone_type = ZoneTypes.AIRBASE, airbase_name = Airbases.Syria.An_Nasiriyah}),
+            ZoneHandler:new({name = "RAYAK", zone_type = ZoneTypes.AIRBASE, airbase_name = Airbases.Syria.Rayak}),
+        }
     }
 }
 

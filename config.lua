@@ -20,7 +20,7 @@ Config = {
         save_interval = 5*51, -- (seconds) interval at which the mission state is saved
         -- You can use fixed values or multiplications like above
         -- 51 seconds is used to avoid multiples of 15 to reduce lag spikes
-        save_dir = "Missions/Saves/Crossfire Georgia Liberation/", -- this is your saves directory in Saved Games
+        save_dir = "Missions/Saves/Crossfire Syrian Resolve/", -- this is your saves directory in Saved Games
         -- If you would like to create a new mission, simple change the last folder name
         save_file = "mission.json", -- this is the name of the mission file
         user_data_file = "user_data.json", -- this is the name of user data only file, note that this only saves user xp, tokens ans rank
@@ -28,7 +28,7 @@ Config = {
         enable_ctld_persistence = true, -- enables/disables CTLD placed asset persistence
 
         random_scenario_selection = false, -- allows the script to randomly choose a random scenario, authority over scenario selection
-        scenario_selected = "Georgia Liberation", -- subject to the field above, choose your own scenario from the scenarios found below
+        scenario_selected = "Syrian Resolve", -- subject to the field above, choose your own scenario from the scenarios found below
     },
     operations = {
         recon_minimum_altitude = 1524, -- (meters)
@@ -165,7 +165,7 @@ Config = {
             TGP_MISC = 4000,           -- Targeting pods, misc equipment
         },
         tasking_costs = {
-            JTAC = 2000,
+            JTAC = 600,
             CAS = 2000,
             SEAD = 1500,
             STRIKE = 1200,
