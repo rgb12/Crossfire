@@ -84,6 +84,16 @@ do
     ECLAIR_M_51 = "weapons.containers.{EclairM_51}",
     HOT3 = "weapons.missiles.HOT3_MBDA",
     
+    GIAT_M621_SAPHEI = 'weapons.gunmounts.{GIAT_M621_SAPHEI}',
+    GIAT_M621_APHE = 'weapons.gunmounts.{GIAT_M621_APHE}',
+    GIAT_M621_HEAP = 'weapons.gunmounts.{GIAT_M621_HEAP}',
+    GIAT_M621_HE = 'weapons.gunmounts.{GIAT_M621_HE}',
+    GIAT_M621_AP = 'weapons.gunmounts.{GIAT_M621_AP}',
+    GIAT_M261 = 'weapons.gunmounts.GIAT_M261',
+    FN_HMP400_200 = 'weapons.gunmounts.{FN_HMP400_200}',
+    FN_HMP400 = 'weapons.gunmounts.{FN_HMP400}',
+    HMP400 = 'weapons.gunmounts.HMP400',
+
     IR_DEFLECTOR = "weapons.containers.IRDeflector",
     SAND_FILTER = "weapons.containers.FAS",
 
@@ -1068,8 +1078,19 @@ do
                 [WarehouseManager.Flags.SNEB_253_HEAT] = math.random(50,100),
                 [WarehouseManager.Flags.SNEB_259_IL] = math.random(20,40),
 
-                [WarehouseManager.Flags.SAND_FILTER] = 5,
-                [WarehouseManager.Flags.IR_DEFLECTOR] = 2,
+
+                [WarehouseManager.Flags.GIAT_M621_SAPHEI] = 5,-- not working
+                [WarehouseManager.Flags.GIAT_M621_APHE] = 5,-- not working
+                [WarehouseManager.Flags.GIAT_M621_HEAP] = 5,-- not working
+                [WarehouseManager.Flags.GIAT_M621_HE] = 5,-- not working
+                [WarehouseManager.Flags.GIAT_M621_AP] = 5,-- not working
+                [WarehouseManager.Flags.GIAT_M261] = 5,-- not working
+                [WarehouseManager.Flags.FN_HMP400_200] = 2,-- not working
+                [WarehouseManager.Flags.FN_HMP400] = 1,-- not working
+                [WarehouseManager.Flags.HMP400] = 2, -- not working
+
+                [WarehouseManager.Flags.SAND_FILTER] = 4,
+                [WarehouseManager.Flags.IR_DEFLECTOR] = 4,
                 [WarehouseManager.Flags.AN_APG_78_APACHE_RADAR] = 4,
 
             },
@@ -1552,12 +1573,13 @@ do
     }
 
     -- Compute a scaling factor based on estimated users.
-    -- Linear scaling as requested:
+    -- Linear scaling:
     -- users=1 -> 1.0, users=4 -> 4.0 (before clamping)
     ---@param users_estimate number|nil
     function WarehouseManager:getStockScale(users_estimate)
         local baseline = 1
         local users = users_estimate or Scenario.estimated_users or 1
+
         if users < 0 then users = 0 end
         local scale = users / baseline
         return scale
