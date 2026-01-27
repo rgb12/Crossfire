@@ -16,7 +16,7 @@
 ]]
 Config = {
     persistence = {
-        enable =  true, -- enables or not persistence, has authority over everything below in this section
+        enable =  false, -- enables or not persistence, has authority over everything below in this section
         save_interval = 5*51, -- (seconds) interval at which the mission state is saved
         -- You can use fixed values or multiplications like above
         -- 51 seconds is used to avoid multiples of 15 to reduce lag spikes
@@ -28,7 +28,7 @@ Config = {
         enable_ctld_persistence = true, -- enables/disables CTLD placed asset persistence
 
         random_scenario_selection = false, -- allows the script to randomly choose a random scenario, authority over scenario selection
-        scenario_selected = "Syria", -- subject to the field above, choose your own scenario from the scenarios found below
+        scenario_selected = "Syria Sandblast", -- subject to the field above, choose your own scenario from the scenarios found below
     },
     operations = {
         recon_minimum_altitude = 1524, -- (meters)
@@ -165,7 +165,7 @@ Config = {
             TGP_MISC = 4000,           -- Targeting pods, misc equipment
         },
         tasking_costs = {
-            JTAC = 1000,
+            JTAC = 2000,
             CAS = 2000,
             SEAD = 1500,
             STRIKE = 1200,
@@ -211,7 +211,7 @@ Config = {
             [AITaskTypes.CAS]            = 10000,  -- ~10-15 hours (Major milestone)
             [AITaskTypes.STRIKE]         = 15000,  -- ~20 hours
             [AITaskTypes.SEAD]           = 20000,  -- ~25 hours
-            [AITaskTypes.CAPTURE_HELO]   = 30000,
+            [AITaskTypes.CAPTURE_HELO]   = 5000,
             [AITaskTypes.RESUPPLY_CARGO] = 40000,
             [AITaskTypes.AWACS]          = 60000,  -- High level role (~70 hours)
         },

@@ -154,8 +154,8 @@ Scenarios = {
         } -- 43 zones
     },
     {
-          name = "Syria",
-        description = "test",
+        name = "Syria Sandblast",
+        description = "Action-packed scenario set in Syria.",
         coalition_setup = {
             initial_dist_blue_to_frontline = 16000, --meters
             dist_variance = 0, --meters
@@ -200,8 +200,7 @@ Scenarios = {
             ZoneHandler:new({name = "CHARLIE", zone_type = ZoneTypes.FARP,}),
             ZoneHandler:new({name = "MARJ-RUHAYYIL", zone_type = ZoneTypes.AIRBASE, airbase_name = Airbases.Syria.Marj_Ruhayyil}),
             ZoneHandler:new({name = "MEZZEH", zone_type = ZoneTypes.AIRBASE, airbase_name = Airbases.Syria.Mezzeh}),
-
-        } -- 43 zones
+        }
     }
 }
 
