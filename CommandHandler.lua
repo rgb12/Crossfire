@@ -131,10 +131,10 @@ do
                     for i3 = 0, 9 do
                         local code = tonumber(i1 .. i2 .. i3)
                         missionCommands.addCommandForGroup(group_id,tostring(code), digit2,
-                            function(code,unit)
+                            function(c,u)
                                 
-                                if unit and unit:getCoalition() == operation_manager.side then
-                                    operation_manager:activateOperation(unit, code)
+                                if u and u:getCoalition() == operation_manager.side then
+                                    operation_manager:activateOperation(u, c)
                                 end
                             end, code, unit)
                     end

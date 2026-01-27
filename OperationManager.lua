@@ -1449,7 +1449,7 @@ do
             outtxt = outtxt .. string.format("\n\nCO-OP Join Code: %d\nShare this code with other players to join this operation.", accepted_mission.coop_join_code)
         end
 
-        trigger.action.outTextForUnit(accepted_mission.assigned_player_id, outtxt, 25)
+        trigger.action.outTextForUnit(accepted_mission.assigned_player_id, outtxt, 60)
 
         -- Text for coalition
         trigger.action.outSoundForCoalition(self.side,"chatter1.ogg")
