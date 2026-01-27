@@ -234,9 +234,9 @@ do
     function utils.calculateSuppliesCAPforCoalition(coalition_side)
         local cap = 0
         if coalition_side == coalition.side.BLUE then
-            cap = stats.blue_command_posts * Config.supplies.suppplies_cap_for_command_post
+            cap = stats.blue_command_posts * Config.supplies.supplies_cap_for_command_post
         elseif coalition_side == coalition.side.RED then
-            cap = stats.red_command_posts * Config.supplies.suppplies_cap_for_command_post
+            cap = stats.red_command_posts * Config.supplies.supplies_cap_for_command_post
         end
         return cap
     end
