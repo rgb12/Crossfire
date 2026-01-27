@@ -105,8 +105,11 @@ ctld.parts = {
     {name = "Patriot AMG", desc = "Patriot AMG (optional)", weight = 500, type = ctld.AssetTypes.SAM, group_requirement = "Patriot Battery", req_supplies = 300},
 
 
-    {name = "Soldier stinger",  desc = "Soldier Stinger",     weight = 100, type = ctld.AssetTypes.TROOPS, req_supplies = 5},
+    {name = "Soldier stinger",  desc = "Stinger",     weight = 100, type = ctld.AssetTypes.TROOPS, req_supplies = 5},
     {name = "Soldier M4 GRG", desc = "Soldier", weight = 100, type = ctld.AssetTypes.TROOPS, req_supplies = 5},
+    {name = "Soldier M249", desc = "Soldier M249", weight = 100, type = ctld.AssetTypes.TROOPS, req_supplies = 5},
+    {name = "Paratrooper RPG-16", desc = "Paratrooper RPG-16", weight = 100, type = ctld.AssetTypes.TROOPS, req_supplies = 5},
+
 
     {name = "M1097 Avenger", desc="M1097 Avenger", weight = 3900, type = ctld.AssetTypes.SAM, crates_required = 2, can_move = true, req_supplies = 300},
     {name = "Roland ADS", desc="Roland ADS", weight = 5000, type = ctld.AssetTypes.SAM, crates_required = 2, can_move = true, req_supplies = 400},
