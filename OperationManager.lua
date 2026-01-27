@@ -287,8 +287,10 @@ do
                                     
                                     -- Notify remaining participants
                                     trigger.action.outTextForUnit(member_id, "You are now the operation leader!", 10)
+                                    trigger.action.outSoundForUnit(member_id, "radio_txrx.ogg")
                                     for remaining_id, _ in pairs(op.coop_members) do
                                         trigger.action.outTextForUnit(remaining_id, member_unit:getPlayerName() .. " is now the operation leader.", 10)
+                                        trigger.action.outSoundForUnit(remaining_id, "radio_txrx.ogg")
                                     end
                                     
                                     new_leader_found = true
@@ -298,13 +300,13 @@ do
                             
                             if not new_leader_found then
                                 op.status = OperationStatus.FAILED
-                                trigger.action.outTextForCoalition(self.side, "Operation " .. op.operation_name .. " failed: all operatives left.", 15)
+                                trigger.action.outTextForCoalition(self.side, op.type .. " Operation " .. op.operation_name .. " failed: all operatives left.", 15)
                                 table.remove(self.active_operations, i)
                             end
                         else
                             -- Solo operation - fail it
                             op.status = OperationStatus.FAILED
-                            trigger.action.outTextForCoalition(self.side, "Operation " .. op.operation_name .. " failed: operative left.", 15)
+                            trigger.action.outTextForCoalition(self.side, op.type .. " Operation " .. op.operation_name .. " failed: operative left.", 15)
                             table.remove(self.active_operations, i)
                         end
                     else
@@ -1448,7 +1450,6 @@ do
         if accepted_mission.is_coop then
             outtxt = outtxt .. string.format("\n\nCO-OP Join Code: %d\nShare this code with other players to join this operation.", accepted_mission.coop_join_code)
         end
-
         trigger.action.outTextForUnit(accepted_mission.assigned_player_id, outtxt, 60)
 
         -- Text for coalition
