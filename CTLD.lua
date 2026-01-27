@@ -88,21 +88,21 @@ end
 
 ---@type part[]
 ctld.parts = {
-    {name = "Hawk ln",          desc = "HAWK Launcher",       weight = 2000, type = ctld.AssetTypes.SAM, group_requirement = "Hawk Battery", req_supplies = 400},
-    {name = "Hawk tr",          desc = "HAWK Track Radar",    weight = 500, type = ctld.AssetTypes.SAM, group_requirement = "Hawk Battery", req_supplies = 600},
-    {name = "Hawk sr",          desc = "HAWK Search Radar",   weight = 500, type = ctld.AssetTypes.SAM, group_requirement = "Hawk Battery", req_supplies = 600},
-    {name = "Hawk pcp",         desc = "HAWK PCP",            weight = 200, type = ctld.AssetTypes.SAM, group_requirement = "Hawk Battery", req_supplies = 200},
-    {name = "Hawk cwar",        desc = "HAWK CWAR",           weight = 200, type = ctld.AssetTypes.SAM, group_requirement = "Hawk Battery", req_supplies = 200},
+    {name = "Hawk ln",          desc = "HAWK Launcher",       weight = 2000, type = ctld.AssetTypes.SAM, group_requirement = "Hawk Battery", req_supplies = 100},
+    {name = "Hawk tr",          desc = "HAWK Track Radar",    weight = 500, type = ctld.AssetTypes.SAM, group_requirement = "Hawk Battery", req_supplies = 400},
+    {name = "Hawk sr",          desc = "HAWK Search Radar",   weight = 500, type = ctld.AssetTypes.SAM, group_requirement = "Hawk Battery", req_supplies = 400},
+    {name = "Hawk pcp",         desc = "HAWK PCP",            weight = 200, type = ctld.AssetTypes.SAM, group_requirement = "Hawk Battery", req_supplies = 100},
+    {name = "Hawk cwar",        desc = "HAWK CWAR",           weight = 200, type = ctld.AssetTypes.SAM, group_requirement = "Hawk Battery", req_supplies = 100},
 
 
-    {name = "NASAMS_LN_C",          desc = "NASAMS Launcher 120C",       weight = 2000, type = ctld.AssetTypes.SAM, group_requirement = "NASAMS System", req_supplies = 400},
-    {name = "NASAMS_Radar_MPQ64F1",          desc = "NASAMS Search/Track Radar",    weight = 500, type = ctld.AssetTypes.SAM, group_requirement = "NASAMS System", req_supplies = 600},
-    {name = "NASAMS_Command_Post",          desc = "NASAMS Command Post",   weight = 500, type = ctld.AssetTypes.SAM, group_requirement = "NASAMS System", req_supplies = 200},
+    {name = "NASAMS_LN_C",          desc = "NASAMS Launcher 120C",       weight = 2000, type = ctld.AssetTypes.SAM, group_requirement = "NASAMS System", req_supplies = 100},
+    {name = "NASAMS_Radar_MPQ64F1",          desc = "NASAMS Search/Track Radar",    weight = 500, type = ctld.AssetTypes.SAM, group_requirement = "NASAMS System", req_supplies = 400},
+    {name = "NASAMS_Command_Post",          desc = "NASAMS Command Post",   weight = 500, type = ctld.AssetTypes.SAM, group_requirement = "NASAMS System", req_supplies = 50},
 
-    {name = "Patriot ln", desc = "Patriot Launcher",    weight = 2000, type = ctld.AssetTypes.SAM, group_requirement = "Patriot Battery", req_supplies = 800},
-    {name = "Patriot str", desc = "Patriot Radar", weight = 1000, type = ctld.AssetTypes.SAM, group_requirement = "Patriot Battery", req_supplies = 1000},
-    {name = "Patriot ECS", desc = "Patriot ECS", weight = 500, type = ctld.AssetTypes.SAM, group_requirement = "Patriot Battery", req_supplies = 500},
-    {name = "Patriot AMG", desc = "Patriot AMG (optional)", weight = 500, type = ctld.AssetTypes.SAM, group_requirement = "Patriot Battery", req_supplies = 300},
+    {name = "Patriot ln", desc = "Patriot Launcher",    weight = 2000, type = ctld.AssetTypes.SAM, group_requirement = "Patriot Battery", req_supplies = 150},
+    {name = "Patriot str", desc = "Patriot Radar", weight = 1000, type = ctld.AssetTypes.SAM, group_requirement = "Patriot Battery", req_supplies = 600},
+    {name = "Patriot ECS", desc = "Patriot ECS", weight = 500, type = ctld.AssetTypes.SAM, group_requirement = "Patriot Battery", req_supplies = 150},
+    {name = "Patriot AMG", desc = "Patriot AMG (optional)", weight = 500, type = ctld.AssetTypes.SAM, group_requirement = "Patriot Battery", req_supplies = 150},
 
 
     {name = "Soldier stinger",  desc = "Stinger",     weight = 100, type = ctld.AssetTypes.TROOPS, req_supplies = 5},
@@ -120,9 +120,9 @@ ctld.parts = {
     {name = "M1045 HMMWV TOW", desc="Humvee - TOW", weight = 2000, type = ctld.AssetTypes.VEHICLES, can_move = true, req_supplies = 200},
     {name = "MaxxPro_MRAP", desc="Light Tank - MRAP", weight = 14500, type = ctld.AssetTypes.VEHICLES, can_move = true, req_supplies = 300, crates_required = 2},
 
-    {name = "LAV-25", desc="Med Tank - LAV-25", weight = 12800, type = ctld.AssetTypes.VEHICLES, can_move = true, req_supplies = 400, crates_required = 3},
+    {name = "LAV-25", desc="Med Tank - LAV-25", weight = 12800, type = ctld.AssetTypes.VEHICLES, can_move = true, req_supplies = 100, crates_required = 3},
     
-    {name = "M-1 Abrams", desc="Heavy Tank - Abrams", weight = 10000, type = ctld.AssetTypes.VEHICLES, crates_required = 4, can_move = true, req_supplies = 700},
+    {name = "M-1 Abrams", desc="Heavy Tank - Abrams", weight = 10000, type = ctld.AssetTypes.VEHICLES, crates_required = 4, can_move = true, req_supplies = 150},
 
     {name = "Hummer", desc="Hummer - JTAC", weight = 1000, type = ctld.AssetTypes.VEHICLES, req_supplies = 50},
     {name = "M 818", desc="M-818 Ammo Truck", weight = 1000, type = ctld.AssetTypes.VEHICLES, req_supplies = 80},
@@ -130,14 +130,14 @@ ctld.parts = {
 
     {name = "FPS-117", desc="EWR Radar", weight = 10000, type = ctld.AssetTypes.VEHICLES, crates_required = 5, req_supplies = 800},
 
-    {name = "MLRS", desc="MLRS", weight = 1000, type = ctld.AssetTypes.VEHICLES, can_move = true, req_supplies = 600},
-    {name = "SpGH_Dana", desc="SpGH DANA", weight = 1000, type = ctld.AssetTypes.VEHICLES, can_move = true, req_supplies = 500},
+    {name = "MLRS", desc="MLRS", weight = 1000, type = ctld.AssetTypes.VEHICLES, can_move = true, req_supplies = 100},
+    {name = "SpGH_Dana", desc="SpGH DANA", weight = 1000, type = ctld.AssetTypes.VEHICLES, can_move = true, req_supplies = 100},
 
 
     --{name = "container_cargo",  desc = "Crate",               weight = 1000, type = ctld.AssetTypes.CARGO_CRATES},
-    {name = "iso_container",    desc = "Large Container",     weight = 4000, type = ctld.AssetTypes.CARGO_CRATES, req_supplies = 25},
-    {name = "iso_container_small",desc = "Small Container",   weight = 2000, type = ctld.AssetTypes.CARGO_CRATES, req_supplies = 15},
-    {name = "M92_10Ft_Container",desc = "Clean Container",    weight = 1500, type = ctld.AssetTypes.CARGO_CRATES, req_supplies = 10},
+    {name = "iso_container",    desc = "Large Container",     weight = 4000, type = ctld.AssetTypes.CARGO_CRATES, req_supplies = 5},
+    {name = "iso_container_small",desc = "Small Container",   weight = 2000, type = ctld.AssetTypes.CARGO_CRATES, req_supplies = 5},
+    {name = "M92_10Ft_Container",desc = "Clean Container",    weight = 1500, type = ctld.AssetTypes.CARGO_CRATES, req_supplies = 5},
     {name = "gbu_43b_airdrop",  desc = "MOAB",                 weight = 9000, type = ctld.AssetTypes.CARGO_CRATES},
     {name = "cds_barrels",     desc = "CDS Barrels",        weight = 200, type = ctld.AssetTypes.CARGO_CRATES, req_supplies = 5},
     {name = "cds_crate",       desc = "CDS Crate",           weight = 200, type = ctld.AssetTypes.CARGO_CRATES},
