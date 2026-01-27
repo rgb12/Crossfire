@@ -113,7 +113,6 @@ do
                     local group = Group.getByName(asset.group_name)
                     if group and group:isExist() then
                         local units = group:getUnits()
-                        local all_alive = true
                         local group_units_data = {}
                         
                         -- Check if all units are alive and collect their data
@@ -125,14 +124,11 @@ do
                                         name = unit:getName(),
                                         point = unit:getPoint()
                                     })
-                            else
-                                all_alive = false
-                                break
                             end
                         end
                         
                         -- Save group if all units are alive
-                        if all_alive and #group_units_data > 0 then
+                        if #group_units_data > 0 then
                             table.insert(PersistenceManager.data.placed_assets, {
                                 is_group = true,
                                 group_name = asset.group_name,
