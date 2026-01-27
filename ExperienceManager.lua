@@ -12,6 +12,7 @@ do
     ---@field unclaimed_tokens number
     ---@field unclaimed_xp number
 
+    ---@type UserData[]
     ExperienceManager.user_data = {}
 
     function ExperienceManager.EventHandler:onEvent(event)
@@ -26,38 +27,25 @@ do
                 local user = ExperienceManager:fetchUser(initiator)
                 if not user then return end
 
-                local tokens_added = 0
-
                 if target:hasAttribute('Planes') then
                     trigger.action.outTextForUnit(user.id,"Aircraft destroyed, +" .. Config.reward_system.xp_per_aircraft_destroyed .. "XP",5)
                     user.unclaimed_xp = user.unclaimed_xp + Config.reward_system.xp_per_aircraft_destroyed
-                    tokens_added = tokens_added + math.random(0,2)
                 elseif target:hasAttribute('Helicopters') then
                     trigger.action.outTextForUnit(user.id,"Helicopter destroyed, +" .. Config.reward_system.xp_per_helicopter_destroyed .. "XP",5)
                     user.unclaimed_xp = user.unclaimed_xp + Config.reward_system.xp_per_helicopter_destroyed
-                    tokens_added = tokens_added + math.random(0,1)
                 elseif target:hasAttribute('Infantry') then
                     trigger.action.outTextForUnit(user.id,"Infantry kill, +" .. Config.reward_system.xp_per_infantry_kill .. "XP",5)
                     user.unclaimed_xp = user.unclaimed_xp + Config.reward_system.xp_per_infantry_kill
-
                 elseif (target:hasAttribute('SAM SR') or target:hasAttribute('SAM TR') or target:hasAttribute('IR Guided SAM')) then
                     trigger.action.outTextForUnit(user.id,"SAM unit kill, +" .. Config.reward_system.xp_per_sam_destroyed .. "XP",5)
                     user.unclaimed_xp = user.unclaimed_xp + Config.reward_system.xp_per_sam_destroyed
-                    tokens_added = tokens_added + math.random(0,1)
                 elseif target:hasAttribute('Ships') then
                     trigger.action.outTextForUnit(user.id,"Ship destroyed, +" .. Config.reward_system.xp_per_ship_sunk .. "XP",5)
                     user.unclaimed_xp = user.unclaimed_xp + Config.reward_system.xp_per_ship_sunk
-                    tokens_added = tokens_added + 3
                 elseif target:hasAttribute('Ground Units') then
                     trigger.action.outTextForUnit(user.id,"Vehicle destroyed, +" .. Config.reward_system.xp_per_vehicle_destroyed .. "XP",5)
                     user.unclaimed_xp = user.unclaimed_xp + Config.reward_system.xp_per_vehicle_destroyed
-                    tokens_added = tokens_added + math.random(0,1)
                 else return end
-
-                if tokens_added > 0 then
-                    user.unclaimed_tokens = user.unclaimed_tokens + tokens_added
-                    trigger.action.outTextForUnit(user.id,"+" .. tokens_added .. " Tokens",5)
-                end
             end
         elseif event.id == world.event.S_EVENT_LAND then
             if event.initiator and event.initiator.getPlayerName then
