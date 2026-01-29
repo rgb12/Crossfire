@@ -167,6 +167,15 @@ do
                 end
             end
         end
+        for _,static_name in pairs(zone.linked_statics) do
+            local static = StaticObject.getByName(static_name)
+            if static and static.isExist and static:isExist() and static:getLife() >= 1 then
+                if static:getCoalition() ~= self.side then
+                    table.insert(self.viable_targets,static)
+                end
+            end
+        end
+
 
         -- Build priority_targets if priority is set
         if self.priority then
@@ -188,7 +197,7 @@ do
                 target_list = self.priority_targets
             else
                 trigger.action.outTextForCoalition(self.side, self.callsign.." JTAC: No targets found for priority '"..self.priority.."'. Engaging targets of opportunity.", 5)
-                -- target_list remains self.viable_targets
+                self.priority = nil
             end
         end
     
