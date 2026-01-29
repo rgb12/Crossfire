@@ -990,19 +990,20 @@ do
                             mist.tostringLL(lat, lon, 1), mist.tostringLL(lat, lon, 1, true), mist.tostringMGRS(mgrs, 3))
 
                             if mist.utils.get2DDist(zone.zone.point,player_pos) > self.radius then
-                                trigger.action.outTextForUnit(player_unit:getID(), "Recon aerial imagery lost, remain near:"..outtxt, 3)
+                                trigger.action.outTextForUnit(player_unit:getID(), "Recon aerial imagery lost, remain near given coordinates",3)
                                 self.start_time = nil
                                 return false
                             end
 
-                            if player_pos.y < Config.operations.recon_minimum_altitude then
-                                trigger.action.outTextForUnit(player_unit:getID(),"Recon operation: maintain alt above "..mist.utils.metersToFeet(Config.operations.recon_minimum_altitude).." ft", 5)
+                            -- check for line of sight
+                            if not land.isVisible(player_pos, target_zone.zone.point) then
+                                trigger.action.outTextForUnit(player_unit:getID(),"Recon aerial imagery lost, maintain line of sight to target area", 5)
                                 self.start_time = nil
                                 return false
                             end
 
                             if timer.getTime() - self.start_time < self.duration then
-                                trigger.action.outTextForUnit(player_unit:getID(), "Recon in progress: "..math.floor(((timer.getTime() - self.start_time)/self.duration)*100).."%", 5)
+                                trigger.action.outTextForUnit(player_unit:getID(), "Recon aerial imagery in progress: "..math.floor(((timer.getTime() - self.start_time)/self.duration)*100).."%", 5)
                                 return false
                             end
 
@@ -1012,14 +1013,14 @@ do
                                     table.insert(stats.blue_discovered_zones,zone.name)
 
                                     zone:drawF10()
-                                    CommandHandler.refreshJtacCmds(player_coalition)
-                                    trigger.action.outTextForCoalition(player_coalition, "Recon reports detected targets near "..zone.name,15)
+                                    CommandHandler.requestMenuRefresh(player_coalition)
+                                    trigger.action.outTextForCoalition(player_coalition, "Recon aerial imagery concluded, found targets near "..zone.name,15)
                                 elseif player_coalition == coalition.side.RED and not utils.tableContains(stats.red_discovered_zones,zone.name) then
                                     table.insert(stats.red_discovered_zones,zone.name)
 
                                     zone:drawF10()
-                                    CommandHandler.refreshJtacCmds(player_coalition)
-                                    trigger.action.outTextForCoalition(player_coalition, "Recon reports detected targets near "..zone.name,15)
+                                    CommandHandler.requestMenuRefresh(player_coalition)
+                                    trigger.action.outTextForCoalition(player_coalition, "Recon aerial imagery concluded, found targets near "..zone.name,15)
                                 end
 
 
