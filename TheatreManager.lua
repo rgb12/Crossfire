@@ -379,7 +379,7 @@ do
                         TaskManager:initiateAITask(AITaskTypes.ATTACK_CONVOY,zone.side,true,nil,zone,false)
                     end
 
-                    CommandHandler.refreshJtacCmds(zone.side)
+                    
             end
         end
 
@@ -513,7 +513,7 @@ do
 
                             if first_time_discovered then
                                 enroute.to_zone:drawF10()
-                                CommandHandler.refreshJtacCmds(enroute.side)
+                                CommandHandler.requestMenuRefresh(enroute.side)
                                 trigger.action.outTextForCoalition(enroute.side,"Recon task has discovered " .. enroute.to_zone.name.."\nCheck F10 map", 10)
                                 MissionLogger:info("Recon group " .. enroute.group_name .. " has discovered " .. enroute.to_zone.name.."\nCheck F10 map")
                             end
@@ -1085,9 +1085,6 @@ do
             blue_airbase, red_airbase = TheatreCommander.establishTheatre()
         end
         TheatreCommander.checkAirbasesCoalition()
-
-        CommandHandler.refreshJtacCmds(coalition.side.BLUE)
-        CommandHandler.refreshJtacCmds(coalition.side.RED)
 
         -- Create Operation Managers for each coalition
         if blue_airbase and red_airbase then

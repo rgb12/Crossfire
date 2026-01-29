@@ -380,9 +380,10 @@ do
             local zone = ZoneHandler.getFromName(zone_name)
             if zone then
                 zone:drawF10()
-                CommandHandler.refreshJtacCmds(zone.side)
             end
         end
+        CommandHandler.requestMenuRefresh(coalition.side.BLUE)
+        CommandHandler.requestMenuRefresh(coalition.side.RED)
     end
 
     function ZoneHandler:capture(side)

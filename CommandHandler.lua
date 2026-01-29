@@ -516,7 +516,6 @@ do
             -- CHECK RED
             if pending_refresh_sides[coalition.side.RED] then
                 MissionLogger:info("Refreshing RED menus")
-                CommandHandler.refreshJtacCmds(coalition.side.RED)
                 
                 local red_players = coalition.getPlayers(coalition.side.RED)
                 for _, unit in ipairs(red_players) do
@@ -536,7 +535,6 @@ do
             -- CHECK BLUE
             if pending_refresh_sides[coalition.side.BLUE] then
                 MissionLogger:info("Refreshing BLUE menus")
-                CommandHandler.refreshJtacCmds(coalition.side.BLUE)
                 
                 local blue_players = coalition.getPlayers(coalition.side.BLUE)
                 for _, unit in ipairs(blue_players) do
@@ -1023,75 +1021,6 @@ do
     end
 
 
-    ---@param side coalition.side
-    function CommandHandler.refreshJtacCmds(side)
-        do return end -- JTAC disabled for now
-        if not side then side = coalition.side.BLUE end
-
-        if CommandHandler.jtac_main_submenu then
-            missionCommands.removeItemForCoalition(side, CommandHandler.jtac_main_submenu)
-            CommandHandler.jtac_main_submenu = nil -- Reset handle
-        end
-
-        local enemy_side = nil
-        local discovered_zones = nil
-        local current_comms_count = 0
-
-        if side == coalition.side.BLUE then
-            enemy_side = coalition.side.RED
-            discovered_zones = stats.blue_discovered_zones
-            current_comms_count = stats.blue_comms_antennas
-        else
-            enemy_side = coalition.side.BLUE
-            discovered_zones = stats.red_discovered_zones
-            current_comms_count = stats.red_comms_antennas
-        end
-
-        if current_comms_count < Config.tasking_requirements.comms_zones_required_for_jtac then
-            return
-        end
-
-        -- Create root menu
-        CommandHandler.jtac_main_submenu = missionCommands.addSubMenuForCoalition(side, "Task JTAC", nil)
-
-        local valid_commands = {}
-
-        for _, zone in ipairs(zones) do
-            if zone.side == enemy_side
-            and utils.tableContains(discovered_zones, zone.name)
-            and not EnrouteManager:findByToZone(zone, side, {AITaskTypes.JTAC}) then
-                
-                local function send(to_zone)
-                    local zone_check = ZoneHandler.getFromName(to_zone.name)
-                    if not zone_check then return end
-                    
-                    if (zone_check.side == side or zone_check.side == coalition.side.NEUTRAL) then
-                        trigger.action.outTextForCoalition(side, "Cannot task JTAC to a friendly or neutral zone.", 10)
-                        return
-                    end
-
-                    local live_comms = (side == coalition.side.BLUE) and stats.blue_comms_zones or stats.red_comms_zones
-                    local total_comms = (side == coalition.side.BLUE) and stats.blue_total_comms_zones or stats.red_total_comms_zones
-                    if live_comms < Config.tasking_requirements.comms_zones_required_for_jtac then
-                        trigger.action.outTextForCoalition(side, "JTAC tasking requires " .. total_comms .. "/"..Config.tasking_requirements.comms_zones_required_for_jtac.." active COMMS antennas.", 10)
-                        return
-                    end
-
-                    TaskManager:initiateAITask(AITaskTypes.JTAC, side, true, zone_check, nil, true)
-                end
-                
-                table.insert(valid_commands, {
-                    name = zone.name,
-                    func = send,
-                    arg = zone
-                })
-            end
-        end
-
-        if #valid_commands > 0 then
-            CommandHandler.buildPagedMenuForCoalition(side, CommandHandler.jtac_main_submenu, valid_commands, 1)
-        end
-    end 
 
     ---@param u Unit
     function CommandHandler.tallyZone(u)
