@@ -445,7 +445,7 @@ do
                 if not aircraft_on_carrier then
                     if aircraftMoving(unit) or unit:inAir() then
                         trigger.action.outTextForGroup(gr_id, "Restock aborted: Aircraft is not stationary.", 10)
-                        trigger.action.outSoundForGroup(gr_id, "radio_beep2")
+                        trigger.action.outSoundForGroup(gr_id, "radio_beep3.ogg")
                         return
                     end
                 else
@@ -457,17 +457,17 @@ do
                             on_carrier = true
                         else
                             trigger.action.outTextForGroup(gr_id, "Restock aborted: Aircraft is not on carrier deck.", 10)
-                            trigger.action.outSoundForGroup(gr_id, "radio_beep2")
+                            trigger.action.outSoundForGroup(gr_id, "radio_beep3.ogg")
                             return
                         end
                     else
                         trigger.action.outTextForGroup(gr_id, "Restock aborted: Carrier unit not found.", 10)
-                        trigger.action.outSoundForGroup(gr_id, "radio_beep2")
+                        trigger.action.outSoundForGroup(gr_id, "radio_beep3.ogg")
                         return
                     end
                 end
                 trigger.action.outTextForGroup(gr_id, "Aircraft and loaded equipment will be restocked in the warehouse in 10 seconds…", 10)
-                trigger.action.outSoundForGroup(gr_id, "radio_beep2")
+                trigger.action.outSoundForGroup(gr_id, "radio_beep3.ogg")
                 timer.scheduleFunction(function()
 
                     -- Add the aircraft back to the warehouse
@@ -487,7 +487,7 @@ do
 
                     end
                     trigger.action.outTextForGroup(gr_id, "Restock aborted: No friendly airbase or FARP nearby.", 10)
-                    trigger.action.outSoundForGroup(gr_id, "radio_beep2")
+                    trigger.action.outSoundForGroup(gr_id, "radio_beep3.ogg")
                 end, {}, timer.getTime() + 10)
             end, nil)
 
