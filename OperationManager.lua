@@ -407,6 +407,12 @@ do
 
             if not self:isZoneActive(zone.name) and not self:isMissionProposed(zone.name)
             then
+                -- RECON over enemy zones
+                if zone.side == enemy_coalition and not discovered_zones_set[zone.name] then
+                    local op = self:createRECONOperation(zone)
+                    table.insert(self.available_operations, op)
+                end
+
                 if zone.side == enemy_coalition and discovered_zones_set[zone.name] then
                     -- CAS against a STRONGPOINT
                     if zone.zone_type == ZoneTypes.STRONGPOINT then
@@ -491,12 +497,6 @@ do
                         local op = self:createINTERCEPTOperation(zone)
                         table.insert(self.available_operations, op)
                     end
-                end
-
-                -- RECON over enemy zones
-                if zone.side == enemy_coalition and not discovered_zones_set[zone.name] then
-                    local op = self:createRECONOperation(zone)
-                    table.insert(self.available_operations, op)
                 end
 
                 -- AIRDROP over friendly zones
