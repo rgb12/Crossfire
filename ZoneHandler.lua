@@ -1,5 +1,5 @@
 if not __MARK_ID__ then __MARK_ID__ = 600000 end
-local function nextMarkId()
+function nextMarkId()
     __MARK_ID__ = __MARK_ID__ + 1
     return __MARK_ID__
 end
@@ -361,7 +361,7 @@ do
         local updated_zones = {}
 
         for _, other_zone in ipairs(zones) do
-            if self ~= coalition.side.NEUTRAL and self.side ~= other_zone.side
+            if self.side ~= coalition.side.NEUTRAL and self.side ~= other_zone.side
             and mist.utils.get2DDist(self.zone.point, other_zone.zone.point) < Config.max_ground_recon_range then
 
                 if not utils.tableContains(stats.blue_discovered_zones,other_zone.name) then
