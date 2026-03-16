@@ -29,16 +29,14 @@ do
             local closest_airbase, template_gr_name = self:findClosestAirbaseWithAircraftInStock(to_zone,side,ai_task_type,2,ai_task_type)
             if not closest_airbase then
                 if user_requested then
-                    txt="CAS unavailable for "..to_zone.name..", check aircraft availability, warehouse stock and tasking limits."
-                    trigger.action.outTextForCoalition(side,txt,5)
+                    trigger.action.outTextForCoalition(side,"CAS unavailable for "..to_zone.name..", check aircraft availability, warehouse stock and tasking limits.",5)
                 end
                 return false
             end
 
             if prevent_duplicates and EnrouteManager:findByToZone(to_zone,side,{AITaskTypes.CAS}) then
                 if user_requested then
-                    txt="CAS already tasked for "..to_zone.name
-                    trigger.action.outTextForCoalition(side,txt,5)
+                    trigger.action.outTextForCoalition(side,"CAS already tasked for "..to_zone.name,5)
                 end
                 return false
             end
@@ -49,8 +47,7 @@ do
             local enroutes_from_airbase = EnrouteManager:findByFromZone(closest_airbase,side)
             if enroutes_from_airbase and #enroutes_from_airbase >= Config.tasking.max_tasks_per_airbase then
                 if user_requested then
-                    txt="CAS unavailable from "..closest_airbase.name..", airbase cannot handle more tasks at the moment."
-                    trigger.action.outTextForCoalition(side,txt,5)
+                    trigger.action.outTextForCoalition(side,"CAS unavailable from "..closest_airbase.name..", airbase cannot handle more tasks at the moment.",5)
                 end
                 return false
             end
