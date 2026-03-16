@@ -60,11 +60,11 @@ do
                     if unit_check and unit_check:isExist() and unit_check:getLife() > 0 and unit_check.getCoalition then
                         local user = ExperienceManager:fetchUser(unit_check)
                         if user and (user.unclaimed_xp>0)then
-                            ExperienceManager:addXP(user, user.unclaimed_xp) -- to check for rank up
-
                             local u_id = unit_check:getID()
                             trigger.action.outTextForUnit(u_id, "Post-Flight Debrief: +".. user.unclaimed_xp .. " XP",10)
                             trigger.action.outSoundForUnit(u_id,"radio click.ogg")
+                            
+                            ExperienceManager:addXP(user, user.unclaimed_xp) -- to check for rank up
                             user.unclaimed_xp = 0
                         end
                     end
