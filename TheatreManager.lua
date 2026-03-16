@@ -174,7 +174,7 @@ do
             if side_comms_towers < Config.tasking_requirements.comms_zones_required_for_awacs then
                 return false
             end
-            if closest_dist and closest_dist < Config.tasking.min_cleareance_dist_for_awacs then
+            if closest_dist and closest_dist > Config.tasking.min_cleareance_dist_for_awacs then
                 MissionLogger:info("Initiating AWACS for " .. utils.coalitionToString(side))
                 return TaskManager:initiateAITask(AITaskTypes.AWACS, side, true, nil, home_base, false)
             end
