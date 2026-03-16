@@ -178,7 +178,6 @@ Config = {
 
     reward_system = {
         enable = true, -- completely enables/disables the reward system
-        xp_per_mission_completed = 500,
         xp_per_aircraft_destroyed = 100,
         xp_per_helicopter_destroyed = 75,
         xp_per_infantry_kill = 5,

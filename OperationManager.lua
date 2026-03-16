@@ -6,6 +6,7 @@
 ---@field operation_name string
 ---@field assigned_player_id number | nil
 ---@field assigned_unit_name string | nil
+---@field xp_reward number
 ---@field objectives table
 ---@field is_coop boolean -- Whether this operation supports co-op
 ---@field coop_leader_id number | nil -- Unit ID of the player who created the operation
@@ -85,7 +86,7 @@ do
         -- Handle CSAR operations differently
         if active_mission.type == OperationTypes.CSAR then
             if not active_mission.pilot_position then
-                trigger.action.outTextForUnit(unit_id, "Error: Pilot position not found.", 10)
+                trigger.action.outTextForUnit(unit_id, "Pilot position not found.", 10)
                 self:cancelOperation(unit)
                 return
             end
@@ -138,7 +139,7 @@ do
         
         if active_mission.type ~= OperationTypes.INTERCEPT then
             outtxt = outtxt .. string.format("\n\nCoordinates:\n%s\n%s\nMGRS: %s",
-                mist.tostringLL(lat, lon, 2), mist.tostringLL(lat, lon, 2, true), mist.tostringMGRS(mgrs, 3))
+                mist.tostringLL(lat, lon, 5), mist.tostringLL(lat, lon, 5, true), mist.tostringMGRS(mgrs, 5))
         end
 
         outtxt = outtxt .. "\n\nObjectives:"
@@ -558,12 +559,14 @@ do
     end
 
     function OperationManager:createCASOperation(target_zone)
+        ---@type Operation
         local op = {
             type = OperationTypes.CAS,
             code = self:createOperationCode(),
             status = OperationStatus.AVAILABLE,
             target_zone_name = target_zone.name,
             operation_name = operations_name[math.random(#operations_name)],
+            xp_reward = 750,
             is_coop = true,
             coop_leader_id = nil,
             coop_leader_name = nil,
@@ -593,10 +596,12 @@ do
         -- set the y coord to ground level
         pilot_pos.y = land.getHeight({x = pilot_pos.x, y = pilot_pos.z})
 
+        ---@type Operation
         local op = {
             type = OperationTypes.CSAR,
             code = self:createOperationCode(),
             status = OperationStatus.AVAILABLE,
+            xp_reward = 600,
             target_zone_name = "CSAR Location", -- Special identifier for CSAR
             operation_name = operations_name[math.random(#operations_name)],
             pilot_position = pilot_pos, -- Store the actual position
@@ -632,10 +637,12 @@ do
     end
 
     function OperationManager:createINTERCEPTOperation(target_zone)
+        ---@type Operation
         local op = {
             type = OperationTypes.INTERCEPT,
             code = self:createOperationCode(),
             status = OperationStatus.AVAILABLE,
+            xp_reward = 750,
             target_zone_name = target_zone.name,
             operation_name = operations_name[math.random(#operations_name)],
             is_coop = true,
@@ -678,7 +685,7 @@ do
                         -- Valid kill - increment counter
                         self.kills = self.kills + 1
                         trigger.action.outTextForUnit(player_unit:getID(), 
-                            string.format("Intercept - Aircraft destroyed! (%d/%d)", self.kills, self.required_kills), 10)
+                            string.format("Intercept - Confirmed kill (%d/%d)", self.kills, self.required_kills), 10)
                     end
                 }
             }
@@ -687,10 +694,12 @@ do
     end
 
     function OperationManager:createAIRDROPOperation(target_zone)
+        ---@type Operation
         local op = {
             type = OperationTypes.AIRDROP,
             code = self:createOperationCode(),
             status = OperationStatus.AVAILABLE,
+            xp_reward = 1000,
             target_zone_name = target_zone.name,
             operation_name = operations_name[math.random(#operations_name)],
             is_coop = false,
@@ -774,10 +783,12 @@ do
 
     function OperationManager:createSEADOperation(target_zone)
         -- This is a simplified check. A real implementation would need to identify SR/TR units.
+        ---@type Operation
         local op = {
             type = OperationTypes.SEAD,
             code = self:createOperationCode(),
             status = OperationStatus.AVAILABLE,
+            xp_reward = 500,
             target_zone_name = target_zone.name,
             operation_name = operations_name[math.random(#operations_name)],
             is_coop = true,
@@ -806,10 +817,12 @@ do
     end
 
     function OperationManager:createDEADOperation(target_zone)
+        ---@type Operation
         local op = {
             type = OperationTypes.DEAD,
             code = self:createOperationCode(),
             status = OperationStatus.AVAILABLE,
+            xp_reward = 800,
             target_zone_name = target_zone.name,
             operation_name = operations_name[math.random(#operations_name)],
             is_coop = true,
@@ -872,6 +885,7 @@ do
             end
         end
 
+        ---@type Operation
         local op = {
             type = OperationTypes.STRIKE,
             code = self:createOperationCode(),
@@ -879,6 +893,7 @@ do
             target_zone_name = target_zone.name,
             operation_name = operations_name[math.random(#operations_name)],
             is_coop = true,
+            xp_reward = 1000,
             coop_leader_id = nil,
             coop_leader_name = nil,
             coop_members = {},
@@ -895,10 +910,12 @@ do
     end
 
     function OperationManager:createCAPOperation(target_zone)
+        ---@type Operation
         local op = {
             type = OperationTypes.CAP,
             code = self:createOperationCode(),
             status = OperationStatus.AVAILABLE,
+            xp_reward = 500,
             target_zone_name = target_zone.name,
             operation_name = operations_name[math.random(#operations_name)],
             is_coop = false,
@@ -950,10 +967,12 @@ do
     end
 
     function OperationManager:createRECONOperation(target_zone)
+        ---@type Operation
         local op = {
             type = OperationTypes.RECON,
             code = self:createOperationCode(),
             status = OperationStatus.AVAILABLE,
+            xp_reward = 750,
             target_zone_name = target_zone.name,
             operation_name = operations_name[math.random(#operations_name)],
             is_coop = false,
@@ -1043,6 +1062,7 @@ do
 
         self:generateOperations()
 
+        ---@type Operation[]
         local unit_supported_operations = {}
         local unit_type = unit:getTypeName()
         
@@ -1107,7 +1127,7 @@ do
                     outtext = outtext .. "\n - " .. obj.description
                 end
 
-                outtext = outtext .. "\n Reward: " .. (Config.reward_system.xp_per_mission_completed or 100) .. " XP"
+                outtext = outtext .. "\n Reward: " .. (op.xp_reward or 500) .. " XP"
                 outtext = outtext .. "\n Operation code: " .. op.code
                 operations_displayed = operations_displayed + 1
                 table.insert(operation_types_displayed, op.type)
@@ -1427,7 +1447,7 @@ do
             local lat, lon = coord.LOtoLL(accepted_mission.pilot_position)
             local mgrs = coord.LLtoMGRS(lat, lon)
             outtxt = outtxt .. string.format("\n\nDowned pilot location (approximate):\n%s\n%s\nMGRS: %s", 
-                mist.tostringLL(lat, lon, 1), mist.tostringLL(lat, lon, 1, true), mist.tostringMGRS(mgrs, 3))
+                mist.tostringLL(lat, lon, 4), mist.tostringLL(lat, lon, 4, true), mist.tostringMGRS(mgrs, 4))
             outtxt = outtxt .. "\n\nGreen smoke has been deployed at the pilot's location."
             outtxt = outtxt .. string.format("\n\nLand within %dm of the pilot to complete the rescue.", Config.operations.csar_rescue_radius or 50)
         else
@@ -1439,17 +1459,17 @@ do
             local mgrs = coord.LLtoMGRS(lat, lon)
 
             if not utils.tableContains({OperationTypes.RECON, OperationTypes.INTERCEPT}, accepted_mission.type) then
-                outtxt = outtxt .. "\n\nTarget area: " .. accepted_mission.target_zone_name
+                outtxt = outtxt .. "\n\nArea: " .. accepted_mission.target_zone_name
             end
 
             if accepted_mission.type ~= OperationTypes.INTERCEPT then
-                outtxt = outtxt .. string.format("\n\nApproximate location coordinates:\n%s\n%s\nMGRS: %s", mist.tostringLL(lat, lon, 1), mist.tostringLL(lat, lon, 1, true), mist.tostringMGRS(mgrs, 3))
+                outtxt = outtxt .. string.format("\n\nApproximate location coordinates:\n%s\n%s\nMGRS: %s", mist.tostringLL(lat, lon, 4), mist.tostringLL(lat, lon, 4, true), mist.tostringMGRS(mgrs, 4))
             end
         end
 
         -- Add co-op join code if this is a co-op operation
         if accepted_mission.is_coop then
-            outtxt = outtxt .. string.format("\n\nCO-OP Join Code: %d\nShare this code with other players to join this operation.", accepted_mission.coop_join_code)
+            outtxt = outtxt .. string.format("\n\nCO-OP Join Code: %d", accepted_mission.coop_join_code)
         end
         trigger.action.outTextForUnit(accepted_mission.assigned_player_id, outtxt, 60)
 
@@ -1534,7 +1554,7 @@ do
                                 user.missions_completed = user.missions_completed + 1
                                 
                                 -- Apply base XP with co-op bonus (only if 2+ players)
-                                local base_xp = Config.reward_system.xp_per_mission_completed
+                                local base_xp = op.xp_reward or 500
                                 local total_xp = math.floor(base_xp * coop_bonus_multiplier)
                                 user.unclaimed_xp = user.unclaimed_xp + total_xp
 
