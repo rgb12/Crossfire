@@ -23,7 +23,7 @@ function ev:onEvent(event)
                 if not unit or not unit.isExist or not unit:isExist() or not unit.getCoalition then return end
                 local unit_pos = unit:getPoint()
                 local unit_coalition = unit:getCoalition()
-                -- Checks if the player has the rigt to spawn in the airbase
+                -- Checks if the player has the right to spawn in the airbase
                 local can_spawn = false
                 for _,zone in ipairs(zones) do
                     if zone:isPointInsideZone(unit_pos) then
@@ -51,6 +51,8 @@ function ev:onEvent(event)
                                             if acft_count > 0 then
                                                 can_spawn = true
                                                 
+                                                -- Due to the size of the C130, certain bases do not have spawn slots.
+                                                -- The workaround is to spawn them as taking off from ground, but the script has to check for this case specifically
                                                 if acft_name == WarehouseManager.AircraftFlags.C130J_30 or
                                                 zone.zone_type == ZoneTypes.FARP then
                                                     warehouse:removeItem(acft_name,1)
@@ -82,17 +84,17 @@ function ev:onEvent(event)
                 if unit:getCoalition() == coalition.side.RED then
                     can_spawn = true
                 end
-
-                -- Allows airborne units
-                if unit:inAir() and Config.allow_air_spawn then 
-                    can_spawn = true
-                end
-
                 -- Allows carrier spawn
                 local land_type = land.getSurfaceType({x = unit_pos.x, y = unit_pos.z})
                 if land_type == land.SurfaceType.WATER then
                     can_spawn = true
                 end
+
+                -- Allows airborne units
+                if unit:inAir() and Config.allow_air_spawn then
+                    can_spawn = true
+                end
+
 
                 if not can_spawn then
 
