@@ -155,6 +155,7 @@ function ev:onEvent(event)
 
             if timer.getTime() < 15 then
                 -- wait for mission to initialize
+                trigger.action.outTextForUnit(unit:getID(), "Assets and warehouses are still loading; if your slot is blocked, try again in a moment.",20)
                 timer.scheduleFunction(function ()
                     checkSpawnAllowed()
                 end, {}, timer.getTime() + 15)

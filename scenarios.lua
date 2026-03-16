@@ -108,6 +108,7 @@ Scenarios = {
             airbase_name = Airbases.Caucasus.Vaziani,
             zone_type = ZoneTypes.AIRBASE}),
         zones = {
+            ZoneHandler:new({name = "BRAVO-1"}),
             ZoneHandler:new({name = "OUTPOST-SEPTEMBER"}),
             ZoneHandler:new({name = "OUTPOST-NOVEMBER"}),
             ZoneHandler:new({name = "OUTPOST-DECEMBER"}),
@@ -206,7 +207,7 @@ Scenarios = {
         name = "Syrian Resolve",
         description = "Dedicated scenario set in Syria.",
         coalition_setup = {
-            initial_dist_blue_to_frontline = 16000, --meters
+            initial_dist_blue_to_frontline = 45000, --meters
             dist_variance = 0, --meters
             auto_coalition_designation = true, -- overrides the above
         },
@@ -216,9 +217,8 @@ Scenarios = {
             max_dist_to_frontline = 50000 --meters
         },
         resupply = {
-            --blue_point = { x=-00310000, y=2000,z=00901479}, --for dev
-            blue_point = { x = -00212555, y = 6096, z = 00151669 },
-            red_point = { x = -00025609, y = 6096, z = 00118626 }
+            blue_point = { x = 00029810, y = 6096, z = 00156947 },
+            red_point = { x = -00248765, y = 6096, z = 00134754 }
         },
         carrier_setup = {
             carrier_unit_name = "Carrier",
@@ -235,16 +235,18 @@ Scenarios = {
             airbase_name = Airbases.Syria.Al_Dumayr,
             zone_type = ZoneTypes.AIRBASE}),
         zones = {
-            ZoneHandler:new({name = "GREEN"}),
             ZoneHandler:new({name = "JULIETT"}),
-
+            ZoneHandler:new({name = "HOMS"}),
             ZoneHandler:new({name = "KILO"}),
             ZoneHandler:new({name = "LIMA"}),
-
+            ZoneHandler:new({name = "SEASIDE"}),
+            ZoneHandler:new({name = "ROMEO"}),
             ZoneHandler:new({name = "PAPA"}),
             ZoneHandler:new({name = "MIKE"}),
             ZoneHandler:new({name = "OSCAR"}),
             ZoneHandler:new({name = "HOTEL"}),
+            ZoneHandler:new({name = "OUTPOST"}),
+            ZoneHandler:new({name = "STRONGHOLD"}),
             ZoneHandler:new({name = "STREAM"}),
             ZoneHandler:new({name = "NOVEMBER", zone_type = ZoneTypes.FARP,}),
             ZoneHandler:new({name = "GREEN", zone_type = ZoneTypes.FARP,}),
@@ -267,9 +269,6 @@ zones = {}
             break
         end
     end
-    if Config.persistence.random_scenario_selection == true then
-        Scenario = Scenarios[math.random(1,#Scenarios)]
-    end
     
     if Scenario == nil then
         trigger.action.outText("ERROR: Scenario '" .. Config.persistence.scenario_selected .. "' not found! Check your config.", 120)
@@ -287,5 +286,8 @@ zones = {}
         table.insert(zones,red_airbase)
     end
 
-
+trigger.action.outText("Loading assets...",15)
 TheatreCommander.startMission()
+timer.scheduleFunction(function()
+    trigger.action.outText("Assets initialized.",5)
+end, {}, timer.getTime() + 15)
