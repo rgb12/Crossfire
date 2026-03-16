@@ -202,9 +202,9 @@ do
         TU_22M3 = "Tu-22M3",
         A50 = "A-50",
         AH64D_BLKII = "AH-64D_BLK_II",
-        AH1W="AH-1W",
+        AH1W = "AH-1W",
         B1B_LANCER = "B-1B",
-        C130J_30= "C-130J-30",
+        C130J_30 = "C-130J-30",
         IL78M = "IL-78M",
         IL76MD = "IL-76MD",
         KC135_MPRS = "KC135MPRS",
@@ -216,8 +216,115 @@ do
         SA342M = "SA342M",
         UH_1H = "UH-1H",
         OH_58D = "OH-58D",
+        L39ZA = "L-39ZA",
+        I16 = "I-16",
+        SU17M4 = "Su-17M4",
+        MIRAGE_F1AD = "Mirage-F1AD",
+        FA18A = "F/A-18A",
+        F4E_45MC = "F-4E-45MC",
+        FA18C = "F/A-18C",
+        QF4E = "QF-4E",
+        MIRAGE_F1CR = "Mirage-F1CR",
+        AV8BNA = "AV8BNA",
+        MI24V = "Mi-24V",
+        F15E = "F-15E",
+        B52H = "B-52H",
+        F117A = "F-117A",
+        SH60B = "SH-60B",
+        P47D_30BL1 = "P-47D-30bl1",
+        TORNADO_IDS = "Tornado IDS",
+        A20G = "A-20G",
+        SH3W = "SH-3W",
+        KC135 = "KC-135",
+        C101EB = "C-101EB",
+        TORNADO_GR4 = "Tornado GR4",
+        MIRAGE_F1BD = "Mirage-F1BD",
+        MIRAGE_F1M_EE = "Mirage-F1M-EE",
+        CHRISTEN_EAGLE_II = "Christen Eagle II",
+        OH58D_R = "OH58D",
+        HAWK = "Hawk",
+        MIRAGE_F1EQ = "Mirage-F1EQ",
+        F16A = "F-16A",
+        A10A = "A-10A",
+        FW190D9 = "FW-190D9",
+        MIRAGE_F1M_CE = "Mirage-F1M-CE",
+        F5E = "F-5E",
+        KA27 = "Ka-27",
+        MIRAGE_F1AZ = "Mirage-F1AZ",
+        S3B = "S-3B",
+        H6J = "H-6J",
+        UH60A = "UH-60A",
+        MIRAGE_F1C = "Mirage-F1C",
+        MIRAGE_F1CE = "Mirage-F1CE",
+        MIG15BIS_FC = "MiG-15bis_FC",
+        MB339APAN = "MB-339APAN",
+        AN26B = "An-26B",
+        MI28N = "Mi-28N",
+        F14A_EARLY = "F-14A-135-GR-Early",
+        MIRAGE_F1DDA = "Mirage-F1DDA",
+        F5E_3_FC = "F-5E-3_FC",
+        MIRAGE_F1BE = "Mirage-F1BE",
+        SU25 = "Su-25",
+        KA50_III = "Ka-50_3",
+        MB339A = "MB-339A",
+        A6E = "A6E",
+        F86F_FC = "F-86F_FC",
+        MIRAGE_F1BQ = "Mirage-F1BQ",
+        FALCON_GYRO = "Falcon_Gyrocopter",
+        CH47D = "CH-47D",
+        AH64A = "AH-64A",
+        MIRAGE_F1B = "Mirage-F1B",
+        MIRAGE_F1CT = "Mirage-F1CT",
+        MIRAGE_F1EDA = "Mirage-F1EDA",
+        MIRAGE_F1ED = "Mirage-F1ED",
+        WINGLOONG_I = "WingLoong-I",
+        MIRAGE_F1CZ = "Mirage-F1CZ",
+        JF17 = "JF-17",
+        F5E_3 = "F-5E-3",
+        L39C = "L-39C",
+        MIRAGE_F1EH = "Mirage-F1EH",
+        MIRAGE_F1C_200 = "Mirage-F1C-200",
+        AN30M = "An-30M",
+        YAK52 = "Yak-52",
+        SU25TM = "Su-25TM",
+        MOSQUITO = "MosquitoFBMkVI",
+        CH53E = "CH-53E",
+        MIRAGE_F1CJ = "Mirage-F1CJ",
+        FW190A8 = "FW-190A8",
+        MIRAGE_F1CK = "Mirage-F1CK",
+        P47D_30 = "P-47D-30",
+        MIG27K = "MiG-27K",
+        A10C = "A-10C",
+        KA50 = "Ka-50",
+        MIG15BIS = "MiG-15bis",
+        P51D = "P-51D",
+        F4U1D = "F4U-1D",
+        MIRAGE_F1CH = "Mirage-F1CH",
+        F16C_BL52D = "F-16C bl.52d",
+        F4U1D_CW = "F4U-1D_CW",
+        MIRAGE_F1CG = "Mirage-F1CG",
+        C130 = "C-130",
+        F86F_SABRE = "F-86F Sabre",
+        J11A = "J-11A",
+        AJS37 = "AJS37",
+        F14A = "F-14A",
+        SPITFIRE_LF = "SpitfireLFMkIX",
+        KJ2000 = "KJ-2000",
+        CH47F_BL1 = "CH-47Fbl1",
+        MI24P = "Mi-24P",
+        YAK40 = "Yak-40",
+        P51D_30_NA = "P-51D-30-NA",
+        P47D_40 = "P-47D-40",
+        MIRAGE_F1EE = "Mirage-F1EE",
+        SPITFIRE_CW = "SpitfireLFMkIXCW",
+        F4E = "F-4E",
+        BF109K4 = "Bf-109K-4",
+        C101CC = "C-101CC",
+        TF51D = "TF-51D",
+        MI26 = "Mi-26",
+        AH64D = "AH-64D",
+        MIRAGE_F1JA = "Mirage-F1JA",
     }
-
     -- Helpers to validate warehouse item support
     function WarehouseManager:isSupportedWeapon(item_name)
         if not item_name then return false end
@@ -970,7 +1077,25 @@ do
                         group_name = "BLUE SHAYRAT STRIKE",
                         warehouse_name = WarehouseManager.AircraftFlags.F16C_BL50
                     }
-                }
+                },
+                [coalition.side.RED] = {}
+            },
+            [Airbases.Syria.An_Nasiriyah] = {
+                [coalition.side.BLUE] = {
+                    [AITaskTypes.RECON] = {
+                        group_name = "BLUE AN NASIRIYAH RECON",
+                        warehouse_name = WarehouseManager.AircraftFlags.F16C_BL50
+                    },
+                    [AITaskTypes.INTERCEPT] = {
+                        group_name = "BLUE AN NASIRIYAH INTERCEPT",
+                        warehouse_name = WarehouseManager.AircraftFlags.F15C
+                    },
+                    [AITaskTypes.STRIKE] = {
+                        group_name = "BLUE AN NASIRIYAH STRIKE",
+                        warehouse_name = WarehouseManager.AircraftFlags.F16C_BL50
+                    }
+                },
+                [coalition.side.RED] = {}
             }
     }
 
@@ -1001,9 +1126,9 @@ do
                 [WarehouseManager.Flags.ALQ_184] = 1 *2,
             },
             [AITaskTypes.RECON] = {
-                [WarehouseManager.Flags.AAQ_28_LITENING] = 1 *2,
-                [WarehouseManager.Flags.AIM_120C] = 2 *2,
-                [WarehouseManager.Flags.AIM_9X] = 2 *2,
+                [WarehouseManager.Flags.AAQ_28_LITENING] = 1,
+                [WarehouseManager.Flags.AIM_120C] = 2,
+                [WarehouseManager.Flags.AIM_9X] = 2,
             },
             [AITaskTypes.AWACS] = {},
             [AITaskTypes.JTAC] = {},
@@ -1080,6 +1205,8 @@ do
                 [WarehouseManager.AircraftFlags.SA342M] = 2,
                 [WarehouseManager.AircraftFlags.UH_1H] = 4,
                 [WarehouseManager.AircraftFlags.OH_58D] = 2,
+                [WarehouseManager.AircraftFlags.OH58D_R] = 4,
+               
                 [WarehouseManager.AircraftFlags.AH64D_BLKII] = 4,
 
                 [WarehouseManager.Flags.MISTRAL] = 8,
@@ -1145,7 +1272,7 @@ do
                 [WarehouseManager.Flags.LAU_88] = math.random(8,12),
                 
                 [WarehouseManager.Flags.HYDRA_70_M282_MPP_APKWS] = math.random(120,130),
-                [WarehouseManager.Flags.HYDRA_70_M151_HE] = math.random(60,100),
+                [WarehouseManager.Flags.HYDRA_70_M151_HE] = math.random(90,150),
                 [WarehouseManager.Flags.HYDRA_70_MK5_HEAT] = math.random(60,100),
                 [WarehouseManager.Flags.CBU_87] = math.random(6,12),
                 [WarehouseManager.Flags.CBU_97] = math.random(6,12),
@@ -1171,7 +1298,7 @@ do
                 [WarehouseManager.Flags.AGM_84D_HARPOON] = math.random(2,4),
 
                 [WarehouseManager.Flags.AIM_120B] = math.random(16,20),
-                [WarehouseManager.Flags.AIM_120C] = math.random(6,8),
+                [WarehouseManager.Flags.AIM_120C] = math.random(32,40),
                 [WarehouseManager.Flags.AIM_9M] = math.random(20,28),
                 [WarehouseManager.Flags.AIM_9X] = math.random(8,14),
                 [WarehouseManager.Flags.AIM_9L] = math.random(8,14),
@@ -1596,16 +1723,27 @@ do
      
     }
 
-    -- Compute a scaling factor based on estimated users.
+   -- Compute a scaling factor based on estimated users.
     -- Linear scaling:
-    -- users=1 -> 1.0, users=4 -> 4.0 (before clamping)
+    -- users=1 -> 1.0, users=4 -> 4.0
     ---@param users_estimate number|nil
     function WarehouseManager:getStockScale(users_estimate)
         local baseline = 1
         local users = users_estimate or Scenario.estimated_users or 1
 
-        if users < 0 then users = 0 end
+        -- count active human players dynamically
+        local players = coalition.getPlayers(coalition.side.BLUE)
+        if players then
+        if #players > 0 then users = #players end
+        end
+        -- Ensure minimum scaling of 1.0 (at least 1 player's worth of equipment)
+        if users < 1 then users = 1 end
+        
         local scale = users / baseline
+
+        if not Config.enable_warehouse then
+            scale = 10000 -- effectively infinite stock if warehouse is disabled
+        end
         return scale
     end
 
