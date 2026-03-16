@@ -407,10 +407,45 @@ do
                                end
                             end
                             WarehouseManager:attributeAirbaseStock(farp,coal, {WarehouseManager.StockTypes.FARP})
-                            trigger.action.outTextForCoalition(coal, "FARP " .. farp .. " has been resupplied.", 10)
+                            trigger.action.outTextForCoalition(coal, "FARP " .. name .. " has been resupplied.", 10)
                             trigger.action.outSoundForCoalition(coal,"radio_txrx.ogg")
                         end,
                         arg = {side = side, farp_name = zone.linked_farp,name = zone.name}})
+                end
+            end
+            -- Add CTLD FARPs
+            for _,farp in ipairs(ctld.FARPs) do
+                if farp.coalition == side then
+                    table.insert(farps_resupply_list, {
+                        name = farp.display_name .. " - " .. Config.supplies.resupply_costs.FARP .. " supplies",
+                        func = function (args)
+                            local coal = args.side
+                            local farp_name = args.farp_name
+                            local name = args.name
+
+                             -- Instead of tokens use coalition supplies
+                            if side == 2 then
+                                if stats.blue_supplies < Config.supplies.resupply_costs.FARP then
+                                    trigger.action.outTextForGroup(gr_id,"HQ Negative resupply response for " .. name .. ": supplies low (" .. stats.blue_supplies .. "/" .. Config.supplies.resupply_costs.FARP .. "). Stand by for next resupply or capture additional zones.",8)
+                                    trigger.action.outSoundForGroup(gr_id, "radio_beep3.ogg")
+                                    return
+                                else
+                                    stats.blue_supplies = math.max(stats.blue_supplies - Config.supplies.resupply_costs.FARP,0)
+                                end
+                            elseif side == 1 then
+                               if stats.red_supplies < Config.supplies.resupply_costs.FARP then
+                                    trigger.action.outTextForGroup(gr_id,"HQ Negative resupply response for " .. name .. ": supplies low (" .. stats.red_supplies .. "/" .. Config.supplies.resupply_costs.FARP .. "). Stand by for next convoy or secure more territory.",8)
+                                    trigger.action.outSoundForGroup(gr_id, "radio_beep3.ogg")
+                                    return
+                               else
+                                    stats.red_supplies = math.max(stats.red_supplies - Config.supplies.resupply_costs.FARP,0)
+                               end
+                            end
+                            WarehouseManager:attributeAirbaseStock(farp_name,coal, {WarehouseManager.StockTypes.FARP})
+                            trigger.action.outTextForCoalition(coal,name .. " has been resupplied.", 10)
+                            trigger.action.outSoundForCoalition(coal,"radio_txrx.ogg")
+                        end,
+                        arg = {side = side, farp_name = farp.farp_name,name = farp.display_name}})
                 end
             end
 

@@ -9,6 +9,7 @@ ctld.AssetTypes = {
     CARGO_CRATES = "CARGO_CRATES",
     VEHICLES = "Vehicles",
     SAM = "SAM",
+    STATIC = "STATIC"
 }
 ---@enum ctld.CargoCrates
 ctld.CargoCrates = {
@@ -49,9 +50,23 @@ ctld.aircraft_limits = {
 ---@field coalition any
 ---@field is_group boolean|nil
 ---@field unit_count number|nil
+---@field category string|nil
+---@field shape_name string|nil
 
 ---@type Asset[]
 ctld.placed_assets = {} -- store for persistence, save function will check all units and statics are alive before saving
+
+---@class ConstructedFARP
+---@field farp_name string
+---@field point vec3
+---@field coalition any
+---@field linked_zone ZoneHandler|nil
+---@field display_name string|nil
+---@field mark_id any|nil
+
+---@type ConstructedFARP[]
+ctld.FARPs = {} -- store for persistence
+
 
 ctld.dynamic_cargo_capable_units = {
 --    "CH-47Fbl1",
@@ -59,6 +74,13 @@ ctld.dynamic_cargo_capable_units = {
 --    "Mi-8MT",
 --    "Mi-24P",
    "C-130J-30"
+}
+
+-- Required unpacked vehicles to assemble a CTLD-built FARP.
+ctld.farp_vehicle_requirements = {
+    "Hummer",
+    "M 818",
+    "M978 HEMTT Tanker"
 }
 
 ---@class ctld_user
@@ -179,6 +201,11 @@ function ctld.initF10RadioMenu(group)
             ctld.unitAttack(unit)
         end)
     
+        missionCommands.addCommandForGroup(gr_id, "Construct FARP", root_menu, function ()
+            -- Check if nearby unpacked support vehicles can assemble a FARP.
+            ctld.tryConstructFARP(unit)
+        end)
+
         missionCommands.addCommandForGroup(gr_id, "List Loaded Cargo", root_menu, function ()
             ctld.listOnboardCargo(unit)
         end)
@@ -245,21 +272,22 @@ function ctld.load(part, unit)
         return
     end
     local unit_pos = unit:getPoint()
-    local is_in_ctld_zone = false
-    for _,zone in ipairs(zones) do
-        if zone:isPointInsideZone(unit_pos) then
-            if utils.tableContains(Config.ctld.allowed_load_zones, zone.zone_type) then
-                is_in_ctld_zone = true
-                break
+    if not Config.ctld.allow_load_anywhere then
+        local is_in_ctld_zone = false
+        for _,zone in ipairs(zones) do
+            if zone:isPointInsideZone(unit_pos) then
+                if utils.tableContains(Config.ctld.allowed_load_zones, zone.zone_type) then
+                    is_in_ctld_zone = true
+                    break
+                end
             end
         end
+        if not is_in_ctld_zone then
+            trigger.action.outTextForUnit(unit_id,"Negative, cannot load: Not in a valid load zone.", 5)
+            trigger.action.outSoundForUnit(unit_id, "transmission1.ogg")
+            return
+        end
     end
-    if not is_in_ctld_zone then
-        trigger.action.outTextForUnit(unit_id,"Negative, cannot load: Not in a valid load zone.", 5)
-        trigger.action.outSoundForUnit(unit_id, "transmission1.ogg")
-        return
-    end
-
     if ctld.player_cooldowns[unit_id] == nil then
         ctld.player_cooldowns[unit_id] = 0
     end
@@ -600,8 +628,9 @@ function ctld.unpack(unit)
                 coalition = unit:getCoalition(),
                 is_group = false
             })
+
             trigger.action.outTextForUnit(unit_id, 
-                string.format("Unpacked: %s, used %d crate(s)", vehicle_data.part.desc, vehicle_data.crates_required), 3)
+                string.format("Unpacked %s, used %d crate(s)", vehicle_data.part.desc, vehicle_data.crates_required), 3)
             trigger.action.outSoundForUnit(unit_id, "transmission1.ogg")
             end
         
@@ -678,6 +707,8 @@ function ctld.unpack(unit)
             end
         end
     end
+
+
 
 end
 
@@ -1060,6 +1091,264 @@ function ctld.getPointAtDirection(unit, offset, direction_in_radian)
     return { x = point.x + xOffset, z = point.z + zOffset, y = point.y }
 end
 
+---@param point vec3
+---@param coalition_side coalition.side
+---@param radius number
+---@return table<string, Unit>
+function ctld.findNearbyFARPRequirementVehicles(point, coalition_side, radius)
+    local found_by_part = {}
+    local required_lookup = {}
+    for _, part_name in ipairs(ctld.farp_vehicle_requirements) do
+        required_lookup[part_name] = true
+    end
+
+    local vol = {
+        id = world.VolumeType.SPHERE,
+        params = {
+            point = point,
+            radius = radius
+        }
+    }
+
+    world.searchObjects({Object.Category.UNIT}, vol, function(obj)
+        if obj and obj:isExist() and obj.getName and obj.getCoalition and obj:getCoalition() == coalition_side then
+            local obj_name = obj:getName()
+            if ctld.isUnpackedAsset(obj_name) then
+                local part_name = ctld.getUnpackedPartName(obj_name)
+                if part_name and required_lookup[part_name] and not found_by_part[part_name] then
+                    found_by_part[part_name] = obj
+                end
+            end
+        end
+        return true
+    end)
+
+    return found_by_part
+end
+
+---@param unit Unit
+---@param center_point vec3
+---@param linked_zone ZoneHandler|nil
+---@return ConstructedFARP|nil
+function ctld.buildFARP(unit, center_point,linked_zone)
+    local country_name_id = country.id.CJTF_BLUE
+    if unit:getCoalition() == coalition.side.RED then
+        country_name_id = country.id.CJTF_RED
+    end
+
+    local base_x = center_point.x
+    local base_y = center_point.z
+
+    local farp_statics_to_spawn = {
+        { type = "Invisible FARP", category = "Heliports", shape_name = "invisiblefarp", offset_x = 0, offset_y = 0 },
+        { type = "FARP Tent", category = "Fortifications", offset_x = 5, offset_y = 55 },
+        { type = "FARP Tent", category = "Fortifications", offset_x = -15, offset_y = 55 },
+        { type = "FARP Ammo Dump Coating", category = "Fortifications", offset_x = 30, offset_y = 5 },
+        { type = "FARP Ammo Dump Coating", category = "Fortifications", offset_x = 30, offset_y = -5 },
+        { type = "FARP Fuel Depot", category = "Fortifications", offset_x = 5, offset_y = -60 },
+        { type = "FARP Fuel Depot", category = "Fortifications", offset_x = -5, offset_y = -60 },
+    }
+
+    local farp_name = nil
+    local assigned_name = nil
+
+    for _, static_data in ipairs(farp_statics_to_spawn) do
+        local static_point = {
+            x = base_x + static_data.offset_x,
+            y = base_y + static_data.offset_y
+        }
+
+        local new_static = mist.dynAddStatic({
+            type = static_data.type,
+            shape_name = static_data.shape_name,
+            name = string.format("ctld_farp_%d", ctld.getNextGroupId()),
+            country = country_name_id,
+            category = static_data.category,
+            x = static_point.x,
+            y = static_point.y,
+            heading = 0
+        })
+        
+        -- Assign custom display name to FARP (unique among active FARPs)
+        if static_data.type == "Invisible FARP" then
+            local failsafe = 0
+            while failsafe < 1000 and not assigned_name do
+                failsafe = failsafe + 1
+                local candidate = Config.ctld.FARP_names[math.random(1, #Config.ctld.FARP_names)]
+                local taken = false
+                for _, farp in ipairs(ctld.FARPs) do
+                    if farp.display_name == candidate then
+                        taken = true
+                        break
+                    end
+                end
+                if not taken then
+                    assigned_name = candidate
+                end
+            end
+            -- Fallback if all names are already in use
+            if not assigned_name then
+                assigned_name = string.format("FARP %d", #ctld.FARPs + 1)
+            else
+                assigned_name = "FARP "..assigned_name
+            end
+        end
+
+        if new_static and new_static.name then
+            table.insert(ctld.placed_assets, {
+                unit_name = new_static.name,
+                asset_name = static_data.type,
+                category = static_data.category,
+                shape_name = static_data.shape_name,
+                point = { x = static_point.x, y = land.getHeight({x = static_point.x, y = static_point.y}), z = static_point.y },
+                type = ctld.AssetTypes.STATIC,
+                coalition = unit:getCoalition()
+            })
+            
+            if static_data.type == "Invisible FARP" then
+                farp_name = new_static.name
+            end
+        end
+
+    end
+
+    if not farp_name then
+        MissionLogger:error("CTLD: Failed to construct FARP, no Invisible FARP spawned.")
+        return nil
+    end
+
+    -- timer.scheduleFunction(function()
+    --     WarehouseManager:clearWarehouse(farp_name)
+    --     WarehouseManager:attributeAirbaseStock(farp_name, unit:getCoalition(), {WarehouseManager.StockTypes.FARP})
+    -- end, {}, timer.getTime() + 1)
+
+    ---@type ConstructedFARP
+    local farp = {
+        farp_name = farp_name,
+        display_name = assigned_name,
+        point = center_point,
+        coalition = unit:getCoalition(),
+        linked_zone = linked_zone
+    }
+    table.insert(ctld.FARPs, farp)
+
+    -- Refresh resupply menus
+    CommandHandler.requestMenuRefresh(farp.coalition)
+
+    return farp
+end
+
+---@param unit Unit
+---@return boolean
+function ctld.tryConstructFARP(unit)
+    local unit_id = unit:getID()
+    local unit_pos = unit:getPoint()
+    local coalition_side = unit:getCoalition()
+    local search_radius = Config.ctld.search_radius or 100
+    local current_zone = utils.getZoneOfUnitFromPosition(unit_pos)
+
+    local found_parts = ctld.findNearbyFARPRequirementVehicles(unit_pos, coalition_side, search_radius)
+    local missing_parts = {}
+    for _, required_part_name in ipairs(ctld.farp_vehicle_requirements) do
+        if not found_parts[required_part_name] then
+            table.insert(missing_parts, required_part_name)
+        end
+    end
+
+    if #missing_parts > 0 then
+        local out_text = "Cannot construct FARP. Missing required assets:\n"
+        for _, part_name in ipairs(missing_parts) do
+            local part_desc = part_name
+            for _, part in ipairs(ctld.parts) do
+                if part.name == part_name then
+                    part_desc = part.desc
+                    break
+                end
+            end
+            out_text = out_text .. "- " .. part_desc .. "\n"
+        end
+        trigger.action.outTextForUnit(unit_id, out_text, 10)
+        trigger.action.outSoundForUnit(unit_id, "transmission1.ogg")
+        return false
+    end
+
+    if current_zone and current_zone.zone_type == ZoneTypes.FARP and current_zone.linked_farp then
+        local existing_farp = Airbase.getByName(current_zone.linked_farp)
+        if existing_farp then
+            trigger.action.outTextForUnit(unit_id, "Negative, this FARP zone is already operational.", 5)
+            trigger.action.outSoundForUnit(unit_id, "transmission1.ogg")
+            return false
+        end
+        current_zone.linked_farp = nil
+    end
+
+    local center = { x = 0, y = 0, z = 0 }
+    local count = 0
+    for _, required_part_name in ipairs(ctld.farp_vehicle_requirements) do
+        local req_obj = found_parts[required_part_name]
+        if req_obj and req_obj:isExist() then
+            local p = req_obj:getPoint()
+            center.x = center.x + p.x
+            center.z = center.z + p.z
+            count = count + 1
+        end
+    end
+
+    if count == 0 then
+        return false
+    end
+
+    center.x = center.x / count
+    center.z = center.z / count
+    center.y = land.getHeight({x = center.x, y = center.z})
+
+
+    local farp = ctld.buildFARP(unit, center, current_zone)
+    if not farp then
+        trigger.action.outTextForUnit(unit_id, "Negative, failed to construct FARP.", 5)
+        trigger.action.outSoundForUnit(unit_id, "transmission1.ogg")
+        return false
+    end
+
+    for _, required_part_name in ipairs(ctld.farp_vehicle_requirements) do
+        local req_obj = found_parts[required_part_name]
+        if req_obj and req_obj:isExist() then
+            req_obj:destroy()
+        end
+    end
+
+
+    ctld.displayConstructedFarp(farp, unit_id)
+    return true
+end
+
+-- Sounds and text included
+---@param farp ConstructedFARP
+---@param unit_id any|nil    
+function ctld.displayConstructedFarp(farp, unit_id)
+    if not farp then return end
+    if farp.linked_zone then
+        farp.linked_zone:drawF10(string.format("%s Operational", farp.display_name or farp.farp_name))
+
+        if unit_id then
+        trigger.action.outTextForUnit(unit_id,string.format("FARP constructed at %s and active.", farp.linked_zone.name),10)
+        end
+    else
+        if farp.mark_id then
+            trigger.action.removeMark(farp.mark_id)
+        end
+        local next_id = nextMarkId()
+        farp.mark_id = next_id
+
+        if unit_id then
+        trigger.action.outTextForUnit(unit_id,"FARP constructed and active.",10)
+        end
+        trigger.action.textToAll(farp.coalition,next_id,farp.point,{0, 0.1, 0.5, 1},{0.5, 0.8, 1, 0.3},13,true,string.format(" %s", farp.display_name or farp.farp_name))
+    end
+
+    if not unit_id then return end
+    trigger.action.outSoundForUnit(unit_id, "transmission1.ogg")
+end
 
 ---@param unit Unit
 ---@param part part
@@ -1139,7 +1428,84 @@ function ctld.spawnTroop(unit,part)
     end
 end
 
+--- Performance-friendly periodic check for destroyed FARPs
+--- Monitors Invisible FARP markers; if destroyed, removes FARP and notifies coalition
+function ctld.monitorFARPDestruction()
+    if not ctld.FARPs or #ctld.FARPs == 0 then
+        return
+    end
 
+    local destroyed_farps = {}
+    for i, farp in ipairs(ctld.FARPs) do
+        -- Check if any units are near the FARP
+        local invisible_farp = StaticObject.getByName(farp.farp_name)
+        if not invisible_farp or not invisible_farp:isExist() then
+            table.insert(destroyed_farps, i)
+        else
+            local sphere = {
+                id = world.VolumeType.SPHERE,
+                params = {
+                    point = farp.point,
+                    radius = 200 -- Check within 200m for any units (to catch FARPs that are heavily damaged but not fully destroyed)
+                }
+            }
+            local units_nearby = false
+            world.searchObjects({Object.Category.UNIT, Object.Category.STATIC}, sphere, function(obj)
+                if obj and obj:isExist() then
+                    units_nearby = true
+                    return false -- Stop searching, we found a unit near the FARP
+                end
+                return true
+            end)
+            if not units_nearby then
+                table.insert(destroyed_farps, i)
+            end
+        end
+
+
+    end
+
+    -- Remove destroyed FARPs (iterate in reverse to avoid index shifts)
+    for i = #destroyed_farps, 1, -1 do
+        local idx = destroyed_farps[i]
+        local farp = ctld.FARPs[idx]
+        if farp then
+            local farp_display_name = farp.display_name or farp.farp_name
+            
+            MissionLogger:info(string.format("FARP %s destroyed. Removing from active FARPs.", farp_display_name))
+            
+            -- Broadcast to coalition
+            trigger.action.outTextForCoalition(farp.coalition,string.format("Sector ALERT: %s FARP has been destroyed.", farp_display_name),10)
+            trigger.action.outSoundForCoalition(farp.coalition,"alert1.ogg")
+            timer.scheduleFunction(function ()
+                trigger.action.outSoundForCoalition(farp.coalition,"alert1.ogg")
+            end,{},timer.getTime()+1)
+
+            -- Remove FARP from registry
+            table.remove(ctld.FARPs, idx)
+            -- Remove FARP from ctld assets table
+            for j = #ctld.placed_assets, 1, -1 do
+                local asset = ctld.placed_assets[j]
+                if asset.unit_name == farp.farp_name then
+                    table.remove(ctld.placed_assets, j)
+                end
+            end
+
+            -- Remove invisible farp
+            local invisible_farp = StaticObject.getByName(farp.farp_name)
+            if invisible_farp and invisible_farp:isExist() then
+                invisible_farp:destroy()
+            end
+
+            -- Update linked zone if applicable
+            if farp.linked_zone then
+                farp.linked_zone:drawF10()
+            elseif farp.mark_id then
+                trigger.action.removeMark(farp.mark_id)
+            end
+        end
+    end
+end
 
 function ctld.isPackedAsset(asset_name)
     -- Matches with prefix in config

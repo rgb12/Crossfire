@@ -18,7 +18,7 @@ do
         if Config.persistence.enable and lfs and io then
             PersistenceManager.enabled = true
             PersistenceManager:checkPath()
-            trigger.action.outText("Persistence enabled.",60)
+            timer.scheduleFunction(function() trigger.action.outText("Persistence enabled.",30) end, {}, timer.getTime() + 2)
             return true
         elseif Config.persistence.enable then
             PersistenceManager.enabled = false
@@ -95,12 +95,36 @@ do
                 end
             end
         end
+
+        -- Save carrier warehouse
         if Scenario.carrier_setup.enabled and Scenario.carrier_setup.carrier_unit_name then
             local carrier = Airbase.getByName(Scenario.carrier_setup.carrier_unit_name)
             if carrier then
                 local warehouse = carrier:getWarehouse()
                 if warehouse then
                     PersistenceManager.data.warehouses[Scenario.carrier_setup.carrier_unit_name] = warehouse:getInventory()
+                end
+            end
+        end
+        -- Save constructed FARP warehouses and FARP registry
+        PersistenceManager.data.ctld_farps = {}
+        if ctld.FARPs then
+            for _, farp_data in ipairs(ctld.FARPs) do
+                if farp_data.farp_name then
+                    local farp = Airbase.getByName(farp_data.farp_name)
+                    if farp then
+                        local warehouse = farp:getWarehouse()
+                        if warehouse then
+                            PersistenceManager.data.warehouses[farp_data.farp_name] = warehouse:getInventory()
+                        end
+                    end
+                    table.insert(PersistenceManager.data.ctld_farps, {
+                        farp_name = farp_data.farp_name,
+                        display_name = farp_data.display_name,
+                        point = farp_data.point,
+                        coalition = farp_data.coalition,
+                        linked_zone_name = farp_data.linked_zone and farp_data.linked_zone.name or nil
+                    })
                 end
             end
         end
@@ -144,10 +168,10 @@ do
                     local obj = nil
                     local obj_exists = false
                     
-                    -- Check if it's a static object (cargo crates)
-                    if asset.type == ctld.AssetTypes.CARGO_CRATES then
+                    -- Check if it's a static object (cargo crates, FARPs)
+                    if asset.type == ctld.AssetTypes.CARGO_CRATES or asset.type == ctld.AssetTypes.STATIC then
                         obj = StaticObject.getByName(asset.unit_name)
-                        if obj and obj.isExist and obj:isExist() and obj:getLife() > 1 then
+                        if obj and obj.isExist and obj:isExist() then
                             obj_exists = true
                         end
                     -- Check if it's a unit (troops, vehicles, unpacked units)
@@ -160,7 +184,18 @@ do
                     
                     -- Save if object exists and is alive
                     if obj_exists and obj then
-                        if not obj:inAir() then
+                        if asset.type == ctld.AssetTypes.STATIC then
+                            
+                            table.insert(PersistenceManager.data.placed_assets, {
+                                unit_name = asset.unit_name,
+                                asset_name = asset.asset_name,
+                                category = asset.category,
+                                shape_name = asset.shape_name,
+                                type = asset.type,
+                                point = obj:getPoint(),
+                                coalition = asset.coalition
+                            })
+                        elseif not obj:inAir() then
                             table.insert(PersistenceManager.data.placed_assets, {
                                 unit_name = asset.unit_name,
                                 asset_name = asset.asset_name,
@@ -407,7 +442,45 @@ do
         
         MissionLogger:info("Zone states and units restored.")
 
-        -- 4. Restore Warehouses
+        -- 4. Pre-spawn CTLD FARP statics so Airbase.getByName() works during warehouse restore
+        if PersistenceManager.data.placed_assets then
+            for _, saved_asset in ipairs(PersistenceManager.data.placed_assets) do
+                if saved_asset.type == ctld.AssetTypes.STATIC then
+                    local country_id = saved_asset.coalition == coalition.side.BLUE and country.id["CJTF_BLUE"] or country.id["CJTF_RED"]
+                    mist.dynAddStatic({
+                        type = saved_asset.asset_name,
+                        shape_name = saved_asset.shape_name,
+                        name = saved_asset.unit_name,   -- preserve original name so warehouse key matches
+                        country = country_id,
+                        category = saved_asset.category or "Fortifications",
+                        x = saved_asset.point.x,
+                        y = saved_asset.point.z,
+                        heading = 0
+                    })
+                end
+            end
+        end
+
+        -- Restore ctld.FARPs registry
+        if PersistenceManager.data.ctld_farps then
+            ctld.FARPs = {}
+            for _, saved_farp in ipairs(PersistenceManager.data.ctld_farps) do
+                ---@type ConstructedFARP
+                local farp = {
+                    farp_name = saved_farp.farp_name,
+                    display_name = saved_farp.display_name,
+                    point = saved_farp.point,
+                    coalition = saved_farp.coalition,
+                    linked_zone = saved_farp.linked_zone_name and ZoneHandler.getFromName(saved_farp.linked_zone_name) or nil
+                }
+
+                table.insert(ctld.FARPs, farp)
+                ctld.displayConstructedFarp(farp)
+            end
+            MissionLogger:info(string.format("Restored %d CTLD FARPs.", #ctld.FARPs))
+        end
+
+        -- 5. Restore Warehouses
         for airbase_name, saved_inventory in pairs(PersistenceManager.data.warehouses) do
             local airbase = Airbase.getByName(airbase_name)
             if airbase then
@@ -429,7 +502,7 @@ do
             end
         end
         
-        -- 5. Restore Placed Assets (CTLD cargo, troops, vehicles, groups)
+        -- 6. Restore Placed Assets (CTLD cargo, troops, vehicles, groups)
         mist.nextGroupId = PersistenceManager.data.ctld_last_group_id or mist.getNextGroupId()
         mist.nextUnitId = PersistenceManager.data.ctld_last_unit_id or mist.getNextUnitId()
 
@@ -480,45 +553,57 @@ do
                     if not saved_asset.point or not saved_asset.asset_name or not saved_asset.coalition then
                         MissionLogger:warn("Skipping invalid placed asset: missing required data")
                     else
-                        local part = nil
-                        for _, p in ipairs(ctld.parts) do
-                            if p.name == saved_asset.asset_name then
-                                part = p
-                                break
+                        if saved_asset.type == ctld.AssetTypes.STATIC then
+                            table.insert(ctld.placed_assets, {
+                                unit_name = saved_asset.unit_name,
+                                asset_name = saved_asset.asset_name,
+                                category = saved_asset.category,
+                                shape_name = saved_asset.shape_name,
+                                type = saved_asset.type,
+                                point = saved_asset.point,
+                                coalition = saved_asset.coalition
+                            })
+                        else
+                            local part = nil
+                            for _, p in ipairs(ctld.parts) do
+                                if p.name == saved_asset.asset_name then
+                                    part = p
+                                    break
+                                end
                             end
-                        end
-                        
-                        if part then
-                            -- Determine country from coalition
-                            local country_id = saved_asset.coalition == coalition.side.BLUE and country.id["CJTF_BLUE"] or country.id["CJTF_RED"]
+                            
+                            if part then
+                                -- Determine country from coalition
+                                local country_id = saved_asset.coalition == coalition.side.BLUE and country.id["CJTF_BLUE"] or country.id["CJTF_RED"]
 
-                            if saved_asset.type == ctld.AssetTypes.TROOPS or saved_asset.type == ctld.AssetTypes.VEHICLES then
-                                -- Respawn as unit with "unpacked" prefix for vehicles to enable unitAttack
-                                local u_id = mist.getNextUnitId()
-                                local unit_name = saved_asset.type == ctld.AssetTypes.VEHICLES
-                                    and Config.ctld.unpacked_asset_prefix ..part.name .. "_" .. u_id
-                                    or part.name .. "_" .. u_id
-                                
-                                local spawned_group = mist.dynAdd({
-                                    units = {{
-                                        type = part.name,
-                                        unitId = u_id,
-                                        name = unit_name,
-                                        x = saved_asset.point.x,
-                                        y = saved_asset.point.z,
-                                    }},
-                                    country = country_id,
-                                    category = Group.Category.GROUND,
-                                })
-                                
-                                if spawned_group then
-                                    table.insert(ctld.placed_assets, {
-                                        unit_name = unit_name,
-                                        asset_name = part.name,
-                                        point = saved_asset.point,
-                                        type = saved_asset.type,
-                                        coalition = saved_asset.coalition
+                                if saved_asset.type == ctld.AssetTypes.TROOPS or saved_asset.type == ctld.AssetTypes.VEHICLES then
+                                    -- Respawn as unit with "unpacked" prefix for vehicles to enable unitAttack
+                                    local u_id = mist.getNextUnitId()
+                                    local unit_name = saved_asset.type == ctld.AssetTypes.VEHICLES
+                                        and Config.ctld.unpacked_asset_prefix ..part.name .. "_" .. u_id
+                                        or part.name .. "_" .. u_id
+                                    
+                                    local spawned_group = mist.dynAdd({
+                                        units = {{
+                                            type = part.name,
+                                            unitId = u_id,
+                                            name = unit_name,
+                                            x = saved_asset.point.x,
+                                            y = saved_asset.point.z,
+                                        }},
+                                        country = country_id,
+                                        category = Group.Category.GROUND,
                                     })
+                                    
+                                    if spawned_group then
+                                        table.insert(ctld.placed_assets, {
+                                            unit_name = unit_name,
+                                            asset_name = part.name,
+                                            point = saved_asset.point,
+                                            type = saved_asset.type,
+                                            coalition = saved_asset.coalition
+                                        })
+                                    end
                                 end
                             end
                         end
@@ -532,7 +617,7 @@ do
         if not stats.red_supplies then stats.red_supplies = 0 end
         
         MissionLogger:info("Mission state successfully restored.")
-        trigger.action.outText("Mission state restored from last save.", 10)
+        -- trigger.action.outText("Mission state restored from last save.", 10)
         return true
     end
 

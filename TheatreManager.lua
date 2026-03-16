@@ -381,6 +381,7 @@ do
 
                     
             end
+            ctld.monitorFARPDestruction()
         end
 
         local t5m_update = function()

@@ -5,12 +5,13 @@
 
     Not all settings are editable from this file, some are hardcoded to ensure mission stability.
 
-    Some values contains *, this means that you can use multiplications to get your desired value.
+    Some values contain *, this symbol represents multiplication.
     Ex: 5*60 = 300 seconds, or 5 minutes.
 
     Do not remove the commas at the end of each line. For example: 
         enable = true,  <--- comma must be here
     Refer to the comments for details on each field
+    Comments start with "--"
 
     It is recommended to use a code editor such as VSCode, Notepad++, Sublime Text, etc. to edit this file.
 ]]
@@ -20,18 +21,18 @@ Config = {
         save_interval = 5*51, -- (seconds) interval at which the mission state is saved
         -- You can use fixed values or multiplications like above
         -- 51 seconds is used to avoid multiples of 15 to reduce lag spikes
-        save_dir = "Missions/Saves/Crossfire Syrian Resolve/", -- this is your saves directory in Saved Games
+        save_dir = "Missions/Saves/Crossfire Georgia Liberation/", -- this is your saves directory in Saved Games
         -- If you would like to create a new mission, simple change the last folder name
         save_file = "mission.json", -- this is the name of the mission file
-        user_data_file = "user_data.json", -- this is the name of user data only file, note that this only saves user xp, tokens ans rank
+        user_data_file = "user_data.json", -- this is the name of user data only file, note that this only saves user xp and rank
 
         enable_ctld_persistence = true, -- enables/disables CTLD placed asset persistence
 
-        random_scenario_selection = false, -- allows the script to randomly choose a random scenario, authority over scenario selection
-        scenario_selected = "Syrian Resolve", -- subject to the field above, choose your own scenario from the scenarios found below
+
+        scenario_selected = "Georgia Liberation", -- select a scenario from the scenarios found below
+        --scenario_selected = "Syrian Resolve", -- select a scenario from the scenarios found below
     },
     operations = {
-        recon_minimum_altitude = 1524, -- (meters)
         recon_duration = 120, -- (seconds)
         recon_distance_from_zone = 20000, -- (meters)
         cap_duration = 8*60, -- (seconds)
@@ -123,14 +124,15 @@ Config = {
 
     allow_air_spawn = false, -- prevents or not air spawns for players
     enable_slot_blocker = true, -- enables/disables the slot blocker system to prevent players spawning in enemy airbases
+    enable_warehouse = true, -- this does not disable/enable the system, but stocks will be nearly unlimited if disabled
+    allow_resupply = true, -- this will enable/disable resupply aircrafts, this will make the misison significantly harder
     enabled_su25t_blufor = true, -- adds the SU-25T to the blufor warehouse inventory
 
-    red_stock_multiplier = 5, -- multiplier for redfor warehouse stocks, compared to blufor
+    red_stock_multiplier = 50, -- multiplier for redfor warehouse stocks, compared to blufor
 
     cooldown_before_capture_attempt = 10*60, -- (seconds)
     retry_capture_chance = 50, -- (%)
     
-    allow_resupply = true, -- this will enable/disable resupply aircrafts, this will make the misison significantly harder
     std_resupply_time = 45*60, -- (seconds) periodic resupply aircraft time interval
     random_resupply_types = true , -- enables/disables random resupply types, if disabled only INITIAL resupplies will arrive
     -- INITIAL resupply is equivalent to what the warehouses were given at mission start
@@ -149,16 +151,16 @@ Config = {
             FARP = 2500,              -- FARP complete resupply
             
             AA_AIRCRAFT = 4000,       -- Air-to-air focused aircraft
-            AG_AIRCRAFT = 4500,       -- Air-to-ground focused aircraft (more expensive due to ordnance)
+            AG_AIRCRAFT = 4500,       -- Air-to-ground focused aircraft
             CARGO_AIRCRAFT = 3000,    -- Transport/utility aircraft
             
             -- Weapons resupply costs (balance: 2-4 loadouts per 5 minutes of income)
             AIR_AIR_LONG_RANGE = 2000,            -- AIM-120, AIM-54, etc.
             AIR_AIR_SHORT_RANGE = 1500,           -- AIM-9, R-73, etc.
             
-            AIR_GROUND_GUIDED_MISSILES = 4000,   -- AGM-65, Hellfire, etc.
-            AIR_GROUND_GUIDED_BOMBS = 3000,       -- GBU-12, GBU-38, etc.
-            AIR_GROUND_BOMBS = 1500,              -- Mk-82, Mk-84, etc.
+            AIR_GROUND_GUIDED_MISSILES = 3000,   -- AGM-65, Hellfire, etc.
+            AIR_GROUND_GUIDED_BOMBS = 1500,       -- GBU-12, GBU-38, etc.
+            AIR_GROUND_BOMBS = 900,              -- Mk-82, Mk-84, etc.
             AIR_GROUND_ROCKETS = 500,            -- Hydra, S-8, etc.
             
             ECM = 5000,                -- Jamming pods, countermeasures
@@ -170,7 +172,7 @@ Config = {
             SEAD = 1500,
             STRIKE = 1200,
             CAP = 1000,
-            AWACS = 1200,
+            AWACS = 600,
             RECON = 1000,
             CAPTURE_HELO = 400,
         }
@@ -191,44 +193,32 @@ Config = {
         -- Co-op reward bonuses
         coop_xp_bonus = 0.20, -- 20% bonus to XP and tokens when playing co-op operations (multiplier applied to both XP and tokens)
 
-        tokens_mission_complete = {
-            [OperationTypes.AIRDROP] = 20,
-            [OperationTypes.CAP] = 5,
-            [OperationTypes.CAS] = 20,
-            [OperationTypes.SEAD] = 15,
-            [OperationTypes.STRIKE] = 15,
-            [OperationTypes.DEAD] = 30,
-            [OperationTypes.RECON] = 10,
-            [OperationTypes.INTERCEPT] = 10,
-            [OperationTypes.CSAR] = 30
-        },
-
         xp_required = {
             [AITaskTypes.JTAC]           = 0,
-            [AITaskTypes.RECON]          = 2000,   -- ~2-3 hours
-            [AITaskTypes.CAP]            = 5000,   -- ~5-8 hours
-            [AITaskTypes.CAS]            = 10000,  -- ~10-15 hours (Major milestone)
-            [AITaskTypes.STRIKE]         = 15000,  -- ~20 hours
+            [AITaskTypes.RECON]          = 2000,
+            [AITaskTypes.CAP]            = 5000,
+            [AITaskTypes.CAS]            = 10000,  -- (Major milestone)
+            [AITaskTypes.STRIKE]         = 15000,
             [AITaskTypes.SEAD]           = 20000,  -- ~25 hours
             [AITaskTypes.CAPTURE_HELO]   = 5000,
             [AITaskTypes.RESUPPLY_CARGO] = 40000,
-            [AITaskTypes.AWACS]          = 60000,  -- High level role (~70 hours)
+            [AITaskTypes.AWACS]          = 60000,  -- ~70 hours
         },
 
         ranks = {
             [1]  = { name = "Airman Basic",      xp_required = 0 },
-            [2]  = { name = "Airman",            xp_required = 1000 },  -- 1 Hour
+            [2]  = { name = "Airman",            xp_required = 1000 },
             [3]  = { name = "Airman First Class",xp_required = 2500 },
-            [4]  = { name = "Senior Airman",     xp_required = 5000 },  -- ~5 Hours
+            [4]  = { name = "Senior Airman",     xp_required = 5000 },
             [5]  = { name = "Staff Sergeant",    xp_required = 8000 },
             [6]  = { name = "Technical Sergeant",xp_required = 12000 },
             [7]  = { name = "Master Sergeant",   xp_required = 16000 },
-            [8]  = { name = "Senior Master Sergeant", xp_required = 20000 }, -- ~20-25 Hours
+            [8]  = { name = "Senior Master Sergeant", xp_required = 20000 },
             [9]  = { name = "Chief Master Sergeant",  xp_required = 25000 },
 
             [10] = { name = "Second Lieutenant", xp_required = 32000 },
             [11] = { name = "First Lieutenant",  xp_required = 40000 },
-            [12] = { name = "Captain",           xp_required = 48000 }, -- ~50 Hours (Halfway)
+            [12] = { name = "Captain",           xp_required = 48000 },
             [13] = { name = "Major",             xp_required = 58000 },
             [14] = { name = "Lieutenant Colonel",xp_required = 68000 },
             [15] = { name = "Colonel",           xp_required = 78000 },
@@ -236,7 +226,7 @@ Config = {
             [17] = { name = "Major General",     xp_required = 90000 },
             [18] = { name = "Lieutenant General",xp_required = 95000 },
             [19] = { name = "General",           xp_required = 98000 },
-            [20] = { name = "Commander",         xp_required = 100000 }, -- ~100 Hours
+            [20] = { name = "Commander",         xp_required = 100000 },
         }
 
     },
@@ -263,18 +253,10 @@ Config = {
         comms_zones_required_for_cap = 1, --*checks if antenna is alive
         comms_zones_required_for_awacs = 3, --*checks if antenna is alive
         comms_zones_required_for_recon = 1, --*checks if antenna is alive
-
-        tokens_required_for_jtac = 5,
-        tokens_required_for_cas = 10,
-        tokens_required_for_sead = 15,
-        tokens_required_for_strike = 15,
-        tokens_required_for_cap = 10,
-        tokens_required_for_awacs = 30,
-        tokens_required_for_recon = 10,
-        tokens_required_for_capture_helicopter = 10,
     },
-    comms_tower_respawn_time = 45*60, -- (seconds), the timer decreases by 25% for every level
-    comms_tower_lost_penalty = 1.1, -- the respawn time is multiplied by this much when a comms tower is lost
+    comms_tower_respawn_time = 45*60, -- (seconds)
+    
+    comms_tower_lost_penalty = 1.1, -- the respawn time is multiplied by this much when a comms tower is lost @depracted
 
     tasking = {
         enable = true, -- enables/disables AI tasking system, does not affect resupply and capture mechanics
@@ -310,14 +292,28 @@ Config = {
     ctld = {
         unpacked_asset_prefix = "unpacked_",
         packed_asset_prefix = "packed_",
-        max_placed_assets = 500,  -- Global limit for all placed assets
+        max_placed_assets = 150,  -- Global limit for all placed assets
         allowed_load_zones = {ZoneTypes.FARP, ZoneTypes.AIRBASE, ZoneTypes.LOGISTICS},
+        allow_load_anywhere = false,  -- If true, players can load/unload assets anywhere, ignoring allowed_load_zones
         cargo_crate_template = "container_cargo",
         search_radius = 100,  -- meters
         random_crate_spacing = 6,  -- meters
-        allow_unpacking_in_zones = false,
-        allow_unloading_in_zones = false,
+        allow_unpacking_in_zones = true,
+        allow_unloading_in_zones = true,
         enable_weighted_loading = false,
+
+        FARP_names = {
+            "Elara",
+            "Io",
+            "Ariel",
+            "Europa",
+            "Mars",
+            "Jupiter",
+            "Phobos",
+            "Deimos",
+            "Callisto",
+            "Iocaste"
+        }
     },
 
     capture_helicopter_max_range = 100*1000 , -- (meters)
