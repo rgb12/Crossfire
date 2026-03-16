@@ -127,6 +127,7 @@ function Jupiter:onEvent(event)
             end
         elseif command == "-clearctldassets" then
             ctld.placed_assets = {}
+            ctld.FARPs = {}
             trigger.action.outText("Jupiter: Cleared all CTLD cached placed assets.", 5)
             cmd_executed = true
         elseif command == "-logstats" then
@@ -188,7 +189,7 @@ function Jupiter:onEvent(event)
                 end
             end
         elseif command == "-getwarehouse" then
-            param1 = Airbases.Syria.Ruwayshid
+            param1 = Airbases.Caucasus.Beslan
             if param1 then
                 local airbase = Airbase.getByName(param1)
                 if airbase then
@@ -198,7 +199,7 @@ function Jupiter:onEvent(event)
                     trigger.action.outText(mist.utils.tableShow(wh),25)
                     cmd_executed = true
                 else
-                    trigger.action.outText("Jupiter: No airbase found for airbase", 5)
+                    trigger.action.outText("Jupiter: No airbase found for airbase "..param1, 5)
                 end
             end
             if not cmd_executed then
@@ -212,8 +213,6 @@ function Jupiter:onEvent(event)
                             trigger.action.outText("Jupiter: .."..zone.name.." warehouse inventory", 5)
                             trigger.action.outText(mist.utils.tableShow(wh),25)
                             cmd_executed = true
-                        else
-                            trigger.action.outText("Jupiter: No airbase found for zone "..zone.name, 5)
                         end
                     end
                 end
@@ -232,30 +231,6 @@ function Jupiter:onEvent(event)
             end
             MissionLogger:info(zone_names)
             cmd_executed = true
-        elseif command == "-addtokens" then
-            local tokens_to_add = tonumber(param1) or 10
-            -- Find all players within 500m of the marker
-            local volS = {
-                id = world.VolumeType.SPHERE,
-                params = { point = vec3, radius = 500 }
-            }
-            local players_found = 0
-            local function addTokensToPlayer(obj, val)
-                if obj and obj:isExist() and obj:getPlayerName() then
-                    local user = ExperienceManager:fetchUser(obj)
-                    if user then
-                        user.tokens = user.tokens + tokens_to_add
-                        trigger.action.outTextForUnit(user.id, string.format("Jupiter: You have been awarded %d tokens!", tokens_to_add), 10)
-                        players_found = players_found + 1
-                    end
-                end
-                return true
-            end
-            
-            world.searchObjects({Object.Category.UNIT}, volS, addTokensToPlayer)
-            trigger.action.outText(string.format("Jupiter: Added %d tokens to %d players within 500m.", tokens_to_add, players_found), 5)
-            cmd_executed = true
-
         elseif command == "-destroy" then
             local radius = tonumber(param1) or 5000 -- Default 5000m radius
             local count = 0
@@ -355,7 +330,7 @@ function Jupiter:onEvent(event)
             if param1 == "help" then
                 trigger.action.outText(mist.utils.tableShow(WarehouseManager.StockTypes),25)
                 cmd_executed = true
-            else 
+            else
                 local stocktype_num = tonumber(param1) or 1
                 local closest_zone, dist = getClosestZone(vec3)
                 if closest_zone and dist <= 10000 and closest_zone.airbase_name then
