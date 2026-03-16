@@ -38,7 +38,7 @@ do
     JTAC.categories['Infantry'] = {'Infantry'}
     JTAC.categories['Armor'] = {'Tanks','IFV','APC'}
     JTAC.categories['Support'] = {'Unarmed vehicles','Artillery'}
-    JTAC.categories['Structures'] = {'StaticObjects'}
+    --JTAC.categories['Structures'] = {'StaticObjects'}
 
     ---@return JTAC
     function JTAC:new(obj)
@@ -175,7 +175,6 @@ do
                 end
             end
         end
-
 
         -- Build priority_targets if priority is set
         if self.priority then
