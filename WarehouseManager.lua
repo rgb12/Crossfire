@@ -1678,6 +1678,25 @@ do
     
             end
         end
+
+        if utils.tableContains(stock_types, WarehouseManager.StockTypes.FARP) then
+            -- add liquids
+            local scale = WarehouseManager:getStockScale()
+            if side == coalition.side.RED and Config.red_stock_multiplier then
+                scale = scale * Config.red_stock_multiplier
+            end
+            --[[
+            0    : jetfuel
+            1    : Aviation gasoline
+            2    : MW50
+            3    : Diesel
+            ]]
+            warehouse:addLiquid(0, 50000 * scale) -- jetfuel
+            warehouse:addLiquid(1, 20000 * scale) -- avgas  
+            warehouse:addLiquid(2, 5000 * scale)  -- MW50
+            warehouse:addLiquid(3, 10000 * scale) -- diesel
+        end
+
         return added_stuff_tbl
     end
 
