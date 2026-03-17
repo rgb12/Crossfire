@@ -128,10 +128,10 @@ Config = {
     allow_resupply = true, -- this will enable/disable resupply aircrafts, this will make the misison significantly harder
     enabled_su25t_blufor = true, -- adds the SU-25T to the blufor warehouse inventory
 
-    red_stock_multiplier = 50, -- multiplier for redfor warehouse stocks, compared to blufor
+    red_stock_multiplier = 50, -- multiplier for redfor only warehouse stocks
 
     cooldown_before_capture_attempt = 10*60, -- (seconds)
-    retry_capture_chance = 50, -- (%)
+    retry_capture_chance = 50, -- (%) Every minute, subject to various checks and conditions
     
     std_resupply_time = 45*60, -- (seconds) periodic resupply aircraft time interval
     random_resupply_types = true , -- enables/disables random resupply types, if disabled only INITIAL resupplies will arrive
@@ -191,7 +191,7 @@ Config = {
 
         
         -- Co-op reward bonuses
-        coop_xp_bonus = 0.20, -- 20% bonus to XP and tokens when playing co-op operations (multiplier applied to both XP and tokens)
+        coop_xp_bonus = 0.25, -- (%) bonus to XP and tokens when playing co-op operations (multiplier applied to XP)
 
         xp_required = {
             [AITaskTypes.JTAC]           = 0,
@@ -234,8 +234,7 @@ Config = {
 
         -- Weights for random generation (Airbases are excluded)
         -- 50% of zones will be strongpoints
-        -- 20% logistics
-        -- etc.
+        -- 20% logistics   
         zone_type_weights = {
             [ZoneTypes.STRONGPOINT] = 50,
             [ZoneTypes.LOGISTICS]   = 20,
@@ -243,16 +242,18 @@ Config = {
             [ZoneTypes.COMMS]       = 10,
             [ZoneTypes.EWSITE]      = 5,
         },
+        -- The script ensures all essential zone types are present, bypassing the above if needed
 
     },
     tasking_requirements = {
-        comms_zones_required_for_jtac = 0, --*checks if antenna is alive
-        comms_zones_required_for_cas = 2, --*checks if antenna is alive
-        comms_zones_required_for_sead = 3, --*checks if antenna is alive
-        comms_zones_required_for_strike = 2, --*checks if antenna is alive
-        comms_zones_required_for_cap = 1, --*checks if antenna is alive
-        comms_zones_required_for_awacs = 3, --*checks if antenna is alive
-        comms_zones_required_for_recon = 1, --*checks if antenna is alive
+        --*checks if rnough antennas are alive, not the zones themselves
+        comms_zones_required_for_jtac = 0,
+        comms_zones_required_for_cas = 2,
+        comms_zones_required_for_sead = 3,
+        comms_zones_required_for_strike = 2,
+        comms_zones_required_for_cap = 1,
+        comms_zones_required_for_awacs = 3,
+        comms_zones_required_for_recon = 1,
     },
     comms_tower_respawn_time = 45*60, -- (seconds)
     
@@ -292,12 +293,12 @@ Config = {
     ctld = {
         unpacked_asset_prefix = "unpacked_",
         packed_asset_prefix = "packed_",
-        max_placed_assets = 150,  -- Global limit for all placed assets
+        max_placed_assets = 300,  -- Global limit for all placed assets
         allowed_load_zones = {ZoneTypes.FARP, ZoneTypes.AIRBASE, ZoneTypes.LOGISTICS},
         allow_load_anywhere = false,  -- If true, players can load/unload assets anywhere, ignoring allowed_load_zones
         cargo_crate_template = "container_cargo",
-        search_radius = 100,  -- meters
-        random_crate_spacing = 6,  -- meters
+        search_radius = 100,  -- (meters)
+        random_crate_spacing = 6,  -- (meters)
         allow_unpacking_in_zones = true,
         allow_unloading_in_zones = true,
         enable_weighted_loading = false,
@@ -339,7 +340,7 @@ Config = {
         tier_4 = 0.40, -- % of supplies to tier 4 airbases
     },
 
-    upgrade_tier_range = 50000,
+    upgrade_tier_range = 50000, -- (meters) Zones must be within this distance from logistics zones in order to allow tier upgrades
 
     EWRS = {
         enable = true, -- enables/disables the EWRS system
@@ -353,7 +354,7 @@ Config = {
             {0.7, 0, 0, 0.9},   -- Border color (r g b: values from 0 to 1, a: transparency from 0 to 1)
             {0.7, 0, 0, 0.25},  -- Fill color
             {0.5, 0.1, 0.1, 1},   -- Text color
-            {1, 0.5, 0.5, 0.3}    -- Text BG
+            {1, 0.5, 0.5, 0.3}    -- Text background
         },
         blue_palette = {
             {0, 0.2, 0.8, 0.9},
