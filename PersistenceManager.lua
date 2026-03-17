@@ -30,12 +30,12 @@ do
     end
 
 
-    --- Gathers all mission-critical data into the data table.
+    --- Gathers all mission data into the data table.
     function PersistenceManager:fetchState()
         if not PersistenceManager.enabled then return end  
         PersistenceManager.data = {} -- Clear old data
 
-        -- 1. Save Scenario (the home bases)
+        -- 1. Save Scenario (home bases)
         PersistenceManager.data.scenario = Scenario
         -- PersistenceManager.data.scenario = {
         --     blue_airbase_name = blue_airbase.name,
@@ -59,7 +59,6 @@ do
                 airbase_name = z.airbase_name,  -- Only for airbases
                 sam_classification = z.sam_classification,  -- Only for SAM sites
                 
-                -- Dynamic counters (must save, can't reconstruct)
                 capture_heli_avail = z.capture_heli_avail or 0,
                 attack_convoy = z.attack_convoy or 0,
                 

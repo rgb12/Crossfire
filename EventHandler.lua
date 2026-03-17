@@ -18,7 +18,7 @@ function ev:onEvent(event)
         if unit and unit.getCategory and unit:getCategory() == Object.Category.UNIT and unit.getCoalition and unit.isExist
         and unit:isExist() and unit.getPlayerName and unit:getPlayerName() then
   
-            local function checkSpawnAllowed()
+            local function checkSpawnAllowed() -- Slot blocker
 
                 if not unit or not unit.isExist or not unit:isExist() or not unit.getCoalition then return end
                 local unit_pos = unit:getPoint()

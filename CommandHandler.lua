@@ -379,6 +379,7 @@ do
             
             
             local farps_resupply_list = {}
+            -- Add FARP zones
             for _,zone in ipairs(zones) do
                 if zone.side == side and zone.zone_type == ZoneTypes.FARP and zone.linked_farp then
                     table.insert(farps_resupply_list, {
@@ -388,7 +389,6 @@ do
                             local farp = args.farp_name
                             local name = args.name
 
-                             -- Instead of tokens use coalition supplies
                             if side == 2 then
                                 if stats.blue_supplies < Config.supplies.resupply_costs.FARP then
                                     trigger.action.outTextForGroup(gr_id,"HQ Negative resupply response for " .. name .. ": supplies low (" .. stats.blue_supplies .. "/" .. Config.supplies.resupply_costs.FARP .. "). Stand by for next resupply or capture additional zones.",8)
@@ -423,7 +423,6 @@ do
                             local farp_name = args.farp_name
                             local name = args.name
 
-                             -- Instead of tokens use coalition supplies
                             if side == 2 then
                                 if stats.blue_supplies < Config.supplies.resupply_costs.FARP then
                                     trigger.action.outTextForGroup(gr_id,"HQ Negative resupply response for " .. name .. ": supplies low (" .. stats.blue_supplies .. "/" .. Config.supplies.resupply_costs.FARP .. "). Stand by for next resupply or capture additional zones.",8)
