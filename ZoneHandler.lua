@@ -662,11 +662,12 @@ do
     ---@param zone_name string
     ---@return ZoneHandler|nil
     function ZoneHandler.getFromName(zone_name)
-        for _, search_zone in ipairs(zones) do
+        for _, search_zone in pairs(zones) do
             if search_zone.name == zone_name then
                 return search_zone
             end
         end
+        return nil
     end
 
     function ZoneHandler:hasCaptureHeliAvailable()

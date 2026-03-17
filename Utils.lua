@@ -242,3 +242,28 @@ do
     end
 
 end
+
+-- This function prevents lost, ignored, invalid zones to be left inside the zones main table
+---@param zone_list table
+---@return ZoneHandler[]
+function utils.compactZoneList(zone_list)
+    local compact = {}
+    local numeric_keys = {}
+
+    for k, _ in pairs(zone_list or {}) do
+        if type(k) == "number" then
+            table.insert(numeric_keys, k)
+        end
+    end
+
+    table.sort(numeric_keys)
+
+    for _, key in ipairs(numeric_keys) do
+        local zone = zone_list[key]
+        if zone then
+            table.insert(compact, zone)
+        end
+    end
+
+    return compact
+end

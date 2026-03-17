@@ -18,7 +18,6 @@ do
         if Config.persistence.enable and lfs and io then
             PersistenceManager.enabled = true
             PersistenceManager:checkPath()
-            timer.scheduleFunction(function() trigger.action.outText("Persistence enabled.",30) end, {}, timer.getTime() + 2)
             return true
         elseif Config.persistence.enable then
             PersistenceManager.enabled = false
@@ -32,7 +31,7 @@ do
 
     --- Gathers all mission data into the data table.
     function PersistenceManager:fetchState()
-        if not PersistenceManager.enabled then return end  
+        if not PersistenceManager.enabled then return end
         PersistenceManager.data = {} -- Clear old data
 
         -- 1. Save Scenario (home bases)
@@ -246,8 +245,8 @@ do
 
                         -- 1. Refund the Airframe
                         local side = enroute.side
-                        if WarehouseManager.AirbaseGroupData[enroute.from_zone.airbase_name] 
-                        and WarehouseManager.AirbaseGroupData[enroute.from_zone.airbase_name][side] 
+                        if WarehouseManager.AirbaseGroupData[enroute.from_zone.airbase_name]
+                        and WarehouseManager.AirbaseGroupData[enroute.from_zone.airbase_name][side]
                         and WarehouseManager.AirbaseGroupData[enroute.from_zone.airbase_name][side][enroute.ai_task_type] then
                             
                             local acft_name = WarehouseManager.AirbaseGroupData[enroute.from_zone.airbase_name][side][enroute.ai_task_type].warehouse_name
@@ -355,20 +354,45 @@ do
         -- 1. Restore Scenario
         ---@type Scenario
 
-        for _,scenario in pairs(Scenarios) do
-            if scenario.name == PersistenceManager.data.scenario.name then
-                Scenario = scenario
-                MissionLogger:info("Scenario restored: " .. Scenario.name)
+        if not PersistenceManager.data.scenario
+        or not PersistenceManager.data.scenario.name
+        or not PersistenceManager.data.scenario.blue_airbase
+        or not PersistenceManager.data.scenario.red_airbase then
+            MissionLogger:error("Restore failed: Save file is missing scenario metadata.")
+            return false
+        end
+
+        local saved_scenario_name = PersistenceManager.data.scenario.name
+        if saved_scenario_name ~= Config.persistence.scenario_selected then
+            MissionLogger:info("Restore failed: Saved scenario '" .. saved_scenario_name .. "' does not match selected scenario '" .. Config.persistence.scenario_selected .. "'.")
+            return false
+        end
+
+        local matched_scenario = nil
+        for _, scenario in pairs(Scenarios) do
+            if scenario.name == saved_scenario_name then
+                matched_scenario = scenario
                 break
             end
         end
+
+        if not matched_scenario then
+            MissionLogger:error("Restore failed: Scenario '" .. saved_scenario_name .. "' was not found in Scenarios.")
+            return false
+        end
+
+        Scenario = matched_scenario
+        MissionLogger:info("Scenario restored: " .. Scenario.name)
+
+        local blue_airbase_candidate = ZoneHandler.getFromName(PersistenceManager.data.scenario.blue_airbase.name)
+        local red_airbase_candidate = ZoneHandler.getFromName(PersistenceManager.data.scenario.red_airbase.name)
         
-        blue_airbase = ZoneHandler.getFromName(PersistenceManager.data.scenario.blue_airbase.name)
-        red_airbase = ZoneHandler.getFromName(PersistenceManager.data.scenario.red_airbase.name)
-        if not (blue_airbase and red_airbase) then
+        if not (blue_airbase_candidate and red_airbase_candidate) then
             MissionLogger:error("Restore failed: Could not find home airbases.")
             return false
         end
+        blue_airbase = blue_airbase_candidate
+        red_airbase = red_airbase_candidate
 
         -- 2. Restore Stats
         stats = PersistenceManager.data.stats
