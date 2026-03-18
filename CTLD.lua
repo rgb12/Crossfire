@@ -85,6 +85,7 @@ ctld.farp_vehicle_requirements = {
 
 ---@class ctld_user
 ---@field parts part[]
+---@field mass number
 ---@field unit Unit
 ---@field is_dynamic_cargo boolean
 
@@ -306,7 +307,8 @@ function ctld.load(part, unit)
         ctld.users[unit_id] = {
             parts = {},
             unit = unit,
-            is_dynamic_cargo = ctld.isDynamicCargoCapable(unit)
+            is_dynamic_cargo = ctld.isDynamicCargoCapable(unit),
+            mass = 0
         }
         user = ctld.users[unit_id]
     end
@@ -356,22 +358,6 @@ function ctld.load(part, unit)
         end
     end
 
-    -- Checks weight limit
-    if Config.ctld.enable_weighted_loading then
-        if not ctld.isDynamicCargoCapable(unit) then
-            local total_weight = 0
-            for _, p in ipairs(user.parts) do
-                total_weight = total_weight + p.weight
-            end
-            total_weight = total_weight + part.weight
-            if total_weight > aircraft_limit.weight_limit then
-                trigger.action.outTextForUnit(unit_id,"Negative, cannot load: "..part.desc..", weight limit exceeded ("..aircraft_limit.weight_limit.." kg)", 5)
-                trigger.action.outSoundForUnit(unit_id, "transmission1.ogg")
-                return
-            end
-        end
-    end
-
     -- Check if MOAB in stock
      -- Checks if MOAB in warehouse
     if part.name == ctld.CargoCrates.MOAB then
@@ -395,6 +381,20 @@ function ctld.load(part, unit)
             trigger.action.outTextForUnit(unit_id, "Negative, no MOABs available in warehouse for deployment.", 10)
             trigger.action.outSoundForUnit(unit_id, "transmission1.ogg")
             return
+        end
+    end
+
+    -- Checks weight limit
+    if Config.ctld.enable_weighted_loading then
+        if not ctld.isDynamicCargoCapable(unit) then
+            if user.mass+part.weight > aircraft_limit.weight_limit then
+                trigger.action.outTextForUnit(unit_id,"Negative, cannot load: "..part.desc..", weight limit exceeded ("..user.mass+part.weight.."/"..aircraft_limit.weight_limit.." kg)", 5)
+                trigger.action.outSoundForUnit(unit_id, "transmission1.ogg")
+                return
+            else
+                user.mass = user.mass + part.weight
+                trigger.action.setUnitInternalCargo(unit:getName(), user.mass)
+            end
         end
     end
 
@@ -748,6 +748,9 @@ function ctld.unload(unit)
         else
             ctld.spawnCargoCrate(unit, part_to_spawn)
         end
+
+        user.mass = math.max(0, user.mass - part_to_spawn.weight)
+        trigger.action.setUnitInternalCargo(unit:getName(), user.mass)
 
         local part = table.remove(user.parts)
         
