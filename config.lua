@@ -175,6 +175,7 @@ Config = {
             AWACS = 600,
             RECON = 1000,
             CAPTURE_HELO = 400,
+            NAVAL_STRIKE = 2500
         }
     },
 
@@ -189,7 +190,8 @@ Config = {
         xp_per_intel_report = 50,
         landing_time = 15, -- (seconds) the time the player has to stay on the ground to be rewarded
 
-        
+        naval_stike_xp_required = 8000,
+
         -- Co-op reward bonuses
         coop_xp_bonus = 0.25, -- (%) bonus to XP and tokens when playing co-op operations (multiplier applied to XP)
 
@@ -325,6 +327,11 @@ Config = {
     attack_convoy_range = 30000, -- (meters)
 
     jtac_smoke_stock = 8,
+
+    naval_ground_strike = {
+        naval_strike_launch_interval = 10, -- (seconds)
+        naval_strike_salvo_size = 10,
+    },
 
     -- logistics_upgrade_range = 30000, -- (meters)
     logistics_upgrade_chance = 30, -- (%) every minute the dice is rolled

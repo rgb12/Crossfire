@@ -186,6 +186,7 @@ CargoCrates = {
 
 ---@class CarrierSetup
 ---@field carrier_unit_name string
+---@field tomahawk_launcher_unit_name string|nil
 ---@field enabled boolean
 
 ---@class Resupply

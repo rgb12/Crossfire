@@ -528,6 +528,111 @@ do
         return nil,nil
     end
 
+    ---@param to_zone ZoneHandler
+    ---@param unit_attacking Unit
+    function TaskManager:requestNavalStrike(to_zone,unit_attacking)
+        if not to_zone or not to_zone.zone then
+            MissionLogger:error("Naval strike failed: missing target zone.")
+            return false
+        end
+
+        if not (unit_attacking and unit_attacking.isExist and unit_attacking:isExist()) then
+            MissionLogger:error("Naval strike failed: attacking unit missing or dead.")
+            return false
+        end
+
+        local desc = unit_attacking:getDesc()
+        if not (desc and desc.category == Unit.Category.SHIP) then
+            MissionLogger:error("Naval strike failed: attacker is not a ship.")
+            return false
+        end
+
+        local ship_group = unit_attacking:getGroup()
+        if not ship_group then
+            MissionLogger:error("Naval strike failed: attacker has no group.")
+            return false
+        end
+
+        local ship_controller = ship_group:getController()
+        if not ship_controller then
+            MissionLogger:error("Naval strike failed: ship controller unavailable.")
+            return false
+        end
+
+
+
+        local ship_name = unit_attacking:getName()
+        local coalition_side = unit_attacking:getCoalition()
+
+        local salvo_size = Config.naval_ground_strike.naval_strike_salvo_size or 4
+        local launch_interval_seconds = Config.naval_ground_strike.naval_strike_launch_interval or 5
+
+        if salvo_size < 1 then
+            salvo_size = 1
+        end
+
+        -- CruiseMissile weapon flag from DCS weapon flags enum.
+        local tomahawk_weapon_flag = 2097152
+
+        pcall(function()
+            ship_controller:setOption(AI.Option.Naval.id.ROE, AI.Option.Naval.val.ROE.OPEN_FIRE)
+        end)
+
+        local target_points = {}
+
+        -- Units
+        for _,gr_name in pairs(to_zone.linked_groups) do
+            local gr = Group.getByName(gr_name)
+            if gr and gr.isExist and gr:isExist() then
+                for _,u in pairs(gr:getUnits()) do
+                    table.insert(target_points, mist.utils.makeVec2(u:getPoint()))
+                end
+            end
+        end
+        -- Statics
+        for _,static_name in pairs(to_zone.linked_statics) do
+            local static = StaticObject.getByName(static_name)
+            if static and static.isExist and static:isExist() then
+                table.insert(target_points, mist.utils.makeVec2(static:getPoint()))
+                table.insert(target_points, mist.utils.makeVec2(static:getPoint()))
+                -- Some statics require big boom to go down
+            end
+        end
+
+        utils.shuffleTable(target_points)
+
+        for i = 1, math.max(salvo_size, #target_points) do
+            timer.scheduleFunction(function()
+                local ship = Unit.getByName(ship_name)
+                if not (ship and ship:isExist()) then return end
+
+                local ctrl = ship:getGroup() and ship:getGroup():getController() or nil
+                if not ctrl then return end
+
+                local fire_task = {
+                    id = 'FireAtPoint',
+                    params = {
+                        point = target_points[i],
+                        radius = 10,
+                        expendQty = 1,
+                        expendQtyEnabled = true,
+                        weaponType = tomahawk_weapon_flag
+                    }
+                }
+
+
+                ctrl:pushTask(fire_task)
+
+                MissionLogger:info("Naval strike " .. ship_name .. " launched BGM at " .. to_zone.name .. " (" .. i .. "/" .. salvo_size .. ").")
+            end, {}, timer.getTime() + ((i - 1) * launch_interval_seconds))
+        end
+
+        trigger.action.outTextForCoalition(coalition_side,"Naval strike initiated, designated area: " .. to_zone.name .. ".", 8)
+        trigger.action.outSoundForCoalition(coalition_side, "Radio squelch.ogg")
+
+        return true
+    end
+
     ---@param cap_group_name string
     ---@param enroute_data EnrouteObj
     function TaskManager:setCAPTask(cap_group_name, enroute_data)

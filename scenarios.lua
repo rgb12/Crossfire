@@ -221,6 +221,7 @@ Scenarios = {
         },
         carrier_setup = {
             carrier_unit_name = "Carrier",
+            tomahawk_launcher_unit_name = "Naval Launcher",
             enabled = true
         },
         estimated_users = 1,
