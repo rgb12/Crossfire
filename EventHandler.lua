@@ -45,7 +45,7 @@ function ev:onEvent(event)
                                         local warehouse = airbase:getWarehouse()
                                         if warehouse then
                                             --MissionLogger:info(warehouse:getInventory())
-                                            local acft_count = warehouse:getItemCount(acft_name)
+                                            local acft_count = warehouse:getItemCount(acft_name) or 0
                                             --MissionLogger:info(acft_count)
                                             
                                             if acft_count > 0 then
@@ -59,8 +59,15 @@ function ev:onEvent(event)
                                                 end
 
                                             else
+                                                MissionLogger:info(string.format(
+                                                    "Slot blocked:  %s at %s (stock=%d)",
+                                                    acft_name,
+                                                    wh_name,
+                                                    acft_count
+                                                ))
+
                                                 can_spawn = false
-                                                warehouse:addItem(acft_name,1)
+                                                --warehouse:addItem(acft_name,1)
                                                 if acft_name == WarehouseManager.AircraftFlags.C130J_30 then
                                                     trigger.action.outTextForUnit(unit:getID(), "C130J-30 user; If you tried spawning right after mission start, please wait a moment and try again.",30)
                                                 end
