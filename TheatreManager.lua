@@ -1075,8 +1075,9 @@ do
         local persistor = PersistenceManager
 
         world.addEventHandler(ev)
+        local persistence_enabled = persistor:isEnabled()
 
-        if persistor:isEnabled() and persistor:loadUserData() and persistor:loadFromFile() then
+        if persistence_enabled and persistor:loadUserData() and persistor:loadFromFile() then
             if not persistor:restoreState()then
                 MissionLogger:error("Failed to restore state. Establishing new theatre.")
                 trigger.action.outText("Failed to restore state. Establishing new theatre. Check logs",60)
@@ -1091,7 +1092,7 @@ do
             return trigger.action.outText("ERROR: Mission theatre setup failed. Check logs (dcs.log) and config.", 30)
         end
 
-        if persistor:isEnabled() then
+        if persistence_enabled then
             persistor:autoSave()
             timer.scheduleFunction(function() trigger.action.outText("Persistence enabled.",30) end, {}, timer.getTime() + 2)
         end
