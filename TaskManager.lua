@@ -895,20 +895,6 @@ do
     ---@param enroute_data EnrouteObj
     function TaskManager:setCASTask(cas_group_name,enroute_data)
         timer.scheduleFunction(function()
-            -- local units_to_attack
-            -- if enroute_data.side == coalition.side.BLUE then
-            --     units_to_attack = utils.getUnitsInZoneObj(enroute_data.to_zone, coalition.side.RED)
-            -- elseif enroute_data.side == coalition.side.RED then
-            --     units_to_attack = utils.getUnitsInZoneObj(enroute_data.to_zone, coalition.side.BLUE)
-            -- end
-            
-            -- local grp_to_attack_id
-            -- if units_to_attack and #units_to_attack > 0 then
-            --     grp_to_attack_id = units_to_attack[1]:getGroup():getID()
-            -- else
-            --     MissionLogger:error("Could not send CAS: No enemy units found in zone "..enroute_data.to_zone.name)
-            --     return false
-            -- end
 
             local groups_to_attack = enroute_data.to_zone.linked_groups
             if not groups_to_attack or #groups_to_attack == 0 then
@@ -993,7 +979,7 @@ do
                 action = AI.Task.TurnMethod.FLY_OVER_POINT,
                 alt = 4000, -- 13k ft
                 alt_type = AI.Task.AltitudeType.BARO,
-                task = comboTask -- Attach the AttackGroup task to this waypoint
+                task = comboTask
             })
 
             -- Waypoint 3: LAND (Return to the starting position)
@@ -1009,11 +995,9 @@ do
             ctrl:setTask(missionTask)
 
             -- 5. Set the correct AI options
-            -- (Based on Pretense 'setDefaultAG' / your setSTRIKETask)
             ctrl:setOption(AI.Option.Air.id.REACTION_ON_THREAT, AI.Option.Air.val.REACTION_ON_THREAT.EVADE_FIRE)
             -- ctrl:setOption(AI.Option.Air.id.PROHIBIT_AA, true) -- Prohibit Air-to-Air
 
-            -- Let's use the same options as setSTRIKETask for consistency
             ctrl:setOption(AI.Option.Air.id.JETT_TANKS_IF_EMPTY, true)
             ctrl:setOption(AI.Option.Air.id.PROHIBIT_JETT, true)
 
@@ -1069,7 +1053,7 @@ do
                 y = startPos.z + (vecZ * ratio)
             }
 
-            -- 3. Define the Attack Task
+            -- 3. Attack Task
             local attackTask = {
                 id = 'AttackGroup',
                 params = {
@@ -1077,7 +1061,7 @@ do
                     groupAttack = true,
                     expend = AI.Task.WeaponExpend.ALL,
                     altitudeEnabled = true,
-                    altitude = mist.utils.feetToMeters(30000), -- stay high for HARMs
+                    altitude = mist.utils.feetToMeters(30000),
                     weaponType = 4161536 -- Only allow ASM (Anti-Radiation/Anti-Ship) to prevent gun runs
                 }
             }
@@ -1110,9 +1094,9 @@ do
                 y = ipPos.y,
                 speed = 257, 
                 action = AI.Task.TurnMethod.FLY_OVER_POINT,
-                alt = mist.utils.feetToMeters(30000), -- 30k ft (Good for HARM launch)
+                alt = mist.utils.feetToMeters(30000),
                 alt_type = AI.Task.AltitudeType.BARO,
-                task = attackTask -- **Task is attached here, 25km away from target**
+                task = attackTask 
             })
 
             -- Waypoint 3: LAND 
@@ -1217,7 +1201,7 @@ do
                 action = AI.Task.TurnMethod.FLY_OVER_POINT,
                 alt = 5791, -- 19k ft
                 alt_type = AI.Task.AltitudeType.BARO,
-                task = attackTask -- *** This attaches the Bombing task to this waypoint ***
+                task = attackTask 
             })
 
             -- Waypoint 3: LAND (Return to the original airbase)
@@ -1232,7 +1216,7 @@ do
             -- 4. Set the complete mission
             ctrl:setTask(missionTask)
 
-            -- 5. Set the correct AI options (copied from Pretense 'setDefaultAG')
+            -- 5. Set the correct AI options
             -- *** DO NOT SET ROE TO WEAPON_FREE ***
             ctrl:setOption(AI.Option.Air.id.REACTION_ON_THREAT, AI.Option.Air.val.REACTION_ON_THREAT.EVADE_FIRE)
             ctrl:setOption(AI.Option.Air.id.JETT_TANKS_IF_EMPTY, true)
@@ -1303,7 +1287,7 @@ do
                 action = AI.Task.TurnMethod.FLY_OVER_POINT,
                 alt = 7620, -- 25k ft
                 alt_type = AI.Task.AltitudeType.BARO,
-                --task = orbitTask -- Attach the Orbit task
+                --task = orbitTask
             })
 
             -- Waypoint 3: LAND (Return to the starting position)
@@ -1319,7 +1303,7 @@ do
             -- 4. Set the complete mission
             ctrl:setTask(missionTask)
 
-            -- 5. Set AI options for RECON (run, don't fight)
+            -- 5. Set AI options for RECON
             ctrl:setOption(AI.Option.Air.id.PROHIBIT_AG, true)
             ctrl:setOption(AI.Option.Air.id.PROHIBIT_AA, true)
             ctrl:setOption(AI.Option.Air.id.REACTION_ON_THREAT, AI.Option.Air.val.REACTION_ON_THREAT.PASSIVE_DEFENCE)
