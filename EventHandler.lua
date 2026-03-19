@@ -8,7 +8,7 @@ function ev:onEvent(event)
             -- Check if the spawned unit is a radar
             if unit:hasAttribute("SAM SR") or unit:hasAttribute("EWR") or unit:hasAttribute("AWACS") then
                 local side = unit:getCoalition()
-                if EWRS_coalition[side] then
+                if EWRS_coalition and EWRS_coalition[side] then
                     table.insert(EWRS_coalition[side].radars, unit)
                     MissionLogger:info("EWRS: Added new radar unit " .. unit:getName() .. " to cache.")
                 end
@@ -156,7 +156,7 @@ function ev:onEvent(event)
             end
 
             if timer.getTime() < 15 then
-                -- wait for mission to initialize
+                -- wait for mission to initialize, 15 seconds is just what I found to work during testing, this needs to be improved
                 trigger.action.outTextForUnit(unit:getID(), "Assets and warehouses are still loading; if your slot is blocked, try again in a moment.",20)
                 timer.scheduleFunction(function ()
                     checkSpawnAllowed()
@@ -165,11 +165,6 @@ function ev:onEvent(event)
                 checkSpawnAllowed()
             end
             -- checkSpawnAllowed()
-
-            timer.scheduleFunction(function ()
-                
-                
-            end, {}, timer.getTime() + 1)
 
         end
     end

@@ -1073,7 +1073,8 @@ do
 
         -- Establish the theatre and get home airbases
         local persistor = PersistenceManager
-        
+
+        world.addEventHandler(ev)
 
         if persistor:isEnabled() and persistor:loadUserData() and persistor:loadFromFile() then
             if not persistor:restoreState()then
@@ -1116,7 +1117,6 @@ do
             [coalition.side.RED] = EWRS:new(coalition.side.RED),
         }
         
-        world.addEventHandler(ev)
         world.addEventHandler(ExperienceManager.EventHandler)
 
         if Config.jupiter_enabled then
