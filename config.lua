@@ -17,7 +17,7 @@
 ]]
 Config = {
     persistence = {
-        enable =  true, -- enables or not persistence, has authority over everything below in this section
+        enable =  false, -- enables or not persistence, has authority over everything below in this section
         save_interval = 5*51, -- (seconds) interval at which the mission state is saved
         -- You can use fixed values or multiplications like above
         -- 51 seconds is used to avoid multiples of 15 to reduce lag spikes
@@ -122,7 +122,7 @@ Config = {
     jupiter_enabled = true, -- enables/disables the Jupiter command system
     jupiter_password = "", -- password required before the -, example password = 12 then the command is 12-discover
 
-    allow_air_spawn = false, -- prevents or not air spawns for players
+    allow_air_spawn = true, -- prevents or not air spawns for players
     enable_slot_blocker = true, -- enables/disables the slot blocker system to prevent players spawning in enemy airbases
     enable_warehouse = true, -- this does not disable/enable the system, but stocks will be nearly unlimited if disabled
     allow_resupply = true, -- this will enable/disable resupply aircrafts, this will make the misison significantly harder
@@ -249,10 +249,10 @@ Config = {
         --*checks if rnough antennas are alive, not the zones themselves
         comms_zones_required_for_jtac = 0,
         comms_zones_required_for_cas = 2,
-        comms_zones_required_for_sead = 3,
+        comms_zones_required_for_sead = 2,
         comms_zones_required_for_strike = 2,
         comms_zones_required_for_cap = 1,
-        comms_zones_required_for_awacs = 3,
+        comms_zones_required_for_awacs = 2,
         comms_zones_required_for_recon = 1,
     },
     comms_tower_respawn_time = 45*60, -- (seconds)

@@ -221,7 +221,7 @@ Scenarios = {
         },
         carrier_setup = {
             carrier_unit_name = "Carrier",
-            enabled = false
+            enabled = true
         },
         estimated_users = 1,
         difficulty = ScenarioDifficulty.MEDIUM,
