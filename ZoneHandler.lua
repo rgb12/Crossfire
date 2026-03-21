@@ -283,6 +283,7 @@ do
     ---@param ignore_zone_names string[]|nil
     ---@param zone_types ZoneTypes[]|nil
     ---@param discovered boolean|nil
+    ---@return ZoneHandler|nil, number -- returns closest zone and distance to it
     function ZoneHandler:getClosestZone(side, ignore_zone_names,zone_types,discovered)
         local closestZone = nil
         local closestDistance = math.huge
@@ -979,7 +980,7 @@ do
             return
         elseif not self.comms_tower_intact and self.comms_tower_last_destroyed
         and self.comms_tower_last_destroyed + (Config.comms_tower_respawn_time) <= timer.getTime() then
-            -- Time is up, respawn the tower
+            -- Respawn the tower
             MissionLogger:info(self.name .." comms tower respawn")
 
             local country_name
