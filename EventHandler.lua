@@ -8,7 +8,7 @@ function ev:onEvent(event)
             -- Check if the spawned unit is a radar
             if unit:hasAttribute("SAM SR") or unit:hasAttribute("EWR") or unit:hasAttribute("AWACS") then
                 local side = unit:getCoalition()
-                if EWRS_coalition[side] then
+                if EWRS_coalition and EWRS_coalition[side] then
                     table.insert(EWRS_coalition[side].radars, unit)
                     MissionLogger:info("EWRS: Added new radar unit " .. unit:getName() .. " to cache.")
                 end
@@ -18,7 +18,7 @@ function ev:onEvent(event)
         if unit and unit.getCategory and unit:getCategory() == Object.Category.UNIT and unit.getCoalition and unit.isExist
         and unit:isExist() and unit.getPlayerName and unit:getPlayerName() then
   
-            local function checkSpawnAllowed()
+            local function checkSpawnAllowed() -- Slot blocker
 
                 if not unit or not unit.isExist or not unit:isExist() or not unit.getCoalition then return end
                 local unit_pos = unit:getPoint()
@@ -45,7 +45,7 @@ function ev:onEvent(event)
                                         local warehouse = airbase:getWarehouse()
                                         if warehouse then
                                             --MissionLogger:info(warehouse:getInventory())
-                                            local acft_count = warehouse:getItemCount(acft_name)
+                                            local acft_count = warehouse:getItemCount(acft_name) or 0
                                             --MissionLogger:info(acft_count)
                                             
                                             if acft_count > 0 then
@@ -59,8 +59,15 @@ function ev:onEvent(event)
                                                 end
 
                                             else
+                                                MissionLogger:info(string.format(
+                                                    "Slot blocked:  %s at %s (stock=%d)",
+                                                    acft_name,
+                                                    wh_name,
+                                                    acft_count
+                                                ))
+
                                                 can_spawn = false
-                                                warehouse:addItem(acft_name,1)
+                                                --warehouse:addItem(acft_name,1)
                                                 if acft_name == WarehouseManager.AircraftFlags.C130J_30 then
                                                     trigger.action.outTextForUnit(unit:getID(), "C130J-30 user; If you tried spawning right after mission start, please wait a moment and try again.",30)
                                                 end
@@ -156,7 +163,7 @@ function ev:onEvent(event)
             end
 
             if timer.getTime() < 15 then
-                -- wait for mission to initialize
+                -- wait for mission to initialize, 15 seconds is just what I found to work during testing, this needs to be improved
                 trigger.action.outTextForUnit(unit:getID(), "Assets and warehouses are still loading; if your slot is blocked, try again in a moment.",20)
                 timer.scheduleFunction(function ()
                     checkSpawnAllowed()
@@ -165,11 +172,6 @@ function ev:onEvent(event)
                 checkSpawnAllowed()
             end
             -- checkSpawnAllowed()
-
-            timer.scheduleFunction(function ()
-                
-                
-            end, {}, timer.getTime() + 1)
 
         end
     end

@@ -755,9 +755,7 @@ do
     end
 
     function TheatreCommander.checkAirbasesCoalition()
-        if not blue_airbase or not red_airbase then
-            return trigger.action.outText("ERROR: Mission has not been initialized correctly.", 30)
-        end
+
         -- MissionLogger:info(blue_airbase)
         local b_airbase = Airbase.getByName(blue_airbase.airbase_name)
         if b_airbase then
@@ -776,6 +774,10 @@ do
     function TheatreCommander.establishTheatre()
         MissionLogger:info("TheatreCommander: Generating Theatre Layout...")
 
+        if not (blue_airbase and red_airbase) then
+            return MissionLogger:error("Could not initialize blue_airbase or/and red_airbase")
+        end
+
         -- All zones except home airbases
         local all_other_zones = {}
 
@@ -783,10 +785,9 @@ do
         blue_airbase.level = 4
         red_airbase.side = coalition.side.RED
         red_airbase.level = 4
-
         for _, zone in ipairs(zones) do
-            if zone.name ~= Scenario.blue_airbase.name
-            and zone.name ~= Scenario.red_airbase.name then
+            if zone.name ~= blue_airbase.name
+            and zone.name ~= red_airbase.name then
                 -- Reset flags for a fresh generation
                 if Scenario.coalition_setup.auto_coalition_designation and not zone.side then
                     zone.side = coalition.side.NEUTRAL
@@ -794,8 +795,6 @@ do
                 table.insert(all_other_zones, zone)
             end
         end
-
-        if not blue_airbase or not red_airbase then return MissionLogger:error("Failed to initialize home airbases") end
 
         -- 2. APPLY DIFFICULTY (Zone Count) & REBUILD GLOBAL ZONES TABLE
         local diff_setting = Scenario.difficulty
@@ -1074,24 +1073,35 @@ do
 
         -- Establish the theatre and get home airbases
         local persistor = PersistenceManager
-        
 
-        if persistor:isEnabled() and persistor:loadUserData() and persistor:loadFromFile() then
+        world.addEventHandler(ev)
+        local persistence_enabled = persistor:isEnabled()
+
+        if persistence_enabled and persistor:loadUserData() and persistor:loadFromFile() then
             if not persistor:restoreState()then
                 MissionLogger:error("Failed to restore state. Establishing new theatre.")
+                trigger.action.outText("Failed to restore state. Establishing new theatre. Check logs",60)
                 blue_airbase, red_airbase = TheatreCommander.establishTheatre()
             end
         else
             MissionLogger:info("No save file found. Establishing new theatre.")
             blue_airbase, red_airbase = TheatreCommander.establishTheatre()
         end
+        
+        if not (blue_airbase and red_airbase) then
+            return trigger.action.outText("ERROR: Mission theatre setup failed. Check logs (dcs.log) and config.", 30)
+        end
+
+        if persistence_enabled then
+            persistor:autoSave()
+            timer.scheduleFunction(function() trigger.action.outText("Persistence enabled.",30) end, {}, timer.getTime() + 2)
+        end
+
         TheatreCommander.checkAirbasesCoalition()
 
         -- Create Operation Managers for each coalition
-        if blue_airbase and red_airbase then
-            TheatreCommander.blue_op_manager = OperationManager:new(coalition.side.BLUE, blue_airbase)
-            TheatreCommander.red_op_manager = OperationManager:new(coalition.side.RED, red_airbase)
-        end
+        TheatreCommander.blue_op_manager = OperationManager:new(coalition.side.BLUE, blue_airbase)
+        TheatreCommander.red_op_manager = OperationManager:new(coalition.side.RED, red_airbase)
 
         
         timer.scheduleFunction(TheatreCommander.sendWarehouseResupply, coalition.side.BLUE, timer.getTime() + Config.std_resupply_time)
@@ -1108,15 +1118,17 @@ do
             [coalition.side.RED] = EWRS:new(coalition.side.RED),
         }
         
-        world.addEventHandler(ev)
         world.addEventHandler(ExperienceManager.EventHandler)
 
         if Config.jupiter_enabled then
             world.addEventHandler(Jupiter)
         end
-        PersistenceManager:autoSave()
+        
         -- trigger.action.outText("Theatre setup complete.", 5)
         MissionLogger:info("Mission Commander: Mission Setup Complete.")
+        timer.scheduleFunction(function()
+        trigger.action.outText("Assets initialized.",5)
+        end, {}, timer.getTime() + 15)
     end
 
 end

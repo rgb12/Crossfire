@@ -108,7 +108,6 @@ Scenarios = {
             airbase_name = Airbases.Caucasus.Vaziani,
             zone_type = ZoneTypes.AIRBASE}),
         zones = {
-            ZoneHandler:new({name = "BRAVO-1"}),
             ZoneHandler:new({name = "OUTPOST-SEPTEMBER"}),
             ZoneHandler:new({name = "OUTPOST-NOVEMBER"}),
             ZoneHandler:new({name = "OUTPOST-DECEMBER"}),
@@ -222,7 +221,7 @@ Scenarios = {
         },
         carrier_setup = {
             carrier_unit_name = "Carrier",
-            enabled = false
+            enabled = true
         },
         estimated_users = 1,
         difficulty = ScenarioDifficulty.MEDIUM,
@@ -273,21 +272,20 @@ zones = {}
     if Scenario == nil then
         trigger.action.outText("ERROR: Scenario '" .. Config.persistence.scenario_selected .. "' not found! Check your config.", 120)
     elseif not Scenario.blue_airbase or not Scenario.red_airbase then
-        trigger.action.outText("ERROR: Scenario '" .. Config.persistence.scenario_selected .. "' is missing airbase definitions! Check your config.", 120)
+        trigger.action.outText("ERROR: Scenario '" .. Config.persistence.scenario_selected .. "' is missing blue and red airbase definitions! Check your config.", 120)
     else
         -- table.insert(zones,Scenario.zones)
-        zones = mist.utils.deepCopy(Scenario.zones)
+        -- Prevents lost indexes
+        zones = utils.compactZoneList(mist.utils.deepCopy(Scenario.zones))
         MissionLogger:info("Total zones loaded for scenario '" .. Scenario.name .. "': " .. #zones)
         ---@type ZoneHandler,ZoneHandler
         blue_airbase = Scenario.blue_airbase
         red_airbase = Scenario.red_airbase
-    
+
         table.insert(zones,blue_airbase)
         table.insert(zones,red_airbase)
     end
 
 trigger.action.outText("Loading assets...",15)
 TheatreCommander.startMission()
-timer.scheduleFunction(function()
-    trigger.action.outText("Assets initialized.",5)
-end, {}, timer.getTime() + 15)
+
