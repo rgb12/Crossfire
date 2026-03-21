@@ -289,6 +289,8 @@ Config = {
 
         range_for_recon_to_discover_zone = 15*1000, -- (meters)
         max_cas_range = 200*1000, -- (meters)
+        max_strike_range = 200*1000, -- (meters)
+        max_sead_range = 200*1000, -- (meters)
         min_cleareance_dist_for_awacs = 70*1000 -- (meters) from the nearest enemy zone
     },
 

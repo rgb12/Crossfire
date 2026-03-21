@@ -128,8 +128,7 @@ do
         -- Calculate distances once for use in closures below
         local closest_enemy_zone, closest_dist = home_base:getClosestZone(enemy_side,nil,nil,true)
 
-        -- 2. DEFINE TASK LOGIC
-        -- We define a list of functions. Each function returns TRUE if a task was successfully sent.
+        -- Each function returns TRUE if a task was successfully sent.
         local possible_tasks = {}
 
         -- [TASK: RECON]
@@ -217,7 +216,8 @@ do
             end
                 for _, zone in ipairs(zones) do
                     if zone.side == enemy_side and zone.zone_type == ZoneTypes.SAMSITE 
-                    and not utils.tableContains(active_zones, zone.name) then
+                    and not utils.tableContains(active_zones, zone.name) 
+                    and mist.utils.get2DDist(home_base.zone.point, zone.zone.point) < Config.tasking.max_sead_range then
                         local discovered = (side == coalition.side.BLUE and utils.tableContains(stats.blue_discovered_zones, zone.name)) or
                                            (side == coalition.side.RED and utils.tableContains(stats.red_discovered_zones, zone.name))
                         
@@ -272,7 +272,8 @@ do
                 }
                 for _, zone in ipairs(zones) do
                     if zone.side == enemy_side and utils.tableContains(valid_strike_targets, zone.zone_type) 
-                    and not utils.tableContains(active_zones, zone.name) then
+                    and not utils.tableContains(active_zones, zone.name)
+                    and mist.utils.get2DDist(home_base.zone.point, zone.zone.point) < Config.tasking.max_strike_range then
                         local discovered = (side == coalition.side.BLUE and utils.tableContains(stats.blue_discovered_zones, zone.name)) or
                                            (side == coalition.side.RED and utils.tableContains(stats.red_discovered_zones, zone.name))
                         
