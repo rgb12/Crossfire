@@ -32,6 +32,10 @@ Config = {
         -- scenario_selected = "Georgia Liberation", -- select a scenario from the scenarios found below
         scenario_selected = "Syrian Resolve", -- select a scenario from the scenarios found below
     },
+    server = {
+        reset_on_mission_end = true, -- if true, the mission will reset 1 min after it ends
+    },
+
     operations = {
         recon_duration = 120, -- (seconds)
         recon_distance_from_zone = 20000, -- (meters)

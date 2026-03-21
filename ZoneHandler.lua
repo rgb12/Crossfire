@@ -655,6 +655,17 @@ do
                 world.removeEventHandler(ev)
                 trigger.action.outText("************\n\n  BLUFOR achieved total domination !\n\n************", 500)
             end
+
+            -- For servers only, when the mission ends, reset the campaign
+            MissionLogger:info("MISSION ENDED")
+            MissionLogger:info("Resetting campaign in 10 seconds...")
+            if Config.server.reset_on_mission_end then
+                timer.scheduleFunction(function ()
+                    -- delete save file,
+                    -- end the mission
+                end,{},timer.getTime()+10)
+            end
+
         end,nil,timer.getTime()+10)
 
     end
