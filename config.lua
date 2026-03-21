@@ -264,7 +264,9 @@ Config = {
 
     tasking = {
         enable = true, -- enables/disables AI tasking system, does not affect resupply and capture mechanics
-        dispatcher_interval = 10*60+8,--5*60, -- (seconds), avoid multiples of 15 to reduce lag spikes
+
+        BLUFOR_dispatcher_interval = 10*60+8, -- (seconds), avoid multiples of 15 to reduce lag spikes
+        REDFOR_dispatcher_interval = 6*60+8, -- (seconds), avoid multiples of 15 to reduce lag spikes
         max_tasks_per_airbase = 4, -- maximum number of concurrent tasks per airbase
 
         max_jtac_per_airbase = 2,

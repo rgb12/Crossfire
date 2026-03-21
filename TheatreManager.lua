@@ -745,14 +745,23 @@ do
     
     
     -- AI DISPATCHER
-    function TheatreCommander.dispatchAI()
+
+    ---@param side coalition.side
+    function TheatreCommander.dispatchAI(side)
+
+        local next_interval = 999999
+        if side == coalition.side.BLUE then
+            next_interval = Config.tasking.BLUFOR_dispatcher_interval
+        else
+            next_interval = Config.tasking.REDFOR_dispatcher_interval
+        end
         timer.scheduleFunction(function ()
             if MISSION_ENDED == true then return end
-            TheatreCommander:evaluateAITasks(coalition.side.BLUE)
-            TheatreCommander:evaluateAITasks(coalition.side.RED)
+            TheatreCommander:evaluateAITasks(side)
             
-            TheatreCommander.dispatchAI()
-        end, nil, timer.getTime()+Config.tasking.dispatcher_interval)
+            TheatreCommander.dispatchAI(side)
+        end, nil, timer.getTime() + next_interval)
+
     end
 
     function TheatreCommander.checkAirbasesCoalition()
@@ -1111,7 +1120,8 @@ do
         TheatreCommander:tick()
         
         -- AI DISPATCHER
-        TheatreCommander.dispatchAI()
+        TheatreCommander.dispatchAI(coalition.side.BLUE)
+        TheatreCommander.dispatchAI(coalition.side.RED)
 
 
         EWRS_coalition = {
