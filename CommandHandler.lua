@@ -229,7 +229,16 @@ do
                             local stock = args.stock_types
                             local cost = args.cost
 
-                            -- Instead of tokens use coalition supplies
+                            -- Check if airbase is still friendly before sending 
+                            local ab = ZoneHandler.getFromName(target_zone.name)
+                            if not ab then return end
+                            if ab.side ~= side then
+                                trigger.action.outTextForGroup(gr_id,"HQ Negative resupply response for " .. target_zone.name .. ": area lost. Stand by for next resupply or capture additional zones.",8)
+                                trigger.action.outSoundForGroup(gr_id, "radio_beep3.ogg")
+                                return
+                            end
+
+
                             if side == 2 then
                                 if stats.blue_supplies < cost then
                                     trigger.action.outTextForGroup(gr_id,"HQ Negative resupply response for " .. target_zone.name .. ": supplies low (" .. stats.blue_supplies .. "/" .. cost .. "). Stand by for next resupply or capture additional zones.",8)

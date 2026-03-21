@@ -551,9 +551,13 @@ do
             end
         end
 
-        -- [Standard Spawning Logic - No Changes]
         if side == coalition.side.BLUE and Scenario.resupply.blue_point then
-            if stats.blue_airbases == 0 then return end
+            if #blue_airbases == 0 then return end
+            destination_airbase = target_airbase or blue_airbases[math.random(#blue_airbases)]
+
+            if not destination_airbase or destination_airbase.side ~= side then
+                return MissionLogger:warn("Invalid BLUE resupply destination airbase")
+            end
             cargo_sent_table = mist.teleportToPoint({
                 groupName = GroupData.COMMON_ASSETS.BLUE.resupply_aircraft,
                 point = Scenario.resupply.blue_point,
@@ -562,10 +566,14 @@ do
             })
             if not cargo_sent_table or not cargo_sent_table.name then return MissionLogger:error("Could not send BLUE resupply.") end
             new_group_name = cargo_sent_table.name
-            destination_airbase = target_airbase or blue_airbases[math.random(#blue_airbases)] or blue_airbase
 
         elseif side == coalition.side.RED and Scenario.resupply.red_point then
-            if stats.red_airbases == 0 then return end
+            if #red_airbases == 0 then return end
+            destination_airbase = target_airbase or red_airbases[math.random(#red_airbases)]
+
+            if not destination_airbase or destination_airbase.side ~= side then
+                return MissionLogger:warn("Invalid RED resupply destination airbase")
+            end
             cargo_sent_table = mist.teleportToPoint({
                 groupName = GroupData.COMMON_ASSETS.RED.resupply_aircraft,
                 point = Scenario.resupply.red_point,
@@ -574,7 +582,6 @@ do
             })
             if not cargo_sent_table or not cargo_sent_table.name then return MissionLogger:error("Could not send RED resupply.") end
             new_group_name = cargo_sent_table.name
-            destination_airbase = target_airbase or red_airbases[math.random(#red_airbases)] or red_airbase
 
         else
             return
@@ -582,6 +589,10 @@ do
         
         if destination_airbase == nil then return MissionLogger:error("Resupply task: Destination airbase not found") end
         if not destination_airbase.airbase_name then return MissionLogger:error("Resupply task: Destination airbase has no airbase name") end
+        local destination_airbase_obj = Airbase.getByName(destination_airbase.airbase_name)
+        if destination_airbase_obj and destination_airbase_obj:getCoalition() ~= side then
+            return MissionLogger:warn("Resupply task: Destination airbase coalition mismatch")
+        end
 
         EnrouteManager:add({
             group_name = new_group_name,
@@ -595,6 +606,19 @@ do
             local cargo_group = Group.getByName(new_group_name)
             if not cargo_group or not cargo_group:isExist() then return end
             
+            -- Check if in this short time the airbase has been lost
+            local airbase_obj = Airbase.getByName(destination_airbase.airbase_name)
+            if not airbase_obj then
+                cargo_group:destroy()
+                EnrouteManager:remove(new_group_name)
+                return
+            end
+            if airbase_obj:getCoalition() ~= side then
+                cargo_group:destroy()
+                EnrouteManager:remove(new_group_name)
+                return
+            end
+
             local cargo_ctr = cargo_group:getController()
             local landPos = destination_airbase.zone.point
             
@@ -726,18 +750,8 @@ do
         end, {}, timer.getTime() + 12) -- Short delay to ensure unit is ready
 
         if repeat_tasking then
-            -- choose random friendly airbase to resupply next time
-            local airbases_to_resupply = {}
-            for _, ab in ipairs(zones) do
-                if ab.zone_type == ZoneTypes.AIRBASE and ab.airbase_name and ab.side == side then
-                    table.insert(airbases_to_resupply, ab)
-                end
-            end
-            utils.shuffleTable(airbases_to_resupply)
-            local airbase_to_resupply = airbases_to_resupply[1]
-            
             timer.scheduleFunction(function ()
-                TheatreCommander.sendWarehouseResupply(side, true, nil, airbase_to_resupply)
+                TheatreCommander.sendWarehouseResupply(side, true)
             end,nil, timer.getTime() + Config.std_resupply_time)
         end
     end
