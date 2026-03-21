@@ -89,8 +89,8 @@ do
         end
 
         if side_comms_towers == 0 then
-            trigger.action.outTextForCoalition(side,
-                "No coalition COMMS towers on the battlefield, AI tasking suspended.", 10)
+            trigger.action.outTextForCoalition(side,"No coalition COMMS towers active, AI tasking suspended.", 10)
+            trigger.action.outSoundForCoalition(side, "radio_beep3.ogg")
             return
         end
 
@@ -100,8 +100,8 @@ do
         if side == coalition.side.BLUE then
             home_base = blue_airbase
             if stats.blue_airbases == 0 then
-                trigger.action.outTextForCoalition(side,
-                    "No coalition airbases on the battlefield, AI tasking suspended.", 10)
+                trigger.action.outTextForCoalition(side,"No coalition airbases active, AI tasking suspended.", 10)
+                trigger.action.outSoundForCoalition(side, "radio_beep3.ogg")
                 return
             end
 
@@ -112,8 +112,8 @@ do
         elseif side == coalition.side.RED then
             home_base = red_airbase
             if stats.red_airbases == 0 then
-                trigger.action.outTextForCoalition(side,
-                    "No coalition airbases on the battlefield, AI tasking suspended.", 10)
+                trigger.action.outTextForCoalition(side,"No coalition airbases active, AI tasking suspended.", 10)
+                trigger.action.outSoundForCoalition(side, "radio_beep3.ogg")
                 return
             end
 
