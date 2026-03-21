@@ -18,7 +18,7 @@
 Config = {
     persistence = {
         enable =  false, -- enables or not persistence, has authority over everything below in this section
-        save_interval = 5*51, -- (seconds) interval at which the mission state is saved
+        save_interval = 2*51, -- (seconds) interval at which the mission state is saved
         -- You can use fixed values or multiplications like above
         -- 51 seconds is used to avoid multiples of 15 to reduce lag spikes
         save_dir = "Missions/Saves/Crossfire Syrian Resolve/", -- this is your saves directory in Saved Games
@@ -114,6 +114,7 @@ Config = {
                 "F-16C_50",
                 "FA-18C_hornet",
                 "A-10C_2",
+                "Su-25T",
             }
         },
         -- Co-op operation settings
@@ -167,14 +168,14 @@ Config = {
             TGP_MISC = 4000,           -- Targeting pods, misc equipment
         },
         tasking_costs = {
-            JTAC = 600,
-            CAS = 2000,
-            SEAD = 1500,
-            STRIKE = 1200,
-            CAP = 1000,
-            AWACS = 600,
-            RECON = 1000,
-            CAPTURE_HELO = 400,
+            JTAC = 300,
+            CAS = 500,
+            SEAD = 500,
+            STRIKE = 500,
+            CAP = 400,
+            AWACS = 400,
+            RECON = 300,
+            CAPTURE_HELO = 150,
         }
     },
 

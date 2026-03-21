@@ -34,17 +34,10 @@ do
         if not PersistenceManager.enabled then return end
         PersistenceManager.data = {} -- Clear old data
 
-        -- 1. Save Scenario (home bases)
         PersistenceManager.data.scenario = Scenario
-        -- PersistenceManager.data.scenario = {
-        --     blue_airbase_name = blue_airbase.name,
-        --     red_airbase_name = red_airbase.name
-        -- }
 
-        -- 2. Save stats
         PersistenceManager.data.stats = stats
 
-        -- 3. Save only essential zone properties that cannot be reconstructed
         PersistenceManager.data.zones = {}
         for _, z in ipairs(zones) do
             local zone_data = {
@@ -71,7 +64,6 @@ do
             PersistenceManager.data.zones[z.name] = zone_data
         end
 
-        -- 4. Save Warehouse Inventories
         PersistenceManager.data.warehouses = {}
         for _, z in ipairs(zones) do
             if z.zone_type == ZoneTypes.AIRBASE and z.airbase_name then
@@ -104,6 +96,7 @@ do
                 end
             end
         end
+
         -- Save constructed FARP warehouses and FARP registry
         PersistenceManager.data.ctld_farps = {}
         if ctld.FARPs then
@@ -210,7 +203,6 @@ do
         end
     end
 
-    --- Simply places enroutes back into warehouses for next mission
     function PersistenceManager:enroutesRefund()
 
         for _, enroute in ipairs(EnrouteManager.enroutes) do
@@ -465,7 +457,7 @@ do
         
         MissionLogger:info("Zone states and units restored.")
 
-        -- 4. Pre-spawn CTLD FARP statics so Airbase.getByName() works during warehouse restore
+        -- 4. Pre-spawn CTLD FARP statics
         if PersistenceManager.data.placed_assets then
             for _, saved_asset in ipairs(PersistenceManager.data.placed_assets) do
                 if saved_asset.type == ctld.AssetTypes.STATIC then
@@ -520,10 +512,10 @@ do
                             end
                         end
                     end
-                    MissionLogger:info("Warehouse restored for: " .. airbase_name)
                 end
             end
         end
+        MissionLogger:info("Warehouses restored")
         
         -- 6. Restore Placed Assets (CTLD cargo, troops, vehicles, groups)
         mist.nextGroupId = PersistenceManager.data.ctld_last_group_id or mist.getNextGroupId()
@@ -640,7 +632,7 @@ do
         if not stats.red_supplies then stats.red_supplies = 0 end
         
         MissionLogger:info("Mission state successfully restored.")
-        -- trigger.action.outText("Mission state restored from last save.", 10)
+        --trigger.action.outText("Persistence, restored from last save.", 10)
         return true
     end
 
