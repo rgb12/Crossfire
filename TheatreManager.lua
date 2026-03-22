@@ -818,7 +818,7 @@ do
     function TheatreCommander:smokeFrontline()
         -- Closest enemy zone distance
         local closest_zone, frontline_dist = blue_airbase:getClosestZone(coalition.side.RED)
-        local variance = 20000
+        local variance = 25000
         if closest_zone and frontline_dist then
             ---@type vec3[]
             local smoke_points = {}
@@ -828,15 +828,14 @@ do
                 x = closest_zone.zone.point.x + frontline_dist + math.random(-variance, variance),
                 y = closest_zone.zone.point.y + frontline_dist + math.random(-variance, variance)
             }
-                table.insert(smoke_points, mist.utils.makeVec3(point))
+                table.insert(smoke_points, mist.utils.makeVec3GL(point))
             end
 
 
             for _, point in ipairs(smoke_points) do
                 smoke_id = smoke_id + 1
                 local smoke_string = "TheatreSmoke" .. smoke_id
-                local smoke_type = math.random(5,8) -- Only smoke (no fire)
-                local duration = math.random(120, 300) -- 2-5 minutes
+                local duration = math.random(5*60, 12*60) -- 2-5 minutes
                 trigger.action.effectSmokeBig(point,math.random(1,8),1,smoke_string)
 
                 timer.scheduleFunction(function ()
