@@ -89,8 +89,8 @@ do
         end
 
         if side_comms_towers == 0 then
-            trigger.action.outTextForCoalition(side,
-                "No coalition COMMS towers on the battlefield, AI tasking suspended.", 10)
+            trigger.action.outTextForCoalition(side,"No coalition COMMS towers active, AI tasking suspended.", 10)
+            trigger.action.outSoundForCoalition(side, "radio_beep3.ogg")
             return
         end
 
@@ -100,8 +100,8 @@ do
         if side == coalition.side.BLUE then
             home_base = blue_airbase
             if stats.blue_airbases == 0 then
-                trigger.action.outTextForCoalition(side,
-                    "No coalition airbases on the battlefield, AI tasking suspended.", 10)
+                trigger.action.outTextForCoalition(side,"No coalition airbases active, AI tasking suspended.", 10)
+                trigger.action.outSoundForCoalition(side, "radio_beep3.ogg")
                 return
             end
 
@@ -112,8 +112,8 @@ do
         elseif side == coalition.side.RED then
             home_base = red_airbase
             if stats.red_airbases == 0 then
-                trigger.action.outTextForCoalition(side,
-                    "No coalition airbases on the battlefield, AI tasking suspended.", 10)
+                trigger.action.outTextForCoalition(side,"No coalition airbases active, AI tasking suspended.", 10)
+                trigger.action.outSoundForCoalition(side, "radio_beep3.ogg")
                 return
             end
 
@@ -128,8 +128,7 @@ do
         -- Calculate distances once for use in closures below
         local closest_enemy_zone, closest_dist = home_base:getClosestZone(enemy_side,nil,nil,true)
 
-        -- 2. DEFINE TASK LOGIC
-        -- We define a list of functions. Each function returns TRUE if a task was successfully sent.
+        -- Each function returns TRUE if a task was successfully sent.
         local possible_tasks = {}
 
         -- [TASK: RECON]
@@ -217,7 +216,8 @@ do
             end
                 for _, zone in ipairs(zones) do
                     if zone.side == enemy_side and zone.zone_type == ZoneTypes.SAMSITE 
-                    and not utils.tableContains(active_zones, zone.name) then
+                    and not utils.tableContains(active_zones, zone.name) 
+                    and mist.utils.get2DDist(home_base.zone.point, zone.zone.point) < Config.tasking.max_sead_range then
                         local discovered = (side == coalition.side.BLUE and utils.tableContains(stats.blue_discovered_zones, zone.name)) or
                                            (side == coalition.side.RED and utils.tableContains(stats.red_discovered_zones, zone.name))
                         
@@ -272,7 +272,8 @@ do
                 }
                 for _, zone in ipairs(zones) do
                     if zone.side == enemy_side and utils.tableContains(valid_strike_targets, zone.zone_type) 
-                    and not utils.tableContains(active_zones, zone.name) then
+                    and not utils.tableContains(active_zones, zone.name)
+                    and mist.utils.get2DDist(home_base.zone.point, zone.zone.point) < Config.tasking.max_strike_range then
                         local discovered = (side == coalition.side.BLUE and utils.tableContains(stats.blue_discovered_zones, zone.name)) or
                                            (side == coalition.side.RED and utils.tableContains(stats.red_discovered_zones, zone.name))
                         
@@ -403,6 +404,10 @@ do
             end,{}, timer.getTime() + 8)
         end
 
+        local t10m_update = function()
+            TheatreCommander:smokeFrontline()
+        end
+
     --This function is executed every 15s
     local function tsec_update()
     
@@ -415,6 +420,10 @@ do
             if ticks1m % 5 == 0 then
                 ticks5m = ticks5m + 1
                 t5m_update()
+            end
+
+            if ticks1m % 10 == 0 then
+                t10m_update()
             end
         end
     
@@ -744,14 +753,23 @@ do
     
     
     -- AI DISPATCHER
-    function TheatreCommander.dispatchAI()
+
+    ---@param side coalition.side
+    function TheatreCommander.dispatchAI(side)
+
+        local next_interval = 999999
+        if side == coalition.side.BLUE then
+            next_interval = Config.tasking.BLUFOR_dispatcher_interval
+        else
+            next_interval = Config.tasking.REDFOR_dispatcher_interval
+        end
         timer.scheduleFunction(function ()
             if MISSION_ENDED == true then return end
-            TheatreCommander:evaluateAITasks(coalition.side.BLUE)
-            TheatreCommander:evaluateAITasks(coalition.side.RED)
+            TheatreCommander:evaluateAITasks(side)
             
-            TheatreCommander.dispatchAI()
-        end, nil, timer.getTime()+Config.tasking.dispatcher_interval)
+            TheatreCommander.dispatchAI(side)
+        end, nil, timer.getTime() + next_interval)
+
     end
 
     function TheatreCommander.checkAirbasesCoalition()
@@ -768,6 +786,52 @@ do
             r_airbase:setCoalition(red_airbase.side)
         end
         
+    end
+
+    local smoke_id = 0
+    --[[
+    
+        1 = small smoke and fire
+        2 = medium smoke and fire
+        3 = large smoke and fire
+        4 = huge smoke and fire
+        5 = small smoke
+        6 = medium smoke 
+        7 = large smoke
+        8 = huge smoke ]]
+
+    -- Create 2-4 smokes near the frontline (closes red base), with varying size and duration
+    function TheatreCommander:smokeFrontline()
+        -- Closest enemy zone distance
+        local closest_zone, frontline_dist = blue_airbase:getClosestZone(coalition.side.RED)
+        local variance = 20000
+        if closest_zone and frontline_dist then
+            ---@type vec3[]
+            local smoke_points = {}
+
+            for i=0, math.random(2,4) do
+            local point = {
+                x = closest_zone.zone.point.x + frontline_dist + math.random(-variance, variance),
+                y = closest_zone.zone.point.y + frontline_dist + math.random(-variance, variance)
+            }
+                table.insert(smoke_points, mist.utils.makeVec3(point))
+            end
+
+
+            for _, point in ipairs(smoke_points) do
+                smoke_id = smoke_id + 1
+                local smoke_string = "TheatreSmoke" .. smoke_id
+                local smoke_type = math.random(5,8) -- Only smoke (no fire)
+                local duration = math.random(120, 300) -- 2-5 minutes
+                trigger.action.effectSmokeBig(point,math.random(1,8),1,smoke_string)
+
+                timer.scheduleFunction(function ()
+                    trigger.action.effectSmokeStop(smoke_string)
+                end, nil, timer.getTime() + duration)
+            end
+
+        end
+
     end
 
     ---@return ZoneHandler, ZoneHandler
@@ -1110,7 +1174,8 @@ do
         TheatreCommander:tick()
         
         -- AI DISPATCHER
-        TheatreCommander.dispatchAI()
+        TheatreCommander.dispatchAI(coalition.side.BLUE)
+        TheatreCommander.dispatchAI(coalition.side.RED)
 
 
         EWRS_coalition = {
