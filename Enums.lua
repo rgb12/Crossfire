@@ -126,6 +126,7 @@ ZoneTypes = {
     COMMS = 7,
 }
 
+-- Fill in isDefensiveOperation
 ---@enum AITaskTypes
 AITaskTypes = {
     JTAC = "JTAC",
