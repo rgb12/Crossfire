@@ -464,8 +464,8 @@ do
             end
         elseif self.zone_type == ZoneTypes.FARP and self.side ~= coalition.side.NEUTRAL then
             -- first delete the invisiblefarp if exits
-            timer.scheduleFunction(function ()     
-                UnitHandler.initFARP(self)
+            timer.scheduleFunction(function ()
+                UnitHandler.initFARP(self,false)
             end,{},timer.getTime()+5)
 
             if self.side == coalition.side.RED then

@@ -62,8 +62,23 @@ do
                 comms_tower_time_since_destroyed = z.comms_tower_last_destroyed and (timer.getTime() - z.comms_tower_last_destroyed) or nil,
 
                 cmdc_intact = z.cmdc_intact,
-                cmdc_time_since_destroyed = z.cmdc_last_destroyed and (timer.getTime() - z.cmdc_last_destroyed) or nil
+                cmdc_time_since_destroyed = z.cmdc_last_destroyed and (timer.getTime() - z.cmdc_last_destroyed) or nil,
+
+                -- Zone FARPs are dynamically recreated and may get new object names on restore.
+                -- Persist their warehouse inventory with the zone record so we can remap it.
+                farp_warehouse_inventory = nil
             }
+
+            if z.zone_type == ZoneTypes.FARP and z.linked_farp then
+                local farp_airbase = Airbase.getByName(z.linked_farp)
+                if farp_airbase then
+                    local farp_warehouse = farp_airbase:getWarehouse()
+                    if farp_warehouse then
+                        zone_data.farp_warehouse_inventory = farp_warehouse:getInventory()
+                    end
+                end
+            end
+
             PersistenceManager.data.zones[z.name] = zone_data
         end
 
@@ -444,10 +459,30 @@ do
                 zone.linked_statics = {}
 
 
-                -- Spawn the correct units for the zone's side and level
+                -- Spawn the units for the zone's side and level
                 UnitHandler.initZoneUnits(zone)
                 UnitHandler.initStatics(zone)
-                UnitHandler.initFARP(zone)
+                UnitHandler.initFARP(zone,false)
+
+                -- Restore zone FARP warehouse by zone mapping (not old FARP object name).
+                if zone.zone_type == ZoneTypes.FARP and zone.linked_farp and saved_zone.farp_warehouse_inventory then
+                    local farp_airbase = Airbase.getByName(zone.linked_farp)
+                    if farp_airbase then
+                        local farp_warehouse = farp_airbase:getWarehouse()
+                        if farp_warehouse then
+                            if WarehouseManager and WarehouseManager.clearWarehouse then
+                                WarehouseManager:clearWarehouse(zone.linked_farp)
+                            end
+                            for category, items_table in pairs(saved_zone.farp_warehouse_inventory) do
+                                if type(items_table) == "table" and category ~= "liquids" then
+                                    for item_name, count in pairs(items_table) do
+                                        farp_warehouse:setItem(item_name, count)
+                                    end
+                                end
+                            end
+                        end
+                    end
+                end
                 
                 -- Post-spawn check for destroyed statics
                 if not zone.ammo_depot_intact and zone.linked_ammo_depot then

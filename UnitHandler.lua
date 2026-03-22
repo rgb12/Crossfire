@@ -331,7 +331,8 @@ do
     end
 
     ---@param zone ZoneHandler
-    function UnitHandler.initFARP(zone)
+    ---@param restock boolean
+    function UnitHandler.initFARP(zone,restock)
         if zone.zone_type ~= ZoneTypes.FARP then return end
         if zone.side == coalition.side.NEUTRAL then return end
 
@@ -405,10 +406,9 @@ do
         -- Add to warehouse
         
         -- set warehouse
-        if zone.linked_farp then
+        if zone.linked_farp and restock then
             timer.scheduleFunction(function()
                 WarehouseManager:clearWarehouse(zone.linked_farp)
-
                 WarehouseManager:attributeAirbaseStock(zone.linked_farp, zone.side, {WarehouseManager.StockTypes.FARP})
             end, {}, timer.getTime()+1)
         end
