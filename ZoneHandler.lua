@@ -949,8 +949,10 @@ do
         if self.side == coalition.side.NEUTRAL then return end
         if self.zone_type ~= ZoneTypes.COMMS then return end
 
-        if not self.linked_comms_tower then return end
-        local comms_tower = StaticObject.getByName(self.linked_comms_tower)
+        local comms_tower = nil
+        if self.linked_comms_tower then
+            comms_tower = StaticObject.getByName(self.linked_comms_tower)
+        end
         
         -- First, check the actual status of the tower
         local is_alive = comms_tower and comms_tower:isExist() and comms_tower:getLife() >= 1
@@ -962,8 +964,15 @@ do
 
         -- If the script thinks the tower is intact, but it's NOT alive, mark it as destroyed.
         if self.comms_tower_intact and not is_alive then
+            local dead_comms_name = self.linked_comms_tower
             self.comms_tower_intact = false
             self.comms_tower_last_destroyed = timer.getTime()
+            for i = #self.linked_statics, 1, -1 do
+                if self.linked_statics[i] == dead_comms_name then
+                    table.remove(self.linked_statics, i)
+                end
+            end
+            self.linked_comms_tower = nil
             utils.editCommsAntennasCount(self.side, -1)
 
             trigger.action.outTextForCoalition(self.side, "Sector ALERT: "..self.name.." has lost its communications tower.",20)
@@ -979,8 +988,8 @@ do
         end
 
         -- Check if the tower is pending respawn or ready to respawn
-        if self.comms_tower_last_destroyed and not self.comms_tower_intact
-        and self.comms_tower_last_destroyed + (Config.comms_tower_respawn_time) > timer.getTime() then
+        if self.comms_tower_last_destroyed and not self.comms_tower_intact and
+        self.comms_tower_last_destroyed + (Config.comms_tower_respawn_time) > timer.getTime() then
             -- Not enough time has passed
             MissionLogger:info(self.name .." comms tower pending respawn")
             -- display remaining time in mins to zone
@@ -988,8 +997,8 @@ do
             local time_text = "Rebuild in T-"..time_remaining.." min"
             self:drawF10(time_text)
             return
-        elseif not self.comms_tower_intact and self.comms_tower_last_destroyed
-        and self.comms_tower_last_destroyed + (Config.comms_tower_respawn_time) <= timer.getTime() then
+        elseif not self.comms_tower_intact and self.comms_tower_last_destroyed and
+        self.comms_tower_last_destroyed + (Config.comms_tower_respawn_time) <= timer.getTime() then
             -- Time is up, respawn the tower
             MissionLogger:info(self.name .." comms tower respawn")
 
