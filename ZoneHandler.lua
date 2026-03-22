@@ -19,6 +19,7 @@ end
 ---@field airbase_name string|nil
 ---@field comms_tower_intact boolean|nil
 ---@field linked_comms_tower string|nil
+---@field cmdc_intact boolean|nil
 ---@field linked_farp string|nil
 ZoneHandler = {}
 do
@@ -49,6 +50,10 @@ do
 
         if obj.zone_type == ZoneTypes.STRONGPOINT then
             obj.attack_convoy = obj.attack_convoy or 0
+        end
+
+        if obj.zone_type == ZoneTypes.AIRBASE and obj.cmdc_intact == nil then
+            obj.cmdc_intact = true
         end
 
 
@@ -459,7 +464,7 @@ do
             end
         elseif self.zone_type == ZoneTypes.FARP and self.side ~= coalition.side.NEUTRAL then
             -- first delete the invisiblefarp if exits
-            timer.scheduleFunction(function ()           
+            timer.scheduleFunction(function ()     
                 UnitHandler.initFARP(self)
             end,{},timer.getTime()+5)
 
@@ -1029,7 +1034,7 @@ do
                 MissionLogger:info("Comms tower respawn time is now "..Config.comms_tower_respawn_time)
            
                 trigger.action.outSoundForCoalition(self.side,"chatter3.ogg")
-                trigger.action.outTextForCoalition(self.side, "Comms zone "..self.name.." has rebuilt its communications tower.",10)
+                trigger.action.outTextForCoalition(self.side, "COMMS "..self.name.." has rebuilt its communications tower.",10)
             else
                 MissionLogger:error("Could not spawn comms tower for ".. self.name)
             end
@@ -1044,12 +1049,17 @@ do
         local cmdc = nil
         if self.linked_statics[1] then
             cmdc = StaticObject.getByName(self.linked_statics[1])
-         end
+        end
         -- First, check the actual status of the depot
         local is_alive = cmdc and cmdc:isExist() and cmdc:getLife() >= 1
 
+        if self.cmdc_intact == false and not self.cmdc_last_destroyed then
+            self.cmdc_last_destroyed = timer.getTime()
+        end
+
         -- If the script thinks the depot is intact, but it's NOT alive, mark it as destroyed.
         if self.linked_statics[1] and not is_alive then
+            self.cmdc_intact = false
             self.cmdc_last_destroyed = timer.getTime()
             self.linked_statics[1] = nil
             utils.editCommandPostsCount(self.side, -1)
@@ -1097,6 +1107,8 @@ do
             if command_center then
                 utils.editCommandPostsCount(self.side, 1)
                 table.insert(self.linked_statics, command_center.name)
+                self.cmdc_intact = true
+                self.cmdc_last_destroyed = nil
                 trigger.action.outSoundForCoalition(self.side,"radio_beep.ogg")
                 trigger.action.outTextForCoalition(self.side, self.name.." has rebuit its command center.",10)
             else

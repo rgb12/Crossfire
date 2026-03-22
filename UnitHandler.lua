@@ -307,6 +307,7 @@ do
 
 
         elseif zone.zone_type == ZoneTypes.AIRBASE then
+            if zone.cmdc_intact == false then return end
             local cmd_center_point = UnitHandler.findClearPoint(zone,50,500)
 
             local command_center = mist.dynAddStatic({
@@ -319,6 +320,7 @@ do
             if command_center then
 
                 table.insert(zone.linked_statics, command_center.name)
+                zone.cmdc_intact = true
                 utils.editCommandPostsCount(zone.side, 1)
             else
                 MissionLogger:error("Could not spawn comms tower for ".. zone.name)
