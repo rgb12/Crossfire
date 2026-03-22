@@ -118,7 +118,7 @@ Config = {
             }
         },
         -- Co-op operation settings
-        coop_max_members = 4, -- maximum number of players (including leader) in a co-op operation
+        coop_max_members = 8, -- maximum number of players (including leader) in a co-op operation
     },
     jupiter_enabled = true, -- enables/disables the Jupiter command system
     jupiter_password = "", -- password required before the -, example password = 12 then the command is 12-discover
