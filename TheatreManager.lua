@@ -189,6 +189,7 @@ do
             if side_comms_towers < Config.tasking_requirements.comms_zones_required_for_cas then
                 return false
             end
+            local potential_zones = {}
             for _, zone in ipairs(zones) do
                 if zone.side == enemy_side and not utils.tableContains(active_zones, zone.name) then
                     local discovered = (side == coalition.side.BLUE and utils.tableContains(stats.blue_discovered_zones, zone.name)) or
@@ -196,10 +197,20 @@ do
                     if discovered and not EnrouteManager:findByToZone(zone, side, {AITaskTypes.CAS}) then
                         local dist = mist.utils.get2DDist(home_base.zone.point, zone.zone.point)
                         if dist < Config.tasking.max_cas_range then
-                            return TaskManager:initiateAITask(AITaskTypes.CAS, side, true, zone, nil, false)
+                            table.insert(potential_zones, {distance=dist, zone=zone})
                         end
                     end
                 end
+            end
+
+            -- Sort zones by distance
+            table.sort(potential_zones, function(a,b)
+                return a.distance < b.distance
+            end)
+            if #potential_zones == 0 then return false end
+
+            for _,p in ipairs(potential_zones) do
+                return TaskManager:initiateAITask(AITaskTypes.CAS, side, true, p.zone, nil, false)
             end
             return false
         end)
@@ -1205,7 +1216,8 @@ do
         -- trigger.action.outText("Theatre setup complete.", 5)
         MissionLogger:info("Mission Commander: Mission Setup Complete.")
         timer.scheduleFunction(function()
-        trigger.action.outText("Assets initialized.",5)
+        -- This only guides the user to ensure everything had time to load, especially just after mission start
+        trigger.action.outText("Assets loaded.",5)
         end, {}, timer.getTime() + 15)
     end
 
