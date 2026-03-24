@@ -418,7 +418,7 @@ do
         local new_zones = {}
         for _, saved_zone in pairs(PersistenceManager.data.zones) do
             local zone = ZoneHandler.getFromName(saved_zone.name)
-            if zone then
+            if zone then -- Ensures not available zones get ignored
                 -- Restore identity & configuration
                 zone.side = saved_zone.side
                 zone.level = saved_zone.level
