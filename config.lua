@@ -21,7 +21,7 @@ Config = {
         save_interval = 2*51, -- (seconds) interval at which the mission state is saved
         -- You can use fixed values or multiplications like above
         -- 51 seconds is used to avoid multiples of 15 to reduce lag spikes
-        save_dir = "Missions/Saves/Crossfire Syrian Resolve/", -- this is your saves directory in Saved Games
+        save_dir = "Missions/Saves/Georgia Liberation/", -- this is your saves directory in Saved Games
         -- If you would like to create a new mission, simple change the last folder name
         save_file = "mission.json", -- this is the name of the mission file
         user_data_file = "user_data.json", -- this is the name of user data only file, note that this only saves user xp and rank
@@ -29,8 +29,8 @@ Config = {
         enable_ctld_persistence = true, -- enables/disables CTLD placed asset persistence
 
 
-        -- scenario_selected = "Georgia Liberation", -- select a scenario from the scenarios found below
-        scenario_selected = "Syrian Resolve", -- select a scenario from the scenarios found below
+        scenario_selected = "Georgia Liberation", -- select a scenario from the scenarios found below
+        -- scenario_selected = "Syrian Resolve", -- select a scenario from the scenarios found below
     },
     operations = {
         recon_duration = 120, -- (seconds)
@@ -339,7 +339,7 @@ Config = {
     },
 
     -- logistics_upgrade_range = 30000, -- (meters)
-    logistics_upgrade_chance = 30, -- (%) every minute the dice is rolled
+    logistics_upgrade_chance = 15, -- (%) every minute the dice is rolled
     logistics_level_up_interval = 16*60, -- (seconds) minimum time between level ups
     logistics_ammo_depot_respawn_time = 45*60, -- (seconds) time it takes for an ammo depot to respawn after being destroyed
     airbase_command_center_respawn_time = 15*60, -- (seconds) time it takes for a command center to respawn after being destroyed
