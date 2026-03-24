@@ -124,11 +124,14 @@ do
 
             local join_operation_menu = missionCommands.addSubMenuForGroup(group_id, "Initiate Operation", missions_submenu)
 
+            -- Aligned with F-keys: F1..F9 = 1..9, F10 = 0
+            local digit_order = {1, 2, 3, 4, 5, 6, 7, 8, 9, 0}
             for i1 = 1, 9 do
                 local digit1 = missionCommands.addSubMenuForGroup(group_id, i1 .. ' _ _', join_operation_menu)
-                for i2 = 0, 9 do
+
+                for _, i2 in ipairs(digit_order) do
                     local digit2 = missionCommands.addSubMenuForGroup(group_id, i1 .. i2 .. ' _', digit1)
-                    for i3 = 0, 9 do
+                    for _, i3 in ipairs(digit_order) do
                         local code = tonumber(i1 .. i2 .. i3)
                         missionCommands.addCommandForGroup(group_id,tostring(code), digit2,
                             function(c,u)
@@ -148,9 +151,9 @@ do
             
             for i1 = 1, 9 do
                 local digit1 = missionCommands.addSubMenuForGroup(group_id, i1 .. ' _ _', join_coop_menu)
-                for i2 = 0, 9 do
+                for _, i2 in ipairs(digit_order) do
                     local digit2 = missionCommands.addSubMenuForGroup(group_id, i1 .. i2 .. ' _', digit1)
-                    for i3 = 0, 9 do
+                    for _, i3 in ipairs(digit_order) do
                         local join_code = tonumber(i1 .. i2 .. i3)
                         missionCommands.addCommandForGroup(group_id, tostring(join_code), digit2,
                             function(code, unit)
