@@ -464,7 +464,6 @@ do
         -- update every minute
         if ticks % 60 == 0 then
             ticks1m = ticks1m + 1
-            TheatreCommander:smokeFrontline()
             t1m_update()
     
             if ticks1m % 5 == 0 then
