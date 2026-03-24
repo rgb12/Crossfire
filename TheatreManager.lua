@@ -225,20 +225,33 @@ do
             if side_comms_towers < Config.tasking_requirements.comms_zones_required_for_sead then
                 return false
             end
-                for _, zone in ipairs(zones) do
-                    if zone.side == enemy_side and zone.zone_type == ZoneTypes.SAMSITE 
-                    and not utils.tableContains(active_zones, zone.name) 
-                    and mist.utils.get2DDist(home_base.zone.point, zone.zone.point) < Config.tasking.max_sead_range then
-                        local discovered = (side == coalition.side.BLUE and utils.tableContains(stats.blue_discovered_zones, zone.name)) or
-                                           (side == coalition.side.RED and utils.tableContains(stats.red_discovered_zones, zone.name))
-                        
-                        if discovered then
-                            if not EnrouteManager:findByToZone(zone, side, {AITaskTypes.SEAD}) then
-                                return TaskManager:initiateAITask(AITaskTypes.SEAD, side, true, zone, nil, false)
-                            end
+
+            local potential_zones = {}
+            for _, zone in ipairs(zones) do
+                if zone.side == enemy_side and zone.zone_type == ZoneTypes.SAMSITE
+                and not utils.tableContains(active_zones, zone.name)
+                and mist.utils.get2DDist(home_base.zone.point, zone.zone.point) < Config.tasking.max_sead_range then
+                    local discovered = (side == coalition.side.BLUE and utils.tableContains(stats.blue_discovered_zones, zone.name)) or
+                                        (side == coalition.side.RED and utils.tableContains(stats.red_discovered_zones, zone.name))
+                    
+                    if discovered then
+                        if not EnrouteManager:findByToZone(zone, side, {AITaskTypes.SEAD}) then
+                            local dist = mist.utils.get2DDist(home_base.zone.point, zone.zone.point)
+                            table.insert(potential_zones, {distance=dist, zone=zone}) 
                         end
                     end
                 end
+            end
+
+              -- Sort zones by distance
+            table.sort(potential_zones, function(a,b)
+                return a.distance < b.distance
+            end)
+            if #potential_zones == 0 then return false end
+
+            for _,p in ipairs(potential_zones) do
+                return TaskManager:initiateAITask(AITaskTypes.SEAD, side, true, p.zone, nil, false)
+            end
             return false
         end)
 
@@ -252,19 +265,29 @@ do
                 return false
             end
 
-                for _, zone in ipairs(zones) do
-                    if zone.side == side and zone.zone_type ~= ZoneTypes.AIRBASE then
-                        local discovered = (side == coalition.side.BLUE and utils.tableContains(stats.blue_discovered_zones, zone.name)) or
-                                           (side == coalition.side.RED and utils.tableContains(stats.red_discovered_zones, zone.name))
-                        local dist = mist.utils.get2DDist(home_base.zone.point, zone.zone.point)
+            local potential_zones = {}
+            for _, zone in ipairs(zones) do
+                if zone.side == side and zone.zone_type ~= ZoneTypes.AIRBASE then
+                    local discovered = (side == coalition.side.BLUE and utils.tableContains(stats.blue_discovered_zones, zone.name)) or
+                                        (side == coalition.side.RED and utils.tableContains(stats.red_discovered_zones, zone.name))
+                    local dist = mist.utils.get2DDist(home_base.zone.point, zone.zone.point)
 
-                        if dist < 75000 and discovered then
-                            if not EnrouteManager:findByToZone(zone, side, {AITaskTypes.CAP}) then
-                                return TaskManager:initiateAITask(AITaskTypes.CAP, side, true, zone, nil, false)
-                            end
-                        end
+                    if discovered and not EnrouteManager:findByToZone(zone, side, {AITaskTypes.CAP}) then
+                        table.insert(potential_zones, {distance=dist, zone=zone})
+                        
                     end
                 end
+            end
+
+            -- Sort zones by distance, reverse order for CAP
+            table.sort(potential_zones, function(a,b)
+                return a.distance > b.distance
+            end)
+            if #potential_zones == 0 then return false end
+
+            for _,p in ipairs(potential_zones) do
+                return TaskManager:initiateAITask(AITaskTypes.CAP, side, true, p.zone, nil, false)
+            end
             return false
         end)
 
@@ -281,6 +304,7 @@ do
                     ZoneTypes.COMMS,
                     ZoneTypes.AIRBASE
                 }
+                local potential_zones = {}
                 for _, zone in ipairs(zones) do
                     if zone.side == enemy_side and utils.tableContains(valid_strike_targets, zone.zone_type) 
                     and not utils.tableContains(active_zones, zone.name)
@@ -290,13 +314,26 @@ do
                         
                         if discovered then
                             if not EnrouteManager:findByToZone(zone, side, {AITaskTypes.STRIKE}) then
-                                MissionLogger:info(string.format("[STRIKE] %s: Attempting to initiate STRIKE task to %s", 
-                                    utils.coalitionToString(side), zone.name))
-                                return TaskManager:initiateAITask(AITaskTypes.STRIKE, side, true, zone, nil, false)
+                                local dist = mist.utils.get2DDist(home_base.zone.point, zone.zone.point)
+                                table.insert(potential_zones, {distance=dist, zone=zone})
                             end
                         end
                     end
                 end
+
+                -- Sort zones by distance
+                table.sort(potential_zones, function(a,b)
+                    return a.distance < b.distance
+                end)
+                if #potential_zones == 0 then return false end
+
+                for _,p in ipairs(potential_zones) do
+                    MissionLogger:info(string.format("[STRIKE] %s: Attempting to initiate STRIKE task to %s",
+                        utils.coalitionToString(side), p.zone.name))
+                    return TaskManager:initiateAITask(AITaskTypes.STRIKE, side, true, p.zone, nil, false)
+                end
+                return false
+
             else
                 if strike_enroute and #strike_enroute >= Config.tasking.max_strike_theatre then
                     MissionLogger:info(string.format("[STRIKE] %s: Max STRIKE tasks reached", utils.coalitionToString(side)))
@@ -316,7 +353,7 @@ do
             possible_tasks[i], possible_tasks[j] = possible_tasks[j], possible_tasks[i]
         end
 
-        -- Run through the shuffled list. As soon as one task spawns (returns true), exit the whole function.
+        -- Run through the shuffled list. As soon as one task spawns (returns true), stop.
         for _, task_func in ipairs(possible_tasks) do
             if task_func() then
                 MissionLogger:info("Tasking succeeded for " .. utils.coalitionToString(side))
@@ -416,6 +453,7 @@ do
         end
 
         local t10m_update = function()
+            MissionLogger:info("10 mins")
             TheatreCommander:smokeFrontline()
         end
 
@@ -426,6 +464,7 @@ do
         -- update every minute
         if ticks % 60 == 0 then
             ticks1m = ticks1m + 1
+            TheatreCommander:smokeFrontline()
             t1m_update()
     
             if ticks1m % 5 == 0 then
@@ -815,7 +854,6 @@ do
 
     local smoke_id = 0
     --[[
-    
         1 = small smoke and fire
         2 = medium smoke and fire
         3 = large smoke and fire
@@ -824,38 +862,38 @@ do
         6 = medium smoke 
         7 = large smoke
         8 = huge smoke ]]
-
     -- Create 2-4 smokes near the frontline (closes red base), with varying size and duration
     function TheatreCommander:smokeFrontline()
         -- Closest enemy zone distance
         local closest_zone, frontline_dist = blue_airbase:getClosestZone(coalition.side.RED)
-        local variance = 25000
+        local variance = 20000
         if closest_zone and frontline_dist then
+            MissionLogger:info("closest zone "..closest_zone.name)
             ---@type vec3[]
             local smoke_points = {}
 
             for i=0, math.random(2,4) do
             local point = {
-                x = closest_zone.zone.point.x + frontline_dist + math.random(-variance, variance),
-                y = closest_zone.zone.point.y + frontline_dist + math.random(-variance, variance)
+                x = closest_zone.zone.point.x  + math.random(-variance, variance),
+                y = closest_zone.zone.point.z  + math.random(-variance, variance)
             }
-                table.insert(smoke_points, mist.utils.makeVec3GL(point))
-            end
-
-
-            for _, point in ipairs(smoke_points) do
-                smoke_id = smoke_id + 1
-                local smoke_string = "TheatreSmoke" .. smoke_id
-                local duration = math.random(5*60, 12*60) -- 2-5 minutes
-                trigger.action.effectSmokeBig(point,math.random(1,8),1,smoke_string)
+            table.insert(smoke_points, mist.utils.makeVec3GL(point))
+        end
+        
+        for _, point in ipairs(smoke_points) do
+            smoke_id = smoke_id + 1
+            local smoke_string = "TheatreSmoke" .. smoke_id
+            local duration = math.random(5*60, 12*60) -- 2-5 minutes
+            trigger.action.effectSmokeBig(point,math.random(5,8),1,smoke_string)
+            MissionLogger:info("Smoke #"..smoke_id)
+            MissionLogger:info(point)
 
                 timer.scheduleFunction(function ()
                     trigger.action.effectSmokeStop(smoke_string)
                 end, nil, timer.getTime() + duration)
             end
-
+            MissionLogger:info("Added smokes near frontline")
         end
-
     end
 
     ---@return ZoneHandler, ZoneHandler
