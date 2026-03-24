@@ -1137,7 +1137,14 @@ do
             if not zone.level then
                 local _, dist = zone:getClosestZone(utils.getEnemyCoalition(zone.side), nil, nil, false)
                 if dist and dist < Config.upgrade_tier_range then
-                    zone.level = math.random(2, 4)
+                    local rnd = math.random(1,100)
+                    if rnd > 90 then
+                        zone.level = 4
+                    elseif rnd > 75 then
+                        zone.level = 3
+                    else
+                        zone.level = 2
+                    end
                 else
                     zone.level = 1
                 end
