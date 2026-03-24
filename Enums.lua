@@ -126,6 +126,7 @@ ZoneTypes = {
     COMMS = 7,
 }
 
+-- Fill in isDefensiveOperation
 ---@enum AITaskTypes
 AITaskTypes = {
     JTAC = "JTAC",
@@ -186,6 +187,7 @@ CargoCrates = {
 
 ---@class CarrierSetup
 ---@field carrier_unit_name string
+---@field tomahawk_launcher_unit_name string|nil
 ---@field enabled boolean
 
 ---@class Resupply

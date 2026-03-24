@@ -17,11 +17,11 @@
 ]]
 Config = {
     persistence = {
-        enable =  false, -- enables or not persistence, has authority over everything below in this section
+        enable =  true, -- enables or not persistence, has authority over everything below in this section
         save_interval = 2*51, -- (seconds) interval at which the mission state is saved
         -- You can use fixed values or multiplications like above
         -- 51 seconds is used to avoid multiples of 15 to reduce lag spikes
-        save_dir = "Missions/Saves/Crossfire Syrian Resolve/", -- this is your saves directory in Saved Games
+        save_dir = "Missions/Saves/Georgia Liberation/", -- this is your saves directory in Saved Games
         -- If you would like to create a new mission, simple change the last folder name
         save_file = "mission.json", -- this is the name of the mission file
         user_data_file = "user_data.json", -- this is the name of user data only file, note that this only saves user xp and rank
@@ -29,8 +29,8 @@ Config = {
         enable_ctld_persistence = true, -- enables/disables CTLD placed asset persistence
 
 
-        -- scenario_selected = "Georgia Liberation", -- select a scenario from the scenarios found below
-        scenario_selected = "Syrian Resolve", -- select a scenario from the scenarios found below
+        scenario_selected = "Georgia Liberation", -- select a scenario from the scenarios found below
+        -- scenario_selected = "Syrian Resolve", -- select a scenario from the scenarios found below
     },
     operations = {
         recon_duration = 120, -- (seconds)
@@ -176,6 +176,7 @@ Config = {
             AWACS = 400,
             RECON = 300,
             CAPTURE_HELO = 150,
+            NAVAL_STRIKE = 2500
         }
     },
 
@@ -190,7 +191,8 @@ Config = {
         xp_per_intel_report = 50,
         landing_time = 15, -- (seconds) the time the player has to stay on the ground to be rewarded
 
-        
+        naval_stike_xp_required = 8000,
+
         -- Co-op reward bonuses
         coop_xp_bonus = 0.25, -- (%) bonus to XP and tokens when playing co-op operations (multiplier applied to XP)
 
@@ -262,7 +264,9 @@ Config = {
 
     tasking = {
         enable = true, -- enables/disables AI tasking system, does not affect resupply and capture mechanics
-        dispatcher_interval = 10*60+8,--5*60, -- (seconds), avoid multiples of 15 to reduce lag spikes
+
+        BLUFOR_dispatcher_interval = 10*60+8, -- (seconds), avoid multiples of 15 to reduce lag spikes
+        REDFOR_dispatcher_interval = 6*60+8, -- (seconds), avoid multiples of 15 to reduce lag spikes
         max_tasks_per_airbase = 4, -- maximum number of concurrent tasks per airbase
 
         max_jtac_per_airbase = 2,
@@ -288,6 +292,8 @@ Config = {
 
         range_for_recon_to_discover_zone = 15*1000, -- (meters)
         max_cas_range = 200*1000, -- (meters)
+        max_strike_range = 200*1000, -- (meters)
+        max_sead_range = 200*1000, -- (meters)
         min_cleareance_dist_for_awacs = 70*1000 -- (meters) from the nearest enemy zone
     },
 
@@ -327,8 +333,13 @@ Config = {
 
     jtac_smoke_stock = 8,
 
+    naval_ground_strike = {
+        naval_strike_launch_interval = 10, -- (seconds)
+        naval_strike_salvo_size = 10,
+    },
+
     -- logistics_upgrade_range = 30000, -- (meters)
-    logistics_upgrade_chance = 30, -- (%) every minute the dice is rolled
+    logistics_upgrade_chance = 15, -- (%) every minute the dice is rolled
     logistics_level_up_interval = 16*60, -- (seconds) minimum time between level ups
     logistics_ammo_depot_respawn_time = 45*60, -- (seconds) time it takes for an ammo depot to respawn after being destroyed
     airbase_command_center_respawn_time = 15*60, -- (seconds) time it takes for a command center to respawn after being destroyed

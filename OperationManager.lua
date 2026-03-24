@@ -368,6 +368,20 @@ do
         local friendly_coalition = self.side
         local enemy_coalition = utils.getEnemyCoalition(friendly_coalition)
 
+        local function isOffensiveOperation(op_type)
+            return op_type == OperationTypes.RECON
+                or op_type == OperationTypes.CAS
+                or op_type == OperationTypes.SEAD
+                or op_type == OperationTypes.DEAD
+                or op_type == OperationTypes.STRIKE
+        end
+
+        local function isDefensiveOperation(op_type)
+            return op_type == OperationTypes.CAP
+                or op_type == OperationTypes.INTERCEPT
+                or op_type == OperationTypes.AIRDROP
+        end
+
         local discovered_zones = {}
         if self.side == coalition.side.BLUE then
             discovered_zones = stats.blue_discovered_zones
@@ -383,24 +397,37 @@ do
 
         for i = #self.available_operations, 1, -1 do
             local op = self.available_operations[i]
-            
-            -- If this zone is now Active (taken by a player), remove it from Available
+
+            local remove_op = false
+
+            -- If this zone is now Active (taken by a player), remove it from Available.
             if self:isZoneActive(op.target_zone_name) then
-                table.remove(self.available_operations, i)
-            end
-            
-            local zone = ZoneHandler.getFromName(op.target_zone_name)
-            if not zone then
-                table.remove(self.available_operations, i)
-            end
-            if zone and zone.side ~= self.side then
-                table.remove(self.available_operations, i)
+                remove_op = true
+            elseif op.type ~= OperationTypes.CSAR then
+                local zone = ZoneHandler.getFromName(op.target_zone_name)
+                if not zone then
+                    remove_op = true
+                else
+                    -- Keep cached ops aligned with their intended target ownership.
+                    if isOffensiveOperation(op.type) and zone.side ~= enemy_coalition then
+                        remove_op = true
+                    elseif isDefensiveOperation(op.type) and zone.side ~= self.side then
+                        remove_op = true
+                    end
+
+                    -- RECON is only valid for undiscovered enemy zones.
+                    local is_discovered = discovered_zones_set[op.target_zone_name] == true
+                    if op.type == OperationTypes.RECON and is_discovered then
+                        remove_op = true
+                    elseif op.type ~= OperationTypes.RECON and not is_discovered then
+                        remove_op = true
+                    end
+                end
             end
 
-            if not discovered_zones_set[op.target_zone_name] then
+            if remove_op then
                 table.remove(self.available_operations, i)
             end
-
         end
 
         local sorted_zones = ZoneHandler.sortZonesByDistance(reference_pos)

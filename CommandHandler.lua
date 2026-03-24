@@ -124,11 +124,14 @@ do
 
             local join_operation_menu = missionCommands.addSubMenuForGroup(group_id, "Initiate Operation", missions_submenu)
 
+            -- Aligned with F-keys: F1..F9 = 1..9, F10 = 0
+            local digit_order = {1, 2, 3, 4, 5, 6, 7, 8, 9, 0}
             for i1 = 1, 9 do
                 local digit1 = missionCommands.addSubMenuForGroup(group_id, i1 .. ' _ _', join_operation_menu)
-                for i2 = 0, 9 do
+
+                for _, i2 in ipairs(digit_order) do
                     local digit2 = missionCommands.addSubMenuForGroup(group_id, i1 .. i2 .. ' _', digit1)
-                    for i3 = 0, 9 do
+                    for _, i3 in ipairs(digit_order) do
                         local code = tonumber(i1 .. i2 .. i3)
                         missionCommands.addCommandForGroup(group_id,tostring(code), digit2,
                             function(c,u)
@@ -148,9 +151,9 @@ do
             
             for i1 = 1, 9 do
                 local digit1 = missionCommands.addSubMenuForGroup(group_id, i1 .. ' _ _', join_coop_menu)
-                for i2 = 0, 9 do
+                for _, i2 in ipairs(digit_order) do
                     local digit2 = missionCommands.addSubMenuForGroup(group_id, i1 .. i2 .. ' _', digit1)
-                    for i3 = 0, 9 do
+                    for _, i3 in ipairs(digit_order) do
                         local join_code = tonumber(i1 .. i2 .. i3)
                         missionCommands.addCommandForGroup(group_id, tostring(join_code), digit2,
                             function(code, unit)
@@ -679,7 +682,6 @@ do
 
         local main_tasking_list = {}
 
-        -- 1. Build CAS Target List
         local cas_target_list = {}
         for _, zone in ipairs(zones) do
             -- Find enemy zones suitable for CAS
@@ -709,6 +711,48 @@ do
                     end,
                     arg = {u = unit, z = zone}
                 })
+            end
+        end
+
+        local attack_ship_name = Scenario.carrier_setup.tomahawk_launcher_unit_name
+        local naval_strike_list = {}
+        if Scenario.carrier_setup.enabled and attack_ship_name then
+                for _, zone in ipairs(zones) do
+                -- Find enemy zones suitable for CAS
+                if zone.side == enemy_side and utils.tableContains(discovered_zones, zone.name) then 
+                    table.insert(naval_strike_list, {
+                        name = zone.name,
+                        func = function (args)
+                            local u = args.u
+                            local to_zone = args.z
+    
+                            local u_xp = ExperienceManager:fetchUser(u)
+                            if not u_xp then
+                                trigger.action.outTextForGroup(gr_id,"Could not fetch user data",10)
+                                return
+                            end
+
+                            if u_xp and u_xp.xp < Config.reward_system.naval_stike_xp_required then
+                                trigger.action.outTextForGroup(gr_id,"Not authorized, required rank: "..ExperienceManager:getRankfromXP(Config.reward_system.naval_stike_xp_required),10)
+                                trigger.action.outSoundForGroup(gr_id, "Radio squelch.ogg")
+                                return
+                            end
+
+                            if not checkRankRequirement(u, AITaskTypes.CAS) then return end
+                            if not checkSupplies(u, Config.supplies.tasking_costs.NAVAL_STRIKE) then return end
+
+                            local ship_unit = Unit.getByName(attack_ship_name)
+                            if not (ship_unit and ship_unit.isExist and ship_unit:isExist()) then
+                                trigger.action.outTextForGroup(gr_id, "Negative, Naval capable asset unavailable.", 10)
+                                trigger.action.outSoundForGroup(gr_id, "Radio squelch.ogg")
+                            return
+                            end
+
+                            TaskManager:requestNavalStrike(to_zone,ship_unit)
+                        end,
+                        arg = {u = unit, z = zone}
+                    })
+                end
             end
         end
 
@@ -930,6 +974,19 @@ do
         else
              table.insert(main_tasking_list, {
                 name = "Request JTAC (No Targets)",
+                func = function() end,
+                arg = nil
+            })
+        end
+
+        if #naval_strike_list > 0 then
+            table.insert(main_tasking_list, {
+                name = "Request Naval Strike",
+                submenu = naval_strike_list
+            })
+        else
+             table.insert(main_tasking_list, {
+                name = "Request Naval Strike (No Targets)",
                 func = function() end,
                 arg = nil
             })
