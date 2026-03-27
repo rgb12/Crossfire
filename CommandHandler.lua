@@ -836,16 +836,24 @@ do
                         if not checkRankRequirement(u, AITaskTypes.CAPTURE_HELO) then return end
                         if not checkSupplies(u, Config.supplies.tasking_costs.CAPTURE_HELO) then return end
                         -- Finds nearest blue logistics zone to the target neutral zone
-                        local from_zone = nil
+                        local avail_logistics_zones = {}
+
                         for _, log_zone in ipairs(zones) do
                             if log_zone.side == side and log_zone.zone_type == ZoneTypes.LOGISTICS
                             and log_zone.capture_heli_avail > 0 then
-                                from_zone = log_zone
-                                break
+                                table.insert(avail_logistics_zones, log_zone)
                             end
                         end
 
-                        if from_zone then
+                        -- Sort by distance to target zone
+                        table.sort(avail_logistics_zones, function(a, b)
+                            local dist_a = mist.utils.get2DDist(a.zone.point, to_zone.zone.point)
+                            local dist_b = mist.utils.get2DDist(b.zone.point, to_zone.zone.point)
+                            return dist_a < dist_b
+                        end)
+
+                        if #avail_logistics_zones > 0 then
+                            local from_zone = avail_logistics_zones[1]
                             if TaskManager:initiateAITask(AITaskTypes.CAPTURE_HELO, side, false, to_zone, from_zone, true) then
                                 deductSupplies(Config.supplies.tasking_costs.CAPTURE_HELO)
                                 trigger.action.outTextForCoalition(side, "Request accepted, Helicopter capture dispatched to " .. to_zone.name .. ", " .. Config.supplies.tasking_costs.CAPTURE_HELO .. " supplies used.", 10)
