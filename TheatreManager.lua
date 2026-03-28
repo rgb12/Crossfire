@@ -431,6 +431,8 @@ do
                     
             end
             ctld.monitorFARPDestruction()
+
+            Frontline.drawFrontline()
         end
 
         local t5m_update = function()
@@ -862,6 +864,7 @@ do
         6 = medium smoke 
         7 = large smoke
         8 = huge smoke ]]
+
     -- Create 2-4 smokes near the frontline (closes red base), with varying size and duration
     function TheatreCommander:smokeFrontline()
         -- Closest enemy zone distance

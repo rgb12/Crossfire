@@ -267,3 +267,45 @@ function utils.compactZoneList(zone_list)
 
     return compact
 end
+
+---@param table number[]
+---@return number
+function utils.tableMax(table)
+    local max = table[1]
+    -- Iterate through the table
+    for i, num in ipairs(table) do
+        if num > max then
+            max = num
+        end
+    end
+    return max
+end
+
+---@param table number[]
+---@return number
+function utils.tableMin(table)
+    local min = table[1]
+    -- Iterate through the table
+    for i, num in ipairs(table) do
+        if num < min then
+            min = num
+        end
+    end
+    return min
+end
+
+---@param vec vec3|vec2
+---@return vec2
+function utils.toVec2(vec) do
+    if vec.x and vec.y and not vec.z then return { x = vec.x, y = vec.y} end -- already vec2
+
+    return { x = vec.x, y = vec.z } end
+end
+
+---@param vec vec2|vec3
+---@param agl number|nil if nil, will use land height at vec position
+function utils.toVec3(vec,agl) do
+    if vec.x and vec.y and vec.z then return { x = vec.x, y = vec.y, z = vec.z } end -- already vec3
+
+    return { x = vec.x, y = agl or land.getHeight(vec), z = vec.y } end
+end
