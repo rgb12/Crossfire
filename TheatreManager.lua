@@ -294,7 +294,7 @@ do
         -- [TASK: STRIKE]
         table.insert(possible_tasks, function()
             local strike_enroute = EnrouteManager:findByTaskType(AITaskTypes.STRIKE, side)
-            MissionLogger:info(string.format("[STRIKE] %s checking STRIKE tasks. Current enroute: %d, max: %d", 
+            MissionLogger:info(string.format("[STRIKE] %s checking STRIKE tasks. Current enroute: %d, max: %d",
                 utils.coalitionToString(side), strike_enroute and #strike_enroute or 0, Config.tasking.max_strike_theatre))
             if strike_enroute and #strike_enroute < Config.tasking.max_strike_theatre
             and side_comms_towers >= Config.tasking_requirements.comms_zones_required_for_strike
@@ -306,7 +306,7 @@ do
                 }
                 local potential_zones = {}
                 for _, zone in ipairs(zones) do
-                    if zone.side == enemy_side and utils.tableContains(valid_strike_targets, zone.zone_type) 
+                    if zone.side == enemy_side and utils.tableContains(valid_strike_targets, zone.zone_type)
                     and not utils.tableContains(active_zones, zone.name)
                     and mist.utils.get2DDist(home_base.zone.point, zone.zone.point) < Config.tasking.max_strike_range then
                         local discovered = (side == coalition.side.BLUE and utils.tableContains(stats.blue_discovered_zones, zone.name)) or
@@ -466,7 +466,6 @@ do
         -- update every minute
         if ticks % 60 == 0 then
             ticks1m = ticks1m + 1
-            TheatreCommander:smokeFrontline()
             t1m_update()
     
             if ticks1m % 5 == 0 then
@@ -1261,6 +1260,8 @@ do
             world.addEventHandler(Jupiter)
         end
         
+        Frontline.drawFrontline()
+
         -- trigger.action.outText("Theatre setup complete.", 5)
         MissionLogger:info("Mission Commander: Mission Setup Complete.")
         timer.scheduleFunction(function()
