@@ -152,7 +152,9 @@ OperationTypes = {
     RECON = "Recon",
     AIRDROP = "Airdrop",
     INTERCEPT = "Intercept",
-    CSAR = "CSAR"
+    CSAR = "CSAR",
+    DEEP_RECON = "Deep Recon",
+    DEEP_STRIKE = "Deep strike"
 }
 
 
