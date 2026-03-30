@@ -443,7 +443,7 @@ do
                     local closest_enemy_zone,d = self.home_airbase:getClosestZone(enemy_coalition)
 
 
-                    if closest_enemy_zone and d and mist.utils.get2DDist(reference_pos, zone.zone.point) > d then
+                    if closest_enemy_zone and d and mist.utils.get2DDist(reference_pos, zone.zone.point) > 2*d then
                         local op = self:createDEEPRECONOperation(zone)
                         table.insert(self.available_operations, op)
                     else
