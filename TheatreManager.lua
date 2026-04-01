@@ -1163,6 +1163,7 @@ do
                 end
             end
 
+            -- Makes all airbases visible
             if zone.zone_type == ZoneTypes.AIRBASE then
                 if not utils.tableContains(stats.blue_discovered_zones, zone.name) then
                     table.insert(stats.blue_discovered_zones, zone.name)
@@ -1242,6 +1243,7 @@ do
         timer.scheduleFunction(TheatreCommander.sendWarehouseResupply, coalition.side.BLUE, timer.getTime() + Config.std_resupply_time)
         timer.scheduleFunction(TheatreCommander.sendWarehouseResupply, coalition.side.RED, timer.getTime() + Config.std_resupply_time)
         
+        ATIS:init()
         TheatreCommander:tick()
         
         -- AI DISPATCHER

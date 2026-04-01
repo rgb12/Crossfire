@@ -360,6 +360,20 @@ Config = {
         max_aircraft_per_text = 6, -- maximum number of aircraft displayed per message
     },
 
+    ATIS_frequencies = {
+        [Airbases.Caucasus.Vaziani] = 127.5*1e6, -- (Hertz)
+        [Airbases.Caucasus.Batumi] = 118.250*1e6, -- (Hertz)
+        [Airbases.Caucasus.Kutaisi] = 118.600*1e6, -- (Hertz)
+        [Airbases.Caucasus.Senaki_Kolkhi] = 119.100*1e6, -- (Hertz)
+        [Airbases.Caucasus.Kobuleti] = 119.450*1e6, -- (Hertz)
+        [Airbases.Caucasus.Sukhumi_Babushara] = 120.250*1e6, -- (Hertz)
+        [Airbases.Caucasus.Gudauta] = 120.750*1e6, -- (Hertz)
+
+        [Airbases.Syria.An_Nasiriyah] = 118.600*1e6, -- (Hertz)
+        [Airbases.Syria.Shayrat] = 127.5*1e6, -- (Hertz)
+        [Airbases.Syria.Rayak] = 119.450*1e6, -- (Hertz)
+    },
+
     draw_color_palette = {
         -- for rgb, divide values by 255 to get 0-1 range
         red_palette = {

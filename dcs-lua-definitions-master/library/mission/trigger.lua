@@ -537,7 +537,7 @@ function trigger.action.effectSmokeStop(name) end
 ---@param loop boolean Whether to loop transmission or not.
 ---@param frequency number Frequency in Hz, 9 digits.
 ---@param power number Power in Watts.
----@param name string Name of transmission.
+---@param name string|nil Name of transmission.
 ---@diagnostic disable-next-line:inject-field
 function trigger.action.radioTransmission(filename, point, modulation, loop, frequency, power, name) end
 
