@@ -412,7 +412,7 @@ function Frontline.drawFrontline()
 
         local mark_id = nextMarkId()
         -- trigger.action.lineToAll(-1, mark_id, utils.toVec3(p1), utils.toVec3(p2), {67/255,104/255,153/255,1}, 5, true)
-        trigger.action.lineToAll(-1, mark_id, utils.toVec3(p1), utils.toVec3(p2), {0,0,1,1}, 1, true)
+        trigger.action.lineToAll(-1, mark_id, utils.toVec3(p1), utils.toVec3(p2), Config.draw_color_palette.frontline_color, Config.draw_color_palette.frontline_linestyle, true)
 
         table.insert(Frontline.mark_ids, mark_id)
     end
