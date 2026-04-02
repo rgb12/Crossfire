@@ -801,6 +801,13 @@ do
             self.ammo_depot_intact = false
             self.ammo_depot_last_destroyed = timer.getTime()
 
+            for i = #self.linked_statics, 1, -1 do
+                if self.linked_statics[i] == self.linked_ammo_depot then
+                    table.remove(self.linked_statics, i)
+                end
+            end
+            self.linked_ammo_depot = nil
+
             -- destroy if it exists
             if ammo_depot and ammo_depot:isExist() then
                 ammo_depot:destroy()
@@ -854,7 +861,7 @@ do
                     trigger.action.outSoundForCoalition(self.side,"chatter3.ogg")
                     trigger.action.outTextForCoalition(self.side, "Logistics SITREP: Logistics zone "..self.name.." has reestablished its ammunition depot.",10)
             self:drawF10()
-            else                                                        
+            else                                                  
                 MissionLogger:error("Could not spawn ammo depot for ".. self.name)
             end
         end
@@ -1034,7 +1041,7 @@ do
                 MissionLogger:info("Comms tower respawn time is now "..Config.comms_tower_respawn_time)
            
                 trigger.action.outSoundForCoalition(self.side,"chatter3.ogg")
-                trigger.action.outTextForCoalition(self.side, "COMMS "..self.name.." has rebuilt its communications tower.",10)
+                trigger.action.outTextForCoalition(self.side, "SITREP: COMMS "..self.name.." has rebuilt its communications tower.",10)
             else
                 MissionLogger:error("Could not spawn comms tower for ".. self.name)
             end
@@ -1047,8 +1054,9 @@ do
         if not self.airbase_name then return end
 
         local cmdc = nil
-        if self.linked_statics[1] then
-            cmdc = StaticObject.getByName(self.linked_statics[1])
+        local command_center_name = self.linked_statics[1]
+        if command_center_name then
+            cmdc = StaticObject.getByName(command_center_name)
         end
         -- First, check the actual status of the depot
         local is_alive = cmdc and cmdc:isExist() and cmdc:getLife() >= 1
@@ -1061,7 +1069,12 @@ do
         if self.linked_statics[1] and not is_alive then
             self.cmdc_intact = false
             self.cmdc_last_destroyed = timer.getTime()
-            self.linked_statics[1] = nil
+            for i = #self.linked_statics, 1, -1 do
+                if self.linked_statics[i] == command_center_name then
+                    table.remove(self.linked_statics, i)
+                end
+            end
+
             utils.editCommandPostsCount(self.side, -1)
             -- The coalition will loose 1/(# of cmd posts)of their supplies immediately
             if self.side == coalition.side.BLUE then
@@ -1075,11 +1088,9 @@ do
             end
         end
 
- 
         if not is_alive and self.cmdc_last_destroyed
-        and self.cmdc_last_destroyed + Config.airbase_command_center_respawn_time > timer.getTime() then
-            
-            
+        and self.cmdc_last_destroyed + Config.airbase_command_center_respawn_time > timer.getTime() then          
+
             MissionLogger:info(self.name .." command center pending respawn")
             local time_remaining = math.ceil((self.cmdc_last_destroyed + (Config.airbase_command_center_respawn_time) - timer.getTime()) / 60)
             local time_text = "Rebuild in T-"..time_remaining.." min"
@@ -1110,7 +1121,7 @@ do
                 self.cmdc_intact = true
                 self.cmdc_last_destroyed = nil
                 trigger.action.outSoundForCoalition(self.side,"radio_beep.ogg")
-                trigger.action.outTextForCoalition(self.side, self.name.." has rebuit its command center.",10)
+                trigger.action.outTextForCoalition(self.side, "SITREP: AIRBASE "..self.name.." has rebuilt its Command Center.",10)
             else
                 MissionLogger:error("Could not spawn command center for ".. self.name)
             end
