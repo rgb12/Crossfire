@@ -45,10 +45,10 @@ function ev:onEvent(event)
                                         local warehouse = airbase:getWarehouse()
                                         if warehouse then
                                             --MissionLogger:info(warehouse:getInventory())
-                                            local acft_count = warehouse:getItemCount(acft_name) or 0
+                                            local acft_count = (warehouse:getItemCount(acft_name) or 0)+1
                                             --MissionLogger:info(acft_count)
                                             
-                                            if acft_count > 0 then
+                                            if acft_count >= 1 then -- the airplane gets used before this script is executed
                                                 can_spawn = true
                                                 
                                                 -- Due to the size of the C130, certain bases do not have spawn slots.
