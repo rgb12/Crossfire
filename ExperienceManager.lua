@@ -15,6 +15,8 @@ do
     ---@type UserData[]
     ExperienceManager.user_data = {}
 
+    ExperienceManager.airbone_users = {}
+
     function ExperienceManager.EventHandler:onEvent(event)
         if not Config.reward_system.enable then return end
 
@@ -55,24 +57,51 @@ do
                     user.unclaimed_xp = user.unclaimed_xp + Config.reward_system.xp_per_vehicle_destroyed
                 else return end
             end
+        elseif event.id == world.event.S_EVENT_TAKEOFF then
+            if event.initiator and event.initiator.getPlayerName then
+                ExperienceManager.airbone_users[event.initiator:getPlayerName()] = {
+                    take_off_time = timer.getTime()
+                }
+            end
         elseif event.id == world.event.S_EVENT_LAND then
             if event.initiator and event.initiator.getPlayerName then
-                
-                local user = ExperienceManager:fetchUser(event.initiator)
-                if not user then return end
+
                 local unit_name = event.initiator:getName()
+                local player_name = event.initiator:getPlayerName()
+                local now = timer.getTime()
+                local airborne_user = ExperienceManager.airbone_users[player_name]
+                local airtime = 0
+                if airborne_user then
+                    airtime = now - (airborne_user.take_off_time or now)
+                    ExperienceManager.airbone_users[player_name] = nil
+                end
+                local airtime_xp_bonus = 0
+                if airtime > 20*60 then
+                    if airtime < 30*60 then
+                        airtime_xp_bonus = 200
+                    elseif airtime < 40*60 then
+                        airtime_xp_bonus = 400
+                    elseif airtime < 50*60 then
+                        airtime_xp_bonus = 600
+                    elseif airtime < 60*60 then
+                        airtime_xp_bonus = 900
+                    elseif airtime >= 60*60 then
+                        airtime_xp_bonus = 200 * math.floor(airtime/(600))
+                    end
+                end
 
                 timer.scheduleFunction(function()
               
                     local unit_check = Unit.getByName(unit_name)
                     if unit_check and unit_check:isExist() and unit_check:getLife() > 0 and unit_check.getCoalition then
                         local user = ExperienceManager:fetchUser(unit_check)
-                        if user and (user.unclaimed_xp>0)then
+
+                        if user and (user.unclaimed_xp>0 or airtime_xp_bonus>0)then
                             local u_id = unit_check:getID()
-                            trigger.action.outTextForUnit(u_id, "Post-Flight Debrief: +".. user.unclaimed_xp .. " XP",10)
+                            trigger.action.outTextForUnit(u_id, "Post-Flight Debrief: +".. user.unclaimed_xp+airtime_xp_bonus .. " XP",10)
                             trigger.action.outSoundForUnit(u_id,"radio click.ogg")
                             
-                            ExperienceManager:addXP(user, user.unclaimed_xp) -- to check for rank up
+                            ExperienceManager:addXP(user, user.unclaimed_xp+airtime_xp_bonus) -- checks for rank up
                             user.unclaimed_xp = 0
                         end
                     end
@@ -123,20 +152,6 @@ do
         if not unit.getPlayerName then return nil end
         local user_name = unit:getPlayerName()
         return ExperienceManager.user_data[user_name]
-    end
-
-    function ExperienceManager:addTokens(unit, amount)
-        local user = ExperienceManager:fetchUser(unit)
-        if user then
-            user.tokens = user.tokens + amount
-        end
-    end
-
-    function ExperienceManager:deductTokens(unit, amount)
-        local user = ExperienceManager:fetchUser(unit)
-        if user then
-            user.tokens = math.max(0, user.tokens - amount)
-        end
     end
 
     ---@param user UserData
