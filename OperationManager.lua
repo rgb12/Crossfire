@@ -968,8 +968,8 @@ do
                     description = "Patrol the airspace above " .. target_zone.name .. " for 5 minutes.",
                     completed = false,
                     start_time = nil,
-                    duration = Config.operations.cap_duration, 
-                    radius = Config.operations.cap_max_radius_from_zone, 
+                    duration = Config.operations.cap_duration,
+                    radius = Config.operations.cap_max_radius_from_zone,
                     check = function(self, player_unit)
                         local player_pos = player_unit:getPoint()
                         local zone = ZoneHandler.getFromName(target_zone.name)
@@ -982,6 +982,8 @@ do
                             end
 
                         else
+
+                            if player_unit.inAir and not player_unit:inAir() then return false end
 
                             if mist.utils.get2DDist(zone.zone.point,player_pos) > self.radius then
                                 trigger.action.outTextForUnit(player_unit:getID(), "CAP timer reset, stay near: "..zone.name, 10)
