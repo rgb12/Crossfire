@@ -1,2 +1,0 @@
-return --Mission@127.0.0.1:12080 <- Jupiter.lua:93
-"SUCCESSFUL EXECUTION - NO RETURN VALUE"
