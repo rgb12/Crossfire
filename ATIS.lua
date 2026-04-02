@@ -15,7 +15,7 @@ ATIS.nato_alphabet = {
 ATIS.airbaseInformation = {}
 
 -- ATIS information letter changes every mission hour.
-ATIS.info_change_interval_seconds = 300
+ATIS.info_change_interval_seconds = 30*60
 
 -- Sound durations extracted from MOOSE ATIS.Sound table
 ATIS.soundDurations = {
@@ -301,9 +301,6 @@ function ATIS:reportAirbase(zone,freq,start_delay)
     for digit in windDirStr:gmatch(".") do
         table.insert(sequence, "ATIS/N-" .. digit .. ".ogg")
     end
-    table.insert(sequence, "ATIS/Knots.ogg")
-    
-
 
     -- Wind speed
     table.insert(sequence, "ATIS/At.ogg")
