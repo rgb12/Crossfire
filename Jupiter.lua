@@ -112,6 +112,10 @@ function Jupiter:onEvent(event)
             stats.red_supplies = stats.red_supplies + supplies_to_add
             trigger.action.outText("Jupiter: Added "..supplies_to_add.." supplies to RED coalition. Total: "..stats.red_supplies, 5)
             cmd_executed = true
+        elseif command == "-restock" then
+            WarehouseManager:handleIncomingSupplies(coalition.side.BLUE, {WarehouseManager.StockTypes.INITIAL})
+            WarehouseManager:handleIncomingSupplies(coalition.side.RED, {WarehouseManager.StockTypes.INITIAL})
+            cmd_executed = true
         elseif command == "-setlevel" then
             local level = tonumber(param1) or 1
             -- Set level of the closest zone within 10km
