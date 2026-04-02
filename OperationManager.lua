@@ -1526,6 +1526,24 @@ do
             return
         end
 
+        -- Recon operations are only valid on undiscovered enemy zones.
+        if accepted_mission.type == OperationTypes.RECON or accepted_mission.type == OperationTypes.DEEP_RECON then
+            local is_discovered = false
+            if self.side == coalition.side.BLUE then
+                is_discovered = utils.tableContains(stats.blue_discovered_zones, accepted_mission.target_zone_name)
+            elseif self.side == coalition.side.RED then
+                is_discovered = utils.tableContains(stats.red_discovered_zones, accepted_mission.target_zone_name)
+            end
+
+            if is_discovered then
+                trigger.action.outTextForUnit(unit:getID(), "Operation Aborted: target is already discovered.", 10)
+                trigger.action.outSoundForUnit(unit:getID(),"radio_txrx.ogg")
+                table.remove(self.available_operations, mission_index)
+                self:forceRegenerateOperations()
+                return
+            end
+        end
+
         -- For CSAR operations, handle differently
         local zone_tgt = nil
         if accepted_mission.type == OperationTypes.CSAR then
