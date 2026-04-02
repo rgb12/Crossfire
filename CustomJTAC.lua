@@ -38,7 +38,7 @@ do
     JTAC.categories['Infantry'] = {'Infantry'}
     JTAC.categories['Armor'] = {'Tanks','IFV','APC'}
     JTAC.categories['Support'] = {'Unarmed vehicles','Artillery'}
-    --JTAC.categories['Structures'] = {'StaticObjects'}
+    JTAC.categories['Structures'] = {'StaticObjects'}
 
     ---@return JTAC
     function JTAC:new(obj)
@@ -321,6 +321,13 @@ do
                                 unit_count = unit_count + 1
                             end
                         end
+                    end
+                end
+                for _,static_name in pairs(zone.linked_statics) do
+                    local static_obj = StaticObject.getByName(static_name)
+                    if static_obj and static_obj.isExist and static_obj:isExist() then
+                        unit_types["Structure"] = (unit_types["Structure"] or 0) + 1
+                        unit_count = unit_count + 1
                     end
                 end
                 
