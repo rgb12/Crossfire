@@ -685,7 +685,7 @@ do
         local cas_target_list = {}
         for _, zone in ipairs(zones) do
             -- Find enemy zones suitable for CAS
-            if zone.side == enemy_side and utils.tableContains(discovered_zones, zone.name) then 
+            if zone.side == enemy_side and utils.tableContains(discovered_zones, zone.name) then
                 table.insert(cas_target_list, {
                     name = zone.name,
                     func = function (args)

@@ -875,7 +875,6 @@ do
         local closest_zone, frontline_dist = blue_airbase:getClosestZone(coalition.side.RED)
         local variance = 20000
         if closest_zone and frontline_dist then
-            MissionLogger:info("closest zone "..closest_zone.name)
             ---@type vec3[]
             local smoke_points = {}
 
@@ -892,8 +891,6 @@ do
             local smoke_string = "TheatreSmoke" .. smoke_id
             local duration = math.random(5*60, 12*60) -- 2-5 minutes
             trigger.action.effectSmokeBig(point,math.random(5,8),1,smoke_string)
-            MissionLogger:info("Smoke #"..smoke_id)
-            MissionLogger:info(point)
 
                 timer.scheduleFunction(function ()
                     trigger.action.effectSmokeStop(smoke_string)
