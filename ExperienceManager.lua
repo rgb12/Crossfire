@@ -29,7 +29,8 @@ do
 
                 -- Checks if target is not friendly
                 if target:getCoalition() == initiator:getCoalition() then
-                    trigger.action.outTextForUnit(user.id,"Fatricide, stop!",10)
+                    trigger.action.outTextForUnit(user.id,"Fatricide, hold fire!",10)
+                    ExperienceManager:redXP(user,Config.reward_system.xp_lost_per_kill_fatricide)
                     MissionLogger:info("Fratricide committed!: "..user.name)
                     return
                 end
@@ -152,6 +153,24 @@ do
 
                 trigger.action.outSoundForUnit(user.id,"rank_up.ogg")
                 trigger.action.outTextForUnit(user.id,"Rank Up! New Rank: " .. new_rank.."",10)
+            end
+            return true
+        end
+        return false
+    end
+
+    --- Remove XP from user
+    ---@param user UserData
+    ---@param amount number
+    ---@return boolean
+    function ExperienceManager:redXP(user,amount)
+        if user then
+            user.xp = user.xp - amount
+            -- check for rank down
+            local new_rank = ExperienceManager:getRankfromXP(user.xp)
+            MissionLogger:info(user.rank.. " -> "..new_rank)
+            if new_rank ~= user.rank then
+                user.rank = new_rank
             end
             return true
         end

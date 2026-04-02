@@ -191,6 +191,8 @@ Config = {
         xp_per_intel_report = 50,
         landing_time = 15, -- (seconds) the time the player has to stay on the ground to be rewarded
 
+        xp_lost_per_kill_fatricide = 1000,
+
         naval_stike_xp_required = 8000,
 
         -- Co-op reward bonuses
