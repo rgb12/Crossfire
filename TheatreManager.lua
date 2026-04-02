@@ -309,13 +309,18 @@ do
                     if zone.side == enemy_side and utils.tableContains(valid_strike_targets, zone.zone_type)
                     and not utils.tableContains(active_zones, zone.name)
                     and mist.utils.get2DDist(home_base.zone.point, zone.zone.point) < Config.tasking.max_strike_range then
-                        local discovered = (side == coalition.side.BLUE and utils.tableContains(stats.blue_discovered_zones, zone.name)) or
-                                           (side == coalition.side.RED and utils.tableContains(stats.red_discovered_zones, zone.name))
                         
-                        if discovered then
-                            if not EnrouteManager:findByToZone(zone, side, {AITaskTypes.STRIKE}) then
-                                local dist = mist.utils.get2DDist(home_base.zone.point, zone.zone.point)
-                                table.insert(potential_zones, {distance=dist, zone=zone})
+                        -- Checks if statics are alive
+                        if zone.linked_statics and #zone.linked_statics >= 1 then
+                        
+                            local discovered = (side == coalition.side.BLUE and utils.tableContains(stats.blue_discovered_zones, zone.name)) or
+                                            (side == coalition.side.RED and utils.tableContains(stats.red_discovered_zones, zone.name))
+                            
+                            if discovered then
+                                if not EnrouteManager:findByToZone(zone, side, {AITaskTypes.STRIKE}) then
+                                    local dist = mist.utils.get2DDist(home_base.zone.point, zone.zone.point)
+                                    table.insert(potential_zones, {distance=dist, zone=zone})
+                                end
                             end
                         end
                     end
@@ -1268,7 +1273,7 @@ do
         MissionLogger:info("Mission Commander: Mission Setup Complete.")
         timer.scheduleFunction(function()
         -- This only guides the user to ensure everything had time to load, especially just after mission start
-        trigger.action.outText("Assets loaded.",5)
+        trigger.action.outText("Assets loaded.",2)
         end, {}, timer.getTime() + 15)
     end
 
