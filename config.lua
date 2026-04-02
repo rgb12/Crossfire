@@ -21,7 +21,7 @@ Config = {
         save_interval = 2*51, -- (seconds) interval at which the mission state is saved
         -- You can use fixed values or multiplications like above
         -- 51 seconds is used to avoid multiples of 15 to reduce lag spikes
-        save_dir = "Missions/Saves/Georgia Liberation/", -- this is your saves directory in Saved Games
+        save_dir = "Missions/Saves/Crossfire Georgia Liberation/", -- this is your saves directory in Saved Games
         -- If you would like to create a new mission, simple change the last folder name
         save_file = "mission.json", -- this is the name of the mission file
         user_data_file = "user_data.json", -- this is the name of user data only file, note that this only saves user xp and rank
@@ -263,7 +263,7 @@ Config = {
         enable = true, -- enables/disables AI tasking system, does not affect resupply and capture mechanics
         
         BLUFOR_dispatcher_interval = 10*60+8, -- (seconds), avoid multiples of 15 to reduce lag spikes
-        REDFOR_dispatcher_interval = 6*60+8, -- (seconds), avoid multiples of 15 to reduce lag spikes
+        REDFOR_dispatcher_interval = 8*60+8, -- (seconds), avoid multiples of 15 to reduce lag spikes
         max_tasks_per_airbase = 4, -- maximum number of concurrent tasks per airbase
         
         max_jtac_per_airbase = 2,
