@@ -1400,6 +1400,7 @@ do
                 type = AI.Task.WaypointType.LAND,
                 x = startPos.x,
                 y = startPos.z,
+                speed = 257, -- m/s (approx 500 kts)
                 action = AI.Task.TurnMethod.FIN_POINT,
                 alt = mist.utils.feetToMeters(21000),
                 alt_type = AI.Task.AltitudeType.BARO,

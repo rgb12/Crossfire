@@ -22,10 +22,17 @@ do
             -- Adds XP to the player who made the kill
             local target = event.target
             local initiator = event.initiator
-            if target and initiator and initiator.getPlayerName then
+            if target and initiator and initiator.getPlayerName and target.getCoalition and initiator.getCoalition then
                 
                 local user = ExperienceManager:fetchUser(initiator)
                 if not user then return end
+
+                -- Checks if target is not friendly
+                if target:getCoalition() == initiator:getCoalition() then
+                    trigger.action.outTextForUnit(user.id,"Fatricide, stop!",10)
+                    MissionLogger:info("Fratricide committed!: "..user.name)
+                    return
+                end
 
                 if target:hasAttribute('Planes') then
                     trigger.action.outTextForUnit(user.id,"Aircraft destroyed, +" .. Config.reward_system.xp_per_aircraft_destroyed .. "XP",5)

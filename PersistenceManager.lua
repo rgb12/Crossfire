@@ -59,8 +59,26 @@ do
                 ammo_depot_time_since_destroyed = z.ammo_depot_last_destroyed and (timer.getTime() - z.ammo_depot_last_destroyed) or nil,
 
                 comms_tower_intact = z.comms_tower_intact,
-                comms_tower_time_since_destroyed = z.comms_tower_last_destroyed and (timer.getTime() - z.comms_tower_last_destroyed) or nil
+                comms_tower_time_since_destroyed = z.comms_tower_last_destroyed and (timer.getTime() - z.comms_tower_last_destroyed) or nil,
+
+                cmdc_intact = z.cmdc_intact,
+                cmdc_time_since_destroyed = z.cmdc_last_destroyed and (timer.getTime() - z.cmdc_last_destroyed) or nil,
+
+                -- Zone FARPs are dynamically recreated and may get new object names on restore.
+                -- Persist their warehouse inventory with the zone record so we can remap it.
+                farp_warehouse_inventory = nil
             }
+
+            if z.zone_type == ZoneTypes.FARP and z.linked_farp then
+                local farp_airbase = Airbase.getByName(z.linked_farp)
+                if farp_airbase then
+                    local farp_warehouse = farp_airbase:getWarehouse()
+                    if farp_warehouse then
+                        zone_data.farp_warehouse_inventory = farp_warehouse:getInventory()
+                    end
+                end
+            end
+
             PersistenceManager.data.zones[z.name] = zone_data
         end
 
@@ -400,7 +418,7 @@ do
         local new_zones = {}
         for _, saved_zone in pairs(PersistenceManager.data.zones) do
             local zone = ZoneHandler.getFromName(saved_zone.name)
-            if zone then
+            if zone then -- Ensures not available zones get ignored
                 -- Restore identity & configuration
                 zone.side = saved_zone.side
                 zone.level = saved_zone.level
@@ -421,6 +439,19 @@ do
                 zone.comms_tower_intact = saved_zone.comms_tower_intact
                 if saved_zone.comms_tower_time_since_destroyed then
                     zone.comms_tower_last_destroyed = timer.getTime() - saved_zone.comms_tower_time_since_destroyed
+                else
+                    zone.comms_tower_last_destroyed = nil
+                end
+
+                -- Backward compatibility: old saves may not include cmdc_* fields.
+                zone.cmdc_intact = saved_zone.cmdc_intact
+                if zone.zone_type == ZoneTypes.AIRBASE and zone.cmdc_intact == nil then
+                    zone.cmdc_intact = true
+                end
+                if saved_zone.cmdc_time_since_destroyed then
+                    zone.cmdc_last_destroyed = timer.getTime() - saved_zone.cmdc_time_since_destroyed
+                else
+                    zone.cmdc_last_destroyed = nil
                 end
                 
                 -- Clear runtime tracking arrays - will be repopulated by spawn functions
@@ -428,15 +459,40 @@ do
                 zone.linked_statics = {}
 
 
-                -- Spawn the correct units for the zone's side and level
+                -- Spawn the units for the zone's side and level
                 UnitHandler.initZoneUnits(zone)
                 UnitHandler.initStatics(zone)
-                UnitHandler.initFARP(zone)
+                UnitHandler.initFARP(zone,false)
+
+                -- Restore zone FARP warehouse by zone mapping (not old FARP object name).
+                if zone.zone_type == ZoneTypes.FARP and zone.linked_farp and saved_zone.farp_warehouse_inventory then
+                    local farp_airbase = Airbase.getByName(zone.linked_farp)
+                    if farp_airbase then
+                        local farp_warehouse = farp_airbase:getWarehouse()
+                        if farp_warehouse then
+                            if WarehouseManager and WarehouseManager.clearWarehouse then
+                                WarehouseManager:clearWarehouse(zone.linked_farp)
+                            end
+                            for category, items_table in pairs(saved_zone.farp_warehouse_inventory) do
+                                if type(items_table) == "table" and category ~= "liquids" then
+                                    for item_name, count in pairs(items_table) do
+                                        farp_warehouse:setItem(item_name, count)
+                                    end
+                                end
+                            end
+                        end
+                    end
+                end
                 
                 -- Post-spawn check for destroyed statics
                 if not zone.ammo_depot_intact and zone.linked_ammo_depot then
                     local depot = StaticObject.getByName(zone.linked_ammo_depot)
                     if depot and depot:isExist() then depot:destroy() end
+                end
+
+                if not zone.comms_tower_intact and zone.linked_comms_tower then
+                    local comms = StaticObject.getByName(zone.linked_comms_tower)
+                    if comms and comms:isExist() then comms:destroy() end
                 end
 
                 -- Set airbase coalition

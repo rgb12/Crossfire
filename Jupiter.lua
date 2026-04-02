@@ -112,6 +112,10 @@ function Jupiter:onEvent(event)
             stats.red_supplies = stats.red_supplies + supplies_to_add
             trigger.action.outText("Jupiter: Added "..supplies_to_add.." supplies to RED coalition. Total: "..stats.red_supplies, 5)
             cmd_executed = true
+        elseif command == "-restock" then
+            WarehouseManager:handleIncomingSupplies(coalition.side.BLUE, {WarehouseManager.StockTypes.INITIAL})
+            WarehouseManager:handleIncomingSupplies(coalition.side.RED, {WarehouseManager.StockTypes.INITIAL})
+            cmd_executed = true
         elseif command == "-setlevel" then
             local level = tonumber(param1) or 1
             -- Set level of the closest zone within 10km
@@ -231,6 +235,25 @@ function Jupiter:onEvent(event)
             end
             MissionLogger:info(zone_names)
             cmd_executed = true
+        elseif command == "-activeunits" then
+            local b_gr = coalition.getGroups(coalition.side.BLUE)
+            local r_gr = coalition.getGroups(coalition.side.RED)
+
+            local units = 0
+            for _,gr in pairs(b_gr) do
+                if gr and gr.isExist and gr:isExist() then
+                    units = units + #gr:getUnits()
+                end
+            end
+            for _,gr in pairs(r_gr) do
+                if gr and gr.isExist and gr:isExist() then
+                    units = units + #gr:getUnits()
+                end
+            end
+
+            trigger.action.outText("Active groups: "..#b_gr+#r_gr.."\nActive units: "..units,15)
+            cmd_executed = true
+
         elseif command == "-destroy" then
             local radius = tonumber(param1) or 5000 -- Default 5000m radius
             local count = 0

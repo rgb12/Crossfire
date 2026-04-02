@@ -1,3 +1,4 @@
+---@diagnostic disable
 --[[--
 MIST Mission Scripting Tools.
 ## Description:

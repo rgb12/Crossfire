@@ -129,7 +129,8 @@ do
         local mgrs = coord.LLtoMGRS(lat, lon)
 
         local outtxt = ""
-        if active_mission.type == OperationTypes.RECON or active_mission.type == OperationTypes.INTERCEPT then
+        if active_mission.type == OperationTypes.RECON or active_mission.type == OperationTypes.DEEP_RECON
+        or active_mission.type == OperationTypes.INTERCEPT then
             outtxt = string.format("ACTIVE OPERATION: %s\nType: %s",
             active_mission.operation_name, active_mission.type)
         else
@@ -368,6 +369,21 @@ do
         local friendly_coalition = self.side
         local enemy_coalition = utils.getEnemyCoalition(friendly_coalition)
 
+        local function isOffensiveOperation(op_type)
+            return op_type == OperationTypes.RECON
+                or op_type == OperationTypes.DEEP_RECON
+                or op_type == OperationTypes.CAS
+                or op_type == OperationTypes.SEAD
+                or op_type == OperationTypes.DEAD
+                or op_type == OperationTypes.STRIKE
+        end
+
+        local function isDefensiveOperation(op_type)
+            return op_type == OperationTypes.CAP
+                or op_type == OperationTypes.INTERCEPT
+                or op_type == OperationTypes.AIRDROP
+        end
+
         local discovered_zones = {}
         if self.side == coalition.side.BLUE then
             discovered_zones = stats.blue_discovered_zones
@@ -383,24 +399,37 @@ do
 
         for i = #self.available_operations, 1, -1 do
             local op = self.available_operations[i]
-            
-            -- If this zone is now Active (taken by a player), remove it from Available
+
+            local remove_op = false
+
+            -- If this zone is now Active (taken by a player), remove it from Available.
             if self:isZoneActive(op.target_zone_name) then
-                table.remove(self.available_operations, i)
-            end
-            
-            local zone = ZoneHandler.getFromName(op.target_zone_name)
-            if not zone then
-                table.remove(self.available_operations, i)
-            end
-            if zone and zone.side ~= self.side then
-                table.remove(self.available_operations, i)
+                remove_op = true
+            elseif op.type ~= OperationTypes.CSAR then
+                local zone = ZoneHandler.getFromName(op.target_zone_name)
+                if not zone then
+                    remove_op = true
+                else
+                    -- Keep cached ops aligned with their intended target ownership.
+                    if isOffensiveOperation(op.type) and zone.side ~= enemy_coalition then
+                        remove_op = true
+                    elseif isDefensiveOperation(op.type) and zone.side ~= self.side then
+                        remove_op = true
+                    end
+
+                    -- RECON is only valid for undiscovered enemy zones.
+                    local is_discovered = discovered_zones_set[op.target_zone_name] == true
+                    if (op.type == OperationTypes.RECON or op.type == OperationTypes.DEEP_RECON) and is_discovered then
+                        remove_op = true
+                    elseif op.type ~= OperationTypes.RECON and op.type ~= OperationTypes.DEEP_RECON and not is_discovered then
+                        remove_op = true
+                    end
+                end
             end
 
-            if not discovered_zones_set[op.target_zone_name] then
+            if remove_op then
                 table.remove(self.available_operations, i)
             end
-
         end
 
         local sorted_zones = ZoneHandler.sortZonesByDistance(reference_pos)
@@ -410,8 +439,17 @@ do
             then
                 -- RECON over enemy zones
                 if zone.side == enemy_coalition and not discovered_zones_set[zone.name] then
-                    local op = self:createRECONOperation(zone)
-                    table.insert(self.available_operations, op)
+
+                    local closest_enemy_zone,d = self.home_airbase:getClosestZone(enemy_coalition)
+
+
+                    if closest_enemy_zone and d and mist.utils.get2DDist(reference_pos, zone.zone.point) > 2*d then
+                        local op = self:createDEEPRECONOperation(zone)
+                        table.insert(self.available_operations, op)
+                    else
+                        local op = self:createRECONOperation(zone)
+                        table.insert(self.available_operations, op)
+                    end
                 end
 
                 if zone.side == enemy_coalition and discovered_zones_set[zone.name] then
@@ -635,6 +673,8 @@ do
         }
         return op
     end
+
+
 
     function OperationManager:createINTERCEPTOperation(target_zone)
         ---@type Operation
@@ -928,8 +968,8 @@ do
                     description = "Patrol the airspace above " .. target_zone.name .. " for 5 minutes.",
                     completed = false,
                     start_time = nil,
-                    duration = Config.operations.cap_duration, 
-                    radius = Config.operations.cap_max_radius_from_zone, 
+                    duration = Config.operations.cap_duration,
+                    radius = Config.operations.cap_max_radius_from_zone,
                     check = function(self, player_unit)
                         local player_pos = player_unit:getPoint()
                         local zone = ZoneHandler.getFromName(target_zone.name)
@@ -942,6 +982,8 @@ do
                             end
 
                         else
+
+                            if player_unit.inAir and not player_unit:inAir() then return false end
 
                             if mist.utils.get2DDist(zone.zone.point,player_pos) > self.radius then
                                 trigger.action.outTextForUnit(player_unit:getID(), "CAP timer reset, stay near: "..zone.name, 10)
@@ -958,6 +1000,87 @@ do
                                 return true
                             end
                         end
+                        return false
+                    end
+                }
+            }
+        }
+        return op
+    end
+
+    function OperationManager:createDEEPRECONOperation(target_zone)
+      ---@type Operation
+        local op = {
+            type = OperationTypes.DEEP_RECON,
+            code = self:createOperationCode(),
+            status = OperationStatus.AVAILABLE,
+            xp_reward = 1500,
+            target_zone_name = target_zone.name,
+            operation_name = operations_name[math.random(#operations_name)],
+            is_coop = false,
+            coop_leader_id = nil,
+            coop_leader_name = nil,
+            coop_members = {},
+            coop_join_code = nil,
+            objectives = {
+                {
+                    description = "Conduct aerial reconnaissance deep inside enemy territory near given coordinates",
+                    completed = false,
+                    start_time = nil,
+                    duration = Config.operations.recon_duration,
+                    radius = Config.operations.recon_distance_from_zone,
+                    check = function(self, player_unit)
+
+                        local player_pos = player_unit:getPoint()
+                        local zone = ZoneHandler.getFromName(target_zone.name)
+                        if not zone or not player_pos or not player_unit.getCoalition then return false end
+
+                        if not self.start_time then
+                            if mist.utils.get2DDist(zone.zone.point,player_pos) <= self.radius then
+
+                                self.start_time = timer.getTime()
+                            end
+
+                        else
+                            if mist.utils.get2DDist(zone.zone.point,player_pos) > self.radius then
+                                trigger.action.outTextForUnit(player_unit:getID(), "Recon aerial imagery lost, remain near given coordinates",3)
+                                self.start_time = nil
+                                return false
+                            end
+
+                            -- check for line of sight
+                            if not land.isVisible(player_pos, target_zone.zone.point) then
+                                trigger.action.outTextForUnit(player_unit:getID(),"Recon aerial imagery lost, maintain line of sight to target area", 5)
+                                self.start_time = nil
+                                return false
+                            end
+
+                            if timer.getTime() - self.start_time < self.duration then
+                                trigger.action.outTextForUnit(player_unit:getID(), "Recon aerial imagery in progress: "..math.floor(((timer.getTime() - self.start_time)/self.duration)*100).."%", 5)
+                                return false
+                            end
+
+                            if timer.getTime() - self.start_time >= self.duration then
+                                local player_coalition = player_unit:getCoalition()
+                                if player_coalition == coalition.side.BLUE and not utils.tableContains(stats.blue_discovered_zones,zone.name) then
+                                    table.insert(stats.blue_discovered_zones,zone.name)
+
+                                    zone:drawF10()
+                                    CommandHandler.requestMenuRefresh(player_coalition)
+                                    trigger.action.outTextForCoalition(player_coalition, "Recon aerial imagery concluded, found targets near "..zone.name,15)
+                                elseif player_coalition == coalition.side.RED and not utils.tableContains(stats.red_discovered_zones,zone.name) then
+                                    table.insert(stats.red_discovered_zones,zone.name)
+
+                                    zone:drawF10()
+                                    CommandHandler.requestMenuRefresh(player_coalition)
+                                    trigger.action.outTextForCoalition(player_coalition, "Recon aerial imagery concluded, found targets near "..zone.name,15)
+                                end
+
+
+                                return true
+                            end
+                        end
+
                         return false
                     end
                 }
@@ -1115,7 +1238,7 @@ do
                 -- Skip non-coop operations if filtering for coop only
             elseif not utils.tableContains(operation_types_displayed, op.type) then
                 local tgt_zone = op.target_zone_name
-                if op.type == OperationTypes.RECON then
+                if op.type == OperationTypes.RECON or op.type == OperationTypes.DEEP_RECON then
                     tgt_zone = "Undiscovered Location"
                 elseif op.type == OperationTypes.CSAR then
                     tgt_zone = "Emergency Rescue"
@@ -1403,6 +1526,24 @@ do
             return
         end
 
+        -- Recon operations are only valid on undiscovered enemy zones.
+        if accepted_mission.type == OperationTypes.RECON or accepted_mission.type == OperationTypes.DEEP_RECON then
+            local is_discovered = false
+            if self.side == coalition.side.BLUE then
+                is_discovered = utils.tableContains(stats.blue_discovered_zones, accepted_mission.target_zone_name)
+            elseif self.side == coalition.side.RED then
+                is_discovered = utils.tableContains(stats.red_discovered_zones, accepted_mission.target_zone_name)
+            end
+
+            if is_discovered then
+                trigger.action.outTextForUnit(unit:getID(), "Operation Aborted: target is already discovered.", 10)
+                trigger.action.outSoundForUnit(unit:getID(),"radio_txrx.ogg")
+                table.remove(self.available_operations, mission_index)
+                self:forceRegenerateOperations()
+                return
+            end
+        end
+
         -- For CSAR operations, handle differently
         local zone_tgt = nil
         if accepted_mission.type == OperationTypes.CSAR then
@@ -1458,7 +1599,7 @@ do
             local lat, lon = coord.LOtoLL(zone_tgt.zone.point)
             local mgrs = coord.LLtoMGRS(lat, lon)
 
-            if not utils.tableContains({OperationTypes.RECON, OperationTypes.INTERCEPT}, accepted_mission.type) then
+            if not utils.tableContains({OperationTypes.RECON, OperationTypes.DEEP_RECON, OperationTypes.INTERCEPT}, accepted_mission.type) then
                 outtxt = outtxt .. "\n\nArea: " .. accepted_mission.target_zone_name
             end
 

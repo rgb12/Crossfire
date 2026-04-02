@@ -189,6 +189,7 @@ do
             if side_comms_towers < Config.tasking_requirements.comms_zones_required_for_cas then
                 return false
             end
+            local potential_zones = {}
             for _, zone in ipairs(zones) do
                 if zone.side == enemy_side and not utils.tableContains(active_zones, zone.name) then
                     local discovered = (side == coalition.side.BLUE and utils.tableContains(stats.blue_discovered_zones, zone.name)) or
@@ -196,10 +197,20 @@ do
                     if discovered and not EnrouteManager:findByToZone(zone, side, {AITaskTypes.CAS}) then
                         local dist = mist.utils.get2DDist(home_base.zone.point, zone.zone.point)
                         if dist < Config.tasking.max_cas_range then
-                            return TaskManager:initiateAITask(AITaskTypes.CAS, side, true, zone, nil, false)
+                            table.insert(potential_zones, {distance=dist, zone=zone})
                         end
                     end
                 end
+            end
+
+            -- Sort zones by distance
+            table.sort(potential_zones, function(a,b)
+                return a.distance < b.distance
+            end)
+            if #potential_zones == 0 then return false end
+
+            for _,p in ipairs(potential_zones) do
+                return TaskManager:initiateAITask(AITaskTypes.CAS, side, true, p.zone, nil, false)
             end
             return false
         end)
@@ -214,20 +225,33 @@ do
             if side_comms_towers < Config.tasking_requirements.comms_zones_required_for_sead then
                 return false
             end
-                for _, zone in ipairs(zones) do
-                    if zone.side == enemy_side and zone.zone_type == ZoneTypes.SAMSITE 
-                    and not utils.tableContains(active_zones, zone.name) 
-                    and mist.utils.get2DDist(home_base.zone.point, zone.zone.point) < Config.tasking.max_sead_range then
-                        local discovered = (side == coalition.side.BLUE and utils.tableContains(stats.blue_discovered_zones, zone.name)) or
-                                           (side == coalition.side.RED and utils.tableContains(stats.red_discovered_zones, zone.name))
-                        
-                        if discovered then
-                            if not EnrouteManager:findByToZone(zone, side, {AITaskTypes.SEAD}) then
-                                return TaskManager:initiateAITask(AITaskTypes.SEAD, side, true, zone, nil, false)
-                            end
+
+            local potential_zones = {}
+            for _, zone in ipairs(zones) do
+                if zone.side == enemy_side and zone.zone_type == ZoneTypes.SAMSITE
+                and not utils.tableContains(active_zones, zone.name)
+                and mist.utils.get2DDist(home_base.zone.point, zone.zone.point) < Config.tasking.max_sead_range then
+                    local discovered = (side == coalition.side.BLUE and utils.tableContains(stats.blue_discovered_zones, zone.name)) or
+                                        (side == coalition.side.RED and utils.tableContains(stats.red_discovered_zones, zone.name))
+                    
+                    if discovered then
+                        if not EnrouteManager:findByToZone(zone, side, {AITaskTypes.SEAD}) then
+                            local dist = mist.utils.get2DDist(home_base.zone.point, zone.zone.point)
+                            table.insert(potential_zones, {distance=dist, zone=zone}) 
                         end
                     end
                 end
+            end
+
+              -- Sort zones by distance
+            table.sort(potential_zones, function(a,b)
+                return a.distance < b.distance
+            end)
+            if #potential_zones == 0 then return false end
+
+            for _,p in ipairs(potential_zones) do
+                return TaskManager:initiateAITask(AITaskTypes.SEAD, side, true, p.zone, nil, false)
+            end
             return false
         end)
 
@@ -241,26 +265,36 @@ do
                 return false
             end
 
-                for _, zone in ipairs(zones) do
-                    if zone.side == side and zone.zone_type ~= ZoneTypes.AIRBASE then
-                        local discovered = (side == coalition.side.BLUE and utils.tableContains(stats.blue_discovered_zones, zone.name)) or
-                                           (side == coalition.side.RED and utils.tableContains(stats.red_discovered_zones, zone.name))
-                        local dist = mist.utils.get2DDist(home_base.zone.point, zone.zone.point)
+            local potential_zones = {}
+            for _, zone in ipairs(zones) do
+                if zone.side == side and zone.zone_type ~= ZoneTypes.AIRBASE then
+                    local discovered = (side == coalition.side.BLUE and utils.tableContains(stats.blue_discovered_zones, zone.name)) or
+                                        (side == coalition.side.RED and utils.tableContains(stats.red_discovered_zones, zone.name))
+                    local dist = mist.utils.get2DDist(home_base.zone.point, zone.zone.point)
 
-                        if dist < 75000 and discovered then
-                            if not EnrouteManager:findByToZone(zone, side, {AITaskTypes.CAP}) then
-                                return TaskManager:initiateAITask(AITaskTypes.CAP, side, true, zone, nil, false)
-                            end
-                        end
+                    if discovered and not EnrouteManager:findByToZone(zone, side, {AITaskTypes.CAP}) then
+                        table.insert(potential_zones, {distance=dist, zone=zone})
+                        
                     end
                 end
+            end
+
+            -- Sort zones by distance, reverse order for CAP
+            table.sort(potential_zones, function(a,b)
+                return a.distance > b.distance
+            end)
+            if #potential_zones == 0 then return false end
+
+            for _,p in ipairs(potential_zones) do
+                return TaskManager:initiateAITask(AITaskTypes.CAP, side, true, p.zone, nil, false)
+            end
             return false
         end)
 
         -- [TASK: STRIKE]
         table.insert(possible_tasks, function()
             local strike_enroute = EnrouteManager:findByTaskType(AITaskTypes.STRIKE, side)
-            MissionLogger:info(string.format("[STRIKE] %s checking STRIKE tasks. Current enroute: %d, max: %d", 
+            MissionLogger:info(string.format("[STRIKE] %s checking STRIKE tasks. Current enroute: %d, max: %d",
                 utils.coalitionToString(side), strike_enroute and #strike_enroute or 0, Config.tasking.max_strike_theatre))
             if strike_enroute and #strike_enroute < Config.tasking.max_strike_theatre
             and side_comms_towers >= Config.tasking_requirements.comms_zones_required_for_strike
@@ -270,22 +304,41 @@ do
                     ZoneTypes.COMMS,
                     ZoneTypes.AIRBASE
                 }
+                local potential_zones = {}
                 for _, zone in ipairs(zones) do
-                    if zone.side == enemy_side and utils.tableContains(valid_strike_targets, zone.zone_type) 
+                    if zone.side == enemy_side and utils.tableContains(valid_strike_targets, zone.zone_type)
                     and not utils.tableContains(active_zones, zone.name)
                     and mist.utils.get2DDist(home_base.zone.point, zone.zone.point) < Config.tasking.max_strike_range then
-                        local discovered = (side == coalition.side.BLUE and utils.tableContains(stats.blue_discovered_zones, zone.name)) or
-                                           (side == coalition.side.RED and utils.tableContains(stats.red_discovered_zones, zone.name))
                         
-                        if discovered then
-                            if not EnrouteManager:findByToZone(zone, side, {AITaskTypes.STRIKE}) then
-                                MissionLogger:info(string.format("[STRIKE] %s: Attempting to initiate STRIKE task to %s", 
-                                    utils.coalitionToString(side), zone.name))
-                                return TaskManager:initiateAITask(AITaskTypes.STRIKE, side, true, zone, nil, false)
+                        -- Checks if statics are alive
+                        if zone.linked_statics and #zone.linked_statics >= 1 then
+                        
+                            local discovered = (side == coalition.side.BLUE and utils.tableContains(stats.blue_discovered_zones, zone.name)) or
+                                            (side == coalition.side.RED and utils.tableContains(stats.red_discovered_zones, zone.name))
+                            
+                            if discovered then
+                                if not EnrouteManager:findByToZone(zone, side, {AITaskTypes.STRIKE}) then
+                                    local dist = mist.utils.get2DDist(home_base.zone.point, zone.zone.point)
+                                    table.insert(potential_zones, {distance=dist, zone=zone})
+                                end
                             end
                         end
                     end
                 end
+
+                -- Sort zones by distance
+                table.sort(potential_zones, function(a,b)
+                    return a.distance < b.distance
+                end)
+                if #potential_zones == 0 then return false end
+
+                for _,p in ipairs(potential_zones) do
+                    MissionLogger:info(string.format("[STRIKE] %s: Attempting to initiate STRIKE task to %s",
+                        utils.coalitionToString(side), p.zone.name))
+                    return TaskManager:initiateAITask(AITaskTypes.STRIKE, side, true, p.zone, nil, false)
+                end
+                return false
+
             else
                 if strike_enroute and #strike_enroute >= Config.tasking.max_strike_theatre then
                     MissionLogger:info(string.format("[STRIKE] %s: Max STRIKE tasks reached", utils.coalitionToString(side)))
@@ -305,7 +358,7 @@ do
             possible_tasks[i], possible_tasks[j] = possible_tasks[j], possible_tasks[i]
         end
 
-        -- Run through the shuffled list. As soon as one task spawns (returns true), exit the whole function.
+        -- Run through the shuffled list. As soon as one task spawns (returns true), stop.
         for _, task_func in ipairs(possible_tasks) do
             if task_func() then
                 MissionLogger:info("Tasking succeeded for " .. utils.coalitionToString(side))
@@ -383,6 +436,8 @@ do
                     
             end
             ctld.monitorFARPDestruction()
+
+            Frontline.drawFrontline()
         end
 
         local t5m_update = function()
@@ -404,6 +459,11 @@ do
             end,{}, timer.getTime() + 8)
         end
 
+        local t10m_update = function()
+            MissionLogger:info("10 mins")
+            TheatreCommander:smokeFrontline()
+        end
+
     --This function is executed every 15s
     local function tsec_update()
     
@@ -416,6 +476,10 @@ do
             if ticks1m % 5 == 0 then
                 ticks5m = ticks5m + 1
                 t5m_update()
+            end
+
+            if ticks1m % 10 == 0 then
+                t10m_update()
             end
         end
     
@@ -759,14 +823,23 @@ do
     
     
     -- AI DISPATCHER
-    function TheatreCommander.dispatchAI()
+
+    ---@param side coalition.side
+    function TheatreCommander.dispatchAI(side)
+
+        local next_interval = 999999
+        if side == coalition.side.BLUE then
+            next_interval = Config.tasking.BLUFOR_dispatcher_interval
+        else
+            next_interval = Config.tasking.REDFOR_dispatcher_interval
+        end
         timer.scheduleFunction(function ()
             if MISSION_ENDED == true then return end
-            TheatreCommander:evaluateAITasks(coalition.side.BLUE)
-            TheatreCommander:evaluateAITasks(coalition.side.RED)
+            TheatreCommander:evaluateAITasks(side)
             
-            TheatreCommander.dispatchAI()
-        end, nil, timer.getTime()+Config.tasking.dispatcher_interval)
+            TheatreCommander.dispatchAI(side)
+        end, nil, timer.getTime() + next_interval)
+
     end
 
     function TheatreCommander.checkAirbasesCoalition()
@@ -783,6 +856,48 @@ do
             r_airbase:setCoalition(red_airbase.side)
         end
         
+    end
+
+    local smoke_id = 0
+    --[[
+        1 = small smoke and fire
+        2 = medium smoke and fire
+        3 = large smoke and fire
+        4 = huge smoke and fire
+        5 = small smoke
+        6 = medium smoke 
+        7 = large smoke
+        8 = huge smoke ]]
+
+    -- Create 2-4 smokes near the frontline (closes red base), with varying size and duration
+    function TheatreCommander:smokeFrontline()
+        -- Closest enemy zone distance
+        local closest_zone, frontline_dist = blue_airbase:getClosestZone(coalition.side.RED)
+        local variance = 20000
+        if closest_zone and frontline_dist then
+            ---@type vec3[]
+            local smoke_points = {}
+
+            for i=0, math.random(2,4) do
+            local point = {
+                x = closest_zone.zone.point.x  + math.random(-variance, variance),
+                y = closest_zone.zone.point.z  + math.random(-variance, variance)
+            }
+            table.insert(smoke_points, mist.utils.makeVec3GL(point))
+        end
+        
+        for _, point in ipairs(smoke_points) do
+            smoke_id = smoke_id + 1
+            local smoke_string = "TheatreSmoke" .. smoke_id
+            local duration = math.random(5*60, 12*60) -- 2-5 minutes
+            trigger.action.effectSmokeBig(point,math.random(5,8),1,smoke_string)
+
+                timer.scheduleFunction(function ()
+                    trigger.action.effectSmokeStop(smoke_string)
+                end, nil, timer.getTime() + duration)
+            end
+            MissionLogger:info("Added smokes near frontline")
+        end
     end
 
     ---@return ZoneHandler, ZoneHandler
@@ -1026,7 +1141,14 @@ do
             if not zone.level then
                 local _, dist = zone:getClosestZone(utils.getEnemyCoalition(zone.side), nil, nil, false)
                 if dist and dist < Config.upgrade_tier_range then
-                    zone.level = math.random(2, 4)
+                    local rnd = math.random(1,100)
+                    if rnd > 90 then
+                        zone.level = 4
+                    elseif rnd > 75 then
+                        zone.level = 3
+                    else
+                        zone.level = 2
+                    end
                 else
                     zone.level = 1
                 end
@@ -1043,6 +1165,7 @@ do
                 end
             end
 
+            -- Makes all airbases visible
             if zone.zone_type == ZoneTypes.AIRBASE then
                 if not utils.tableContains(stats.blue_discovered_zones, zone.name) then
                     table.insert(stats.blue_discovered_zones, zone.name)
@@ -1055,7 +1178,7 @@ do
             -- Spawn
             UnitHandler.initZoneUnits(zone)
             UnitHandler.initStatics(zone)
-            UnitHandler.initFARP(zone)
+            UnitHandler.initFARP(zone,true)
             zone:drawF10()
         end
 
@@ -1122,10 +1245,12 @@ do
         timer.scheduleFunction(TheatreCommander.sendWarehouseResupply, coalition.side.BLUE, timer.getTime() + Config.std_resupply_time)
         timer.scheduleFunction(TheatreCommander.sendWarehouseResupply, coalition.side.RED, timer.getTime() + Config.std_resupply_time)
         
+        ATIS:init()
         TheatreCommander:tick()
         
         -- AI DISPATCHER
-        TheatreCommander.dispatchAI()
+        TheatreCommander.dispatchAI(coalition.side.BLUE)
+        TheatreCommander.dispatchAI(coalition.side.RED)
 
 
         EWRS_coalition = {
@@ -1139,10 +1264,13 @@ do
             world.addEventHandler(Jupiter)
         end
         
+        Frontline.drawFrontline()
+
         -- trigger.action.outText("Theatre setup complete.", 5)
         MissionLogger:info("Mission Commander: Mission Setup Complete.")
         timer.scheduleFunction(function()
-        trigger.action.outText("Assets initialized.",5)
+        -- This only guides the user to ensure everything had time to load, especially just after mission start
+        trigger.action.outText("Assets loaded.",2)
         end, {}, timer.getTime() + 15)
     end
 

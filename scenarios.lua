@@ -95,6 +95,7 @@ Scenarios = {
         },
         carrier_setup = {
             carrier_unit_name = "Carrier",
+            tomahawk_launcher_unit_name = "Naval Launcher",
             enabled = true
         },
         estimated_users = 1,
@@ -287,6 +288,6 @@ zones = {}
         table.insert(zones,red_airbase)
     end
 
-trigger.action.outText("Loading assets...",15)
+--trigger.action.outText("Loading assets...",15)
 TheatreCommander.startMission()
 

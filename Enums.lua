@@ -126,6 +126,7 @@ ZoneTypes = {
     COMMS = 7,
 }
 
+-- Fill in isDefensiveOperation
 ---@enum AITaskTypes
 AITaskTypes = {
     JTAC = "JTAC",
@@ -151,7 +152,9 @@ OperationTypes = {
     RECON = "Recon",
     AIRDROP = "Airdrop",
     INTERCEPT = "Intercept",
-    CSAR = "CSAR"
+    CSAR = "CSAR",
+    DEEP_RECON = "Deep Recon",
+    DEEP_STRIKE = "Deep strike"
 }
 
 
