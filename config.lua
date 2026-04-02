@@ -258,17 +258,14 @@ Config = {
         comms_zones_required_for_awacs = 2,
         comms_zones_required_for_recon = 1,
     },
-    comms_tower_respawn_time = 45*60, -- (seconds)
     
-    comms_tower_lost_penalty = 1.1, -- the respawn time is multiplied by this much when a comms tower is lost @depracted
-
     tasking = {
         enable = true, -- enables/disables AI tasking system, does not affect resupply and capture mechanics
-
+        
         BLUFOR_dispatcher_interval = 10*60+8, -- (seconds), avoid multiples of 15 to reduce lag spikes
         REDFOR_dispatcher_interval = 6*60+8, -- (seconds), avoid multiples of 15 to reduce lag spikes
         max_tasks_per_airbase = 4, -- maximum number of concurrent tasks per airbase
-
+        
         max_jtac_per_airbase = 2,
         max_cas_per_airbase = 1,
         max_sead_per_airbase = 2,
@@ -276,7 +273,7 @@ Config = {
         max_cap_per_airbase = 2,
         max_awacs_per_airbase = 1,
         max_recon_per_airbase = 2,
-
+        
         max_jtac_theatre = 4, -- per coalition, only for AI auto tasking
         max_cas_theatre = 4,-- per coalition, only for AI auto tasking
         max_sead_theatre = 4,-- per coalition , only for AI auto tasking
@@ -285,18 +282,18 @@ Config = {
         max_recon_theatre = 4,-- per coalition, only for AI auto tasking
         max_awacs_per_theatre = 2,-- per coalition, only for AI auto tasking
         max_attack_convoy_per_theatre = 3,-- per coalition, only for AI auto tasking
-
+        
         max_capture_helicopters_per_logistics_zone = 4,
         max_attack_convoys_per_strongpoint_zone = 2,
         max_awacs_theatre = 2,
-
+        
         range_for_recon_to_discover_zone = 15*1000, -- (meters)
         max_cas_range = 200*1000, -- (meters)
         max_strike_range = 200*1000, -- (meters)
         max_sead_range = 200*1000, -- (meters)
         min_cleareance_dist_for_awacs = 70*1000 -- (meters) from the nearest enemy zone
     },
-
+    
     ctld = {
         unpacked_asset_prefix = "unpacked_",
         packed_asset_prefix = "packed_",
@@ -309,7 +306,7 @@ Config = {
         allow_unpacking_in_zones = true,
         allow_unloading_in_zones = true,
         enable_weighted_loading = false,
-
+        
         FARP_names = {
             "Elara",
             "Io",
@@ -323,27 +320,30 @@ Config = {
             "Iocaste"
         }
     },
-
+    
     capture_helicopter_max_range = 100*1000 , -- (meters)
-
+    
     max_ground_recon_range = 30000, -- (meters) the range at which enemy zones will be discovered from friendly zones
-
+    
     stuck_convoy_timeout = 8*60, -- (seconds) time without movement after which a convoy is considered stuck and will be removed
     attack_convoy_range = 30000, -- (meters)
-
+    
     jtac_smoke_stock = 8,
-
+    
     naval_ground_strike = {
         naval_strike_launch_interval = 10, -- (seconds)
         naval_strike_salvo_size = 10,
     },
-
+    
     -- logistics_upgrade_range = 30000, -- (meters)
     logistics_upgrade_chance = 15, -- (%) every minute the dice is rolled
     logistics_level_up_interval = 16*60, -- (seconds) minimum time between level ups
-    logistics_ammo_depot_respawn_time = 45*60, -- (seconds) time it takes for an ammo depot to respawn after being destroyed
-    airbase_command_center_respawn_time = 15*60, -- (seconds) time it takes for a command center to respawn after being destroyed
-
+    logistics_ammo_depot_respawn_time = 40*60, -- (seconds) time it takes for an ammo depot to respawn after being destroyed
+    airbase_command_center_respawn_time = 45*60, -- (seconds) time it takes for a command center to respawn after being destroyed
+    comms_tower_respawn_time = 45*60, -- (seconds)
+    
+    comms_tower_lost_penalty = 1.1, -- the respawn time is multiplied by this much when a comms tower is lost @depracted
+    
     -- Warehouse supply distribution percentages by airbase tier, make sure they add up to 1.0 exactly
     warehouse_supply_distribution = {
         tier_1 = 0.15, -- % of supplies to tier 1 airbases
@@ -374,30 +374,32 @@ Config = {
         [Airbases.Syria.Rayak] = 119.450*1e6, -- (Hertz)
     },
 
-    draw_color_palette = {
-        -- for rgb, divide values by 255 to get 0-1 range
-        red_palette = {
-            {0.7, 0, 0, 0.9},   -- Border color (r g b: values from 0 to 1, a: transparency from 0 to 1)
-            {0.7, 0, 0, 0.25},  -- Fill color
-            {0.5, 0.1, 0.1, 1},   -- Text color
-            {1, 0.5, 0.5, 0.3}    -- Text background
+draw_color_palette = {
+
+    red_palette = {
+            {0.8, 0.1, 0.1, 0.9},  -- Border: Bright, distinct red for clear boundary definition
+            {0.8, 0.1, 0.1, 0.2},  -- Fill: Subtle red tint, slightly reduced opacity to preserve map detail
+            {1.0, 1.0, 1.0, 1.0},  -- Text: Pure white for maximum contrast and legibility
+            {0.4, 0.0, 0.0, 0.4}   -- Text background: Deep, moderately opaque red to ground the white text
         },
         blue_palette = {
-            {0, 0.2, 0.8, 0.9},
-            {0, 0.2, 0.8, 0.25},
-            {0, 0.1, 0.5, 1},
-            {0.5, 0.8, 1, 0.3}
+            {0.1, 0.3, 0.9, 0.9},  -- Border: Bright, distinct blue
+            {0.1, 0.3, 0.9, 0.2},  -- Fill: Subtle blue tint
+            {1.0, 1.0, 1.0, 1.0},  -- Text: Pure white
+            {0.0, 0.1, 0.4, 0.4}   -- Text background: Deep, moderately opaque blue
         },
         neutral_palette = {
-            {0.4, 0.4, 0.4, 0.8},
-            {0.4, 0.4, 0.4, 0.2},
-            {1, 1, 1, 1},
-            {0, 0, 0, 0.2}
-        }
-    },
+            {0.5, 0.5, 0.5, 0.9},  -- Border: Solid neutral grey
+            {0.5, 0.5, 0.5, 0.2},  -- Fill: Subtle grey tint
+            {1.0, 1.0, 1.0, 1.0},  -- Text: Pure white
+            {0.2, 0.2, 0.2, 0.6}   -- Text background: Dark grey to frame the text
+        },
 
+    frontline_color = {0.90, 0.90, 0.90, 0.85},
+    frontline_linestyle = 1
 }
 
+}
 -- Stats tracking table should not be edited unless comprehensively understood
 stats = {
     neutral_zones = 0,
