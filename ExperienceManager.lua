@@ -60,9 +60,11 @@ do
             end
         elseif event.id == world.event.S_EVENT_TAKEOFF then
             if event.initiator and event.initiator.getPlayerName and event.initiator:getPlayerName() then
-                ExperienceManager.airbone_users[event.initiator:getPlayerName()] = {
+                local player_name=event.initiator:getPlayerName()
+                ExperienceManager.airbone_users[player_name] = {
                     take_off_time = timer.getTime()
                 }
+                MissionLogger:info("USER: "..player_name .. " took off")
             end
         elseif event.id == world.event.S_EVENT_LAND then
             if event.initiator and event.initiator.getPlayerName and event.initiator:getPlayerName() then
@@ -90,14 +92,16 @@ do
                         airtime_xp_bonus = 200 * math.floor(airtime/(600))
                     end
                 end
-
                 timer.scheduleFunction(function()
-              
+                    
                     local unit_check = Unit.getByName(unit_name)
                     if unit_check and unit_check:isExist() and unit_check:getLife() > 0 and unit_check.getCoalition then
                         local user = ExperienceManager:fetchUser(unit_check)
+                        if not user then return end
 
-                        if user and (user.unclaimed_xp>0 or airtime_xp_bonus>0)then
+                        MissionLogger:info("USER: "..player_name .. " landed, time airborne: "..airtime..",    mission XP: "..user.unclaimed_xp .. "     , airtime bonus XP: "..airtime_xp_bonus)
+                        
+                        if user.unclaimed_xp>0 or airtime_xp_bonus>0 then
                             local u_id = unit_check:getID()
                             trigger.action.outTextForUnit(u_id, "Post-Flight Debrief: +".. user.unclaimed_xp+airtime_xp_bonus .. " XP",10)
                             trigger.action.outSoundForUnit(u_id,"radio click.ogg")
