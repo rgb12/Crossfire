@@ -38,7 +38,7 @@ do
     JTAC.categories['Infantry'] = {'Infantry'}
     JTAC.categories['Armor'] = {'Tanks','IFV','APC'}
     JTAC.categories['Support'] = {'Unarmed vehicles','Artillery'}
-    JTAC.categories['Structures'] = {'StaticObjects'}
+    JTAC.categories['Structures'] = {'Buildings'}
 
     ---@return JTAC
     function JTAC:new(obj)
@@ -124,7 +124,11 @@ do
             self.lasers.laser = Spot.createLaser(unit,{ x = 0, y = 1, z = 0 },self.target:getPoint(), self.laser_code)
             self.lasers.ir = Spot.createInfraRed(unit, { x = 0, y = 1, z = 0 }, self.target:getPoint())
     
-            trigger.action.outTextForCoalition(self.side, self.callsign.." JTAC targeting ".. self.target:getTypeName() .."\nLaser Code: "..self.laser_code, 10)
+            ---@type string
+            local target_name = self.target:getTypeName()
+            if target_name:sub(1,1) == "." then target_name = target_name:sub(2) end
+
+            trigger.action.outTextForCoalition(self.side, self.callsign.." JTAC targeting ".. target_name .."\nLaser Code: "..self.laser_code, 10)
             trigger.action.outSoundForCoalition(self.side, "radio_beep4.ogg")
         end
     end
@@ -368,7 +372,7 @@ do
                 if mist.utils.get2DDist(jtac_gr:getUnit(1):getPoint(), jtac.target:getPoint()) < 20000 then
                     self.smoke_count = self.smoke_count -1
                     trigger.action.smoke(jtac.target:getPosition().p, trigger.smokeColor.Red)
-                    trigger.action.outTextForCoalition(jtac.side, jtac.callsign.." JTAC: Tally RED smoke! ("..self.smoke_count.." left)", 10)
+                    trigger.action.outTextForCoalition(jtac.side, jtac.callsign.." JTAC: RED smoke marker in effect ("..self.smoke_count.." left)", 10)
                     trigger.action.outSoundForCoalition(jtac.side, "radio_beep4.ogg")
                 else
                     trigger.action.outTextForCoalition(jtac.side, jtac.callsign..' JTAC: Too far to deploy smoke accurately.', 10)
