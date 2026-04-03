@@ -582,15 +582,26 @@ do
                 elseif enroute.ai_task_type == AITaskTypes.JTAC then
                     if enroute.jtac then
                         timer.scheduleFunction(function ()
-                            enroute.jtac:destroy()
+                            enroute.jtac:destroy() -- this uses the custom destroy function that also removes commands
                         end, {}, timer.getTime() + math.random(5, 10))
                         EnrouteManager:remove(enroute.group_name)
+                    end
+                elseif enroute.ai_task_type == AITaskTypes.RESUPPLY_CARGO then
+                    local cargo_group = Group.getByName(enroute.group_name)
+                    if cargo_group and cargo_group:isExist() then
+                        timer.scheduleFunction(function ()
+                            cargo_group:destroy()
+                            local enemy_side = utils.getEnemyCoalition(self.side)
+                            trigger.action.outTextForCoalition(enemy_side,"SITREP: Resupply Aircraft inbound for "..enroute.to_zone.name .. " aborted!",10)
+                            trigger.action.outSoundForCoalition(enemy_side,"radio_beep3.ogg")
+                            EnrouteManager:remove(enroute.group_name)
+                        end, {}, timer.getTime() + math.random(5, 10))
                     end
                 end
 
             end
         end
-        
+
 
         -- Notify players
         if self.side == coalition.side.BLUE then
