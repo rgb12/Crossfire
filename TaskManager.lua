@@ -838,10 +838,10 @@ do
             local ctrl = jtac_gr:getController()
             if not ctrl then return end
 
-            ctrl:setCommand({
-                id = "SetInvisible",
-                params = { value = true }
-            })
+            -- ctrl:setCommand({
+            --     id = "SetInvisible",
+            --     params = { value = true }
+            -- })
 
             ctrl:setOption(AI.Option.Air.id.ROE, AI.Option.Air.val.ROE.WEAPON_FREE) --has to be, return fire does not work
             ctrl:setOption(AI.Option.Air.id.REACTION_ON_THREAT, AI.Option.Air.val.REACTION_ON_THREAT.PASSIVE_DEFENCE)
