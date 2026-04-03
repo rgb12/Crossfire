@@ -1345,7 +1345,7 @@ do
         
         local max_members = Config.operations.coop_max_members or 4
         if current_members >= max_members then
-            trigger.action.outTextForUnit(unit:getID(), "Co-op operation is full.", 10)
+            trigger.action.outTextForUnit(unit:getID(), "CO-OP operation is full.", 10)
             trigger.action.outSoundForUnit(unit:getID(),"radio_txrx.ogg")
             return
         end
@@ -1459,7 +1459,7 @@ do
         
         -- Show bonus info
         local coop_bonus_pct = (Config.reward_system.coop_xp_bonus or 0.25) * 100
-        outtext = outtext .. string.format("\n\nCo-op Bonus: +%d%% XP and Tokens", coop_bonus_pct)
+        outtext = outtext .. string.format("\n\nCO-OP Bonus: +%d%% XP and Tokens", coop_bonus_pct)
         
         trigger.action.outTextForUnit(unit:getID(), outtext, 30)
         trigger.action.outSoundForUnit(unit:getID(),"radio_txrx.ogg")
@@ -1704,7 +1704,7 @@ do
                                 -- Only show bonus message if there were actually 2+ players
                                 if coop_participant_count >= 2 then
                                     local bonus_pct = math.floor((coop_bonus_multiplier - 1.0) * 100)
-                                    reward_msg = reward_msg .. string.format("\n[+%d%% Co-op Bonus with %d players]", bonus_pct, coop_participant_count)
+                                    reward_msg = reward_msg .. string.format("\n[+%d%% CO-OP Bonus with %d players]", bonus_pct, coop_participant_count)
                                 end
                                 
                                 reward_msg = reward_msg .. "\nReturn to base to claim your rewards."

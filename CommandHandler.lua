@@ -188,7 +188,7 @@ do
             end
 
             -- Co-op Operations Menu
-            local coop_submenu = missionCommands.addSubMenuForGroup(group_id, "Co-op Operations", missions_submenu)
+            local coop_submenu = missionCommands.addSubMenuForGroup(group_id, "CO-OP Operations", missions_submenu)
 
             local join_coop_menu = missionCommands.addSubMenuForGroup(group_id, "Join CO-OP", coop_submenu)
             
