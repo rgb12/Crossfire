@@ -388,7 +388,7 @@ function Jupiter:onEvent(event)
             local total_units = 0
             local function addXPToPlayer(obj, val)
                 total_units = total_units + 1
-                if obj and obj:isExist() and obj.getPlayerName then
+                if obj and obj:isExist() and obj.getPlayerName and obj:getPlayerName() then
                     local player_name = obj:getPlayerName()
                     if player_name then
                         local user = ExperienceManager:fetchUser(obj)
