@@ -1298,12 +1298,14 @@ do
     ---@param join_code number
     function OperationManager:joinCoopOperation(unit, join_code)
         if not unit or not unit.getPlayerName then return end
-        
+        local unit_id = unit:getID()
+
         -- Check if player already has an active operation
         for _, active_op in ipairs(self.active_operations) do
-            if active_op.assigned_player_id == unit:getID() or 
-               (active_op.coop_members and active_op.coop_members[unit:getID()]) then
-                trigger.action.outTextForUnit(unit:getID(), "You are already on an operation.", 10)
+            if active_op.assigned_player_id == unit_id or 
+               (active_op.coop_members and active_op.coop_members[unit_id]) then
+                trigger.action.outTextForUnit(unit_id, "An operation is already active.", 10)
+                trigger.action.outSoundForUnit(unit_id,"radio_txrx.ogg")
                 return
             end
         end
@@ -1318,20 +1320,23 @@ do
         end
         
         if not target_op then
-            trigger.action.outTextForUnit(unit:getID(), "Invalid co-op join code.", 10)
+            trigger.action.outTextForUnit(unit_id, "Invalid CO-OP join code.", 10)
+            trigger.action.outSoundForUnit(unit_id,"radio_txrx.ogg")
             return
         end
         
         -- Check if operation is still active (not completed/failed)
         if target_op.status ~= OperationStatus.ACTIVE then
-            trigger.action.outTextForUnit(unit:getID(), "Operation is no longer active.", 10)
+            trigger.action.outTextForUnit(unit_id, "Operation is no longer active.", 10)
+            trigger.action.outSoundForUnit(unit_id,"radio_txrx.ogg")
             return
         end
         
         -- Verify leader still exists
         local leader_unit = Unit.getByName(target_op.assigned_unit_name)
         if not leader_unit or not leader_unit:isExist() then
-            trigger.action.outTextForUnit(unit:getID(), "Operation leader is no longer available.", 10)
+            trigger.action.outTextForUnit(unit_id, "Operation leader is no longer available.", 10)
+            trigger.action.outSoundForUnit(unit_id,"radio_txrx.ogg")
             return
         end
         
@@ -1345,8 +1350,8 @@ do
         
         local max_members = Config.operations.coop_max_members or 4
         if current_members >= max_members then
-            trigger.action.outTextForUnit(unit:getID(), "CO-OP operation is full.", 10)
-            trigger.action.outSoundForUnit(unit:getID(),"radio_txrx.ogg")
+            trigger.action.outTextForUnit(unit_id, "CO-OP operation is at maximum operating capicity.", 10)
+            trigger.action.outSoundForUnit(unit_id,"radio_txrx.ogg")
             return
         end
         
@@ -1354,7 +1359,7 @@ do
         if not target_op.coop_members then
             target_op.coop_members = {}
         end
-        target_op.coop_members[unit:getID()] = unit:getName()
+        target_op.coop_members[unit_id] = unit:getName()
         
         -- Notify all participants
         local join_msg = string.format("%s has joined Operation %s", unit:getPlayerName(), target_op.operation_name)
@@ -1364,7 +1369,7 @@ do
             trigger.action.outSoundForUnit(member_id,"radio_txrx.ogg")
         end
         
-        trigger.action.outSoundForUnit(unit:getID(),"chatter1.ogg")
+        trigger.action.outSoundForUnit(unit_id,"chatter1.ogg")
         self:showActiveOperation(unit)
     end
     
@@ -1372,25 +1377,26 @@ do
     ---@param operation Operation|nil
     function OperationManager:leaveCoopOperation(unit, operation)
         if not unit or not unit.getPlayerName then return end
-        
+        local unit_id = unit:getID()
+
         local target_op = operation
         if not target_op then
             -- Find the operation this player is in
             for _, active_op in ipairs(self.active_operations) do
-                if active_op.coop_members and active_op.coop_members[unit:getID()] then
+                if active_op.coop_members and active_op.coop_members[unit_id] then
                     target_op = active_op
                     break
                 end
             end
         end
         
-        if not target_op or not target_op.coop_members or not target_op.coop_members[unit:getID()] then
-            trigger.action.outTextForUnit(unit:getID(), "You are not in a co-op operation.", 10)
+        if not target_op or not target_op.coop_members or not target_op.coop_members[unit_id] then
+            trigger.action.outTextForUnit(unit_id, "You are not in a CO-OP operation.", 10)
             return
         end
         
         -- Remove player from co-op members
-        target_op.coop_members[unit:getID()] = nil
+        target_op.coop_members[unit_id] = nil
         
         -- Notify all participants
         local leave_msg = string.format("%s has left Operation %s", unit:getPlayerName(), target_op.operation_name)
@@ -1407,24 +1413,26 @@ do
             trigger.action.outSoundForUnit(member_id,"radio_txrx.ogg")
         end
         
-        trigger.action.outTextForUnit(unit:getID(), "You have left the co-op operation.", 10)
+        trigger.action.outSoundForUnit(unit_id,"radio_txrx.ogg")
+        trigger.action.outTextForUnit(unit_id, "You have left the CO-OP operation.", 10)
     end
     
     ---@param unit Unit
     function OperationManager:showCoopOperationStatus(unit)
         if not unit or not unit.getPlayerName then return end
-        
+        local unit_id = unit:getID()
+
         -- Find if player is leader or member of a co-op operation
         local player_op = nil
         local is_leader = false
         
         for _, active_op in ipairs(self.active_operations) do
             if active_op.is_coop then
-                if active_op.assigned_player_id == unit:getID() then
+                if active_op.assigned_player_id == unit_id then
                     player_op = active_op
                     is_leader = true
                     break
-                elseif active_op.coop_members and active_op.coop_members[unit:getID()] then
+                elseif active_op.coop_members and active_op.coop_members[unit_id] then
                     player_op = active_op
                     is_leader = false
                     break
@@ -1433,7 +1441,8 @@ do
         end
         
         if not player_op then
-            trigger.action.outTextForUnit(unit:getID(), "You are not in a co-op operation.", 10)
+            trigger.action.outSoundForUnit(unit_id,"radio_txrx.ogg")
+            trigger.action.outTextForUnit(unit_id, "You are not in a co-op operation.", 10)
             return
         end
         
@@ -1461,8 +1470,8 @@ do
         local coop_bonus_pct = (Config.reward_system.coop_xp_bonus or 0.25) * 100
         outtext = outtext .. string.format("\n\nCO-OP Bonus: +%d%% XP and Tokens", coop_bonus_pct)
         
-        trigger.action.outTextForUnit(unit:getID(), outtext, 30)
-        trigger.action.outSoundForUnit(unit:getID(),"radio_txrx.ogg")
+        trigger.action.outTextForUnit(unit_id, outtext, 30)
+        trigger.action.outSoundForUnit(unit_id,"radio_txrx.ogg")
     end
 
     ---@param zone_name any
@@ -1485,15 +1494,18 @@ do
             return false
         end
 
+    ---@param unit Unit
+    ---@param code any
     function OperationManager:activateOperation(unit, code)
         if not unit then return end
-        if not unit.getPlayerName then return end   
+        if not unit.getPlayerName then return end
+        local unit_id = unit:getID()
 
         -- Check if player already has a mission
         for _, active_op in ipairs(self.active_operations) do
-            if active_op.assigned_player_id == unit:getID() then
-                trigger.action.outTextForUnit(unit:getID(), "You are already on an operation: " .. active_op.operation_name, 10)
-                trigger.action.outSoundForUnit(unit:getID(),"radio_txrx.ogg")
+            if active_op.assigned_player_id == unit_id then
+                trigger.action.outTextForUnit(unit_id, "You are already on an operation: " .. active_op.operation_name, 10)
+                trigger.action.outSoundForUnit(unit_id,"radio_txrx.ogg")
                 return
             end
         end
@@ -1509,8 +1521,8 @@ do
         end
 
         if not accepted_mission then
-            trigger.action.outTextForUnit(unit:getID(), "Invalid operation code.", 10)
-            trigger.action.outSoundForUnit(unit:getID(),"radio_txrx.ogg")
+            trigger.action.outTextForUnit(unit_id, "Invalid operation code.", 10)
+            trigger.action.outSoundForUnit(unit_id,"radio_txrx.ogg")
             return
         end
 
@@ -1519,9 +1531,9 @@ do
         -- Check if the target zone was taken by someone else between the time the menu was generated and now.
         -- Skip this check for CSAR operations
         if accepted_mission.type ~= OperationTypes.CSAR and self:isZoneActive(accepted_mission.target_zone_name) then
-            trigger.action.outTextForUnit(unit:getID(), "Operation Aborted: Target zone " .. accepted_mission.target_zone_name .. " is already being engaged by another unit.", 10)
-            trigger.action.outSoundForUnit(unit:getID(),"radio_txrx.ogg")
-            -- Optional: Remove it from available list so they don't try again immediately
+            trigger.action.outTextForUnit(unit_id, "Operation Aborted: Target zone " .. accepted_mission.target_zone_name .. " is already being engaged by another unit.", 10)
+            trigger.action.outSoundForUnit(unit_id,"radio_txrx.ogg")
+
             table.remove(self.available_operations, mission_index)
             return
         end
@@ -1536,8 +1548,8 @@ do
             end
 
             if is_discovered then
-                trigger.action.outTextForUnit(unit:getID(), "Operation Aborted: target is already discovered.", 10)
-                trigger.action.outSoundForUnit(unit:getID(),"radio_txrx.ogg")
+                trigger.action.outTextForUnit(unit_id, "Operation Aborted: target is already discovered.", 10)
+                trigger.action.outSoundForUnit(unit_id,"radio_txrx.ogg")
                 table.remove(self.available_operations, mission_index)
                 self:forceRegenerateOperations()
                 return
@@ -1549,23 +1561,22 @@ do
         if accepted_mission.type == OperationTypes.CSAR then
             -- CSAR doesn't need a zone, it uses pilot_position
             if not accepted_mission.pilot_position then
-                trigger.action.outTextForUnit(unit:getID(), "Error: Pilot position not found.", 10)
+                trigger.action.outTextForUnit(unit_id, "Error: Pilot position not found.", 10)
                 return
             end
         else
             zone_tgt = ZoneHandler.getFromName(accepted_mission.target_zone_name)
-
         end
 
         -- Move from available to active
         table.remove(self.available_operations, mission_index)
         accepted_mission.status = OperationStatus.ACTIVE
-        accepted_mission.assigned_player_id = unit:getID()
+        accepted_mission.assigned_player_id = unit_id
         accepted_mission.assigned_unit_name = unit:getName()
         
         -- Initialize co-op fields if this is a co-op operation
         if accepted_mission.is_coop then
-            accepted_mission.coop_leader_id = unit:getID()
+            accepted_mission.coop_leader_id = unit_id
             accepted_mission.coop_leader_name = unit:getName()
             accepted_mission.coop_join_code = self:createOperationCode()
             if not accepted_mission.coop_members then
@@ -1593,7 +1604,7 @@ do
             outtxt = outtxt .. string.format("\n\nLand within %dm of the pilot to complete the rescue.", Config.operations.csar_rescue_radius or 50)
         else
             if not zone_tgt then
-                trigger.action.outTextForUnit(unit:getID(), "Target zone not found for this operation.", 10)
+                trigger.action.outTextForUnit(unit_id, "Target zone not found for this operation.", 10)
                 return
             end
             local lat, lon = coord.LOtoLL(zone_tgt.zone.point)
@@ -1687,8 +1698,9 @@ do
                         
                         -- Award XP and tokens to all participants
                         for _, participant_unit in ipairs(participants_to_reward) do
-                            trigger.action.outTextForUnit(participant_unit:getID(), "Operation " .. op.operation_name .. " completed !", 20)
-                            trigger.action.outSoundForUnit(participant_unit:getID(),"chatter2.ogg")
+                            local participant_unit_id = participant_unit:getID()
+                            trigger.action.outTextForUnit(participant_unit_id, "Operation " .. op.operation_name .. " completed !", 20)
+                            trigger.action.outSoundForUnit(participant_unit_id,"chatter2.ogg")
                             
                             local user = ExperienceManager:fetchUser(participant_unit)
                             if user then
@@ -1709,7 +1721,7 @@ do
                                 
                                 reward_msg = reward_msg .. "\nReturn to base to claim your rewards."
                                 
-                                trigger.action.outTextForUnit(participant_unit:getID(), reward_msg, 10)
+                                trigger.action.outTextForUnit(participant_unit_id, reward_msg, 10)
                             end
                         end
 
