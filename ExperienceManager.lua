@@ -24,7 +24,8 @@ do
             -- Adds XP to the player who made the kill
             local target = event.target
             local initiator = event.initiator
-            if target and initiator and initiator.getPlayerName and target.getCoalition and initiator.getCoalition then
+            if target and initiator and initiator.getPlayerName and initiator:getPlayerName()
+            and target.getCoalition and initiator:getCoalition() then
                 
                 local user = ExperienceManager:fetchUser(initiator)
                 if not user then return end
@@ -58,13 +59,13 @@ do
                 else return end
             end
         elseif event.id == world.event.S_EVENT_TAKEOFF then
-            if event.initiator and event.initiator.getPlayerName then
+            if event.initiator and event.initiator.getPlayerName and event.initiator:getPlayerName() then
                 ExperienceManager.airbone_users[event.initiator:getPlayerName()] = {
                     take_off_time = timer.getTime()
                 }
             end
         elseif event.id == world.event.S_EVENT_LAND then
-            if event.initiator and event.initiator.getPlayerName then
+            if event.initiator and event.initiator.getPlayerName and event.initiator:getPlayerName() then
 
                 local unit_name = event.initiator:getName()
                 local player_name = event.initiator:getPlayerName()
@@ -116,7 +117,7 @@ do
     ---@param unit Unit
     function ExperienceManager:addUser(unit)
         if not Config.reward_system.enable then return end
-        if not unit.getPlayerName then return end
+        if not (unit.getPlayerName and unit:getPlayerName()) then return end
 
         local user_name = unit:getPlayerName()
         local user_id = unit:getID()
@@ -140,7 +141,7 @@ do
 
     ---@param unit Unit
     function ExperienceManager:delUser(unit)
-        if not unit.getPlayerName then return end
+        if not (unit.getPlayerName and unit:getPlayerName()) then return end
         local user_name = unit:getPlayerName()
         ExperienceManager.user_data[user_name] = nil
     end
@@ -149,7 +150,7 @@ do
     ---@return UserData|nil
     function ExperienceManager:fetchUser(unit)
         if not Config.reward_system.enable then return nil end
-        if not unit.getPlayerName then return nil end
+        if not (unit.getPlayerName and unit:getPlayerName()) then return nil end
         local user_name = unit:getPlayerName()
         return ExperienceManager.user_data[user_name]
     end
@@ -180,7 +181,7 @@ do
     ---@return boolean
     function ExperienceManager:redXP(user,amount)
         if user then
-            user.xp = user.xp - amount
+            user.xp = math.max(user.xp - amount,0)
             -- check for rank down
             local new_rank = ExperienceManager:getRankfromXP(user.xp)
             MissionLogger:info(user.rank.. " -> "..new_rank)
