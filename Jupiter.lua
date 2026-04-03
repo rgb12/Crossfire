@@ -116,6 +116,19 @@ function Jupiter:onEvent(event)
             WarehouseManager:handleIncomingSupplies(coalition.side.BLUE, {WarehouseManager.StockTypes.INITIAL})
             WarehouseManager:handleIncomingSupplies(coalition.side.RED, {WarehouseManager.StockTypes.INITIAL})
             cmd_executed = true
+        elseif command == "-endmission" then
+            trigger.action.outText("Clearing all RED units and statics",10)
+            for _, zone in ipairs(zones) do
+                if zone.side == coalition.side.RED then
+                    if zone.linked_groups then
+                        zone.linked_groups = {}
+                    end
+                    if zone.linked_statics then
+                        zone.linked_statics = {}
+                    end
+                end
+            end
+            cmd_executed = true
         elseif command == "-setlevel" then
             local level = tonumber(param1) or 1
             -- Set level of the closest zone within 10km

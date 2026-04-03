@@ -345,6 +345,41 @@ do
         end
     end
 
+    function PersistenceManager:resetMission()
+        if not PersistenceManager.enabled then return false end
+        PersistenceManager:checkPath()
+
+        if not PersistenceManager.mission_save_file_path then
+            MissionLogger:warn("Cannot reset mission because mission save path is unavailable.")
+            return false
+        end
+
+        if not JSON then
+            MissionLogger:warn("Cannot reset mission because JSON serializer is unavailable.")
+            return false
+        end
+
+        ---@diagnostic disable-next-line: undefined-field
+        local file_content = JSON:encode({ reset_requested = true })
+        if not file_content then
+            MissionLogger:warn("Cannot reset mission because reset marker encoding failed.")
+            return false
+        end
+
+        local file = io.open(PersistenceManager.mission_save_file_path, "w")
+        if not file then
+            MissionLogger:warn("Cannot reset mission because mission save file could not be opened.")
+            return false
+        end
+
+        file:write(file_content)
+        file:close()
+
+        PersistenceManager.data = {}
+        MissionLogger:info("Mission reset requested. Fresh theatre will be established on next mission start.")
+        return true
+    end
+
     ---
     --- Applies the loaded self.data to the running mission.
     ---
@@ -354,11 +389,16 @@ do
         -- -- Load user data regardless of mission data existence
         -- PersistenceManager:loadUserData()
 
+        if PersistenceManager.data and PersistenceManager.data.reset_requested then
+            MissionLogger:info("Mission reset requested. Skipping restore and establishing fresh theatre.")
+            return false
+        end
+
         if not PersistenceManager.data or not PersistenceManager.data.zones then
             MissionLogger:error("Restore failed: No data loaded.")
             return false
         end
-        
+
         MissionLogger:info("Applying loaded mission state...")
 
         -- 1. Restore Scenario

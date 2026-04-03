@@ -1731,7 +1731,7 @@ do
     ---@param users_estimate number|nil
     function WarehouseManager:getStockScale(users_estimate)
         local baseline = 1
-        local users = users_estimate or Scenario.estimated_users or 1
+        local users = 4--users_estimate or Scenario.estimated_users or 1
 
         -- count active human players dynamically
         local players = coalition.getPlayers(coalition.side.BLUE)

@@ -1217,13 +1217,24 @@ do
 
         if persistence_enabled and persistor:loadUserData() and persistor:loadFromFile() then
             if not persistor:restoreState()then
-                MissionLogger:error("Failed to restore state. Establishing new theatre.")
-                trigger.action.outText("Failed to restore state. Establishing new theatre. Check logs",60)
+                if persistor.data and persistor.data.reset_requested then
+                    MissionLogger:info("Reset marker detected. Establishing new theatre.")
+                    trigger.action.outText("Campaign reset requested. Establishing new theatre.", 30)
+                else
+                    MissionLogger:error("Failed to restore state. Establishing new theatre.")
+                    trigger.action.outText("Failed to restore state. Establishing new theatre. Check logs",60)
+                end
                 blue_airbase, red_airbase = TheatreCommander.establishTheatre()
+                if persistence_enabled then
+                    persistor:saveMissionToFile()
+                end
             end
         else
             MissionLogger:info("No save file found. Establishing new theatre.")
             blue_airbase, red_airbase = TheatreCommander.establishTheatre()
+            if persistence_enabled then
+                persistor:saveMissionToFile()
+            end
         end
         
         if not (blue_airbase and red_airbase) then

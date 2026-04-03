@@ -657,6 +657,20 @@ do
             TheatreCommander.red_op_manager:forceRegenerateOperations()
         end
 
+        local function restart_mission()
+            if MISSION_ENDED == false then return end
+            -- For servers only, when the mission ends, reset the campaign
+            MissionLogger:info("MISSION ENDED")
+            MissionLogger:info("Resetting campaign in 10 seconds...")
+            if Config.server.reset_on_mission_end then
+                timer.scheduleFunction(function ()
+                    PersistenceManager:resetMission()
+                    trigger.action.setUserFlag("MISSIONEND",740)
+
+                end,{},timer.getTime()+10)
+            end
+        end
+
         timer.scheduleFunction(function ()
             CommandHandler.requestMenuRefresh()
             if MISSION_ENDED then return end
@@ -664,20 +678,12 @@ do
                 MISSION_ENDED = true
                 world.removeEventHandler(ev)
                 trigger.action.outText("************\n\n  REDFOR achieved total domination !\n\n************", 500)
+                restart_mission()
             elseif stats.red_zones == 0 and stats.blue_zones > 0 then
                 MISSION_ENDED = true
                 world.removeEventHandler(ev)
                 trigger.action.outText("************\n\n  BLUFOR achieved total domination !\n\n************", 500)
-            end
-
-            -- For servers only, when the mission ends, reset the campaign
-            MissionLogger:info("MISSION ENDED")
-            MissionLogger:info("Resetting campaign in 10 seconds...")
-            if Config.server.reset_on_mission_end then
-                timer.scheduleFunction(function ()
-                    -- delete save file,
-                    -- end the mission
-                end,{},timer.getTime()+10)
+                restart_mission()
             end
 
         end,nil,timer.getTime()+10)
