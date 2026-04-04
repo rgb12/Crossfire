@@ -1267,10 +1267,8 @@ do
         Frontline.drawFrontline()
 
         -- trigger.action.outText("Theatre setup complete.", 5)
-        MissionLogger:info("Mission Commander: Mission Setup Complete.")
+        MissionLogger:info("THEATRE SETUP COMPLETE")
         timer.scheduleFunction(function()
-        -- This only guides the user to ensure everything had time to load, especially just after mission start
-        trigger.action.outText("Assets loaded.",2)
         end, {}, timer.getTime() + 15)
     end
 

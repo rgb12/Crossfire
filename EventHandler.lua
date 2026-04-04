@@ -48,10 +48,10 @@ function ev:onEvent(event)
                                             local acft_count = (warehouse:getItemCount(acft_name) or 0)+1
                                             --MissionLogger:info(acft_count)
                                             
-                                            if acft_count >= 1 then -- the airplane gets used before this script is executed
+                                            if acft_count >= 1 then -- the airplane gets used before this script is executed, this is a must
                                                 can_spawn = true
                                                 
-                                                -- Due to the size of the C130, certain bases do not have spawn slots.
+                                                -- Due to the size of the C130, ALL airbases do not have spawn slots as "takeoff from ramp" but "takeoff from ground".
                                                 -- The workaround is to spawn them as taking off from ground, but the script has to check for this case specifically
                                                 if acft_name == WarehouseManager.AircraftFlags.C130J_30 or
                                                 zone.zone_type == ZoneTypes.FARP then
@@ -163,16 +163,7 @@ function ev:onEvent(event)
                 end
             end
 
-            if timer.getTime() < 15 then
-                -- wait for mission to initialize, 15 seconds is just what I found to work during testing, this needs to be improved
-                trigger.action.outTextForUnit(unit:getID(), "Assets and warehouses are still loading; if your slot is blocked, try again in a moment.",20)
-                timer.scheduleFunction(function ()
-                    checkSpawnAllowed()
-                end, {}, timer.getTime() + 15)
-            else
-                checkSpawnAllowed()
-            end
-            -- checkSpawnAllowed()
+            checkSpawnAllowed()
 
         end
     end
