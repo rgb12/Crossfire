@@ -797,9 +797,16 @@ do
             if enemy_units and #enemy_units > 0 then
                 arrival_point = enemy_units[1]:getPoint()
             else
-                local enemy_statics = utils.getStaticsInZoneObj(to_zone)
-                if enemy_statics and #enemy_statics > 0 then
-                    arrival_point = enemy_statics[1]:getPoint()
+                local first_static
+                for _, static_name in pairs(to_zone.linked_statics) do
+                    local static_obj = StaticObject.getByName(static_name)
+                    if static_obj and static_obj:isExist() then
+                        first_static = static_obj
+                        break
+                    end
+                end
+                if first_static then
+                    arrival_point = first_static:getPoint()
                 else
                     arrival_point = to_zone.zone.point
                 end
