@@ -507,10 +507,17 @@ do
                             local enemy_units
                             if enroute.side == coalition.side.BLUE then enemy_units = utils.getUnitsInZoneObj(enroute.to_zone, coalition.side.RED)
                             elseif enroute.side == coalition.side.RED then enemy_units = utils.getUnitsInZoneObj(enroute.to_zone, coalition.side.BLUE) end
-    
-                            if enemy_units and #enemy_units > 0 then
+
+                            local enemy_statics = utils.getStaticsInZoneObj(enroute.to_zone)
+
+                            if (enemy_units and #enemy_units > 0) or (enemy_statics and #enemy_statics > 0) then
                                 -- Enemies still exist, redirect to the next one
-                                local arrival_point = enemy_units[1]:getPoint()
+                                local arrival_point
+                                if enemy_units and #enemy_units > 0 then
+                                    arrival_point = enemy_units[1]:getPoint()
+                                else
+                                    arrival_point = enemy_statics[1]:getPoint()
+                                end
                                 if not enroute.redirects_count then enroute.redirects_count = 0 else enroute.redirects_count = enroute.redirects_count + 1 end
                                 TaskManager:ConvoyToPoint(convoy_group,arrival_point)
                             else
