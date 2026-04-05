@@ -17,6 +17,9 @@ do
 
     ExperienceManager.airbone_users = {}
 
+    ---@type number
+    ExperienceManager.xp_multiplier = 1
+
     function ExperienceManager.EventHandler:onEvent(event)
         if not Config.reward_system.enable then return end
 
@@ -103,10 +106,11 @@ do
                         
                         if user.unclaimed_xp>0 or airtime_xp_bonus>0 then
                             local u_id = unit_check:getID()
-                            trigger.action.outTextForUnit(u_id, "Post-Flight Debrief: +".. user.unclaimed_xp+airtime_xp_bonus .. " XP",10)
+                            local claimed_xp = (user.unclaimed_xp+airtime_xp_bonus)*ExperienceManager.xp_multiplier
+                            trigger.action.outTextForUnit(u_id, "Post-Flight Debrief: +".. claimed_xp .. " XP",10)
                             trigger.action.outSoundForUnit(u_id,"radio click.ogg")
                             
-                            ExperienceManager:addXP(user, user.unclaimed_xp+airtime_xp_bonus) -- checks for rank up
+                            ExperienceManager:addXP(user, claimed_xp) -- checks for rank up
                             user.unclaimed_xp = 0
                         end
                     end
@@ -167,13 +171,14 @@ do
             user.xp = user.xp + amount
             -- check for rank up
             local new_rank = ExperienceManager:getRankfromXP(user.xp)
-            MissionLogger:info(user.rank.. " -> "..new_rank)
             if new_rank ~= user.rank then
+                MissionLogger:info(user.rank.. " -> "..new_rank)
                 user.rank = new_rank
 
                 trigger.action.outSoundForUnit(user.id,"rank_up.ogg")
                 trigger.action.outTextForUnit(user.id,"Rank Up! New Rank: " .. new_rank.."",10)
             end
+            MissionLogger:info(amount.. "XP added for " .. user.name)
             return true
         end
         return false

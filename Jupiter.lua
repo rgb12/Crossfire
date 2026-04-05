@@ -69,6 +69,7 @@ function Jupiter:onEvent(event)
         
         local command = args[1]:lower()
         local param1 = args[2]
+        local param2 = args[3]
         
         local cmd_executed = false
 
@@ -407,6 +408,19 @@ function Jupiter:onEvent(event)
             MissionLogger:info(string.format("Jupiter -addxp: Found %d units, %d were players", total_units, players_found))
             trigger.action.outText(string.format("Jupiter: Added %d XP to %d players within 500m. (Found %d units total)", xp_to_add, players_found, total_units), 5)
             cmd_executed = true
+        elseif command == "-setxpmult" then
+            local multiplier = tonumber(param1)
+            local time = tonumber(param2) or 5
+            if not multiplier then
+                trigger.action.outText("Jupiter: Invalid multiplier. Usage: -setxpmult <number> <time>", 8)
+            else
+                ExperienceManager.xp_multiplier = math.max(multiplier,1)
+                timer.scheduleFunction(function ()
+                    ExperienceManager.xp_multiplier = 1
+                end,nil,timer.getTime()+(time*60)) -- time given in minutes
+
+                cmd_executed=true
+            end
         end
         -- 3. Cleanup: Remove the map marker if a command was recognized
         timer.scheduleFunction(function()
