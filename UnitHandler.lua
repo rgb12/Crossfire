@@ -251,14 +251,16 @@ do
         end
     end
 
+    ---@param zone ZoneHandler
+    ---@return boolean
     function UnitHandler.initStatics(zone)
-        if zone.side == coalition.side.NEUTRAL then return end
+        if zone.side == coalition.side.NEUTRAL then return false end
         local country_name
         if zone.side == coalition.side.BLUE then country_name = country.id.CJTF_BLUE
         else country_name = country.id.CJTF_RED end
 
         if zone.zone_type == ZoneTypes.LOGISTICS then
-            if zone.ammo_depot_intact == false then return end
+            if zone.ammo_depot_intact == false then return false end
 
             local point = mist.getRandomPointInZone(zone.name) or {x=zone.zone.point.x+55,y=zone.zone.point.z-29}
 
@@ -275,12 +277,13 @@ do
                 
                 table.insert(zone.linked_statics, ammo_depot.name)
                 utils.editAmmoDepotsCount(zone.side, 1)
+                return true
             else
                 MissionLogger:error("Could not spawn ammo depot for ".. zone.name)
             end
 
         elseif zone.zone_type == ZoneTypes.COMMS then
-            if zone.comms_tower_intact == false then return end
+            if zone.comms_tower_intact == false then return false end
             local point = mist.getRandomPointInZone(zone.name) or {x=zone.zone.point.x+25,y=zone.zone.point.z-19}
 
             local comms_tower = mist.dynAddStatic({
@@ -300,15 +303,33 @@ do
                 end
                
                 table.insert(zone.linked_statics, comms_tower.name)
-               
+                return true
             else
                 MissionLogger:error("Could not spawn comms tower for ".. zone.name)
             end
 
 
         elseif zone.zone_type == ZoneTypes.AIRBASE then
-            if zone.cmdc_intact == false then return end
-            local cmd_center_point = UnitHandler.findClearPoint(zone,50,500)
+            if zone.cmdc_intact == false then return false end
+            local cmd_center_point = UnitHandler.findClearPoint(zone,10,500)
+            for i=0,20 do
+                local top_left =  land.getSurfaceType({x=cmd_center_point.x-20, y=cmd_center_point.y+20})
+                local bottom_left =  land.getSurfaceType({x=cmd_center_point.x-20, y=cmd_center_point.y-20})
+                local top_right =  land.getSurfaceType({x=cmd_center_point.x+20, y=cmd_center_point.y+20})
+                local bottom_right =  land.getSurfaceType({x=cmd_center_point.x+20, y=cmd_center_point.y-20})
+                local center =  land.getSurfaceType(cmd_center_point)
+
+                if top_left == land.SurfaceType.RUNWAY
+                or bottom_left == land.SurfaceType.RUNWAY
+                or top_right == land.SurfaceType.RUNWAY
+                or bottom_right == land.SurfaceType.RUNWAY
+                or center == land.SurfaceType.RUNWAY then
+                    cmd_center_point = UnitHandler.findClearPoint(zone,10,500)
+                else
+                    break
+                end
+            end
+
 
             local command_center = mist.dynAddStatic({
                 type = ".Command Center",
@@ -322,12 +343,13 @@ do
                 table.insert(zone.linked_statics, command_center.name)
                 zone.cmdc_intact = true
                 utils.editCommandPostsCount(zone.side, 1)
+                return true
             else
                 MissionLogger:error("Could not spawn comms tower for ".. zone.name)
             end
 
         end
-    
+        return false
     end
 
     ---@param zone ZoneHandler

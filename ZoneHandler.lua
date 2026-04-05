@@ -1111,25 +1111,10 @@ do
         and self.cmdc_last_destroyed + Config.airbase_command_center_respawn_time <= timer.getTime() then
 
             MissionLogger:info(self.name .." command center respawn")
+            self.cmdc_intact = true
 
-            local country_name
-            if self.side == coalition.side.BLUE then country_name = country.id.CJTF_BLUE
-            else country_name = country.id.CJTF_RED end
-            
-            local cmd_center_point = UnitHandler.findClearPoint(self,50,500)
-
-            local command_center = mist.dynAddStatic({
-                type = ".Command Center",
-                country = country_name, --81 = CJTF RED | 82= CJTF BLUE
-                category = "Fortifications",
-                x = cmd_center_point.x,
-                y = cmd_center_point.y
-            })
-
-            if command_center then
-                utils.editCommandPostsCount(self.side, 1)
-                table.insert(self.linked_statics, command_center.name)
-                self.cmdc_intact = true
+            local cmdc_spawned = UnitHandler.initStatics(self)
+            if cmdc_spawned then
                 self.cmdc_last_destroyed = nil
                 trigger.action.outSoundForCoalition(self.side,"radio_beep.ogg")
                 trigger.action.outTextForCoalition(self.side, "SITREP: AIRBASE "..self.name.." has rebuilt its Command Center.",10)
