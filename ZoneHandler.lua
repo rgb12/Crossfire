@@ -441,7 +441,11 @@ do
                 WarehouseManager:handleIncomingSupplies(self.side,{WarehouseManager.StockTypes.LOGISTICS_CAPTURE})
             end
             self.capture_heli_avail = 0
-
+            -- Mark static as dead, this prevents the check function from flagging it as dead
+            self.linked_ammo_depot = nil
+            self.ammo_depot_intact = false
+            self.ammo_depot_last_destroyed = timer.getTime()
+            self.linked_statics = {}
         elseif self.zone_type == ZoneTypes.COMMS and self.side ~= coalition.side.NEUTRAL then
             if self.side == coalition.side.RED then
                 UnitHandler.clone(GroupData.COMMS_SITES.RED[self.level].group_name, self,true)
@@ -452,6 +456,11 @@ do
                 stats.red_comms_zones = stats.red_comms_zones -1
                 stats.blue_comms_zones = stats.blue_comms_zones +1
             end
+            -- Mark static as dead, this prevents the check function from flagging it as dead
+            self.linked_comms_tower = nil
+            self.comms_tower_intact = false
+            self.comms_tower_last_destroyed = timer.getTime()
+            self.linked_statics = {}
         elseif self.zone_type == ZoneTypes.EWSITE and self.side ~= coalition.side.NEUTRAL then
             if self.side == coalition.side.RED then
                 UnitHandler.clone(GroupData.EW_SITES.RED[self.level].group_name , self,true)
@@ -538,6 +547,12 @@ do
                     end
                 end
             end
+
+            -- Mark static as dead, this prevents the check function from flagging it as dead
+            self.cmdc_intact = false
+            self.cmdc_last_destroyed = timer.getTime()
+            self.linked_statics = {}
+
             if red_airbase and self.airbase_name == red_airbase.airbase_name then
                 red_airbase.side = self.side
             elseif blue_airbase and self.airbase_name == blue_airbase.airbase_name then
