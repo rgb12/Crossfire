@@ -417,8 +417,9 @@ function Jupiter:onEvent(event)
                 ExperienceManager.xp_multiplier = math.max(multiplier,1)
                 timer.scheduleFunction(function ()
                     ExperienceManager.xp_multiplier = 1
+                    trigger.action.outText("XP multiplier ended!",10)
                 end,nil,timer.getTime()+(time*60)) -- time given in minutes
-
+                trigger.action.outText("XP multiplier (x"..multiplier..") active for "..time.." minutes!",10)
                 cmd_executed=true
             end
         end
