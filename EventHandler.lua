@@ -67,7 +67,7 @@ function ev:onEvent(event)
                                                 ))
 
                                                 can_spawn = false
-                                                --warehouse:addItem(acft_name,1)
+                                                warehouse:addItem(acft_name,1)
                                                 if acft_name == WarehouseManager.AircraftFlags.C130J_30 then
                                                     trigger.action.outTextForUnit(unit:getID(), "C130J-30 user; If you tried spawning right after mission start, please wait a moment and try again.",30)
                                                 end
