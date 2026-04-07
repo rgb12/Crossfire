@@ -1392,6 +1392,7 @@ do
         
         if not target_op or not target_op.coop_members or not target_op.coop_members[unit_id] then
             trigger.action.outTextForUnit(unit_id, "You are not in a CO-OP operation.", 10)
+            trigger.action.outSoundForUnit(unit_id,"radio_txrx.ogg")
             return
         end
         
