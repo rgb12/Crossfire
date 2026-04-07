@@ -567,11 +567,11 @@ do
                     local function restock_acft()
                         MissionLogger:info("Attempting restock")
                         if restock_gr and restock_gr:isExist() then
-                            MissionLogger:info("Executing restock")
+                            MissionLogger:info("Executing restock for group")
                             restock_gr:destroy()
                         end
                         if restock_unit and restock_unit:isExist() then
-                            MissionLogger:info("Retrying destroy for unit, final test")
+                            MissionLogger:info("Executing restock for unit")
                             restock_unit:destroy()
                             return
                         else
