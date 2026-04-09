@@ -223,15 +223,13 @@ function Frontline.computeFrontline()
         local min_y, max_y = utils.tableMin(y_coords), utils.tableMax(y_coords)
         local dx = math.max(max_x - min_x, 1)
         local dy = math.max(max_y - min_y, 1)
-        local diagonal = math.sqrt(dx * dx + dy * dy)
         local padding = math.max(dx, dy) * 0.15
 
         return {
             min_x = min_x - padding,
             max_x = max_x + padding,
             min_y = min_y - padding,
-            max_y = max_y + padding,
-            diagonal = diagonal
+            max_y = max_y + padding
         }
     end
 
@@ -368,20 +366,11 @@ function Frontline.computeFrontline()
                 local center2 = triangle_circumcenters[rec.triangles[2]]
 
                 if center1 and center2 and not samePoint(center1, center2) then
-                    local mixed_edge_len = math.max(distance2D(point1, point2), 1)
-                    local center_len = distance2D(center1, center2)
-
-                    -- Reject unstable Voronoi edges created by skinny/near-collinear triangles.
-                    local too_long_vs_edge = center_len > (mixed_edge_len * 6)
-                    local too_long_vs_map = center_len > (frontline_bounds.diagonal * 0.60)
-
-                    if not too_long_vs_edge and not too_long_vs_map then
-                        local clipped1, clipped2 = clipSegmentToBounds(center1, center2, frontline_bounds)
-                        if clipped1 and clipped2 and not samePoint(clipped1, clipped2) then
-                            table.insert(frontline_segments, {clipped1, clipped2})
-                            table.insert(frontline_points, clipped1)
-                            table.insert(frontline_points, clipped2)
-                        end
+                    local clipped1, clipped2 = clipSegmentToBounds(center1, center2, frontline_bounds)
+                    if clipped1 and clipped2 and not samePoint(clipped1, clipped2) then
+                        table.insert(frontline_segments, {clipped1, clipped2})
+                        table.insert(frontline_points, clipped1)
+                        table.insert(frontline_points, clipped2)
                     end
                 end
             end
