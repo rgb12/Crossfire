@@ -300,6 +300,19 @@ function Jupiter:onEvent(event)
             else
                 trigger.action.outText("Jupiter: No zone found within 10km for JTAC tasking.", 5)
             end
+        elseif command == "-sendconvoy" then
+            local closest_zone, dist = getClosestZone(vec3)
+            if closest_zone and dist <= 10000 then
+                local enemy_zone = closest_zone:getClosestZone(utils.getEnemyCoalition(closest_zone.side))
+                if not enemy_zone then return end
+
+                TaskManager:initiateAITask(AITaskTypes.ATTACK_CONVOY,enemy_zone.side,true,closest_zone,enemy_zone,true)
+                cmd_executed = true
+            else
+                trigger.action.outText("Jupiter: No zone found within 10km for JTAC tasking.", 5)
+            end
+
+            cmd_executed = true
         elseif command == "-sendstrike" then
             local side_sending = coalition.side.BLUE
             if param1 == "blue" then
