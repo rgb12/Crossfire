@@ -797,17 +797,7 @@ do
             if enemy_units and #enemy_units > 0 then
                 arrival_point = enemy_units[1]:getPoint()
             else
-                -- Check for statics in the zone
-                for _, static_name in pairs(to_zone.linked_statics or {}) do
-                    local static_obj = StaticObject.getByName(static_name)
-                    if static_obj and static_obj:isExist() then
-                        arrival_point = static_obj:getPoint()
-                        break
-                    end
-                end
-                if not arrival_point then
-                    arrival_point = to_zone.zone.point
-                end
+                arrival_point= to_zone.zone.point
             end
             self:ConvoyToPoint(convoy_gr,arrival_point)
 

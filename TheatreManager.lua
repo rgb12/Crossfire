@@ -521,27 +521,12 @@ do
                                 if not enroute.redirects_count then enroute.redirects_count = 0 else enroute.redirects_count = enroute.redirects_count + 1 end
                                 TaskManager:ConvoyToPoint(convoy_group,arrival_point)
                             else
-                                -- Check for statics in the zone
-                                local static_arrival_point = nil
-                                for _, static_name in pairs(enroute.to_zone.linked_statics or {}) do
-                                    local static_obj = StaticObject.getByName(static_name)
-                                    if static_obj and static_obj:isExist() then
-                                        static_arrival_point = static_obj:getPoint()
-                                        break
-                                    end
-                                end
-                                if static_arrival_point then
-                                    -- Statics remain, redirect convoy to attack them
-                                    if not enroute.redirects_count then enroute.redirects_count = 0 else enroute.redirects_count = enroute.redirects_count + 1 end
-                                    TaskManager:ConvoyToPoint(convoy_group, static_arrival_point)
-                                else
                                 -- SCENARIO 3: CONVOY FINISHED (no enemies left)
                                 trigger.action.outTextForCoalition(enroute.side, "Convoy sent to attack " .. enroute.to_zone.zone.name .. " has completed its mission", 10)
                                 EnrouteManager.enroutes[i] = nil
                                 timer.scheduleFunction(function ()
                                     if convoy_group and convoy_group:isExist() then convoy_group:destroy() end
                                 end, {}, timer.getTime() + math.random(5, 10))
-                                end
                             end
                         else
                             -- It's stuck en route (not in the zone)
