@@ -606,9 +606,8 @@ do
                     if cargo_group and cargo_group:isExist() then
                         timer.scheduleFunction(function ()
                             cargo_group:destroy()
-                            local enemy_side = utils.getEnemyCoalition(self.side)
-                            trigger.action.outTextForCoalition(enemy_side,"SITREP: Resupply Aircraft inbound for "..enroute.to_zone.name .. " aborted!",10)
-                            trigger.action.outSoundForCoalition(enemy_side,"radio_beep3.ogg")
+                            trigger.action.outTextForCoalition(enroute.side,"SITREP: Resupply Aircraft inbound for "..enroute.to_zone.name .. " aborted!",10)
+                            trigger.action.outSoundForCoalition(enroute.side,"radio_beep3.ogg")
                             EnrouteManager:remove(enroute.group_name)
                         end, {}, timer.getTime() + math.random(5, 10))
                     end
