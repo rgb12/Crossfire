@@ -848,10 +848,10 @@ do
             local ctrl = jtac_gr:getController()
             if not ctrl then return end
 
-            -- ctrl:setCommand({
-            --     id = "SetInvisible",
-            --     params = { value = true }
-            -- })
+            ctrl:setCommand({
+                id = "SetInvisible",
+                params = { value = false }
+            })
 
             ctrl:setOption(AI.Option.Air.id.ROE, AI.Option.Air.val.ROE.WEAPON_FREE) --has to be, return fire does not work
             ctrl:setOption(AI.Option.Air.id.REACTION_ON_THREAT, AI.Option.Air.val.REACTION_ON_THREAT.PASSIVE_DEFENCE)
@@ -871,7 +871,7 @@ do
                     point = {
                         x = enroute_data.to_zone.zone.point.x+math.random(-300,300),
                         y = enroute_data.to_zone.zone.point.z+math.random(-300,300)},
-                    speed = 32, --in m/s
+                    speed = 45, --in m/s
                     altitude = mist.utils.feetToMeters(25000)
                 }})
 
