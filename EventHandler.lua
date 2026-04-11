@@ -53,10 +53,11 @@ function ev:onEvent(event)
                                                 
                                                 -- Due to the size of the C130, ALL airbases do not have spawn slots as "takeoff from ramp" but "takeoff from ground".
                                                 -- The workaround is to spawn them as taking off from ground, but the script has to check for this case specifically
-                                                if acft_name == WarehouseManager.AircraftFlags.C130J_30 or
-                                                zone.zone_type == ZoneTypes.FARP then
-                                                    warehouse:removeItem(acft_name,1)
-                                                end
+                                                --https://github.com/rgb12/Crossfire/issues/49
+                                                -- if acft_name == WarehouseManager.AircraftFlags.C130J_30 or
+                                                -- zone.zone_type == ZoneTypes.FARP then
+                                                --     warehouse:removeItem(acft_name,1)
+                                                -- end
 
                                             else
                                                 MissionLogger:info(string.format(
