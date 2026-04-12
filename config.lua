@@ -147,36 +147,36 @@ Config = {
         absolute_max_supplies = 40000, -- maximum supplies a coalition can hold no matter what
 
         resupply_costs = {
-            -- Warehouse aircraft resupply costs (balance: 1-2 aircraft per 5 minutes of income)
-            INITIAL = 8000,           -- Full initial warehouse stock restoration
-            FARP = 2500,              -- FARP complete resupply
+
+            INITIAL = 10000,           -- Full initial warehouse stock restoration
+            FARP = 2000,              -- FARP complete resupply
             
             AA_AIRCRAFT = 4000,       -- Air-to-air focused aircraft
             AG_AIRCRAFT = 4500,       -- Air-to-ground focused aircraft
-            CARGO_AIRCRAFT = 3000,    -- Transport/utility aircraft
+            CARGO_AIRCRAFT = 2000,    -- Transport/utility aircraft
             
-            -- Weapons resupply costs (balance: 2-4 loadouts per 5 minutes of income)
+
             AIR_AIR_LONG_RANGE = 2000,            -- AIM-120, AIM-54, etc.
             AIR_AIR_SHORT_RANGE = 1500,           -- AIM-9, R-73, etc.
             
-            AIR_GROUND_GUIDED_MISSILES = 3000,   -- AGM-65, Hellfire, etc.
+            AIR_GROUND_GUIDED_MISSILES = 2500,   -- AGM-65, Hellfire, etc.
             AIR_GROUND_GUIDED_BOMBS = 1500,       -- GBU-12, GBU-38, etc.
-            AIR_GROUND_BOMBS = 900,              -- Mk-82, Mk-84, etc.
-            AIR_GROUND_ROCKETS = 500,            -- Hydra, S-8, etc.
+            AIR_GROUND_BOMBS = 750,              -- Mk-82, Mk-84, etc.
+            AIR_GROUND_ROCKETS = 400,            -- Hydra, S-8, etc.
             
             ECM = 5000,                -- Jamming pods, countermeasures
-            TGP_MISC = 4000,           -- Targeting pods, misc equipment
+            TGP_MISC = 3500,           -- Targeting pods, misc equipment
         },
         tasking_costs = {
-            JTAC = 300,
+            JTAC = 250,
             CAS = 500,
-            SEAD = 500,
+            SEAD = 600,
             STRIKE = 500,
             CAP = 400,
-            AWACS = 400,
+            AWACS = 350,
             RECON = 300,
             CAPTURE_HELO = 150,
-            NAVAL_STRIKE = 2500
+            NAVAL_STRIKE = 3500
         }
     },
 
