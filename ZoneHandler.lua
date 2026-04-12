@@ -29,13 +29,10 @@ do
         obj.linked_groups = obj.linked_groups or {}
         obj.linked_statics = obj.linked_statics or {}
 
-        if not obj.zone then 
-            MissionLogger:error("ZoneHandler:new Could not find zone "..obj.name.." in mission triggers zones")
-            return 
-        end
+        if not obj.zone then return end
 
         if obj.zone_type == ZoneTypes.SAMSITE then
-            if not obj.sam_classification then 
+            if not obj.sam_classification then
                 MissionLogger:error("ZoneHandler:new Missing/Incorrect fields - SAMSITE zone "..obj.name)
                 return end
         end

@@ -356,7 +356,10 @@ do
     ---@param restock boolean
     function UnitHandler.initFARP(zone,restock)
         if zone.zone_type ~= ZoneTypes.FARP then return end
-        if zone.side == coalition.side.NEUTRAL then return end
+        if zone.side ~= coalition.side.BLUE then return end
+
+        if not zone.linked_farp then return end
+
 
         local country_name_id
         if zone.side == coalition.side.BLUE then
@@ -366,16 +369,15 @@ do
             country_name_id = country.id.CJTF_RED
             stats.red_farp_zones = stats.red_farp_zones +1
         end
+        
 
-        -- Base coordinates for the zone center (where Invisible FARP goes)
+        -- Base coordinates for the zone center (where Invisible FARP is placed)
         local base_x = zone.zone.point.x
-        local base_y = zone.zone.point.z -- DCS world Z coordinate is Lua's Y
+        local base_y = zone.zone.point.z
 
         -- List of Statics to spawn with their estimated offsets (X, Y)
+        -- Invisible FARPs are placed inside the mission editor
         local farp_statics_to_spawn = {
-            -- Invisible FARP (Center Point)
-            { type = "Invisible FARP", category = "Heliports", shape_name = "invisiblefarp", offset_x = 0, offset_y = 0 },
-
             -- Tents (clustered east of the pad)
             { type = "FARP Tent", category = "Fortifications", offset_x = 5, offset_y = 55 },
             { type = "FARP Tent", category = "Fortifications", offset_x = -15, offset_y = 55 },
@@ -384,11 +386,11 @@ do
             { type = "FARP Ammo Dump Coating", category = "Fortifications", offset_x = 30, offset_y = 5 },
             { type = "FARP Ammo Dump Coating", category = "Fortifications", offset_x = 30, offset_y = -5 },
 
-
             -- Fuel Depots (South of the pad)
             { type = "FARP Fuel Depot", category = "Fortifications", offset_x = 5, offset_y = -60 },
             { type = "FARP Fuel Depot", category = "Fortifications", offset_x = -5, offset_y = -60 },
         }
+
 
         -- Spawn the Statics
         for _, static_data in ipairs(farp_statics_to_spawn) do
@@ -397,37 +399,23 @@ do
                 y = base_y + static_data.offset_y
             }
 
-            -- some dcs quirks with invisible farps .. that makes it work
+            local new_static = mist.dynAddStatic({
+                    type = static_data.type,
+                    shape_name = static_data.shape_name,
+                    country = country_name_id,
+                    category = static_data.category,
+                    x = static_point.x,
+                    y = static_point.y,
+                    heading = 0
+                })
 
-            if not (zone.side == coalition.side.RED and static_data.type == "Invisible FARP")
-            and not (zone.linked_farp and static_data.type == "Invisible FARP") then
- 
-                local new_static = mist.dynAddStatic({
-                        type = static_data.type,
-                        shape_name = static_data.shape_name,
-                        country = country_name_id,
-                        category = static_data.category,
-                        x = static_point.x,
-                        y = static_point.y,
-                        heading = 0
-                    })
-
-                if new_static and new_static.name then
-
-                    
-                    if static_data.type ~= "Invisible FARP" then
-                        -- do not track invisible farps as they are not destroyable
-                        table.insert(zone.linked_statics, new_static.name)
-                    else
-                        zone.linked_farp = new_static.name
-                    end
-            
-                end
+            if new_static and new_static.name then
+                table.insert(zone.linked_statics, new_static.name)
             end
         end
+
+
         -- Add to warehouse
-        
-        -- set warehouse
         if zone.linked_farp and restock then
             timer.scheduleFunction(function()
                 WarehouseManager:clearWarehouse(zone.linked_farp)
@@ -436,35 +424,34 @@ do
         end
 
 
-        local group_template_name = "BLUE FARP" -- Assumes this is the name of your Late Activated group template
         local group_offset_x = -55
         local group_offset_y = 10
         local group_spawn_point = {
             x = base_x + group_offset_x,
             y = base_y + group_offset_y
         }
-
+        
         -- Vehicle group
+        local group_template_name = nil
         if zone.side == coalition.side.RED then
             group_template_name = GroupData.COMMON_ASSETS.RED.farp
-        else 
+        else
             group_template_name = GroupData.COMMON_ASSETS.BLUE.farp
         end
 
-        local vehicles_gr = mist.teleportToPoint({
-            groupName = group_template_name,
-            point = group_spawn_point,
-            action = 'clone',
-            disperse = false,
-            initTasks = true,
-            anyTerrain = true
-        })
+        if group_template_name then
+            local vehicles_gr = mist.teleportToPoint({
+                groupName = group_template_name,
+                point = group_spawn_point,
+                action = 'clone',
+                disperse = false,
+                initTasks = true,
+                anyTerrain = true
+            })
 
-        if vehicles_gr and vehicles_gr.name then
-            table.insert(zone.linked_groups, vehicles_gr.name)
-            MissionLogger:info("Cloned FARP Unit Group: " .. group_template_name)
-        else
-            MissionLogger:error("Failed to clone FARP Unit Group: " .. group_template_name .. ". Ensure the group exists and is Late Activated.")
+            if vehicles_gr and vehicles_gr.name then
+                table.insert(zone.linked_groups, vehicles_gr.name)
+            end
         end
     end
 
