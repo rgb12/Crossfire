@@ -248,6 +248,42 @@ do
                 return false
             end
 
+            ---@param u Unit
+            ---@return ZoneHandler|nil
+            local function getFriendlyCurrentSupplyZone(u)
+                if not (u and u.isExist and u:isExist()) then return nil end
+                local zone = utils.getZoneOfUnitFromPosition(u:getPoint())
+                if not zone then return nil end
+                if zone.side ~= side then return nil end
+                return zone
+            end
+
+            ---@param u Unit
+            ---@param use_case string
+            ---@return ZoneHandler|nil
+            local function getGroundedSupplySource(u, use_case)
+                if not (u and u.isExist and u:isExist()) then return nil end
+                if u:inAir() then
+                    trigger.action.outTextForGroup(gr_id, "CMD-HQ - Negative "..use_case.." while airborne. Land and request again.", 8)
+                    trigger.action.outSoundForGroup(gr_id, "radio_beep3.ogg")
+                    return nil
+                end
+
+                local src_zone = getFriendlyCurrentSupplyZone(u)
+                if not src_zone then
+                    trigger.action.outTextForGroup(gr_id, "CMD-HQ - Negative, "..use_case.." requires you to be inside a friendly zone.", 8)
+                    trigger.action.outSoundForGroup(gr_id, "radio_beep3.ogg")
+                    return nil
+                end
+                src_zone.local_supply = src_zone.local_supply or 0
+                if src_zone.local_supply <= 0 then
+                    trigger.action.outTextForGroup(gr_id, "CMD-HQ - Negative, "..src_zone.name.." has no local supplies available.", 8)
+                    trigger.action.outSoundForGroup(gr_id, "radio_beep3.ogg")
+                    return nil
+                end
+                return src_zone
+            end
+
 
             missionCommands.addCommandForGroup(gr_id, "List Supplies", logistics_main_submenu, function ()
                 ctld.listSupplies(unit)
@@ -275,6 +311,8 @@ do
                             local target_zone = args.target_zone
                             local stock = args.stock_types
                             local cost = args.cost
+                            local src_zone = getGroundedSupplySource(u, "resupply")
+                            if not src_zone then return end
 
                             -- Check if airbase is still friendly before sending 
                             local ab = ZoneHandler.getFromName(target_zone.name)
@@ -286,23 +324,12 @@ do
                             end
 
 
-                            if side == 2 then
-                                if stats.blue_supplies < cost then
-                                    trigger.action.outTextForGroup(gr_id,"CMD-HQ - CMD-HQ - Negative resupply response for " .. target_zone.name .. ": supplies low (" .. stats.blue_supplies .. "/" .. cost .. "). Stand by for next resupply or capture additional zones.",8)
-                                    trigger.action.outSoundForGroup(gr_id, "radio_beep3.ogg")
-                                    return
-                                else
-                                    stats.blue_supplies = math.max(stats.blue_supplies - cost,0)
-                                end
-                            elseif side == 1 then
-                               if stats.red_supplies < cost then
-                                    trigger.action.outTextForGroup(gr_id,"CMD-HQ - Negative resupply response for " .. target_zone.name .. ": supplies low (" .. stats.red_supplies .. "/" .. cost .. "). Stand by for next convoy or secure more territory.",8)
-                                    trigger.action.outSoundForGroup(gr_id, "radio_beep3.ogg")
-                                    return
-                               else
-                                    stats.red_supplies = math.max(stats.red_supplies - cost,0)
-                                end
+                            if src_zone.local_supply < cost then
+                                trigger.action.outTextForGroup(gr_id,"CMD-HQ - Negative resupply response for " .. target_zone.name .. ": " .. src_zone.name .. " supplies low (" .. src_zone.local_supply .. "/" .. cost .. ").",8)
+                                trigger.action.outSoundForGroup(gr_id, "radio_beep3.ogg")
+                                return
                             end
+                            src_zone.local_supply = math.max(src_zone.local_supply - cost, 0)
                             TheatreCommander.sendWarehouseResupply(side, false, stock, target_zone)
                             trigger.action.outTextForGroup(gr_id,"HQ Resupply dispatched for " .. target_zone.name .. ": " .. args.stock_name .. ".",10)
                             trigger.action.outSoundForGroup(gr_id, "radio_beep3.ogg")
@@ -444,24 +471,15 @@ do
                             local coal = args.side
                             local farp = args.farp_name
                             local name = args.name
+                            local src_zone = getGroundedSupplySource(unit, "FARP resupply")
+                            if not src_zone then return end
 
-                            if side == 2 then
-                                if stats.blue_supplies < Config.supplies.resupply_costs.FARP then
-                                    trigger.action.outTextForGroup(gr_id,"CMD-HQ - Negative resupply response for " .. name .. ": supplies low (" .. stats.blue_supplies .. "/" .. Config.supplies.resupply_costs.FARP .. "). Stand by for next resupply or capture additional zones.",8)
-                                    trigger.action.outSoundForGroup(gr_id, "radio_beep3.ogg")
-                                    return
-                                else
-                                    stats.blue_supplies = math.max(stats.blue_supplies - Config.supplies.resupply_costs.FARP,0)
-                                end
-                            elseif side == 1 then
-                               if stats.red_supplies < Config.supplies.resupply_costs.FARP then
-                                    trigger.action.outTextForGroup(gr_id,"CMD-HQ - Negative resupply response for " .. name .. ": supplies low (" .. stats.red_supplies .. "/" .. Config.supplies.resupply_costs.FARP .. "). Stand by for next convoy or secure more territory.",8)
-                                    trigger.action.outSoundForGroup(gr_id, "radio_beep3.ogg")
-                                    return
-                               else
-                                    stats.red_supplies = math.max(stats.red_supplies - Config.supplies.resupply_costs.FARP,0)
-                               end
+                            if src_zone.local_supply < Config.supplies.resupply_costs.FARP then
+                                trigger.action.outTextForGroup(gr_id,"CMD-HQ - Negative resupply response for " .. name .. ": " .. src_zone.name .. " supplies low (" .. src_zone.local_supply .. "/" .. Config.supplies.resupply_costs.FARP .. ").",8)
+                                trigger.action.outSoundForGroup(gr_id, "radio_beep3.ogg")
+                                return
                             end
+                            src_zone.local_supply = math.max(src_zone.local_supply - Config.supplies.resupply_costs.FARP, 0)
                             WarehouseManager:attributeAirbaseStock(farp,coal, {WarehouseManager.StockTypes.FARP})
                             trigger.action.outTextForCoalition(coal, "FARP " .. name .. " has been resupplied.", 10)
                             trigger.action.outSoundForCoalition(coal,"radio_txrx.ogg")
@@ -478,24 +496,15 @@ do
                             local coal = args.side
                             local farp_name = args.farp_name
                             local name = args.name
+                            local src_zone = getGroundedSupplySource(unit, "FARP resupply")
+                            if not src_zone then return end
 
-                            if side == 2 then
-                                if stats.blue_supplies < Config.supplies.resupply_costs.FARP then
-                                    trigger.action.outTextForGroup(gr_id,"CMD-HQ - Negative resupply response for " .. name .. ": supplies low (" .. stats.blue_supplies .. "/" .. Config.supplies.resupply_costs.FARP .. "). Stand by for next resupply or capture additional zones.",8)
-                                    trigger.action.outSoundForGroup(gr_id, "radio_beep3.ogg")
-                                    return
-                                else
-                                    stats.blue_supplies = math.max(stats.blue_supplies - Config.supplies.resupply_costs.FARP,0)
-                                end
-                            elseif side == 1 then
-                               if stats.red_supplies < Config.supplies.resupply_costs.FARP then
-                                    trigger.action.outTextForGroup(gr_id,"CMD-HQ - Negative resupply response for " .. name .. ": supplies low (" .. stats.red_supplies .. "/" .. Config.supplies.resupply_costs.FARP .. "). Stand by for next convoy or secure more territory.",8)
-                                    trigger.action.outSoundForGroup(gr_id, "radio_beep3.ogg")
-                                    return
-                               else
-                                    stats.red_supplies = math.max(stats.red_supplies - Config.supplies.resupply_costs.FARP,0)
-                               end
+                            if src_zone.local_supply < Config.supplies.resupply_costs.FARP then
+                                trigger.action.outTextForGroup(gr_id,"CMD-HQ - Negative resupply response for " .. name .. ": " .. src_zone.name .. " supplies low (" .. src_zone.local_supply .. "/" .. Config.supplies.resupply_costs.FARP .. ").",8)
+                                trigger.action.outSoundForGroup(gr_id, "radio_beep3.ogg")
+                                return
                             end
+                            src_zone.local_supply = math.max(src_zone.local_supply - Config.supplies.resupply_costs.FARP, 0)
                             WarehouseManager:attributeAirbaseStock(farp_name,coal, {WarehouseManager.StockTypes.FARP})
                             trigger.action.outTextForCoalition(coal,name .. " has been resupplied.", 10)
                             trigger.action.outSoundForCoalition(coal,"radio_txrx.ogg")
@@ -687,32 +696,35 @@ do
             return 0
         end
 
-        local function deductSupplies(required_supplies)
-            if side == coalition.side.BLUE then
-                stats.blue_supplies = math.max(stats.blue_supplies - required_supplies,0)
-            elseif side == coalition.side.RED then
-                stats.red_supplies = math.max(stats.red_supplies - required_supplies,0)
-            end
+        local function deductSupplies(source_zone, required_supplies)
+            if not source_zone then return end
+            source_zone.local_supply = math.max((source_zone.local_supply or 0) - required_supplies, 0)
         end
 
         local function checkSupplies(unit, required_supplies)
-            if side == coalition.side.BLUE  then
-                if stats.blue_supplies >= required_supplies then
-                    return true
-                else
-                    trigger.action.outTextForGroup(gr_id,"CMD-HQ - Negative, coalition lacks the necessary supplies to support this mission.".. stats.blue_supplies.."/"..required_supplies,5)
-                    trigger.action.outSoundForGroup(gr_id, "Radio squelch.ogg")
-                    return false
-                end
-            elseif side == coalition.side.RED then
-                if stats.red_supplies >= required_supplies then
-                    return true
-                else
-                    trigger.action.outTextForGroup(gr_id,"CMD-HQ - Negative, coalition lacks the necessary supplies to support this mission.".. stats.red_supplies.."/"..required_supplies,5)
-                    trigger.action.outSoundForGroup(gr_id, "Radio squelch.ogg")
-                    return false
-                end
+            if not (unit and unit.isExist and unit:isExist()) then return nil end
+            if unit:inAir() then
+                trigger.action.outTextForGroup(gr_id, "CMD-HQ - Negative, tasking unavailable while airborne. Land and request again.", 5)
+                trigger.action.outSoundForGroup(gr_id, "Radio squelch.ogg")
+                return nil
             end
+
+            local src_zone = utils.getZoneOfUnitFromPosition(unit:getPoint())
+            if not src_zone
+            or src_zone.side ~= side then
+                trigger.action.outTextForGroup(gr_id, "CMD-HQ - Negative, AI requests must be issued from within a friendly zone.", 5)
+                trigger.action.outSoundForGroup(gr_id, "Radio squelch.ogg")
+                return nil
+            end
+
+            src_zone.local_supply = src_zone.local_supply or 0
+            if src_zone.local_supply >= required_supplies then
+                return src_zone
+            end
+
+            trigger.action.outTextForGroup(gr_id,"CMD-HQ - Negative, "..src_zone.name.." lacks supplies for this mission ("..src_zone.local_supply.."/"..required_supplies..")",5)
+            trigger.action.outSoundForGroup(gr_id, "Radio squelch.ogg")
+            return nil
         end
 
         ---@param unit Unit
@@ -756,9 +768,10 @@ do
                 return
             end
             if not checkRankRequirement(u, AITaskTypes.CAS) then return end
-            if not checkSupplies(u, Config.supplies.tasking_costs.CAS) then return end
+            local source_zone = checkSupplies(u, Config.supplies.tasking_costs.CAS)
+            if not source_zone then return end
             if TaskManager:initiateAITask(AITaskTypes.CAS, side, false, to_zone, nil, true) then
-                deductSupplies(Config.supplies.tasking_costs.CAS)
+                deductSupplies(source_zone, Config.supplies.tasking_costs.CAS)
                 trigger.action.outTextForCoalition(side, "Request accepted, CAS dispatched to " .. to_zone.name .. ", "..Config.supplies.tasking_costs.CAS.." supplies used.", 10)
                 trigger.action.outSoundForCoalition(side, "Radio squelch.ogg")
             else
@@ -788,7 +801,8 @@ do
             end
 
             if not checkRankRequirement(u, AITaskTypes.CAS) then return end
-            if not checkSupplies(u, Config.supplies.tasking_costs.NAVAL_STRIKE) then return end
+            local source_zone = checkSupplies(u, Config.supplies.tasking_costs.NAVAL_STRIKE)
+            if not source_zone then return end
 
             local ship_unit = Unit.getByName(attack_ship_name)
             if not (ship_unit and ship_unit.isExist and ship_unit:isExist()) then
@@ -797,7 +811,9 @@ do
                 return
             end
 
-            TaskManager:requestNavalStrike(to_zone,ship_unit)
+            if TaskManager:requestNavalStrike(to_zone,ship_unit) then
+                deductSupplies(source_zone, Config.supplies.tasking_costs.NAVAL_STRIKE)
+            end
         end
 
         local function executeAWACSRequest(u, from_zone)
@@ -808,9 +824,10 @@ do
                 return
             end
             if not checkRankRequirement(u, AITaskTypes.AWACS) then return end
-            if not checkSupplies(u, Config.supplies.tasking_costs.AWACS) then return end
+            local source_zone = checkSupplies(u, Config.supplies.tasking_costs.AWACS)
+            if not source_zone then return end
             if TaskManager:initiateAITask(AITaskTypes.AWACS, side, false, nil, from_zone, true) then
-                deductSupplies(Config.supplies.tasking_costs.AWACS)
+                deductSupplies(source_zone, Config.supplies.tasking_costs.AWACS)
                 trigger.action.outTextForCoalition(side, "Request accepted, AWACS dispatched from " .. from_zone.name .. ", "..Config.supplies.tasking_costs.AWACS.." supplies used.", 10)
                 trigger.action.outSoundForCoalition(side, "Radio squelch.ogg")
             else
@@ -827,9 +844,10 @@ do
                 return
             end
             if not checkRankRequirement(u, AITaskTypes.SEAD) then return end
-            if not checkSupplies(u, Config.supplies.tasking_costs.SEAD) then return end
+            local source_zone = checkSupplies(u, Config.supplies.tasking_costs.SEAD)
+            if not source_zone then return end
             if TaskManager:initiateAITask(AITaskTypes.SEAD, side, false, to_zone, nil, true) then
-                deductSupplies(Config.supplies.tasking_costs.SEAD)
+                deductSupplies(source_zone, Config.supplies.tasking_costs.SEAD)
                 trigger.action.outTextForCoalition(side, "Request accepted, SEAD dispatched to " .. to_zone.name .. ", "..Config.supplies.tasking_costs.SEAD.." supplies used.", 10)
                 trigger.action.outSoundForCoalition(side, "Radio squelch.ogg")
             else
@@ -840,7 +858,8 @@ do
 
         local function executeCaptureHeloRequest(u, to_zone)
             if not checkRankRequirement(u, AITaskTypes.CAPTURE_HELO) then return end
-            if not checkSupplies(u, Config.supplies.tasking_costs.CAPTURE_HELO) then return end
+            local source_zone = checkSupplies(u, Config.supplies.tasking_costs.CAPTURE_HELO)
+            if not source_zone then return end
 
             local from_zone = nil
             for _, log_zone in ipairs(zones) do
@@ -851,7 +870,7 @@ do
             end
 
             if from_zone and TaskManager:initiateAITask(AITaskTypes.CAPTURE_HELO, side, false, to_zone, from_zone, true) then
-                deductSupplies(Config.supplies.tasking_costs.CAPTURE_HELO)
+                deductSupplies(source_zone, Config.supplies.tasking_costs.CAPTURE_HELO)
                 trigger.action.outTextForCoalition(side, "Request accepted, Helicopter capture dispatched to " .. to_zone.name .. ", " .. Config.supplies.tasking_costs.CAPTURE_HELO .. " supplies used.", 10)
                 trigger.action.outSoundForCoalition(side, "Radio squelch.ogg")
             else
@@ -868,9 +887,10 @@ do
                 return
             end
             if not checkRankRequirement(u, AITaskTypes.JTAC) then return end
-            if not checkSupplies(u, Config.supplies.tasking_costs.JTAC) then return end
+            local source_zone = checkSupplies(u, Config.supplies.tasking_costs.JTAC)
+            if not source_zone then return end
             if TaskManager:initiateAITask(AITaskTypes.JTAC, side, false, to_zone, nil, true) then
-                deductSupplies(Config.supplies.tasking_costs.JTAC)
+                deductSupplies(source_zone, Config.supplies.tasking_costs.JTAC)
                 trigger.action.outTextForCoalition(side, "Request accepted, JTAC dispatched to " .. to_zone.name .. ", "..Config.supplies.tasking_costs.JTAC.." supplies used.", 10)
                 trigger.action.outSoundForCoalition(side, "Radio squelch.ogg")
             else
@@ -887,9 +907,10 @@ do
                 return
             end
             if not checkRankRequirement(u, AITaskTypes.CAP) then return end
-            if not checkSupplies(u, Config.supplies.tasking_costs.CAP) then return end
+            local source_zone = checkSupplies(u, Config.supplies.tasking_costs.CAP)
+            if not source_zone then return end
             if TaskManager:initiateAITask(AITaskTypes.CAP, side, false, to_zone, nil, true) then
-                deductSupplies(Config.supplies.tasking_costs.CAP)
+                deductSupplies(source_zone, Config.supplies.tasking_costs.CAP)
                 trigger.action.outTextForCoalition(side, "Request accepted, CAP dispatched to " .. to_zone.name .. ", "..Config.supplies.tasking_costs.CAP.." supplies used.", 10)
                 trigger.action.outSoundForCoalition(side, "Radio squelch.ogg")
             else
@@ -906,9 +927,10 @@ do
                 return
             end
             if not checkRankRequirement(u, AITaskTypes.STRIKE) then return end
-            if not checkSupplies(u, Config.supplies.tasking_costs.STRIKE) then return end
+            local source_zone = checkSupplies(u, Config.supplies.tasking_costs.STRIKE)
+            if not source_zone then return end
             if TaskManager:initiateAITask(AITaskTypes.STRIKE, side, false, to_zone, nil, true) then
-                deductSupplies(Config.supplies.tasking_costs.STRIKE)
+                deductSupplies(source_zone, Config.supplies.tasking_costs.STRIKE)
                 trigger.action.outTextForCoalition(side, "Request accepted, STRIKE dispatched to " .. to_zone.name .. ", "..Config.supplies.tasking_costs.STRIKE.." supplies used.", 10)
                 trigger.action.outSoundForCoalition(side, "Radio squelch.ogg")
             else

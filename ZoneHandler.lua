@@ -1,4 +1,9 @@
 if not __MARK_ID__ then __MARK_ID__ = 600000 end
+local SUPPLY_DEPOT_TYPE = ".Ammunition depot"
+local SUPPLY_DEPOT_CATEGORY = "Warehouses"
+local SUPPLY_STORAGE_TYPE = "FARP Ammo Dump Coating"
+local SUPPLY_STORAGE_CATEGORY = "Fortifications"
+
 function nextMarkId()
     __MARK_ID__ = __MARK_ID__ + 1
     return __MARK_ID__
@@ -21,6 +26,8 @@ end
 ---@field linked_comms_tower string|nil
 ---@field cmdc_intact boolean|nil
 ---@field linked_farp string|nil
+---@field local_supply number|nil
+---@field static_queue table[]|nil
 ZoneHandler = {}
 do
     function ZoneHandler:new(obj)
@@ -28,6 +35,8 @@ do
         obj.zone = ZoneHandler.findZoneInWorld(obj.name)
         obj.linked_groups = obj.linked_groups or {}
         obj.linked_statics = obj.linked_statics or {}
+        obj.static_queue = obj.static_queue or {}
+        obj.local_supply = obj.local_supply or 0
 
         if not obj.zone then return end
 
@@ -1072,67 +1081,222 @@ do
 
     function ZoneHandler:checkAirbaseZone()
         if self.zone_type ~= ZoneTypes.AIRBASE then return end
+        return
+    end
+
+    function ZoneHandler:checkSupplyStatics() -- checks if ammo depots/ ammo storages intact
         if self.side == coalition.side.NEUTRAL then return end
-        if not self.airbase_name then return end
+        if self.zone_type ~= ZoneTypes.AIRBASE
+        and self.zone_type ~= ZoneTypes.FARP
+        and self.zone_type ~= ZoneTypes.LOGISTICS
+        then return end
 
-        local cmdc = nil
-        local command_center_name = self.linked_statics[1]
-        if command_center_name then
-            cmdc = StaticObject.getByName(command_center_name)
+        self.linked_statics = self.linked_statics or {}
+        self.static_queue = self.static_queue or {}
+        self.local_supply = self.local_supply or 0
+
+        local now = timer.getTime()
+
+        local function getZoneProduction(level)
+            if not Config.supplies or not Config.supplies.supplies_production then return 0 end
+            return Config.supplies.supplies_production[level] or Config.supplies.supplies_production[1] or 0
         end
-        -- First, check the actual status of the depot
-        local is_alive = cmdc and cmdc:isExist() and cmdc:getLife() >= 1
 
-        if self.cmdc_intact == false and not self.cmdc_last_destroyed then
-            self.cmdc_last_destroyed = timer.getTime()
+        local function getZoneCap(level)
+            if not Config.supplies or not Config.supplies.supplies_cap then return 0 end
+            return Config.supplies.supplies_cap[level] or Config.supplies.supplies_cap[1] or 0
         end
 
-        -- If the script thinks the depot is intact, but it's NOT alive, mark it as destroyed.
-        if self.linked_statics[1] and not is_alive then
-            self.cmdc_intact = false
-            self.cmdc_last_destroyed = timer.getTime()
+        local function getCoalitionLocalSupplyTotal(side)
+            local total = 0
+            for _, zone in ipairs(zones) do
+                if zone.side == side then
+                    total = total + (zone.local_supply or 0)
+                end
+            end
+            return total
+        end
+
+        local function getAliveDepotCount(zone)
+            local depot_count = 0
+            for _, static_name in ipairs(zone.linked_statics or {}) do
+                local static = StaticObject.getByName(static_name)
+                if static and static.isExist and static:isExist()
+                and static:getLife() >= 1
+                and static:getTypeName() == SUPPLY_DEPOT_TYPE then
+                    depot_count = depot_count + 1
+                end
+            end
+            return depot_count
+        end
+
+        local function removeStaticFromTracking(static_name)
             for i = #self.linked_statics, 1, -1 do
-                if self.linked_statics[i] == command_center_name then
+                if self.linked_statics[i] == static_name then
                     table.remove(self.linked_statics, i)
                 end
             end
+        end
 
-            utils.editCommandPostsCount(self.side, -1)
-            -- The coalition will loose 1/(# of cmd posts)of their supplies immediately
-            if self.side == coalition.side.BLUE then
-                local supply_loss = math.floor(stats.blue_supplies / math.max(1, stats.blue_command_posts))
-                stats.blue_supplies = math.max(0, stats.blue_supplies - supply_loss)
-                trigger.action.outTextForCoalition(self.side, "Sector ALERT: "..self.name.." command center has collapsed. Field reports indicate "..supply_loss.." supplies were lost in the blast and subsequent fires.",20)
-                trigger.action.outSoundForCoalition(self.side,"alert1.ogg")
-                timer.scheduleFunction(function ()
-                    trigger.action.outSoundForCoalition(self.side,"alert1.ogg")
-                end,{},timer.getTime()+1)
+        local function queueHasType(static_type)
+            for _, entry in ipairs(self.static_queue) do
+                if entry and entry.static_type == static_type then
+                    return true
+                end
+            end
+            return false
+        end
+
+        local function enqueueStatic(static_type, category, rebuild_seconds, priority)
+            if queueHasType(static_type) then return end
+            table.insert(self.static_queue, {
+                static_type = static_type,
+                category = category,
+                rebuild_at = now + rebuild_seconds,
+                priority = priority
+            })
+        end
+
+        local alive_depots = 0
+        local alive_storages = 0
+
+        for _, static_name in pairs(self.linked_statics) do
+            local static = StaticObject.getByName(static_name)
+            if static and static:isExist() and static:getLife() >= 1 then
+                local static_type = static:getTypeName()
+                if static_type == SUPPLY_DEPOT_TYPE then
+                    alive_depots = alive_depots + 1
+                elseif static_type == SUPPLY_STORAGE_TYPE then
+                    alive_storages = alive_storages + 1
+                end
+            else
+                removeStaticFromTracking(static_name)
             end
         end
 
-        if not is_alive and self.cmdc_last_destroyed
-        and self.cmdc_last_destroyed + Config.airbase_command_center_respawn_time > timer.getTime() then          
+        if alive_depots == 0 then
+            enqueueStatic(SUPPLY_DEPOT_TYPE, SUPPLY_DEPOT_CATEGORY, Config.supplies.storage_depot_respawn_time or 0, 1)
+        end
+        if alive_storages == 0 then
+            enqueueStatic(SUPPLY_STORAGE_TYPE, SUPPLY_STORAGE_CATEGORY, Config.supplies.production_caches_respawn_time or 0, 2)
+        end
 
-            MissionLogger:info(self.name .." command center pending respawn")
-            local time_remaining = math.ceil((self.cmdc_last_destroyed + (Config.airbase_command_center_respawn_time) - timer.getTime()) / 60)
-            local time_text = "Rebuild in T-"..time_remaining.." min"
-            self:drawF10(time_text)
-            return
-        elseif not is_alive and self.cmdc_last_destroyed
-        and self.cmdc_last_destroyed + Config.airbase_command_center_respawn_time <= timer.getTime() then
+        local selected_idx = nil
+        for idx, entry in ipairs(self.static_queue) do
+            if entry and entry.rebuild_at and entry.rebuild_at <= now then
+                local blocked_storage = (entry.static_type == SUPPLY_STORAGE_TYPE and alive_depots == 0)
+                if not blocked_storage then
+                    if not selected_idx then
+                        selected_idx = idx
+                    else
+                        local selected = self.static_queue[selected_idx]
+                        local better_priority = (entry.priority or 99) < (selected.priority or 99)
+                        local same_priority_earlier = (entry.priority or 99) == (selected.priority or 99)
+                            and entry.rebuild_at < selected.rebuild_at
+                        if better_priority or same_priority_earlier then
+                            selected_idx = idx
+                        end
+                    end
+                end
+            end
+        end
 
-            MissionLogger:info(self.name .." command center respawn")
-            self.cmdc_intact = true
-
-            local cmdc_spawned = UnitHandler.initStatics(self)
-            if cmdc_spawned then
-                self.cmdc_last_destroyed = nil
-                trigger.action.outSoundForCoalition(self.side,"radio_beep.ogg")
-                trigger.action.outTextForCoalition(self.side, "SITREP: AIRBASE "..self.name.." has rebuilt its Command Center.",10)
+        if selected_idx then
+            local request = self.static_queue[selected_idx]
+            local country_name = self.side == coalition.side.BLUE and country.id.CJTF_BLUE or country.id.CJTF_RED
+            local pnt = mist.getRandomPointInZone(self.zone.name,40) or {x=self.zone.point.x-67, y=self.zone.point.z+42}
+            local spawned = mist.dynAddStatic({
+                type = request.static_type,
+                country = country_name,
+                category = request.category,
+                x = pnt.x,
+                y = pnt.y
+            })
+            if spawned and spawned.name then
+                table.insert(self.linked_statics, spawned.name)
+                table.remove(self.static_queue, selected_idx)
+                if request.static_type == SUPPLY_DEPOT_TYPE then
+                    alive_depots = alive_depots + 1
+                    trigger.action.outSoundForCoalition(self.side,"chatter3.ogg")
+                    trigger.action.outTextForCoalition(self.side, "Logistics SITREP: "..self.name.." has reestablished its ammunition depot.", 10)
+                elseif request.static_type == SUPPLY_STORAGE_TYPE then
+                    alive_storages = alive_storages + 1
+                    trigger.action.outSoundForCoalition(self.side,"radio_beep3.ogg")
+                    trigger.action.outTextForCoalition(self.side, "Logistics SITREP: "..self.name.." has restored its supply production.", 10)
+                end
+                self:drawF10()
             else
-                MissionLogger:error("Could not spawn command center for ".. self.name)
+                request.rebuild_at = now + 60
+            end
+        end
+
+        local cap_per_depot = getZoneCap(self.level or 1)
+        local zone_cap = cap_per_depot * alive_depots
+
+        if alive_depots == 0 then
+            self.local_supply = 0
+            self.ammo_depot_intact = false
+            if not self.ammo_depot_last_destroyed then
+                self.ammo_depot_last_destroyed = now
+            end
+        else
+            self.ammo_depot_intact = true
+            self.ammo_depot_last_destroyed = nil
+            self.local_supply = math.min(self.local_supply, zone_cap)
+        end
+
+        self.ammo_depot_cap = zone_cap
+
+        local elapsed = now - (self._last_local_supply_tick or now)
+        local elapsed_minutes = math.floor(elapsed / 60)
+        if elapsed_minutes > 0 then
+            local base_prod = getZoneProduction(self.level or 1)
+            local mult = 1
+            if self.zone_type == ZoneTypes.LOGISTICS then
+                mult = Config.supplies.logsitics_mult or 2
+            end
+            local total_prod = base_prod * alive_storages * mult * elapsed_minutes
+
+            if total_prod > 0 then
+                if self.zone_type == ZoneTypes.LOGISTICS then
+                    local target_zone = self:getClosestZone(self.side, nil, {ZoneTypes.FARP, ZoneTypes.AIRBASE}, false)
+                    if target_zone and target_zone ~= self then
+                        local target_cap = getZoneCap(target_zone.level or 1) * getAliveDepotCount(target_zone)
+                        local coalition_total = getCoalitionLocalSupplyTotal(self.side)
+                        local coalition_cap = Config.supplies.absolute_cap or 20000
+                        local coalition_room = math.max(0, coalition_cap - coalition_total)
+                        local zone_room = math.max(0, target_cap - (target_zone.local_supply or 0))
+                        local moved = math.min(total_prod, coalition_room, zone_room)
+                        if moved > 0 then
+                            target_zone.local_supply = (target_zone.local_supply or 0) + moved
+                        end
+                    end
+                else
+                    local coalition_total = getCoalitionLocalSupplyTotal(self.side)
+                    local coalition_cap = Config.supplies.absolute_cap or 20000
+                    local coalition_room = math.max(0, coalition_cap - coalition_total)
+                    local zone_room = math.max(0, zone_cap - self.local_supply)
+                    local added = math.min(total_prod, coalition_room, zone_room)
+                    self.local_supply = self.local_supply + added
+                end
+            end
+
+            self._last_local_supply_tick = (self._last_local_supply_tick or now) + (elapsed_minutes * 60)
+        elseif not self._last_local_supply_tick then
+            self._last_local_supply_tick = now
+        end
+
+        if #self.static_queue > 0 then
+            local next_rebuild = math.huge
+            for _, entry in ipairs(self.static_queue) do
+                if entry and entry.rebuild_at and entry.rebuild_at < next_rebuild then
+                    next_rebuild = entry.rebuild_at
+                end
+            end
+            if next_rebuild < math.huge then
+                local mins = math.ceil(math.max(0, next_rebuild - now) / 60)
+                self:drawF10("Rebuild in T-"..mins.." min")
             end
         end
     end
-
 end

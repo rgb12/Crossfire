@@ -53,6 +53,8 @@ do
                 
                 capture_heli_avail = z.capture_heli_avail or 0,
                 attack_convoy = z.attack_convoy or 0,
+                local_supply = z.local_supply or 0,
+                static_queue = {},
                 
                 -- State tracking
                 ammo_depot_intact = z.ammo_depot_intact,
@@ -75,6 +77,19 @@ do
                     local farp_warehouse = farp_airbase:getWarehouse()
                     if farp_warehouse then
                         zone_data.farp_warehouse_inventory = farp_warehouse:getInventory()
+                    end
+                end
+            end
+
+            if z.static_queue then
+                for _, q in ipairs(z.static_queue) do
+                    if q and q.static_type and q.rebuild_at then
+                        table.insert(zone_data.static_queue, {
+                            static_type = q.static_type,
+                            category = q.category,
+                            priority = q.priority,
+                            time_until_rebuild = math.max(0, q.rebuild_at - timer.getTime())
+                        })
                     end
                 end
             end
@@ -429,6 +444,20 @@ do
                 -- Restore dynamic counters
                 zone.capture_heli_avail = saved_zone.capture_heli_avail or 0
                 zone.attack_convoy = saved_zone.attack_convoy or 0
+                zone.local_supply = saved_zone.local_supply or 0
+                zone.static_queue = {}
+                if saved_zone.static_queue then
+                    for _, q in ipairs(saved_zone.static_queue) do
+                        if q and q.static_type and q.time_until_rebuild then
+                            table.insert(zone.static_queue, {
+                                static_type = q.static_type,
+                                category = q.category,
+                                priority = q.priority,
+                                rebuild_at = timer.getTime() + math.max(0, q.time_until_rebuild)
+                            })
+                        end
+                    end
+                end
                 
                 -- Restore state tracking
                 zone.ammo_depot_intact = saved_zone.ammo_depot_intact

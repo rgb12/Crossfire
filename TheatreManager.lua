@@ -402,15 +402,11 @@ do
 
 
     
-            local upgraded_zone = false
             local capture_helicopter_sent = false
             for _, zone in ipairs(zones) do
 
                     capture_helicopter_sent = TheatreCommander.sendPotentialCapture(zone)
-
-                    if not upgraded_zone then
-                        upgraded_zone = zone:checkLogisticsZone()
-                    end
+                    zone:checkSupplyStatics()
                     zone:checkCOMMSZone()
                     zone:checkAirbaseZone()
 
