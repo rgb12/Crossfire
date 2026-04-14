@@ -262,35 +262,25 @@ do
         if zone.zone_type == ZoneTypes.LOGISTICS then
             if zone.ammo_depot_intact == false then return false end
 
-            local depot_point = mist.getRandomPointInZone(zone.name)
-            local storage_point =  mist.getRandomPointInZone(zone.name)
-            if not (depot_point and storage_point) then return false end
+            local point = mist.getRandomPointInZone(zone.name) or {x=zone.zone.point.x+55,y=zone.zone.point.z-29}
 
+            
             local ammo_depot = mist.dynAddStatic({
                 type = ".Ammunition depot",
                 country = country_name,
                 category = "Warehouses",
-                x = depot_point.x,
-                y = depot_point.y})
+                x = point.x,
+                y = point.y})
             if ammo_depot then
                 zone.ammo_depot_intact = true
                 zone.linked_ammo_depot = ammo_depot.name
+                
                 table.insert(zone.linked_statics, ammo_depot.name)
                 utils.editAmmoDepotsCount(zone.side, 1)
+                return true
+            else
+                MissionLogger:error("Could not spawn ammo depot for ".. zone.name)
             end
-
-            local ammo_storage = mist.dynAddStatic({
-                type = "FARP Ammo Dump Coating",
-                country = country_name,
-                category = "Fortifications",
-                x = storage_point.x,
-                y = storage_point.y})
-
-            if ammo_storage and ammo_storage.name then
-                table.insert(zone.linked_statics, ammo_storage.name)
-            end
-
-            return true
 
         elseif zone.zone_type == ZoneTypes.COMMS then
             if zone.comms_tower_intact == false then return false end
@@ -320,37 +310,42 @@ do
 
 
         elseif zone.zone_type == ZoneTypes.AIRBASE then
-            local depot_point = UnitHandler.findClearPoint(zone,10,500)
-            local storage_point = {x = depot_point.x + 25, y = depot_point.y + 25}
+            if zone.cmdc_intact == false then return false end
+            local cmd_center_point = UnitHandler.findClearPoint(zone,10,500)
+            for i=0,20 do
+                local top_left =  land.getSurfaceType({x=cmd_center_point.x-20, y=cmd_center_point.y+20})
+                local bottom_left =  land.getSurfaceType({x=cmd_center_point.x-20, y=cmd_center_point.y-20})
+                local top_right =  land.getSurfaceType({x=cmd_center_point.x+20, y=cmd_center_point.y+20})
+                local bottom_right =  land.getSurfaceType({x=cmd_center_point.x+20, y=cmd_center_point.y-20})
+                local center =  land.getSurfaceType(cmd_center_point)
 
-            local ammo_depot = mist.dynAddStatic({
-                type = ".Ammunition depot",
-                country = country_name,
-                category = "Warehouses",
-                x = depot_point.x,
-                y = depot_point.y
-            })
-
-            if ammo_depot and ammo_depot.name then
-                table.insert(zone.linked_statics, ammo_depot.name)
-                zone.ammo_depot_intact = true
-                zone.linked_ammo_depot = ammo_depot.name
-                utils.editAmmoDepotsCount(zone.side, 1)
-
-                local ammo_storage = mist.dynAddStatic({
-                    type = "FARP Ammo Dump Coating",
-                    country = country_name,
-                    category = "Fortifications",
-                    x = storage_point.x,
-                    y = storage_point.y
-                })
-                if ammo_storage and ammo_storage.name then
-                    table.insert(zone.linked_statics, ammo_storage.name)
+                if top_left == land.SurfaceType.RUNWAY
+                or bottom_left == land.SurfaceType.RUNWAY
+                or top_right == land.SurfaceType.RUNWAY
+                or bottom_right == land.SurfaceType.RUNWAY
+                or center == land.SurfaceType.RUNWAY then
+                    cmd_center_point = UnitHandler.findClearPoint(zone,10,500)
+                else
+                    break
                 end
+            end
 
+
+            local command_center = mist.dynAddStatic({
+                type = ".Command Center",
+                country = country_name, --81 = CJTF RED | 82= CJTF BLUE
+                category = "Fortifications",
+                x = cmd_center_point.x,
+                y = cmd_center_point.y
+            })
+            if command_center then
+
+                table.insert(zone.linked_statics, command_center.name)
+                zone.cmdc_intact = true
+                utils.editCommandPostsCount(zone.side, 1)
                 return true
             else
-                MissionLogger:error("Could not spawn ammo depot for ".. zone.name)
+                MissionLogger:error("Could not spawn comms tower for ".. zone.name)
             end
 
         end
@@ -383,8 +378,6 @@ do
         -- List of Statics to spawn with their estimated offsets (X, Y)
         -- Invisible FARPs are placed inside the mission editor
         local farp_statics_to_spawn = {
-            { type = ".Ammunition depot", category = "Warehouses", offset_x = 20, offset_y = 15 },
-
             -- Tents (clustered east of the pad)
             { type = "FARP Tent", category = "Fortifications", offset_x = 5, offset_y = 55 },
             { type = "FARP Tent", category = "Fortifications", offset_x = -15, offset_y = 55 },
@@ -619,26 +612,6 @@ function UnitHandler.checkIfZoneHasUnitWithAttributes(zone, attributes)
                 end
             end
         end
-    end
-    return false
-end
-
----@param static_name string
----@return boolean
-function UnitHandler:isStaticAmmoDepot(static_name)
-    local ammo_depot = StaticObject.getByName(static_name)
-    if ammo_depot and ammo_depot:isExist() then
-        return ammo_depot:getTypeName() == ".Ammunition depot"
-    end
-    return false
-end
-
----@param static_name string
----@return boolean
-function UnitHandler:isStaticAmmoCache(static_name)
-    local ammo_cache = StaticObject.getByName(static_name)
-    if ammo_cache and ammo_cache:isExist() then
-        return ammo_cache:getTypeName() == "FARP Ammo Dump Coating"
     end
     return false
 end

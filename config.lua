@@ -167,9 +167,6 @@ Config = {
             ECM = 5000,                -- Jamming pods, countermeasures
             TGP_MISC = 3500,           -- Targeting pods, misc equipment
         },
-
-        storage_depot_respawn_time = 1*60,--75*60,
-        production_caches_respawn_time = 2*60,--30*60,
         tasking_costs = {
             JTAC = 250,
             CAS = 500,
@@ -180,21 +177,7 @@ Config = {
             RECON = 300,
             CAPTURE_HELO = 150,
             NAVAL_STRIKE = 3500
-        },
-        supplies_production = {
-            [1] = 5,
-            [2] = 10,
-            [3] = 20,
-            [4] = 25
-        },
-        logsitics_mult = 2,
-        supplies_cap = { -- per ammo depot, per zone level
-            [1] = 1500,
-            [2] = 1750,
-            [3] = 2000,
-            [4] = 2500,
-        },
-        absolute_cap = 20000,
+        }
     },
 
     reward_system = {

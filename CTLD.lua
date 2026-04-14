@@ -951,105 +951,36 @@ end
 
 ---@param unit Unit
 function ctld.listSupplies(unit)
+    --List the supplies in the zone
     local unit_coalition = unit:getCoalition()
+    local supply_count = 0
+    if unit_coalition == coalition.side.BLUE then
+        supply_count = stats.blue_supplies
+    elseif unit_coalition == coalition.side.RED then
+        supply_count = stats.red_supplies
+    end
     local u_id = unit:getID()
 
-    local function isAliveStatic(static_name, expected_type)
-        local static = StaticObject.getByName(static_name)
-        return static and static.isExist and static:isExist()
-            and static:getLife() >= 1
-            and static:getTypeName() == expected_type
-    end
+    local supplies_cap = math.min(utils.calculateSuppliesCAPforCoalition(unit_coalition), Config.supplies.absolute_max_supplies)
 
-    local function summarizeZone(zone)
-        local depot_count = 0
-        local storage_count = 0
-
-        for _, static_name in ipairs(zone.linked_statics or {}) do
-            if isAliveStatic(static_name, ".Ammunition depot") then
-                depot_count = depot_count + 1
-            elseif isAliveStatic(static_name, "FARP Ammo Dump Coating") then
-                storage_count = storage_count + 1
-            end
-        end
-
-        local level = zone.level or 1
-        local base_production = (Config.supplies.supplies_production and Config.supplies.supplies_production[level]) or 0
-        local production_mult = zone.zone_type == ZoneTypes.LOGISTICS and (Config.supplies.logsitics_mult or 2) or 1
-        local production = base_production * storage_count * production_mult
-        local cap_per_depot = (Config.supplies.supplies_cap and Config.supplies.supplies_cap[level]) or 0
-        local cap = cap_per_depot * depot_count
-
-        return depot_count, storage_count, production, cap
-    end
-
-    local friendly_zones = {}
-    local total_supply = 0
-    local total_cap = 0
-
-    for _, zone in ipairs(zones) do
-        if zone.side == unit_coalition and (zone.zone_type == ZoneTypes.AIRBASE or zone.zone_type == ZoneTypes.FARP or zone.zone_type == ZoneTypes.LOGISTICS) then
-            local depot_count, storage_count, production, cap = summarizeZone(zone)
-            local local_supply = zone.local_supply or 0
-            total_supply = total_supply + local_supply
-            total_cap = total_cap + cap
-            table.insert(friendly_zones, {
-                zone = zone,
-                local_supply = local_supply,
-                depot_count = depot_count,
-                storage_count = storage_count,
-                production = production,
-                cap = cap
-            })
-        end
-    end
-
-    local current_zone = utils.getZoneOfUnitFromPosition(unit:getPoint())
-    table.sort(friendly_zones, function(a, b)
-        if current_zone and a.zone.name == current_zone.name then return true end
-        if current_zone and b.zone.name == current_zone.name then return false end
-        return a.zone.name < b.zone.name
-    end)
-
-    if #friendly_zones == 0 then
-        trigger.action.outTextForUnit(u_id, "Logistics SITREP: No friendly supply zones available.", 10)
+    if supplies_cap == 0 or supply_count == 0 then
+        trigger.action.outTextForUnit(u_id, "Logistics SITREP: No supplies in inventory. Verify integrity of primary Command Centers and Ammo Depots.", 10)
         trigger.action.outSoundForUnit(u_id, "Radio squelch.ogg")
         return
     end
 
-    local out_test = "Logistics SITREP:\n"
-    out_test = out_test .. "Local Supplies:\n"
-    for _, entry in ipairs(friendly_zones) do
-        out_test = out_test .. string.format("- %s: %d / %d\n", entry.zone.name, entry.local_supply, math.max(entry.cap, 0))
-    end
+    local out_test = "Logistics SITREP: ".. supply_count .. " / " .. supplies_cap .. " available supplies.\n"
 
-    out_test = out_test .. "\nProducing:\n"
-    local producing_written = false
-    for _, entry in ipairs(friendly_zones) do
-        if entry.production > 0 then
-            out_test = out_test .. string.format("- %s: +%d / min\n", entry.zone.name, entry.production)
-            producing_written = true
+    -- Detail the production rates
+    for _, zone in ipairs(zones) do
+        if zone.side == unit_coalition and zone.zone_type == ZoneTypes.LOGISTICS then
+            if zone.ammo_depot_intact then
+                out_test = out_test .. "\n - ".. zone.name .. ": +".. Config.supplies.supplies_income .. " supplies per minute"
+            end
         end
     end
-    if not producing_written then
-        out_test = out_test .. "- None\n"
-    end
 
-    out_test = out_test .. "\nStoring:\n"
-    local storing_written = false
-    for _, entry in ipairs(friendly_zones) do
-        if entry.depot_count > 0 then
-            out_test = out_test .. string.format("- %s: %d ammo depot(s), cap %d\n", entry.zone.name, entry.depot_count, math.max(entry.cap, 0))
-            storing_written = true
-        end
-    end
-    if not storing_written then
-        out_test = out_test .. "- None\n"
-    end
-
-    out_test = out_test .. string.format("\nFinal Sum: %d / %d", total_supply, math.min(total_cap, Config.supplies.absolute_max_supplies))
-
-    trigger.action.outTextForUnit(u_id, out_test, 15)
+    trigger.action.outTextForUnit(u_id, out_test, 10)
     trigger.action.outSoundForUnit(u_id, "Radio squelch.ogg")
 
 end
