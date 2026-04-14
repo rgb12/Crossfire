@@ -282,14 +282,18 @@ do
                     return trigger.action.outTextForCoalition(jtac.side, jtac.callsign..' JTAC scanning... No targets locked.', 10)
                 end
 
-                local toprint = self.callsign.." JTAC\n"
-                if self.priority then toprint = toprint..'Priority: '..self.priority..'\n' end
+                local toprint = jtac.callsign.." JTAC\n"
+                if jtac.priority then toprint = toprint..'Priority: '..jtac.priority..'\n' end
                 
-                toprint = toprint..'Target: '.. jtac.target:getTypeName() ..'\n'
-                toprint = toprint..'Laser Code: '..self.laser_code..'\n'
+                ---@type string
+                local target_name = jtac.target:getTypeName()
+                if target_name:sub(1,1) == "." then target_name = target_name:sub(2) end
+
+                toprint = toprint..'Target: '.. target_name ..'\n'
+                toprint = toprint..'Laser Code: '..jtac.laser_code..'\n'
                 
-                local lat,lon,alt = coord.LOtoLL(self.target:getPoint())
-                local mgrs = coord.LLtoMGRS(coord.LOtoLL(self.target:getPoint()))
+                local lat,lon,alt = coord.LOtoLL(jtac.target:getPoint())
+                local mgrs = coord.LLtoMGRS(coord.LOtoLL(jtac.target:getPoint()))
                 toprint = toprint..'\nDDM:  '.. mist.tostringLL(lat,lon,3)
                 toprint = toprint..'\nDMS:  '.. mist.tostringLL(lat,lon,2,true)
                 toprint = toprint..'\nMGRS: '.. mist.tostringMGRS(mgrs, 5)
