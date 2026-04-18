@@ -139,11 +139,10 @@ Config = {
     -- INITIAL resupply is equivalent to what the warehouses were given at mission start
 
     supplies = {
-        initial_stock = 1000, -- starting supplies per coalition
+        initial_stock = 1000, -- starting supplies per zone (only for Airbases and FARPs)
         supplies_income = 20, -- supplies gained per minute from each alive ammo depot in logistics zones
         supplies_looted_on_destroyed = 500, -- supplies gained when capturing an enemy zone
         supplies_looted_on_destroyed_variance = 200, -- (+/-) supplies variance when capturing an enemy zone
-        supplies_cap_for_command_post = 5000, -- maximum supplies a command post can hold
         absolute_max_supplies = 40000, -- maximum supplies a coalition can hold no matter what
 
         resupply_costs = {
@@ -177,7 +176,20 @@ Config = {
             RECON = 300,
             CAPTURE_HELO = 150,
             NAVAL_STRIKE = 3500
-        }
+        },
+        supplies_production = {
+            [1] = 5,
+            [2] = 10,
+            [3] = 20,
+            [4] = 25
+        },
+        logistics_mult = 2,
+        supplies_cap = { -- per ammo depot, per zone level
+            [1] = 1500,
+            [2] = 2500,
+            [3] = 3500,
+            [4] = 5000,
+        },
     },
 
     reward_system = {
@@ -301,7 +313,6 @@ Config = {
         packed_asset_prefix = "packed_",
         max_placed_assets = 300,  -- Global limit for all placed assets
         allowed_load_zones = {ZoneTypes.FARP, ZoneTypes.AIRBASE, ZoneTypes.LOGISTICS},
-        allow_load_anywhere = false,  -- If true, players can load/unload assets anywhere, ignoring allowed_load_zones
         cargo_crate_template = "container_cargo",
         search_radius = 100,  -- (meters)
         random_crate_spacing = 6,  -- (meters)
@@ -340,8 +351,7 @@ Config = {
     -- logistics_upgrade_range = 30000, -- (meters)
     logistics_upgrade_chance = 15, -- (%) every minute the dice is rolled
     logistics_level_up_interval = 16*60, -- (seconds) minimum time between level ups
-    logistics_ammo_depot_respawn_time = 40*60, -- (seconds) time it takes for an ammo depot to respawn after being destroyed
-    airbase_command_center_respawn_time = 45*60, -- (seconds) time it takes for a command center to respawn after being destroyed
+    logistics_ammo_depot_respawn_time = 3*60, -- (seconds) time it takes for an ammo depot to respawn after being destroyed
     comms_tower_respawn_time = 45*60, -- (seconds)
     
     comms_tower_lost_penalty = 1.1, -- the respawn time is multiplied by this much when a comms tower is lost @depracted
@@ -418,12 +428,9 @@ stats = {
     blue_total_comms_zones = 0,
 
     blue_ammo_depots = 0,
-    blue_command_posts = 0,
     blue_comms_antennas = 0,
     blue_discovered_zones = {},
     blue_enroute_resupply = {},
-    blue_supplies = Config.supplies.initial_stock,
-
     red_sam_sites = 0,
     red_farp_zones = 0,
     red_logistics_zone = 0,
@@ -434,11 +441,9 @@ stats = {
     red_total_comms_zones = 0,
 
     red_ammo_depots = 0,
-    red_command_posts = 0,
     red_comms_antennas = 0,
     red_discovered_zones = {},
     red_enroute_resupply = {},
-    red_supplies = Config.supplies.initial_stock,
 }
 
 

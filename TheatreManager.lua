@@ -408,12 +408,8 @@ do
 
                     capture_helicopter_sent = TheatreCommander.sendPotentialCapture(zone)
 
-                    if not upgraded_zone then
-                        upgraded_zone = zone:checkLogisticsZone()
-                    end
+                    zone:checkSUPPLIES()
                     zone:checkCOMMSZone()
-                    zone:checkAirbaseZone()
-
                     zone:addAIAssets(10) -- Supply chance every minute
 
                     if not capture_helicopter_sent and zone.side ~=coalition.side.NEUTRAL
@@ -935,6 +931,7 @@ do
         local active_count = math.ceil(#all_other_zones * active_ratio)
         
         -- Overwrite zones table with only active zones
+        ---@type ZoneHandler[]
         zones = {}
         table.insert(zones, blue_airbase)
         table.insert(zones, red_airbase)
@@ -994,6 +991,7 @@ do
             if #pool == 0 then return end
             
             -- Find unassigned zones first to calculate budgets correctly
+            ---@type ZoneHandler[]
             local unassigned = {}
             for _, z in ipairs(pool) do
                 if z.zone_type == nil then
@@ -1173,6 +1171,11 @@ do
                 if not utils.tableContains(stats.red_discovered_zones, zone.name) then
                     table.insert(stats.red_discovered_zones, zone.name)
                 end
+            end
+
+            -- Initial supply stock
+            if zone.zone_type == ZoneTypes.AIRBASE or zone.zone_type == ZoneTypes.FARP then
+                zone.local_supplies = Config.supplies.initial_stock
             end
 
             -- Spawn

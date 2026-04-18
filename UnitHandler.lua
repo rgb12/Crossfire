@@ -3,8 +3,9 @@ do
     ---@param zone ZoneHandler
     ---@param max_tries number|nil
     ---@param clear_radius number|nil
+    ---@param runway_clear_radius number|nil -- for taxiways also
     ---@return vec2
-    function UnitHandler.findClearPoint(zone, max_tries, clear_radius)
+    function UnitHandler.findClearPoint(zone, max_tries, clear_radius, runway_clear_radius)
         max_tries = max_tries or 6
         clear_radius = clear_radius or 50
         local last
@@ -13,13 +14,50 @@ do
 
             if candidate and mist.isTerrainValid(candidate,{"LAND"}) then
                 last = candidate
-                local found = false
+                local is_runway = false
 
-                if clear_radius then
-                    local vol = { id = world.VolumeType.SPHERE, params = { point = candidate, radius = clear_radius } }
-                    world.searchObjects({Object.Category.UNIT,Object.Category.STATIC}, vol, function() found = true end)
+                if runway_clear_radius and runway_clear_radius > 0 then
+                    local r = runway_clear_radius
+                    local sample_point = {x = candidate.x, y = candidate.y}
+                    if land.getSurfaceType(candidate) == land.SurfaceType.RUNWAY then
+                        is_runway = true
+                    else
+                        sample_point.x = candidate.x - r
+                        sample_point.y = candidate.y + r
+                        if land.getSurfaceType(sample_point) == land.SurfaceType.RUNWAY then
+                            is_runway = true
+                        else
+                            sample_point.x = candidate.x - r
+                            sample_point.y = candidate.y - r
+                            if land.getSurfaceType(sample_point) == land.SurfaceType.RUNWAY then
+                                is_runway = true
+                            else
+                                sample_point.x = candidate.x + r
+                                sample_point.y = candidate.y + r
+                                if land.getSurfaceType(sample_point) == land.SurfaceType.RUNWAY then
+                                    is_runway = true
+                                else
+                                    sample_point.x = candidate.x + r
+                                    sample_point.y = candidate.y - r
+                                    if land.getSurfaceType(sample_point) == land.SurfaceType.RUNWAY then
+                                        is_runway = true
+                                    end
+                                end
+                            end
+                        end
+                    end
                 end
-                if not found then return candidate end
+
+                if not is_runway then
+                    local found = false
+
+                    if clear_radius then
+                        local vol = { id = world.VolumeType.SPHERE, params = { point = candidate, radius = clear_radius } }
+                        world.searchObjects({Object.Category.UNIT,Object.Category.STATIC}, vol, function() found = true return false end)
+                    end
+
+                    if not found then return candidate end
+                end
             end
         end
         if not last then return mist.utils.makeVec2(zone.zone.point) end
@@ -259,27 +297,25 @@ do
         if zone.side == coalition.side.BLUE then country_name = country.id.CJTF_BLUE
         else country_name = country.id.CJTF_RED end
 
-        if zone.zone_type == ZoneTypes.LOGISTICS then
+        if zone.zone_type == ZoneTypes.LOGISTICS or zone.zone_type == ZoneTypes.AIRBASE
+        or zone.zone_type == ZoneTypes.FARP then
             if zone.ammo_depot_intact == false then return false end
 
-            local point = mist.getRandomPointInZone(zone.name) or {x=zone.zone.point.x+55,y=zone.zone.point.z-29}
-
+            local depot_point = UnitHandler.findClearPoint(zone,30,200,40)
             
             local ammo_depot = mist.dynAddStatic({
                 type = ".Ammunition depot",
                 country = country_name,
                 category = "Warehouses",
-                x = point.x,
-                y = point.y})
+                x = depot_point.x,
+                y = depot_point.y
+            })
             if ammo_depot then
                 zone.ammo_depot_intact = true
                 zone.linked_ammo_depot = ammo_depot.name
-                
+                zone.ammo_depot_last_destroyed = nil
                 table.insert(zone.linked_statics, ammo_depot.name)
-                utils.editAmmoDepotsCount(zone.side, 1)
                 return true
-            else
-                MissionLogger:error("Could not spawn ammo depot for ".. zone.name)
             end
 
         elseif zone.zone_type == ZoneTypes.COMMS then
@@ -307,47 +343,6 @@ do
             else
                 MissionLogger:error("Could not spawn comms tower for ".. zone.name)
             end
-
-
-        elseif zone.zone_type == ZoneTypes.AIRBASE then
-            if zone.cmdc_intact == false then return false end
-            local cmd_center_point = UnitHandler.findClearPoint(zone,10,500)
-            for i=0,20 do
-                local top_left =  land.getSurfaceType({x=cmd_center_point.x-20, y=cmd_center_point.y+20})
-                local bottom_left =  land.getSurfaceType({x=cmd_center_point.x-20, y=cmd_center_point.y-20})
-                local top_right =  land.getSurfaceType({x=cmd_center_point.x+20, y=cmd_center_point.y+20})
-                local bottom_right =  land.getSurfaceType({x=cmd_center_point.x+20, y=cmd_center_point.y-20})
-                local center =  land.getSurfaceType(cmd_center_point)
-
-                if top_left == land.SurfaceType.RUNWAY
-                or bottom_left == land.SurfaceType.RUNWAY
-                or top_right == land.SurfaceType.RUNWAY
-                or bottom_right == land.SurfaceType.RUNWAY
-                or center == land.SurfaceType.RUNWAY then
-                    cmd_center_point = UnitHandler.findClearPoint(zone,10,500)
-                else
-                    break
-                end
-            end
-
-
-            local command_center = mist.dynAddStatic({
-                type = ".Command Center",
-                country = country_name, --81 = CJTF RED | 82= CJTF BLUE
-                category = "Fortifications",
-                x = cmd_center_point.x,
-                y = cmd_center_point.y
-            })
-            if command_center then
-
-                table.insert(zone.linked_statics, command_center.name)
-                zone.cmdc_intact = true
-                utils.editCommandPostsCount(zone.side, 1)
-                return true
-            else
-                MissionLogger:error("Could not spawn comms tower for ".. zone.name)
-            end
-
         end
         return false
     end

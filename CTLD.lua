@@ -271,23 +271,23 @@ function ctld.load(part, unit)
         trigger.action.outSoundForUnit(unit_id, "transmission1.ogg")
         return
     end
+
     local unit_pos = unit:getPoint()
-    if not Config.ctld.allow_load_anywhere then
-        local is_in_ctld_zone = false
-        for _,zone in ipairs(zones) do
-            if zone:isPointInsideZone(unit_pos) then
-                if utils.tableContains(Config.ctld.allowed_load_zones, zone.zone_type) then
-                    is_in_ctld_zone = true
-                    break
-                end
+    local unit_zone = nil
+    for _,zone in ipairs(zones) do
+        if zone:isPointInsideZone(unit_pos) then
+            if utils.tableContains(Config.ctld.allowed_load_zones, zone.zone_type) then
+                unit_zone = zone
+                break
             end
         end
-        if not is_in_ctld_zone then
-            trigger.action.outTextForUnit(unit_id,"Negative, cannot load: Not in a valid load zone.", 5)
-            trigger.action.outSoundForUnit(unit_id, "transmission1.ogg")
-            return
-        end
     end
+    if not unit_zone then
+        trigger.action.outTextForUnit(unit_id,"Negative, cannot load: Not in a valid load zone.", 5)
+        trigger.action.outSoundForUnit(unit_id, "transmission1.ogg")
+        return
+    end
+
     if ctld.player_cooldowns[unit_id] == nil then
         ctld.player_cooldowns[unit_id] = 0
     end
@@ -319,14 +319,14 @@ function ctld.load(part, unit)
         return
     end
 
-    -- check coalition supplies
-    local unit_coal = unit:getCoalition()
-    local supply_count = 0
-    if unit_coal == coalition.side.BLUE then
-        supply_count = stats.blue_supplies
-    elseif unit_coal == coalition.side.RED then
-        supply_count = stats.red_supplies
+    if unit_zone.ammo_depot_intact ~= true then
+        trigger.action.outTextForUnit(unit_id, "Negative, cannot load: Ammunition Depot is required to access supplies in this zone.", 10)
+        trigger.action.outSoundForUnit(unit_id, "transmission1.ogg")
+        return
     end
+
+    -- check local supplies
+    local supply_count = unit_zone.local_supplies or 0
     if part.req_supplies then
         if supply_count < part.req_supplies then
             trigger.action.outTextForUnit(unit_id, "Negative, cannot load: Not enough supplies for "..part.desc..". Requires "..part.req_supplies.." supplies.", 10)
@@ -399,15 +399,7 @@ function ctld.load(part, unit)
     end
 
     -- Add part to user's cargo
-    if unit:getCoalition() == coalition.side.BLUE then
-        if part.req_supplies then
-            stats.blue_supplies = stats.blue_supplies - part.req_supplies
-        end
-    elseif unit:getCoalition() == coalition.side.RED then
-        if part.req_supplies then
-            stats.red_supplies = stats.red_supplies - part.req_supplies
-        end
-    end
+    unit_zone.local_supplies = math.max((unit_zone.local_supplies or 0) - (part.req_supplies or 0),0)
 
     table.insert(user.parts, part)
     if user.is_dynamic_cargo then
@@ -953,34 +945,72 @@ end
 function ctld.listSupplies(unit)
     --List the supplies in the zone
     local unit_coalition = unit:getCoalition()
-    local supply_count = 0
-    if unit_coalition == coalition.side.BLUE then
-        supply_count = stats.blue_supplies
-    elseif unit_coalition == coalition.side.RED then
-        supply_count = stats.red_supplies
-    end
+    local unit_point = unit:getPoint()
     local u_id = unit:getID()
 
-    local supplies_cap = math.min(utils.calculateSuppliesCAPforCoalition(unit_coalition), Config.supplies.absolute_max_supplies)
-
-    if supplies_cap == 0 or supply_count == 0 then
-        trigger.action.outTextForUnit(u_id, "Logistics SITREP: No supplies in inventory. Verify integrity of primary Command Centers and Ammo Depots.", 10)
-        trigger.action.outSoundForUnit(u_id, "Radio squelch.ogg")
-        return
-    end
-
-    local out_test = "Logistics SITREP: ".. supply_count .. " / " .. supplies_cap .. " available supplies.\n"
+    local txt_heading = "Logistics SITREP:\n"
+    local txt_body = "\n"
+    local coalition_supplies = 0
+    local relevant_zones = 0
 
     -- Detail the production rates
+    local sorted_zones = {}
     for _, zone in ipairs(zones) do
-        if zone.side == unit_coalition and zone.zone_type == ZoneTypes.LOGISTICS then
-            if zone.ammo_depot_intact then
-                out_test = out_test .. "\n - ".. zone.name .. ": +".. Config.supplies.supplies_income .. " supplies per minute"
-            end
+        if zone.side == unit_coalition and (zone.zone_type == ZoneTypes.AIRBASE or zone.zone_type == ZoneTypes.LOGISTICS
+        or zone.zone_type == ZoneTypes.FARP) then
+            table.insert(sorted_zones, zone)
         end
     end
 
-    trigger.action.outTextForUnit(u_id, out_test, 10)
+    table.sort(sorted_zones, function(a, b)
+        local a_level = a.level or 1
+        local b_level = b.level or 1
+        if a_level == b_level then
+            return (a.name or "") < (b.name or "")
+        end
+        return a_level > b_level
+    end)
+
+    for _, zone in ipairs(sorted_zones) do
+
+            local zone_level = zone.level or 1
+            local zone_has_depot = zone.linked_statics and #zone.linked_statics > 0 and zone.ammo_depot_intact == true
+            MissionLogger:info(zone.name, zone_has_depot)
+
+            local current_cap = 0
+
+            local zone_production = 0
+            if zone_has_depot then
+                current_cap = Config.supplies.supplies_cap[zone_level] or 0
+
+                zone_production = Config.supplies.supplies_production[zone_level] or 0
+
+                if zone.zone_type == ZoneTypes.LOGISTICS then
+                    zone_production = zone_production * (Config.supplies.logistics_mult or 2)
+                end
+            end
+
+            local zone_supplies = zone.local_supplies or 0
+
+            if zone_supplies > 0 or zone_production > 0 then
+                relevant_zones = relevant_zones + 1
+                coalition_supplies = coalition_supplies + zone_supplies
+
+                if zone:isPointInsideZone(unit_point) then
+                    txt_heading = "Logistics SITREP: ".. zone_supplies .. " / " .. current_cap .. " local available supplies.\n"
+                end
+
+                txt_body = txt_body .. "\n - ".. zone.name .. "            "..zone_supplies.."/"..current_cap.."      +".. zone_production .. " / minute"
+            end
+    end
+
+    if relevant_zones == 0 then
+        txt_body = txt_body .. "\nNo friendly zones currently have supplies or production."
+    else
+        txt_heading = txt_heading .. string.format("Coalition total: %d supplies across %d zone(s).\n", coalition_supplies, relevant_zones)
+    end
+
+    trigger.action.outTextForUnit(u_id, txt_heading..txt_body, 20)
     trigger.action.outSoundForUnit(u_id, "Radio squelch.ogg")
 
 end

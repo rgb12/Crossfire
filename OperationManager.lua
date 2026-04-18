@@ -473,15 +473,8 @@ do
                     end
 
                     if zone.zone_type == ZoneTypes.AIRBASE then
-                        if zone.linked_statics then
-                            if #zone.linked_statics > 0 then
-                                local strike_op = self:createStrikeOperation(zone, "COMMANDCENTER")
-                                table.insert(self.available_operations, strike_op)
-                            else 
-                                local op = self:createCASOperation(zone)
-                                table.insert(self.available_operations, op)
-                            end
-                        end
+                        local op = self:createCASOperation(zone)
+                        table.insert(self.available_operations, op)
                     end
                     -- STRIKE against COMMS or LOGISTICS
                     if zone.zone_type == ZoneTypes.COMMS then
@@ -901,13 +894,6 @@ do
                 local zone = ZoneHandler.getFromName(target_zone.name)
                 if not zone then return false end
                 return not zone.ammo_depot_intact
-            end
-        elseif strike_type == "COMMANDCENTER" then
-            target_desc = "Command Center"
-            check_func = function()
-                local zone = ZoneHandler.getFromName(target_zone.name)
-                if not zone then return false end
-                return zone.linked_statics and #zone.linked_statics == 0
             end
         elseif strike_type == "FARP" then
             target_desc = "FARP Assets"

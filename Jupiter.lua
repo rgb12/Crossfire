@@ -103,16 +103,7 @@ function Jupiter:onEvent(event)
             else
                 trigger.action.outText("Jupiter: No zone found within 10km to level up.", 5)
             end
-        elseif command == "-addsuppliesblue" then
-            local supplies_to_add = tonumber(param1) or 500
-            stats.blue_supplies = stats.blue_supplies + supplies_to_add
-            trigger.action.outText("Jupiter: Added "..supplies_to_add.." supplies to BLUE coalition. Total: "..stats.blue_supplies, 5)
-            cmd_executed = true
-        elseif command == "-addsuppliesred" then
-            local supplies_to_add = tonumber(param1) or 500
-            stats.red_supplies = stats.red_supplies + supplies_to_add
-            trigger.action.outText("Jupiter: Added "..supplies_to_add.." supplies to RED coalition. Total: "..stats.red_supplies, 5)
-            cmd_executed = true
+        
         elseif command == "-restock" then
             WarehouseManager:handleIncomingSupplies(coalition.side.BLUE, {WarehouseManager.StockTypes.INITIAL})
             WarehouseManager:handleIncomingSupplies(coalition.side.RED, {WarehouseManager.StockTypes.INITIAL})
@@ -374,9 +365,20 @@ function Jupiter:onEvent(event)
                     WarehouseManager:attributeAirbaseStock(closest_zone.airbase_name,coalition.side.BLUE,
                         {stocktype_num})
                     cmd_executed = true
+                    trigger.action.outText("Jupiter: Resupply completed", 5)
                 else
                     trigger.action.outText("Jupiter: No airbase found within 10km for giving stock.", 5)
                 end
+            end
+        elseif command == "-addsupplies" then
+            local added_supplies = tonumber(param1) or 1000
+            local closest_zone, dist = getClosestZone(vec3)
+            if closest_zone and dist <= 10000 then
+                closest_zone.local_supplies = closest_zone.local_supplies + added_supplies
+                cmd_executed = true
+                trigger.action.outText("Jupiter: Added "..added_supplies.." to "..closest_zone.name, 5)
+            else
+                trigger.action.outText("Jupiter: No zone found within 10km for capture.", 5)
             end
         elseif command == "-capture" then
             local closest_zone, dist = getClosestZone(vec3)

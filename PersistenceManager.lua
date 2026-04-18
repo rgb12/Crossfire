@@ -57,12 +57,10 @@ do
                 -- State tracking
                 ammo_depot_intact = z.ammo_depot_intact,
                 ammo_depot_time_since_destroyed = z.ammo_depot_last_destroyed and (timer.getTime() - z.ammo_depot_last_destroyed) or nil,
+                local_supplies = z.local_supplies or 0,
 
                 comms_tower_intact = z.comms_tower_intact,
                 comms_tower_time_since_destroyed = z.comms_tower_last_destroyed and (timer.getTime() - z.comms_tower_last_destroyed) or nil,
-
-                cmdc_intact = z.cmdc_intact,
-                cmdc_time_since_destroyed = z.cmdc_last_destroyed and (timer.getTime() - z.cmdc_last_destroyed) or nil,
 
                 -- Zone FARPs are dynamically recreated and may get new object names on restore.
                 -- Persist their warehouse inventory with the zone record so we can remap it.
@@ -408,8 +406,6 @@ do
         stats = PersistenceManager.data.stats
         stats.blue_comms_antennas = 0
         stats.red_comms_antennas = 0
-        stats.blue_command_posts = 0
-        stats.red_command_posts = 0
         stats.blue_ammo_depots = 0
         stats.red_ammo_depots = 0
         MissionLogger:info("Stats table restored.")
@@ -434,24 +430,16 @@ do
                 zone.ammo_depot_intact = saved_zone.ammo_depot_intact
                 if saved_zone.ammo_depot_time_since_destroyed then
                     zone.ammo_depot_last_destroyed = timer.getTime() - saved_zone.ammo_depot_time_since_destroyed
+                else
+                    zone.ammo_depot_last_destroyed = nil
                 end
+                zone.local_supplies = saved_zone.local_supplies or 0
                 
                 zone.comms_tower_intact = saved_zone.comms_tower_intact
                 if saved_zone.comms_tower_time_since_destroyed then
                     zone.comms_tower_last_destroyed = timer.getTime() - saved_zone.comms_tower_time_since_destroyed
                 else
                     zone.comms_tower_last_destroyed = nil
-                end
-
-                -- Backward compatibility: old saves may not include cmdc_* fields.
-                zone.cmdc_intact = saved_zone.cmdc_intact
-                if zone.zone_type == ZoneTypes.AIRBASE and zone.cmdc_intact == nil then
-                    zone.cmdc_intact = true
-                end
-                if saved_zone.cmdc_time_since_destroyed then
-                    zone.cmdc_last_destroyed = timer.getTime() - saved_zone.cmdc_time_since_destroyed
-                else
-                    zone.cmdc_last_destroyed = nil
                 end
                 
                 -- Clear runtime tracking arrays - will be repopulated by spawn functions
@@ -506,8 +494,10 @@ do
                 
                 -- Redraw the F10 map
                 zone:drawF10()
+                table.insert(new_zones, zone)
+            else
+                MissionLogger:warn("Restore skipped missing zone: " .. tostring(saved_zone.name))
             end
-            table.insert(new_zones, zone)
         end
         zones = new_zones
         
@@ -682,10 +672,6 @@ do
                 end
             end
         end
-        
-        -- Updates check
-        if not stats.blue_supplies then stats.blue_supplies = 0 end
-        if not stats.red_supplies then stats.red_supplies = 0 end
         
         MissionLogger:info("Mission state successfully restored.")
         --trigger.action.outText("Persistence, restored from last save.", 10)

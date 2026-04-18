@@ -24,15 +24,34 @@ do
             end
         end
 
-        if AITaskTypes.CAS == ai_task_type and to_zone then
-        
+        ---@param task_label string
+        ---@return ZoneHandler|nil, string|nil
+        local function resolveSourceAirbase(task_label)
+            if from_zone and from_zone.zone_type == ZoneTypes.AIRBASE then
+                local in_stock, template_gr_name = WarehouseManager:checkAircraftInStock(from_zone.airbase_name, ai_task_type)
+                if not in_stock then
+                    sendText(task_label.." unavailable from "..from_zone.name..", check aircraft availability, warehouse stock and tasking limits.")
+                    return nil, nil
+                end
+                return from_zone, template_gr_name
+            end
+
+            if not to_zone then
+                return nil, nil
+            end
+
             local closest_airbase, template_gr_name = self:findClosestAirbaseWithAircraftInStock(to_zone,side,ai_task_type,2,ai_task_type)
             if not closest_airbase then
-                if user_requested then
-                    trigger.action.outTextForCoalition(side,"CAS unavailable for "..to_zone.name..", check aircraft availability, warehouse stock and tasking limits.",5)
-                end
-                return false
+                sendText(task_label.." unavailable for "..to_zone.name..", check aircraft availability, warehouse stock and tasking limits.")
+                return nil, nil
             end
+            return closest_airbase, template_gr_name
+        end
+
+        if AITaskTypes.CAS == ai_task_type and to_zone then
+        
+            local source_airbase, template_gr_name = resolveSourceAirbase("CAS")
+            if not source_airbase then return false end
 
             if prevent_duplicates and EnrouteManager:findByToZone(to_zone,side,{AITaskTypes.CAS}) then
                 if user_requested then
@@ -41,13 +60,13 @@ do
                 return false
             end
 
-            local airbase = Airbase.getByName(closest_airbase.airbase_name)
+            local airbase = Airbase.getByName(source_airbase.airbase_name)
             if not airbase then return false end
 
-            local enroutes_from_airbase = EnrouteManager:findByFromZone(closest_airbase,side)
+            local enroutes_from_airbase = EnrouteManager:findByFromZone(source_airbase,side)
             if enroutes_from_airbase and #enroutes_from_airbase >= Config.tasking.max_tasks_per_airbase then
                 if user_requested then
-                    trigger.action.outTextForCoalition(side,"CAS unavailable from "..closest_airbase.name..", airbase cannot handle more tasks at the moment.",5)
+                    trigger.action.outTextForCoalition(side,"CAS unavailable from "..source_airbase.name..", airbase cannot handle more tasks at the moment.",5)
                 end
                 return false
             end
@@ -64,7 +83,7 @@ do
             local ai_enroute_data = EnrouteManager:add({
                 to_zone = to_zone,
                 side=side,
-                from_zone=closest_airbase,
+                from_zone=source_airbase,
                 group_name=new_group.name,
                 ai_task_type=ai_task_type
             })
@@ -115,14 +134,8 @@ do
             return true
         elseif AITaskTypes.CAP == ai_task_type and to_zone then
 
-            local closest_airbase, template_gr_name = self:findClosestAirbaseWithAircraftInStock(to_zone,side,ai_task_type,2,ai_task_type)
-            if not closest_airbase then
-                if user_requested then
-                    txt="CAP unavailable for "..to_zone.name..", check aircraft availability, warehouse stock and tasking limits."
-                    trigger.action.outTextForCoalition(side,txt,5)
-                end
-                return false
-            end
+            local source_airbase, template_gr_name = resolveSourceAirbase("CAP")
+            if not source_airbase then return false end
 
             if prevent_duplicates and EnrouteManager:findByToZone(to_zone,side,{AITaskTypes.CAP}) then
                 if user_requested then
@@ -132,13 +145,13 @@ do
                 return false
             end
 
-            local airbase = Airbase.getByName(closest_airbase.airbase_name)
+            local airbase = Airbase.getByName(source_airbase.airbase_name)
             if not airbase then return false end
 
-            local enroutes_from_airbase = EnrouteManager:findByFromZone(closest_airbase,side)
+            local enroutes_from_airbase = EnrouteManager:findByFromZone(source_airbase,side)
             if enroutes_from_airbase and #enroutes_from_airbase >= Config.tasking.max_tasks_per_airbase then
                 if user_requested then
-                    txt="CAP unavailable from "..closest_airbase.name..", airbase cannot handle more tasks at the moment."
+                    txt="CAP unavailable from "..source_airbase.name..", airbase cannot handle more tasks at the moment."
                     trigger.action.outTextForCoalition(side,txt,5)
                 end
                 return false
@@ -153,7 +166,7 @@ do
             local ai_enroute_data = EnrouteManager:add({
                 to_zone = to_zone,
                 side=side,
-                from_zone=closest_airbase,
+                from_zone=source_airbase,
                 group_name=new_group.name,
                 ai_task_type=ai_task_type
             })
@@ -162,14 +175,8 @@ do
 
         elseif AITaskTypes.SEAD == ai_task_type and to_zone then
 
-            local closest_airbase, template_gr_name = self:findClosestAirbaseWithAircraftInStock(to_zone,side,ai_task_type,2,ai_task_type)
-            if not closest_airbase then
-                if user_requested then
-                    txt="SEAD unavailable for "..to_zone.name..", check aircraft availability, warehouse stock and tasking limits."
-                    trigger.action.outTextForCoalition(side,txt,5)
-                end
-                return false
-            end
+            local source_airbase, template_gr_name = resolveSourceAirbase("SEAD")
+            if not source_airbase then return false end
 
             if prevent_duplicates and EnrouteManager:findByToZone(to_zone,side,{AITaskTypes.SEAD}) then
                 if user_requested then
@@ -179,14 +186,14 @@ do
                 return false
             end
 
-            local airbase = Airbase.getByName(closest_airbase.airbase_name)
+            local airbase = Airbase.getByName(source_airbase.airbase_name)
             if not airbase then return false end
 
 
-            local enroutes_from_airbase = EnrouteManager:findByFromZone(closest_airbase,side)
+            local enroutes_from_airbase = EnrouteManager:findByFromZone(source_airbase,side)
             if enroutes_from_airbase and #enroutes_from_airbase >= Config.tasking.max_tasks_per_airbase then
                 if user_requested then
-                    txt="SEAD unavailable from "..closest_airbase.name..", airbase cannot handle more tasks at the moment."
+                    txt="SEAD unavailable from "..source_airbase.name..", airbase cannot handle more tasks at the moment."
                     trigger.action.outTextForCoalition(side,txt,5)
                 end
                 return false
@@ -201,7 +208,7 @@ do
             local ai_enroute_data = EnrouteManager:add({
                 to_zone = to_zone,
                 side=side,
-                from_zone=closest_airbase,
+                from_zone=source_airbase,
                 group_name=new_group.name,
                 ai_task_type=ai_task_type
             })
@@ -209,14 +216,8 @@ do
             return true
         elseif AITaskTypes.STRIKE == ai_task_type and to_zone then
 
-            local closest_airbase, template_gr_name = self:findClosestAirbaseWithAircraftInStock(to_zone,side,ai_task_type,2,ai_task_type)
-            if not closest_airbase then
-                if user_requested then
-                    txt="STRIKE unavailable for "..to_zone.name..", check aircraft availability, warehouse stock and tasking limits."
-                    trigger.action.outTextForCoalition(side,txt,5)
-                end
-                return false
-            end
+            local source_airbase, template_gr_name = resolveSourceAirbase("STRIKE")
+            if not source_airbase then return false end
 
             if prevent_duplicates and EnrouteManager:findByToZone(to_zone,side,{AITaskTypes.STRIKE}) then
                 if user_requested then
@@ -226,14 +227,14 @@ do
                 return false
             end
 
-            local airbase = Airbase.getByName(closest_airbase.airbase_name)
+            local airbase = Airbase.getByName(source_airbase.airbase_name)
             if not airbase then return false end
 
 
-            local enroutes_from_airbase = EnrouteManager:findByFromZone(closest_airbase,side)
+            local enroutes_from_airbase = EnrouteManager:findByFromZone(source_airbase,side)
             if enroutes_from_airbase and #enroutes_from_airbase >= Config.tasking.max_tasks_per_airbase then
                 if user_requested then
-                    txt="STRIKE unavailable from "..closest_airbase.name..", airbase cannot handle more tasks at the moment."
+                    txt="STRIKE unavailable from "..source_airbase.name..", airbase cannot handle more tasks at the moment."
                     trigger.action.outTextForCoalition(side,txt,5)
                 end
                 return false
@@ -248,7 +249,7 @@ do
             local ai_enroute_data = EnrouteManager:add({
                 to_zone = to_zone,
                 side=side,
-                from_zone=closest_airbase,
+                from_zone=source_airbase,
                 group_name=new_group.name,
                 ai_task_type=ai_task_type
             })
