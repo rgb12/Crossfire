@@ -355,6 +355,7 @@ Config = {
         packed_asset_prefix = "packed_",
         max_placed_assets = 300,  -- Global limit for all placed assets
         allowed_load_zones = {ZoneTypes.FARP, ZoneTypes.AIRBASE, ZoneTypes.LOGISTICS},
+        supply_crate_supplies = 50, -- supplies carried by a supply crate
         cargo_crate_template = "container_cargo",
         search_radius = 100,  -- (meters)
         random_crate_spacing = 6,  -- (meters)

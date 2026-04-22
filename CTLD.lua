@@ -107,6 +107,7 @@ end
 ---@field group_requirement string|nil
 ---@field can_move boolean|nil
 ---@field req_supplies number|nil
+---@field supply_amount number|nil
 
 ---@type part[]
 ctld.parts = {
@@ -163,6 +164,7 @@ ctld.parts = {
     {name = "gbu_43b_airdrop",  desc = "MOAB",                 weight = 9000, type = ctld.AssetTypes.CARGO_CRATES},
     {name = "cds_barrels",     desc = "CDS Barrels",        weight = 200, type = ctld.AssetTypes.CARGO_CRATES, req_supplies = 5},
     {name = "cds_crate",       desc = "CDS Crate",           weight = 200, type = ctld.AssetTypes.CARGO_CRATES},
+    {name = ctld.CargoCrates.SuppliesCrate, desc = "Supply Crate", weight = 1000, type = ctld.AssetTypes.CARGO_CRATES, req_supplies = Config.ctld.supply_crate_supplies or 50, supply_amount = Config.ctld.supply_crate_supplies or 50},
 }
 
 
@@ -445,6 +447,7 @@ function ctld.unpack(unit)
         }
     }
 
+    -- Finds nearby unpacked and packed assets
     local unpacked_assets_nearby = {}
     local packed_assets_nearby = {}
     world.searchObjects({Object.Category.CARGO, Object.Category.UNIT}, vol, function(obj)
@@ -471,7 +474,7 @@ function ctld.unpack(unit)
         return true
     end)
 
-    -- Find the assets part descriptions
+    -- Find the assets part descriptions for unpacked assets
     local unpacked_parts = {}
     for _, asset in ipairs(unpacked_assets_nearby) do
         local asset_name = asset:getName()
@@ -487,6 +490,7 @@ function ctld.unpack(unit)
         end
     end
 
+    -- Find the assets part descriptions for packed assets
     local packed_parts = {}
     for _, asset in ipairs(packed_assets_nearby) do
         local asset_name = asset:getName()
@@ -522,12 +526,38 @@ function ctld.unpack(unit)
         local crates_required = part.crates_required or 1
         local available_crates = #crate_data.objs
 
-        if available_crates < crates_required then
-            trigger.action.outTextForUnit(unit_id, 
+        if part.type == ctld.AssetTypes.CARGO_CRATES and (part.supply_amount or 0) > 0 then
+            for _, crate_obj in ipairs(crate_data.objs) do
+                if crate_obj and crate_obj:isExist() then
+                    local crate_point = crate_obj:getPoint()
+                    local target_zone = utils.fetchSuppliesZoneFromPoint(crate_point, unit:getCoalition())
+                    if not target_zone then
+                        trigger.action.outTextForUnit(unit_id, "Negative, cannot unpack supply crate: not inside a friendly supply zone.", 5)
+                        trigger.action.outSoundForUnit(unit_id, "transmission1.ogg")
+                    elseif target_zone.ammo_depot_intact ~= true then
+                        trigger.action.outTextForUnit(unit_id, "Negative, cannot unpack supply crate.", 5)
+                        trigger.action.outSoundForUnit(unit_id, "transmission1.ogg")
+                    else
+                        local zone_level = target_zone.level or 1
+                        local zone_cap = Config.supplies.supplies_cap[zone_level] or 0
+                        local current_supplies = target_zone.local_supplies or 0
+                        local amount = part.supply_amount or 0
+                        if current_supplies + amount > zone_cap then
+                            trigger.action.outTextForUnit(unit_id, string.format("Negative, cannot unpack supply crate: %s can not hold more supplies.", target_zone.name), 5)
+                            trigger.action.outSoundForUnit(unit_id, "transmission1.ogg")
+                        else
+                            target_zone.local_supplies = current_supplies + amount
+                            trigger.action.outTextForUnit(unit_id, string.format("Unpacked %s and restored %d supplies to %s.", part.desc, amount, target_zone.name), 5)
+                            trigger.action.outSoundForUnit(unit_id, "transmission1.ogg")
+                            crate_obj:destroy()
+                        end
+                    end
+                end
+            end
+        elseif available_crates < crates_required then
+            trigger.action.outTextForUnit(unit_id,
                 string.format("Negative, %s requires %d crates, only %d available.", part.desc, crates_required, available_crates), 5)
-        
             trigger.action.outSoundForUnit(unit_id, "transmission1.ogg")
-        
         else
             -- Calculate how many units we can spawn
             local units_to_create = math.floor(available_crates / crates_required)
@@ -1048,14 +1078,20 @@ function ctld.listOnboardCargo(unit)
     for part_desc, count in pairs(part_count) do
         -- find the amount of crates required to build
         local crates_required = 1
+        local supply_amount = nil
         for _, part in ipairs(ctld.parts) do
             if part.desc == part_desc then
                 crates_required = part.crates_required or 1
+                supply_amount = part.supply_amount
                 break
             end
         end
 
-        cargo_list = cargo_list .. string.format("%s x%d (required: %s)\n", part_desc, count,crates_required)
+        if supply_amount then
+            cargo_list = cargo_list .. string.format("%s x%d (stores: %d supplies)\n", part_desc, count, supply_amount)
+        else
+            cargo_list = cargo_list .. string.format("%s x%d (required: %s)\n", part_desc, count,crates_required)
+        end
     end
 
     --weight
