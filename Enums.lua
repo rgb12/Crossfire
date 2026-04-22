@@ -134,6 +134,7 @@ AITaskTypes = {
     CAP = "CAP",
     INTERCEPT = "INTERCEPT",
     AWACS = "AWACS",
+    TANKER = "TANKER",
     SEAD = "SEAD",
     STRIKE = "STRIKE",
     ATTACK_CONVOY = "ATTACK CONVOY",

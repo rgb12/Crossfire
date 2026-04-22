@@ -487,6 +487,8 @@ do
         if TheatreCommander.red_op_manager then
             TheatreCommander.red_op_manager:tick()
         end
+
+        TaskManager:maintainTankerSectors()
         
         for i = #EnrouteManager.enroutes, 1, -1 do
             local enroute = EnrouteManager.enroutes[i]

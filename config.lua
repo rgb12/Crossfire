@@ -173,6 +173,7 @@ Config = {
             STRIKE = 500,
             CAP = 400,
             AWACS = 350,
+            TANKER = 400,
             RECON = 300,
             CAPTURE_HELO = 150,
             NAVAL_STRIKE = 3500
@@ -215,6 +216,7 @@ Config = {
             [AITaskTypes.RECON]          = 2000,
             [AITaskTypes.CAP]            = 5000,
             [AITaskTypes.CAS]            = 10000,  -- (Major milestone)
+            [AITaskTypes.TANKER]         = 12000,  -- Technical Sergeant
             [AITaskTypes.STRIKE]         = 15000,
             [AITaskTypes.SEAD]           = 20000,  -- ~25 hours
             [AITaskTypes.CAPTURE_HELO]   = 5000,
@@ -270,6 +272,7 @@ Config = {
         comms_zones_required_for_strike = 2,
         comms_zones_required_for_cap = 1,
         comms_zones_required_for_awacs = 2,
+        comms_zones_required_for_tanker = 2,
         comms_zones_required_for_recon = 1,
     },
     
@@ -286,6 +289,7 @@ Config = {
         max_strike_per_airbase = 2,
         max_cap_per_airbase = 2,
         max_awacs_per_airbase = 1,
+        max_tanker_per_airbase = 2,
         max_recon_per_airbase = 2,
         
         max_jtac_theatre = 4, -- per coalition, only for AI auto tasking
@@ -295,6 +299,7 @@ Config = {
         max_cap_theatre = 6,-- per coalition, only for AI auto tasking
         max_recon_theatre = 4,-- per coalition, only for AI auto tasking
         max_awacs_per_theatre = 2,-- per coalition, only for AI auto tasking
+        max_tanker_per_theatre = 2,-- per coalition
         max_attack_convoy_per_theatre = 3,-- per coalition, only for AI auto tasking
         
         max_capture_helicopters_per_logistics_zone = 4,
@@ -306,6 +311,34 @@ Config = {
         max_strike_range = 200*1000, -- (meters)
         max_sead_range = 200*1000, -- (meters)
         min_cleareance_dist_for_awacs = 70*1000 -- (meters) from the nearest enemy zone
+    },
+
+    tanker = {
+        spawn_delay_min = 120, -- (seconds)
+        spawn_delay_max = 300, -- (seconds)
+        minimum_enemy_distance = 100*1000, -- (meters) nearest enemy zone to source airbase
+        midpoint_ratio = 0.5, -- place tanker sector at this ratio from source toward nearest enemy zone
+        route_switch_distance = 3000, -- (meters) switch leg when this close to endpoint
+        leg_length = 70*1000, -- (meters) straight refuel leg length
+        sector_width = 24*1000, -- (meters) width of drawn sector corridor
+        rounded_corner_radius = 5000, -- (meters)
+        rounded_corner_segments = 5, -- number of segments per corner arc
+
+        text_title = "Tanker Sector",
+        drogue = {
+            callsign = "Texaco",
+            frequency = "271.5",
+            tacan = "37X",
+            altitude_ft = 20000,
+            speed = 165, -- m/s
+        },
+        boom = {
+            callsign = "Shell",
+            frequency = "271.25",
+            tacan = "41X",
+            altitude_ft = 25000,
+            speed = 165, -- m/s
+        },
     },
     
     ctld = {
@@ -458,7 +491,9 @@ GroupData = {
             capture_helicopter = "BLUE Capture Helo",
             attack_convoy = "BLUE Attack Convoy",
             jtac = "BLUE JTAC",
-            farp = "BLUE FARP VEHICLES"
+            farp = "BLUE FARP VEHICLES",
+            tanker_drogue = "BLUE TANKER DROGUE",
+            tanker_boom = "BLUE TANKER BOOM",
         },
     
         RED = {
@@ -466,6 +501,8 @@ GroupData = {
             capture_helicopter = "RED Capture Helo",
             attack_convoy = "RED Attack Convoy",
             farp = "RED FARP VEHICLES",
+            tanker_drogue = "RED TANKER DROGUE",
+            tanker_boom = "RED TANKER BOOM",
         }
     },
 

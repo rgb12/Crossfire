@@ -1,4 +1,14 @@
 utils = {}
+
+utils.LineStyle = {
+    NONE = 0,
+    SOLID = 1,
+    DASHED = 2,
+    DOTTED = 3,
+    DOT_DASH = 4,
+    LONG_DASH = 5,
+    TWO_DASH = 6,
+}
 ---@param tbl table
 ---@param value any
 ---@return any|nil
@@ -324,4 +334,84 @@ function utils.toVec3(vec,agl) do
     if vec.x and vec.y and vec.z then return { x = vec.x, y = vec.y, z = vec.z } end -- already vec3
 
     return { x = vec.x, y = agl or land.getHeight(vec), z = vec.y } end
+end
+
+---@param point_a vec3|vec2
+---@param point_b vec3|vec2
+---@param ratio number
+---@return vec3
+function utils.pointAlongSegment(point_a, point_b, ratio)
+    local a = utils.toVec3(point_a)
+    local b = utils.toVec3(point_b)
+    local t = math.max(0, math.min(1, ratio or 0.5))
+
+    local x = a.x + (b.x - a.x) * t
+    local z = a.z + (b.z - a.z) * t
+    return { x = x, y = land.getHeight({ x = x, y = z }), z = z }
+end
+
+---@param point_a vec3|vec2
+---@param point_b vec3|vec2
+---@param width_m number
+---@param corner_radius_m number
+---@param corner_segments number
+---@return vec3[]
+function utils.buildRoundedRectAroundSegment(point_a, point_b, width_m, corner_radius_m, corner_segments)
+    local a = utils.toVec3(point_a)
+    local b = utils.toVec3(point_b)
+
+    local dx = b.x - a.x
+    local dz = b.z - a.z
+    local leg_len = math.sqrt(dx * dx + dz * dz)
+    if leg_len < 1 then
+        return {}
+    end
+
+    local ux = dx / leg_len
+    local uz = dz / leg_len
+    local vx = -uz
+    local vz = ux
+
+    local center_x = (a.x + b.x) * 0.5
+    local center_z = (a.z + b.z) * 0.5
+    local half_len = leg_len * 0.5
+    local half_w = math.max(1, (width_m or 1) * 0.5)
+    local radius = math.max(0, math.min(corner_radius_m or 0, half_len, half_w))
+    local steps = math.max(1, math.floor(corner_segments or 4))
+
+    local points = {}
+    local function toWorld(lx, ly)
+        local x = center_x + (ux * lx) + (vx * ly)
+        local z = center_z + (uz * lx) + (vz * ly)
+        return { x = x, y = land.getHeight({ x = x, y = z }), z = z }
+    end
+
+    if radius < 1 then
+        table.insert(points, toWorld(half_len, half_w))
+        table.insert(points, toWorld(half_len, -half_w))
+        table.insert(points, toWorld(-half_len, -half_w))
+        table.insert(points, toWorld(-half_len, half_w))
+        return points
+    end
+
+    local function addArc(cx, cy, start_deg, end_deg)
+        for i = 0, steps do
+            local t = i / steps
+            local angle = math.rad(start_deg + ((end_deg - start_deg) * t))
+            local lx = cx + radius * math.cos(angle)
+            local ly = cy + radius * math.sin(angle)
+            local wp = toWorld(lx, ly)
+            local last = points[#points]
+            if not last or mist.utils.get2DDist(last, wp) > 1 then
+                table.insert(points, wp)
+            end
+        end
+    end
+
+    addArc(half_len - radius, half_w - radius, 90, 0)      -- top-right
+    addArc(half_len - radius, -half_w + radius, 0, -90)     -- bottom-right
+    addArc(-half_len + radius, -half_w + radius, -90, -180) -- bottom-left
+    addArc(-half_len + radius, half_w - radius, 180, 90)    -- top-left
+
+    return points
 end
