@@ -262,6 +262,60 @@ do
                     end
                 end
             end
+        elseif event.id == world.event.S_EVENT_HIT and event.weapon then
+            local weapon_desc = event.weapon:getDesc()
+            if not weapon_desc or not weapon_desc.category then return end
+
+            local is_bomb_or_rocket = (weapon_desc.category == Weapon.Category.BOMB
+                                       or weapon_desc.category == Weapon.Category.ROCKET)
+            if not is_bomb_or_rocket then return end
+
+            local hit_point = event.weapon:getPoint()
+            if not hit_point then return end
+
+            local lock_duration = Config.operations.runway_destroyed_duration or 3600
+            for _, zone in ipairs(zones) do
+                if zone.zone_type == ZoneTypes.AIRBASE and zone.airbase_name and not zone:isRunwayDisabled() then
+                    local airbase = Airbase.getByName(zone.airbase_name)
+                    if airbase and airbase.getRunways then
+                        local runways = airbase:getRunways()
+                        if runways then
+                            for _, runway in pairs(runways) do
+                                if runway.position and runway.course and runway.length and runway.width then
+                                    local dx = hit_point.x - runway.position.x
+                                    local dz = hit_point.z - runway.position.z
+                                    local cos_course = math.cos(runway.course)
+                                    local sin_course = math.sin(runway.course)
+
+                                    local local_x = dx * cos_course + dz * sin_course
+                                    local local_z = -dx * sin_course + dz * cos_course
+
+                                    if math.abs(local_x) <= (runway.length / 2)
+                                    and math.abs(local_z) <= (runway.width / 2) then
+                                        zone:markRunwayDisabled(lock_duration)
+                                        zone:drawF10()
+
+                                        trigger.action.outTextForCoalition(zone.side, "Sector ALERT: Runway at " .. zone.name .. " is inoperative.", 15)
+                                        trigger.action.outSoundForCoalition(zone.side, "alert1.ogg")
+
+                                        local attacker_side = nil
+                                        if event.initiator and event.initiator.getCoalition then
+                                            attacker_side = event.initiator:getCoalition()
+                                        end
+                                        if attacker_side and attacker_side ~= zone.side then
+                                            trigger.action.outTextForCoalition(attacker_side, "SITREP: Runway strike successful at " .. zone.name .. ".", 12)
+                                            trigger.action.outSoundForCoalition(attacker_side, "chatter2.ogg")
+                                        end
+
+                                        MissionLogger:info("Runway disabled at " .. zone.name)
+                                        return
+                                    end
+                                end
+                            end
+                        end
+                    end
+                end
+            end
         elseif event.id == world.event.S_EVENT_PLAYER_LEAVE_UNIT then
             if event.initiator then
                 local unit_name = event.initiator:getName()
@@ -375,6 +429,7 @@ do
                 or op_type == OperationTypes.CAS
                 or op_type == OperationTypes.SEAD
                 or op_type == OperationTypes.DEAD
+                or op_type == OperationTypes.RUNWAY_BOMBING
                 or op_type == OperationTypes.STRIKE
         end
 
@@ -475,6 +530,11 @@ do
                     if zone.zone_type == ZoneTypes.AIRBASE then
                         local op = self:createCASOperation(zone)
                         table.insert(self.available_operations, op)
+
+                        if not zone:isRunwayDisabled() then
+                            local runway_op = self:createRunwayBombingOperation(zone)
+                            table.insert(self.available_operations, runway_op)
+                        end
                     end
                     -- STRIKE against COMMS or LOGISTICS
                     if zone.zone_type == ZoneTypes.COMMS then
@@ -929,6 +989,35 @@ do
                     description = "Destroy the " .. target_desc .. " at " .. target_zone.name,
                     completed = false,
                     check = check_func
+                }
+            }
+        }
+        return op
+    end
+
+    function OperationManager:createRunwayBombingOperation(target_zone)
+        ---@type Operation
+        local op = {
+            type = OperationTypes.RUNWAY_BOMBING,
+            code = self:createOperationCode(),
+            status = OperationStatus.AVAILABLE,
+            target_zone_name = target_zone.name,
+            operation_name = operations_name[math.random(#operations_name)],
+            is_coop = true,
+            xp_reward = 1000,
+            coop_leader_id = nil,
+            coop_leader_name = nil,
+            coop_members = {},
+            coop_join_code = nil,
+            objectives = {
+                {
+                    description = "Render any " .. target_zone.name .." runway inoperable",
+                    completed = false,
+                    check = function()
+                        local zone = ZoneHandler.getFromName(target_zone.name)
+                        if not zone then return false end
+                        return zone:isRunwayDisabled()
+                    end
                 }
             }
         }

@@ -43,6 +43,7 @@ Config = {
         intercept_required_kills = 2, -- number of aircraft/helicopters to destroy to complete INTERCEPT
         intercept_max_distance_to_enemy = 200*1000, -- (meters) max distance from friendly zone to enemy zone for INTERCEPT to be proposed
         attributes_for_SEAD_targeting = { 'SAM SR', 'SAM TR', 'IR Guided SAM', 'EWR' }, -- unit attributes that make them valid SEAD targets
+        runway_destroyed_duration = 60*60, -- (seconds) runtime-only runway disable duration
 
         operation_refresh_time = 30, --(seconds) this is to set a cooldown for generating operations
 
@@ -91,6 +92,14 @@ Config = {
                 "M-2000C",
                 "Su-25T",
                 "AH-64D_BLK_II",
+            },
+            [OperationTypes.RUNWAY_BOMBING] = {
+                "F-14A-135-GR",
+                "F-14B",
+                "M-2000C",
+                "F-15ESE",
+                "F-16C_50",
+                "FA-18C_hornet",
             },
             [OperationTypes.CAP] = {
                 "F-15C",

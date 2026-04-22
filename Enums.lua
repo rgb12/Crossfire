@@ -143,6 +143,7 @@ AITaskTypes = {
     RECON = "RECON"
 }
 
+--- Ensure that isOffensiveOperation and isDefensiveOperation in operation manager are complete
 ---@enum OperationTypes
 OperationTypes = {
     CAP = "CAP",
@@ -150,6 +151,7 @@ OperationTypes = {
     SEAD = "SEAD",
     DEAD = "DEAD",
     CAS = "CAS",
+    RUNWAY_BOMBING = "Runway Bombing",
     RECON = "Recon",
     AIRDROP = "Airdrop",
     INTERCEPT = "Intercept",

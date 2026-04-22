@@ -22,6 +22,8 @@ end
 ---@field linked_farp string|nil
 ---@field local_supplies number|nil
 ---@field next_level_up_avail number|nil
+---@field runway_destroyed boolean|nil
+---@field runway_destroyed_until number|nil
 ZoneHandler = {}
 do
     function ZoneHandler:new(obj)
@@ -77,6 +79,8 @@ do
             if airbase then
                 airbase:autoCapture(false)
                 airbase:setCoalition(obj.side)
+                obj.runway_destroyed = obj.runway_destroyed or false
+                obj.runway_destroyed_until = obj.runway_destroyed_until or nil
             else
                 MissionLogger:error("ZoneHandler:new - AIRBASE zone "..obj.name.." could not find airbase "..obj.airbase_name)
             end
@@ -714,6 +718,21 @@ do
         return self.capture_heli_avail > 0
     end
 
+    ---@return boolean
+    function ZoneHandler:isRunwayDisabled()
+        if self.zone_type ~= ZoneTypes.AIRBASE then return false end
+        if not self.runway_destroyed or not self.runway_destroyed_until then return false end
+        return self.runway_destroyed_until > timer.getTime()
+    end
+
+    ---@param duration number|nil
+    function ZoneHandler:markRunwayDisabled(duration)
+        if self.zone_type ~= ZoneTypes.AIRBASE then return end
+        local disable_time = duration or Config.operations.runway_destroyed_duration or 3600
+        self.runway_destroyed = true
+        self.runway_destroyed_until = timer.getTime() + disable_time
+    end
+
     function ZoneHandler:checkIfEmpty()
 
         local units_count=0
@@ -1011,6 +1030,28 @@ do
 
 
 
+    end
+
+    function ZoneHandler:checkRunwayStatus()
+        if self.zone_type ~= ZoneTypes.AIRBASE then return true end
+        if not self.runway_destroyed or not self.runway_destroyed_until then return true end
+
+        local time_left = self.runway_destroyed_until - timer.getTime()
+        if time_left > 0 then
+            local minutes_left = math.ceil(time_left / 60)
+            self:drawF10("Runway INOP T-" .. minutes_left .. " min")
+            return false
+        end
+
+        self.runway_destroyed = false
+        self.runway_destroyed_until = nil
+        self:drawF10()
+
+        if self.side ~= coalition.side.NEUTRAL then
+            trigger.action.outTextForCoalition(self.side, "SITREP: " .. self.name .. " is operational.", 10)
+            trigger.action.outSoundForCoalition(self.side, "radio_beep3.ogg")
+        end
+        return true
     end
 
 end

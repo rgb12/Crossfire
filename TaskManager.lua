@@ -33,6 +33,11 @@ do
         ---@return ZoneHandler|nil, string|nil
         local function resolveSourceAirbase(task_label)
             if from_zone and from_zone.zone_type == ZoneTypes.AIRBASE then
+                if not self:isAirbaseRunwayOperational(from_zone) then
+                    sendText(task_label.." unavailable from "..from_zone.name..", runway is inporable.")
+                    return nil, nil
+                end
+
                 local in_stock, template_gr_name = WarehouseManager:checkAircraftInStock(from_zone.airbase_name, ai_task_type)
                 if not in_stock then
                     sendText(task_label.." unavailable from "..from_zone.name..", check aircraft availability, warehouse stock and tasking limits.")
@@ -97,6 +102,11 @@ do
             return true
         elseif AITaskTypes.AWACS == ai_task_type and from_zone and from_zone.zone_type == ZoneTypes.AIRBASE then
 
+            if not self:isAirbaseRunwayOperational(from_zone) then
+                sendText("AWACS unavailable from "..from_zone.name..", runway is inoperable.")
+                return false
+            end
+
             local enroutes_from_airbase = EnrouteManager:findByFromZone(from_zone,side)
             if enroutes_from_airbase and #enroutes_from_airbase >= Config.tasking.max_tasks_per_airbase then
                 if user_requested then
@@ -138,6 +148,11 @@ do
             self:setAWACSTask(new_group.name,ai_enroute_data)
             return true
         elseif AITaskTypes.TANKER == ai_task_type and from_zone and from_zone.zone_type == ZoneTypes.AIRBASE then
+
+            if not self:isAirbaseRunwayOperational(from_zone) then
+                sendText("TANKER unavailable from "..from_zone.name..", runway is inoperable.")
+                return false
+            end
 
             local max_tanker_theatre = Config.tasking.max_tanker_per_theatre or 2
             if self:countActiveTankerSectors(side) >= max_tanker_theatre then
@@ -605,6 +620,15 @@ do
         return false
     end
 
+    ---@param airbase_zone ZoneHandler|nil
+    ---@return boolean
+    function TaskManager:isAirbaseRunwayOperational(airbase_zone)
+        if not airbase_zone then return false end
+        if airbase_zone.zone_type ~= ZoneTypes.AIRBASE then return true end
+        if not airbase_zone.isRunwayDisabled then return true end
+        return not airbase_zone:isRunwayDisabled()
+    end
+
 
     --- Returns true if max tasks reached for airbase
     ---@param airbase ZoneHandler
@@ -668,27 +692,32 @@ do
         local unavail_airbases = {}
         local closest_airbase = to_zone:getClosestZone(side,unavail_airbases,{ZoneTypes.AIRBASE})
         while closest_airbase and closest_airbase.airbase_name and loop_prevention < 400 do
-            ---@diagnostic disable-next-line: undefined-field
-            local airbase = Airbase.getByName(closest_airbase.airbase_name)
-            if airbase and airbase:getCoalition() == side then
-                local airbase_warehouse = airbase:getWarehouse()
 
-                local aircraft_count = 0
-                local group_name
+            if not self:isAirbaseRunwayOperational(closest_airbase) then
+                MissionLogger:info("Airbase:" .. closest_airbase.airbase_name .. " runway inoperable, skipping spawn source.")
+            else
+                ---@diagnostic disable-next-line: undefined-field
+                local airbase = Airbase.getByName(closest_airbase.airbase_name)
+                if airbase and airbase:getCoalition() == side then
+                    local airbase_warehouse = airbase:getWarehouse()
 
-                if WarehouseManager.AirbaseGroupData[closest_airbase.airbase_name]
-                and WarehouseManager.AirbaseGroupData[closest_airbase.airbase_name][side]
-                and WarehouseManager.AirbaseGroupData[closest_airbase.airbase_name][side][aircraft_type] then
-                    aircraft_count =airbase_warehouse:getItemCount(WarehouseManager.AirbaseGroupData[closest_airbase.airbase_name][side][aircraft_type].warehouse_name)
-                    group_name = WarehouseManager.AirbaseGroupData[closest_airbase.airbase_name][side][aircraft_type].group_name
-                end
-                -- MissionLogger:info("Airbase:" .. closest_airbase.airbase_name .. " has ".. aircraft_count .." ".. aircraft_type .." available.")  
-                if aircraft_count and aircraft_count>=aircraft_amount and group_name then
-                    
-                    if not self:checkIfMaxTasksReached(closest_airbase,side,ai_task_type) then
-                        return closest_airbase,group_name
-                    else
-                        MissionLogger:info("Airbase:" .. closest_airbase.airbase_name .. " has reached max task limit.")
+                    local aircraft_count = 0
+                    local group_name
+
+                    if WarehouseManager.AirbaseGroupData[closest_airbase.airbase_name]
+                    and WarehouseManager.AirbaseGroupData[closest_airbase.airbase_name][side]
+                    and WarehouseManager.AirbaseGroupData[closest_airbase.airbase_name][side][aircraft_type] then
+                        aircraft_count =airbase_warehouse:getItemCount(WarehouseManager.AirbaseGroupData[closest_airbase.airbase_name][side][aircraft_type].warehouse_name)
+                        group_name = WarehouseManager.AirbaseGroupData[closest_airbase.airbase_name][side][aircraft_type].group_name
+                    end
+                    -- MissionLogger:info("Airbase:" .. closest_airbase.airbase_name .. " has ".. aircraft_count .." ".. aircraft_type .." available.")  
+                    if aircraft_count and aircraft_count>=aircraft_amount and group_name then
+
+                        if not self:checkIfMaxTasksReached(closest_airbase,side,ai_task_type) then
+                            return closest_airbase,group_name
+                        else
+                            MissionLogger:info("Airbase:" .. closest_airbase.airbase_name .. " has reached max task limit.")
+                        end
                     end
                 end
             end
