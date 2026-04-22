@@ -1201,12 +1201,12 @@ do
     WarehouseManager.Stocks = {
         [WarehouseManager.StockTypes.FARP] = {
             [coalition.side.BLUE] = {
-                [WarehouseManager.AircraftFlags.SA342L] = 2,
-                [WarehouseManager.AircraftFlags.SA342M] = 2,
+                [WarehouseManager.AircraftFlags.SA342L] = 4,
+                [WarehouseManager.AircraftFlags.SA342M] = 4,
                 [WarehouseManager.AircraftFlags.UH_1H] = 4,
                 [WarehouseManager.AircraftFlags.OH_58D] = 2,
                 [WarehouseManager.AircraftFlags.OH58D_R] = 4,
-               
+                [WarehouseManager.AircraftFlags.CH47D] = 4,
                 [WarehouseManager.AircraftFlags.AH64D_BLKII] = 4,
 
                 [WarehouseManager.Flags.MISTRAL] = 8,
