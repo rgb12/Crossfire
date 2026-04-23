@@ -56,6 +56,17 @@ ctld.aircraft_limits = {
 ---@type Asset[]
 ctld.placed_assets = {} -- store for persistence, save function will check all units and statics are alive before saving
 
+-- Caches Active (Airlift) operation operation_id, operation type, load_zone_name, target_zone_name
+ctld.operation_context_by_unit = {}
+
+-- Temporary operation assets are tracked outside ctld.placed_assets to avoid persistence.
+-- [operation_id] = { { unit_name, part_name, object_type, coalition, point }, ... }
+ctld.operation_assets = {}
+
+-- Tracks operation load actions by operation id.
+-- [operation_id] = { [part_name] = count }
+ctld.operation_loads = {}
+
 ---@class ConstructedFARP
 ---@field farp_name string
 ---@field point vec3
@@ -321,6 +332,17 @@ function ctld.load(part, unit)
         return
     end
 
+    local op_context = ctld.getOperationContextForUnit(unit)
+    if op_context
+    and op_context.operation_type == OperationTypes.STRATEGIC_AIRLIFT
+    and op_context.load_zone_name
+    and unit_zone
+    and unit_zone.name ~= op_context.load_zone_name then
+        trigger.action.outTextForUnit(unit_id, "Negative, Strategic Airlift load must be performed at " .. op_context.load_zone_name, 8)
+        trigger.action.outSoundForUnit(unit_id, "transmission1.ogg")
+        return
+    end
+
     if unit_zone.ammo_depot_intact ~= true then
         trigger.action.outTextForUnit(unit_id, "Negative, cannot load: Ammunition Depot is required to access supplies in this zone.", 10)
         trigger.action.outSoundForUnit(unit_id, "transmission1.ogg")
@@ -404,6 +426,11 @@ function ctld.load(part, unit)
     unit_zone.local_supplies = math.max((unit_zone.local_supplies or 0) - (part.req_supplies or 0),0)
 
     table.insert(user.parts, part)
+
+    if op_context and op_context.operation_id then
+        ctld.registerOperationLoad(op_context.operation_id, part.name)
+    end
+
     if user.is_dynamic_cargo then
 
         if part.type == ctld.AssetTypes.TROOPS then
@@ -515,10 +542,12 @@ function ctld.unpack(unit)
         table.insert(packed_parts_by_name[part_name].objs, part_data.obj)
     end
 
+    local op_context = ctld.getOperationContextForUnit(unit)
+
     -- First pass: Collect all SAM units to be created, grouped by group_requirement
     local sam_groups_to_spawn = {}  -- {group_requirement = {units = {...}, existing_group = group_obj}}
     local vehicles_to_spawn = {}  -- Regular vehicles spawn immediately
-    
+
     -- Collect all units to unpack
     for part_name, crate_data in pairs(packed_parts_by_name) do
         ---@type part
@@ -561,11 +590,11 @@ function ctld.unpack(unit)
         else
             -- Calculate how many units we can spawn
             local units_to_create = math.floor(available_crates / crates_required)
-            
+
             for i = 1, units_to_create do
                 local crate_idx = (i - 1) * crates_required + 1
                 local pos = crate_data.objs[crate_idx]:getPoint()
-                
+
                 if part.type == ctld.AssetTypes.VEHICLES then
                     -- Store vehicle to spawn immediately
                     table.insert(vehicles_to_spawn, {
@@ -575,11 +604,11 @@ function ctld.unpack(unit)
                         crates_required = crates_required,
                         crate_objs = crate_data.objs
                     })
-                
+
                 elseif part.type == ctld.AssetTypes.SAM then
-                    
+
                     local group_req = part.group_requirement or part.name
-                    
+
                     -- Initialize SAM group if not exists
                     if not sam_groups_to_spawn[group_req] then
                         sam_groups_to_spawn[group_req] = {
@@ -587,7 +616,7 @@ function ctld.unpack(unit)
                             existing_group = nil,
                             group_requirement = group_req
                         }
-                        
+
                         -- Check for existing unpacked SAM group with same requirement
                         for _, existing_asset in ipairs(unpacked_parts) do
                             if existing_asset.part.type == ctld.AssetTypes.SAM and
@@ -600,7 +629,7 @@ function ctld.unpack(unit)
                             end
                         end
                     end
-                    
+
                     -- Add unit to spawn list
                     local u_id = mist.getNextUnitId()
                     local unit_table = {
@@ -640,22 +669,33 @@ function ctld.unpack(unit)
             country = unit:getCountry(),
             category = Group.Category.GROUND,
         })
-        
+
         if spawned_group then
-            table.insert(ctld.placed_assets, {
-                unit_name = unit_table.name,
-                asset_name = vehicle_data.part.name,
-                point = vehicle_data.pos,
-                type = vehicle_data.part.type,
-                coalition = unit:getCoalition(),
-                is_group = false
-            })
+            if op_context and op_context.operation_id then
+                ctld.registerOperationAsset(op_context.operation_id, {
+                    unit_name = unit_table.name,
+                    part_name = vehicle_data.part.name,
+                    point = vehicle_data.pos,
+                    object_type = "unit",
+                    coalition = unit:getCoalition()
+                })
+            else
+                table.insert(ctld.placed_assets, {
+                    unit_name = unit_table.name,
+                    asset_name = vehicle_data.part.name,
+                    part_name = vehicle_data.part.name,
+                    point = vehicle_data.pos,
+                    type = vehicle_data.part.type,
+                    coalition = unit:getCoalition(),
+                    is_group = false
+                })
+            end
 
             trigger.action.outTextForUnit(unit_id, 
                 string.format("Unpacked %s, used %d crate(s)", vehicle_data.part.desc, vehicle_data.crates_required), 3)
             trigger.action.outSoundForUnit(unit_id, "transmission1.ogg")
             end
-        
+
         -- Destroy crates
         for j = vehicle_data.crate_idx, math.min(vehicle_data.crate_idx + vehicle_data.crates_required - 1, #vehicle_data.crate_objs) do
             if vehicle_data.crate_objs[j] and vehicle_data.crate_objs[j]:isExist() then
@@ -668,7 +708,7 @@ function ctld.unpack(unit)
     for group_req, sam_data in pairs(sam_groups_to_spawn) do
         if #sam_data.units > 0 then
             local group_units = {}
-            
+
             -- If existing group, get its units first
             if sam_data.existing_group and sam_data.existing_group:isExist() then
                 local existing_units = sam_data.existing_group:getUnits()
@@ -702,18 +742,29 @@ function ctld.unpack(unit)
             })
             
             if spawned_group then
-                -- Record all newly added units in placed_assets
+                -- Record all newly added units in placed_assets, unless this is operation cargo
                 for _, unit_data in ipairs(sam_data.units) do
-                    table.insert(ctld.placed_assets, {
-                        unit_name = unit_data.unit_data.name,
-                        asset_name = unit_data.part.name,
-                        point = unit_data.pos,
-                        type = ctld.AssetTypes.SAM,
-                        coalition = unit:getCoalition(),
-                        is_group = true,
-                        unit_count = #group_units,
-                        group_name = gr_name
-                    })
+                    if op_context and op_context.operation_id then
+                        ctld.registerOperationAsset(op_context.operation_id, {
+                            unit_name = unit_data.unit_data.name,
+                            part_name = unit_data.part.name,
+                            point = unit_data.pos,
+                            object_type = "unit",
+                            coalition = unit:getCoalition()
+                        })
+                    else
+                        table.insert(ctld.placed_assets, {
+                            unit_name = unit_data.unit_data.name,
+                            asset_name = unit_data.part.name,
+                            part_name = unit_data.part.name,
+                            point = unit_data.pos,
+                            type = ctld.AssetTypes.SAM,
+                            coalition = unit:getCoalition(),
+                            is_group = true,
+                            unit_count = #group_units,
+                            group_name = gr_name
+                        })
+                    end
                     
                     -- Destroy crates
                     for j = unit_data.crate_idx, math.min(unit_data.crate_idx + unit_data.crates_required - 1, #unit_data.crate_objs) do
@@ -1419,7 +1470,10 @@ end
 ---@param unit Unit
 ---@param part part
 function ctld.spawnCargoCrate(unit,part)
-    if #ctld.placed_assets >= Config.ctld.max_placed_assets then
+    local op_context = ctld.getOperationContextForUnit(unit)
+
+    if (not op_context or not op_context.operation_id)
+    and #ctld.placed_assets >= Config.ctld.max_placed_assets then
         trigger.action.outTextForUnit(unit:getID(), "Cannot load: Maximum placed assets limit reached ("..Config.ctld.max_placed_assets..").", 5)
         return
     end
@@ -1445,20 +1499,34 @@ function ctld.spawnCargoCrate(unit,part)
         y = point.z
     })
     if crate then
-        table.insert(ctld.placed_assets, {
-            unit_name = crate.name,
-            asset_name = type_to_spawn,
-            point = point,
-            type = ctld.AssetTypes.CARGO_CRATES,
-            coalition = unit:getCoalition()
-        })
+        if op_context and op_context.operation_id then
+            ctld.registerOperationAsset(op_context.operation_id, {
+                unit_name = crate.name,
+                part_name = part.name,
+                point = point,
+                object_type = "static",
+                coalition = unit:getCoalition()
+            })
+        else
+            table.insert(ctld.placed_assets, {
+                unit_name = crate.name,
+                asset_name = type_to_spawn,
+                part_name = part.name,
+                point = point,
+                type = ctld.AssetTypes.CARGO_CRATES,
+                coalition = unit:getCoalition()
+            })
+        end
     end
 end
 
 ---@param unit Unit
 ---@param part part
 function ctld.spawnTroop(unit,part)
-    if #ctld.placed_assets >= Config.ctld.max_placed_assets then
+    local op_context = ctld.getOperationContextForUnit(unit)
+
+    if (not op_context or not op_context.operation_id)
+    and #ctld.placed_assets >= Config.ctld.max_placed_assets then
         trigger.action.outTextForUnit(unit:getID(), "Cannot load: Maximum placed assets limit reached ("..Config.ctld.max_placed_assets..").", 5)
         return
     end
@@ -1484,13 +1552,24 @@ function ctld.spawnTroop(unit,part)
     category = Group.Category.GROUND,
     })
     if troop then
-        table.insert(ctld.placed_assets, {
-            unit_name = unit_name,
-            asset_name = part.name,
-            point = point,
-            type = ctld.AssetTypes.TROOPS,
-            coalition = unit:getCoalition()
-        })
+        if op_context and op_context.operation_id then
+            ctld.registerOperationAsset(op_context.operation_id, {
+                unit_name = unit_name,
+                part_name = part.name,
+                point = point,
+                object_type = "unit",
+                coalition = unit:getCoalition()
+            })
+        else
+            table.insert(ctld.placed_assets, {
+                unit_name = unit_name,
+                asset_name = part.name,
+                part_name = part.name,
+                point = point,
+                type = ctld.AssetTypes.TROOPS,
+                coalition = unit:getCoalition()
+            })
+        end
     end
 end
 
@@ -1601,4 +1680,94 @@ function ctld.findPartByName(part_name)
         end
     end
     return nil
+end
+
+---@param unit Unit|nil
+---@return table|nil
+function ctld.getOperationContextForUnit(unit)
+    if not unit or not unit.getID then return nil end
+    return ctld.operation_context_by_unit[unit:getID()]
+end
+
+---@param unit Unit
+---@param context table|nil
+function ctld.setOperationContextForUnit(unit, context)
+    if not unit or not unit.getID then return end
+    local unit_id = unit:getID()
+    if context == nil then
+        ctld.operation_context_by_unit[unit_id] = nil
+    else
+        ctld.operation_context_by_unit[unit_id] = context
+    end
+end
+
+---@param unit Unit
+function ctld.clearOperationContextForUnit(unit)
+    if not unit or not unit.getID then return end
+    ctld.operation_context_by_unit[unit:getID()] = nil
+end
+
+---@param operation_id string
+---@param part_name string
+function ctld.registerOperationLoad(operation_id, part_name)
+    if not operation_id or not part_name then return end
+    ctld.operation_loads[operation_id] = ctld.operation_loads[operation_id] or {}
+    ctld.operation_loads[operation_id][part_name] = (ctld.operation_loads[operation_id][part_name] or 0) + 1
+end
+
+---@param operation_id string
+---@return table<string, number>
+function ctld.getOperationLoads(operation_id)
+    return ctld.operation_loads[operation_id] or {}
+end
+
+---@param operation_id string
+function ctld.clearOperationLoads(operation_id)
+    ctld.operation_loads[operation_id] = nil
+end
+
+---@param operation_id string
+---@param asset table
+function ctld.registerOperationAsset(operation_id, asset)
+    if not operation_id or not asset or not asset.unit_name then return end
+    ctld.operation_assets[operation_id] = ctld.operation_assets[operation_id] or {}
+    table.insert(ctld.operation_assets[operation_id], asset)
+end
+
+---@param operation_id string
+---@return table[]
+function ctld.getOperationAssets(operation_id)
+    return ctld.operation_assets[operation_id] or {}
+end
+
+---@param operation_id string
+function ctld.cleanupOperationAssets(operation_id)
+    local assets = ctld.operation_assets[operation_id]
+    if not assets then
+        ctld.operation_loads[operation_id] = nil
+        return
+    end
+
+    for _, asset in ipairs(assets) do
+        for i = #ctld.placed_assets, 1, -1 do
+            if ctld.placed_assets[i] and ctld.placed_assets[i].unit_name == asset.unit_name then
+                table.remove(ctld.placed_assets, i)
+            end
+        end
+
+        if asset.object_type == "static" then
+            local obj = StaticObject.getByName(asset.unit_name)
+            if obj and obj:isExist() then
+                obj:destroy()
+            end
+        elseif asset.object_type == "unit" then
+            local obj = Unit.getByName(asset.unit_name)
+            if obj and obj:isExist() then
+                obj:destroy()
+            end
+        end
+    end
+
+    ctld.operation_assets[operation_id] = nil
+    ctld.operation_loads[operation_id] = nil
 end

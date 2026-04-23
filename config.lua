@@ -45,6 +45,51 @@ Config = {
         attributes_for_SEAD_targeting = { 'SAM SR', 'SAM TR', 'IR Guided SAM', 'EWR' }, -- unit attributes that make them valid SEAD targets
         runway_destroyed_duration = 60*60, -- (seconds) runtime-only runway disable duration
 
+        strategic_airlift = {
+            enabled = true,
+            delivery_radius = 1200, -- (meters) delivery check radius around target zone center
+            cleanup_delay = 120, -- (seconds) delay before delivered operation assets are removed
+            stage_hold_duration = 45, -- (seconds) hold near destination before completion
+
+            min_manifest_items = 3,
+            max_manifest_items = 6,
+            category_weights = {
+                troops = 35,
+                crates = 40,
+                vehicles = 25,
+            },
+            max_vehicle_crates_required = 3, -- avoids very heavy/slow manifests for this operation type
+
+            min_route_distance = {
+                helicopter = 30000,
+                fixed_wing = 90000,
+            },
+            max_route_distance = {
+                helicopter = 150000,
+                fixed_wing = 350000,
+            },
+
+            seconds_per_km = {
+                helicopter = 85,
+                fixed_wing = 65,
+            },
+            min_time = {
+                helicopter = 20*60,
+                fixed_wing = 35*60,
+            },
+            max_time = {
+                helicopter = 45*60,
+                fixed_wing = 90*60,
+            },
+
+            base_xp = 1200,
+            xp_per_km = 2,
+            xp_aircraft_category_multiplier = {
+                helicopter = 0.95,
+                fixed_wing = 1.15,
+            }
+        },
+
         operation_refresh_time = 30, --(seconds) this is to set a cooldown for generating operations
 
         

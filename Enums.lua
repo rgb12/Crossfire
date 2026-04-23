@@ -154,12 +154,18 @@ OperationTypes = {
     RUNWAY_BOMBING = "Runway Bombing",
     RECON = "Recon",
     AIRDROP = "Airdrop",
+    STRATEGIC_AIRLIFT = "Strategic Airlift",
     INTERCEPT = "Intercept",
     CSAR = "CSAR",
     DEEP_RECON = "Deep Recon",
     DEEP_STRIKE = "Deep strike"
 }
 
+---@enum UserAircraftCategories
+UserAircraftCategories = {
+    HELICOPTER = 1,
+    FIXED_WING = 2
+}
 
 ---@enum OperationStatus
 OperationStatus = {

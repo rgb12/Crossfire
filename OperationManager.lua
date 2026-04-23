@@ -15,6 +15,15 @@
 ---@field coop_join_code number | nil -- Code for other players to join this co-op operation
 ---@field pilot_position vec3 | nil -- For CSAR operations: position of downed pilot
 ---@field smoke_spawned boolean | nil -- For CSAR operations: whether smoke has been spawned
+---@field load_zone_name string | nil -- For Strategic Airlift operations
+---@field strategic_manifest table[] | nil -- Requested CTLD parts for Strategic Airlift
+---@field strategic_manifest_text string | nil -- Human-readable manifest
+---@field delivery_radius number | nil -- Delivery validation radius for Strategic Airlift
+---@field hold_duration number | nil -- Hold duration near destination for Strategic Airlift
+---@field aircraft_category string | nil -- helicopter|fixed_wing selected at activation
+---@field time_limit_seconds number | nil -- Mission timer for Strategic Airlift
+---@field deadline_time number | nil -- Absolute mission deadline for Strategic Airlift
+---@field operation_uid string | nil -- Runtime unique id for temporary asset tracking
 
 ---@class OperationManager
 ---@field side coalition.side
@@ -183,8 +192,11 @@ do
                                     
                                     -- Notify remaining participants
                                     trigger.action.outTextForUnit(member_id, "You are now the operation leader!", 10)
+                                    trigger.action.outSoundForUnit(member_id, "radio_txrx.ogg")
+
                                     for remaining_id, _ in pairs(op.coop_members) do
                                         trigger.action.outTextForUnit(remaining_id, member_unit:getPlayerName() .. " is now the operation leader.", 10)
+                                        trigger.action.outSoundForUnit(remaining_id, "radio_txrx.ogg")
                                     end
                                     
                                     new_leader_found = true
@@ -196,12 +208,18 @@ do
                             if not new_leader_found then
                                 op.status = OperationStatus.FAILED
                                 trigger.action.outTextForCoalition(self.side, "Operation " .. op.operation_name .. " failed: all operatives lost.", 15)
+                                if op.type == OperationTypes.STRATEGIC_AIRLIFT then
+                                    self:cancelStrategicAirliftOperation(op, true)
+                                end
                                 table.remove(self.active_operations, i)
                             end
                         else
                             -- Solo operation - fail it
                             op.status = OperationStatus.FAILED
-                            trigger.action.outTextForCoalition(self.side, "Operation " .. op.operation_name .. " failed: operative lost.", 15)
+                            trigger.action.outTextForCoalition(self.side, "SITREP: " .. op.operation_name .. " operation failed!.", 15)
+                            if op.type == OperationTypes.STRATEGIC_AIRLIFT then
+                                self:cancelStrategicAirliftOperation(op, true)
+                            end
                             table.remove(self.active_operations, i)
                         end
                     else
@@ -213,9 +231,13 @@ do
                             local leader_unit = Unit.getByName(op.assigned_unit_name)
                             if leader_unit and leader_unit:isExist() then
                                 trigger.action.outTextForUnit(op.assigned_player_id, "A co-op member has been lost.", 10)
+                                trigger.action.outSoundForUnit(op.assigned_player_id, "radio_txrx.ogg")
+
                             end
                             for member_id, _ in pairs(op.coop_members) do
                                 trigger.action.outTextForUnit(member_id, "A co-op member has been lost.", 10)
+                                trigger.action.outSoundForUnit(member_id, "radio_txrx.ogg")
+
                             end
                         end
                     end
@@ -357,12 +379,20 @@ do
                             if not new_leader_found then
                                 op.status = OperationStatus.FAILED
                                 trigger.action.outTextForCoalition(self.side, op.type .. " Operation " .. op.operation_name .. " failed: all operatives left.", 15)
+                                trigger.action.outSoundForCoalition(self.side, "radio_txrx.ogg")
+                                
+                                if op.type == OperationTypes.STRATEGIC_AIRLIFT then
+                                    self:cancelStrategicAirliftOperation(op, true)
+                                end
                                 table.remove(self.active_operations, i)
                             end
                         else
                             -- Solo operation - fail it
                             op.status = OperationStatus.FAILED
-                            trigger.action.outTextForCoalition(self.side, op.type .. " Operation " .. op.operation_name .. " failed: operative left.", 15)
+                            trigger.action.outTextForCoalition(self.side, op.type .. " " .. op.operation_name .. " operation failed, operative left.", 15)
+                            if op.type == OperationTypes.STRATEGIC_AIRLIFT then
+                                self:cancelStrategicAirliftOperation(op, true)
+                            end
                             table.remove(self.active_operations, i)
                         end
                     else
@@ -374,9 +404,11 @@ do
                             local leader_unit = Unit.getByName(op.assigned_unit_name)
                             if leader_unit and leader_unit:isExist() then
                                 trigger.action.outTextForUnit(op.assigned_player_id, "A co-op member has left the operation.", 10)
+                                trigger.action.outSoundForUnit(op.assigned_player_id, "radio_txrx.ogg")
                             end
                             for member_id, _ in pairs(op.coop_members) do
                                 trigger.action.outTextForUnit(member_id, "A co-op member has left the operation.", 10)
+                                trigger.action.outSoundForUnit(member_id, "radio_txrx.ogg")
                             end
                         end
                     end
@@ -437,6 +469,7 @@ do
             return op_type == OperationTypes.CAP
                 or op_type == OperationTypes.INTERCEPT
                 or op_type == OperationTypes.AIRDROP
+                or op_type == OperationTypes.STRATEGIC_AIRLIFT
         end
 
         local discovered_zones = {}
@@ -445,7 +478,7 @@ do
         elseif self.side ==coalition.side.RED then
             discovered_zones = stats.red_discovered_zones
         end
-        
+
         -- Convert discovered_zones to a hash table for O(1) lookup instead of O(n)
         local discovered_zones_set = {}
         for _, zone_name in ipairs(discovered_zones) do
@@ -599,6 +632,18 @@ do
                         table.insert(self.available_operations, op)
                     end
                 end
+
+                -- STRATEGIC AIRLIFT between friendly logistics nodes.
+                if Config.operations.strategic_airlift and Config.operations.strategic_airlift.enabled
+                and zone.side == friendly_coalition and discovered_zones_set[zone.name] then
+                    local target_zone = self:findStrategicAirliftTargetZone(zone, friendly_coalition, discovered_zones_set)
+                    if target_zone and not self:isMissionProposed(target_zone.name) and not self:isZoneActive(target_zone.name) then
+                        local op = self:createStrategicAirliftOperation(zone, target_zone)
+                        if op then
+                            table.insert(self.available_operations, op)
+                        end
+                    end
+                end
             end
         end
         
@@ -649,6 +694,210 @@ do
         return code
     end
 
+    ---@param load_zone ZoneHandler
+    ---@param target_zone ZoneHandler
+    ---@param aircraft_category UserAircraftCategories
+    ---@return number
+    function OperationManager:computeStrategicAirliftTimeLimit(load_zone, target_zone, aircraft_category)
+        local dist_m = mist.utils.get2DDist(load_zone.zone.point, target_zone.zone.point)
+        local raw = math.floor((dist_m / 1000) * Config.operations.strategic_airlift.seconds_per_km[aircraft_category])
+        return math.max(Config.operations.strategic_airlift.min_time[aircraft_category], math.min(raw, Config.operations.strategic_airlift.max_time[aircraft_category]))
+    end
+
+    ---@param load_zone ZoneHandler
+    ---@param target_zone ZoneHandler
+    ---@param aircraft_category UserAircraftCategories
+    ---@return number
+    function OperationManager:computeStrategicAirliftReward(load_zone, target_zone, aircraft_category)
+        local base_xp = Config.operations.strategic_airlift.base_xp or 1200
+        local xp_per_km = Config.operations.strategic_airlift.xp_per_km or 2
+        local aircraft_category_mult = 1
+        aircraft_category_mult = Config.operations.strategic_airlift.xp_aircraft_category_multiplier[aircraft_category]
+        local dist_m = mist.utils.get2DDist(load_zone.zone.point, target_zone.zone.point)
+        local reward = (base_xp + math.floor((dist_m / 1000) * xp_per_km)) * aircraft_category_mult
+        return math.floor(reward)
+    end
+
+    ---@param load_zone ZoneHandler
+    ---@param friendly_coalition coalition.side
+    ---@param discovered_set table<string, boolean>
+    ---@return ZoneHandler|nil
+    function OperationManager:findStrategicAirliftTargetZone(load_zone, friendly_coalition, discovered_set)
+        local min_heli = Config.operations.strategic_airlift.min_route_distance.helicopter
+        local max_fixed = Config.operations.strategic_airlift.max_route_distance.fixed_wing
+
+        local candidates = {}
+        for _, zone in ipairs(zones) do
+            if zone.name ~= load_zone.name
+            and zone.side == friendly_coalition
+            and discovered_set[zone.name] then
+                local dist = mist.utils.get2DDist(load_zone.zone.point, zone.zone.point)
+                if dist >= min_heli and dist <= max_fixed then
+                    table.insert(candidates, { zone = zone, dist = dist })
+                end
+            end
+        end
+
+        if #candidates == 0 then return nil end
+
+        table.sort(candidates, function(a, b) return a.dist < b.dist end)
+        local pick_idx = math.random(1, #candidates)
+        return candidates[pick_idx].zone
+    end
+
+    ---@return part[]
+    function OperationManager:getStrategicAirliftEligibleParts()
+        local eligible = {}
+        for _, part in ipairs(ctld.parts or {}) do
+            if part.type == ctld.AssetTypes.TROOPS
+            or part.type == ctld.AssetTypes.CARGO_CRATES
+            or part.type == ctld.AssetTypes.VEHICLES then
+                local valid = true
+                if part.type == ctld.AssetTypes.VEHICLES then
+                    local max_crates = (Config.operations.strategic_airlift and Config.operations.strategic_airlift.max_vehicle_crates_required) or 3
+                    if (part.crates_required or 1) > max_crates then
+                        valid = false
+                    end
+                end
+                if part.weight and part.weight > 10000 then
+                    valid = false
+                end
+                if valid then
+                    table.insert(eligible, part)
+                end
+            end
+        end
+        return eligible
+    end
+
+    ---@param entries part[]
+    ---@param part_type string
+    ---@return part[]
+    function OperationManager:filterPartsByType(entries, part_type)
+        local out = {}
+        for _, entry in ipairs(entries) do
+            if entry.type == part_type then
+                table.insert(out, entry)
+            end
+        end
+        return out
+    end
+
+    ---@return table[]
+    function OperationManager:buildStrategicAirliftManifest()
+        local cfg = Config.operations.strategic_airlift or {}
+        local min_items = cfg.min_manifest_items or 3
+        local max_items = cfg.max_manifest_items or 6
+        local total_items = math.random(min_items, max_items)
+
+        local eligible = self:getStrategicAirliftEligibleParts()
+        local troops = self:filterPartsByType(eligible, ctld.AssetTypes.TROOPS)
+        local crates = self:filterPartsByType(eligible, ctld.AssetTypes.CARGO_CRATES)
+        local vehicles = self:filterPartsByType(eligible, ctld.AssetTypes.VEHICLES)
+
+        local w_troops = (cfg.category_weights and cfg.category_weights.troops) or 35
+        local w_crates = (cfg.category_weights and cfg.category_weights.crates) or 40
+        local w_vehicles = (cfg.category_weights and cfg.category_weights.vehicles) or 25
+
+        local function pick_category()
+            local total = w_troops + w_crates + w_vehicles
+            local r = math.random(1, total)
+            if r <= w_troops then return ctld.AssetTypes.TROOPS end
+            if r <= (w_troops + w_crates) then return ctld.AssetTypes.CARGO_CRATES end
+            return ctld.AssetTypes.VEHICLES
+        end
+
+        local manifest_by_name = {}
+        for _ = 1, total_items do
+            local cat = pick_category()
+            local pool = troops
+            if cat == ctld.AssetTypes.CARGO_CRATES then pool = crates end
+            if cat == ctld.AssetTypes.VEHICLES then pool = vehicles end
+
+            if #pool > 0 then
+                local picked = pool[math.random(1, #pool)]
+                if not manifest_by_name[picked.name] then
+                    manifest_by_name[picked.name] = {
+                        part_name = picked.name,
+                        part_desc = picked.desc,
+                        part_type = picked.type,
+                        quantity = 0
+                    }
+                end
+                manifest_by_name[picked.name].quantity = manifest_by_name[picked.name].quantity + 1
+            end
+        end
+
+        local manifest = {}
+        for _, row in pairs(manifest_by_name) do
+            table.insert(manifest, row)
+        end
+        table.sort(manifest, function(a, b) return a.part_desc < b.part_desc end)
+        return manifest
+    end
+
+    ---@param manifest table[]
+    ---@return string
+    function OperationManager:formatStrategicAirliftManifest(manifest)
+        local lines = {}
+        for _, row in ipairs(manifest or {}) do
+            table.insert(lines, string.format("- %s x%d", row.part_desc, row.quantity))
+        end
+        return table.concat(lines, "\n")
+    end
+
+    ---@param operation Operation
+    ---@return table<string, number>
+    function OperationManager:getStrategicAirliftDeliveredCounts(operation)
+        local counts = {}
+        if not operation or not operation.operation_uid then return counts end
+
+        local assets = ctld.getOperationAssets(operation.operation_uid)
+        local target_zone = ZoneHandler.getFromName(operation.target_zone_name)
+        if not target_zone then return counts end
+        local delivery_radius = operation.delivery_radius or ((Config.operations.strategic_airlift and Config.operations.strategic_airlift.delivery_radius) or 1200)
+
+        for _, asset in ipairs(assets) do
+            local obj = nil
+            if asset.object_type == "static" then
+                obj = StaticObject.getByName(asset.unit_name)
+            else
+                obj = Unit.getByName(asset.unit_name)
+            end
+
+            if obj and obj:isExist() and obj.getPoint then
+                local point = obj:getPoint()
+                if mist.utils.get2DDist(point, target_zone.zone.point) <= delivery_radius then
+                    counts[asset.part_name] = (counts[asset.part_name] or 0) + 1
+                end
+            end
+        end
+
+        return counts
+    end
+
+    ---@param operation Operation
+    ---@param cleanup_assets boolean
+    function OperationManager:cancelStrategicAirliftOperation(operation, cleanup_assets)
+        if not operation then return end
+
+        local leader = nil
+        if operation.assigned_unit_name then
+            leader = Unit.getByName(operation.assigned_unit_name)
+        end
+        if leader and leader:isExist() then
+            ctld.clearOperationContextForUnit(leader)
+        end
+
+        if operation.operation_uid then
+            if cleanup_assets then
+                ctld.cleanupOperationAssets(operation.operation_uid)
+            else
+                ctld.clearOperationLoads(operation.operation_uid)
+            end
+        end
+    end
+
     function OperationManager:createCASOperation(target_zone)
         ---@type Operation
         local op = {
@@ -681,7 +930,7 @@ do
 
     function OperationManager:createCSAROperation()
         if #self.downed_pilots == 0 then return nil end
-        
+
         -- Get the first downed pilot position
         local pilot_pos = self.downed_pilots[1]
         -- set the y coord to ground level
@@ -710,15 +959,14 @@ do
                     check = function(self, player_unit)
                         local player_pos = player_unit:getPoint()
                         if not player_pos then return false end
-                        
+
                         -- Check distance from downed pilot
                         local dist = mist.utils.get3DDist(pilot_pos, player_pos)
-                        
                         if dist <= self.rescue_radius then
                             -- Player is close enough - rescue successful
                             return true
                         end
-                        
+
                         return false
                     end
                 }
@@ -835,7 +1083,7 @@ do
                                 end
                                 return true
                             end)
-                            
+
                             if foundCargo then
                                 MissionLogger:info("Airdrop objective completed! Cargo landed count: "..cargo_count)
                                 if zone.level < 4 then
@@ -845,8 +1093,8 @@ do
                                     zone.next_level_up_avail = timer.getTime() + Config.logistics_level_up_interval
                                     trigger.action.outSoundForCoalition(zone.side,"radio_beep.ogg")
                                     trigger.action.outTextForCoalition(zone.side, "SITREP: Successful chute deployment over " .. zone.name .. ". Airdrop supplies have been processed, upgrading the sector to Tier " .. zone.level .. " of the 4-tier standard.",10)
-                                    
-                                else 
+
+                                else
                                     trigger.action.outTextForUnit(player_unit:getID(), "AIRDROP: "..zone.name.." is already at tier 4/4.",10)
                                 end
 
@@ -871,6 +1119,132 @@ do
                 }
             }
         }
+        return op
+    end
+
+    ---@param load_zone ZoneHandler
+    ---@param target_zone ZoneHandler
+    ---@return Operation|nil
+    function OperationManager:createStrategicAirliftOperation(load_zone, target_zone)
+        local manager = self
+        local manifest = self:buildStrategicAirliftManifest()
+        if not manifest or #manifest == 0 then return nil end
+
+        local delivery_radius = (Config.operations.strategic_airlift and Config.operations.strategic_airlift.delivery_radius) or 1200
+        local hold_duration = (Config.operations.strategic_airlift and Config.operations.strategic_airlift.stage_hold_duration) or 45
+
+        ---@type Operation
+        local op = {
+            type = OperationTypes.STRATEGIC_AIRLIFT,
+            code = self:createOperationCode(),
+            status = OperationStatus.AVAILABLE,
+            xp_reward = (Config.operations.strategic_airlift and Config.operations.strategic_airlift.base_xp) or 1200,
+            load_zone_name = load_zone.name,
+            target_zone_name = target_zone.name,
+            operation_name = operations_name[math.random(#operations_name)],
+            is_coop = false,
+            coop_leader_id = nil,
+            coop_leader_name = nil,
+            coop_members = {},
+            coop_join_code = nil,
+            delivery_radius = delivery_radius,
+            hold_duration = hold_duration,
+            strategic_manifest = manifest,
+            strategic_manifest_text = self:formatStrategicAirliftManifest(manifest),
+            objectives = {
+                {
+                    description = string.format("Load manifest via CTLD at %s", load_zone.name),
+                    completed = false,
+                    check = function(self_obj, player_unit)
+                        if not player_unit or not player_unit:isExist() then return false end
+                        local owner_op = nil
+                        for _, active_op in ipairs(manager.active_operations) do
+                            if active_op.assigned_unit_name == player_unit:getName()
+                            and active_op.type == OperationTypes.STRATEGIC_AIRLIFT then
+                                owner_op = active_op
+                                break
+                            end
+                        end
+                        if not owner_op then return false end
+
+                        local load_z = ZoneHandler.getFromName(owner_op.load_zone_name)
+                        if not load_z then return false end
+
+                        local loaded = ctld.getOperationLoads(owner_op.operation_uid)
+                        for _, req in ipairs(owner_op.strategic_manifest or {}) do
+                            if (loaded[req.part_name] or 0) < req.quantity then
+                                return false
+                            end
+                        end
+
+                        trigger.action.outTextForUnit(player_unit:getID(), "Strategic Airlift: Manifest loaded. Proceed to destination for delivery.", 10)
+                        trigger.action.outSoundForUnit(player_unit:getID(), "radio_txrx.ogg")
+                        return true
+                    end
+                },
+                {
+                    description = string.format("Unload requested manifest to %s", target_zone.name),
+                    completed = false,
+                    check = function(self_obj, player_unit)
+                        if not player_unit or not player_unit:isExist() then return false end
+                        local owner_op = nil
+                        for _, active_op in ipairs(manager.active_operations) do
+                            if active_op.assigned_unit_name == player_unit:getName()
+                            and active_op.type == OperationTypes.STRATEGIC_AIRLIFT then
+                                owner_op = active_op
+                                break
+                            end
+                        end
+                        if not owner_op then return false end
+
+                        local delivered = manager:getStrategicAirliftDeliveredCounts(owner_op)
+                        for _, req in ipairs(owner_op.strategic_manifest or {}) do
+                            if (delivered[req.part_name] or 0) < req.quantity then
+                                return false
+                            end
+                        end
+
+                        trigger.action.outTextForUnit(player_unit:getID(), "Strategic Airlift: Manifest delivery confirmed. Hold position.", 10)
+                        trigger.action.outSoundForUnit(player_unit:getID(), "radio_txrx.ogg")
+                        return true
+                    end
+                },
+                {
+                    description = "Hold near destination to finalize delivery handoff",
+                    completed = false,
+                    start_time = nil,
+                    check = function(self_obj, player_unit)
+                        if not player_unit or not player_unit:isExist() then return false end
+                        local owner_op = nil
+                        for _, active_op in ipairs(manager.active_operations) do
+                            if active_op.assigned_unit_name == player_unit:getName()
+                            and active_op.type == OperationTypes.STRATEGIC_AIRLIFT then
+                                owner_op = active_op
+                                break
+                            end
+                        end
+                        if not owner_op then return false end
+
+                        local target = ZoneHandler.getFromName(owner_op.target_zone_name)
+                        if not target then return false end
+
+                        local dist = mist.utils.get2DDist(player_unit:getPoint(), target.zone.point)
+                        if dist > owner_op.delivery_radius then
+                            self_obj.start_time = nil
+                            return false
+                        end
+
+                        if not self_obj.start_time then
+                            self_obj.start_time = timer.getTime()
+                            return false
+                        end
+
+                        return (timer.getTime() - self_obj.start_time) >= (owner_op.hold_duration or 45)
+                    end
+                }
+            }
+        }
+
         return op
     end
 
@@ -1351,6 +1725,10 @@ do
                         trigger.action.outSoundForUnit(member_id, "chatter3.ogg")
                     end
                 end
+
+                if active_op.type == OperationTypes.STRATEGIC_AIRLIFT then
+                    self:cancelStrategicAirliftOperation(active_op, true)
+                end
                 
                 table.remove(self.active_operations, i)
                 trigger.action.outSoundForUnit(unit_id,"chatter3.ogg")
@@ -1632,6 +2010,21 @@ do
             end
         end
 
+        if accepted_mission.type == OperationTypes.STRATEGIC_AIRLIFT then
+            if not ctld or not ctld.getAircraftLimit then
+                trigger.action.outTextForUnit(unit_id, "Strategic Airlift unavailable: CTLD is not initialized.", 10)
+                trigger.action.outSoundForUnit(unit_id, "radio_txrx.ogg")
+                return
+            end
+
+            local acft_limit = ctld.getAircraftLimit(unit)
+            if not acft_limit then
+                trigger.action.outTextForUnit(unit_id, "Strategic Airlift requires a CTLD-supported transport aircraft.", 10)
+                trigger.action.outSoundForUnit(unit_id, "radio_txrx.ogg")
+                return
+            end
+        end
+
         -- For CSAR operations, handle differently
         local zone_tgt = nil
         if accepted_mission.type == OperationTypes.CSAR then
@@ -1649,6 +2042,41 @@ do
         accepted_mission.status = OperationStatus.ACTIVE
         accepted_mission.assigned_player_id = unit_id
         accepted_mission.assigned_unit_name = unit:getName()
+
+        if accepted_mission.type == OperationTypes.STRATEGIC_AIRLIFT then
+            local load_zone = ZoneHandler.getFromName(accepted_mission.load_zone_name)
+            local target_zone = ZoneHandler.getFromName(accepted_mission.target_zone_name)
+            if not load_zone or not target_zone then
+                trigger.action.outTextForUnit(unit_id, "Strategic Airlift aborted: area unavailable.", 10)
+                trigger.action.outSoundForUnit(unit_id, "radio_txrx.ogg")
+                accepted_mission.status = OperationStatus.AVAILABLE
+                table.insert(self.available_operations, accepted_mission)
+                return
+            end
+
+            local aircraft_category = nil
+            if unit and unit.hasAttribute and unit:hasAttribute("Helicopters") then
+                aircraft_category = UserAircraftCategories.HELICOPTER
+            else
+                aircraft_category = UserAircraftCategories.FIXED_WING
+            end
+
+            if not aircraft_category then return end
+
+
+            accepted_mission.aircraft_category = aircraft_category
+            accepted_mission.time_limit_seconds = self:computeStrategicAirliftTimeLimit(load_zone, target_zone, aircraft_category)
+            accepted_mission.deadline_time = timer.getTime() + accepted_mission.time_limit_seconds
+            accepted_mission.xp_reward = self:computeStrategicAirliftReward(load_zone, target_zone, aircraft_category)
+            accepted_mission.operation_uid = string.format("airlift_%d_%d", accepted_mission.code or 0, math.floor(timer.getTime()))
+
+            ctld.setOperationContextForUnit(unit, {
+                operation_id = accepted_mission.operation_uid,
+                operation_type = accepted_mission.type,
+                load_zone_name = accepted_mission.load_zone_name,
+                target_zone_name = accepted_mission.target_zone_name,
+            })
+        end
         
         -- Initialize co-op fields if this is a co-op operation
         if accepted_mission.is_coop then
@@ -1693,6 +2121,23 @@ do
             if accepted_mission.type ~= OperationTypes.INTERCEPT then
                 outtxt = outtxt .. string.format("\n\nApproximate location coordinates:\n%s\n%s\nMGRS: %s", mist.tostringLL(lat, lon, 4), mist.tostringLL(lat, lon, 4, true), mist.tostringMGRS(mgrs, 4))
             end
+
+            if accepted_mission.type == OperationTypes.STRATEGIC_AIRLIFT then
+                local load_zone = ZoneHandler.getFromName(accepted_mission.load_zone_name)
+                local source_text = accepted_mission.load_zone_name or "Unknown"
+                local source_coords = ""
+                if load_zone and load_zone.zone and load_zone.zone.point then
+                    local slat, slon = coord.LOtoLL(load_zone.zone.point)
+                    local smgrs = coord.LLtoMGRS(slat, slon)
+                    source_coords = string.format("\n\nCoordinates:\n%s\n%s\nMGRS: %s", mist.tostringLL(slat, slon, 4), mist.tostringLL(slat, slon, 4, true), mist.tostringMGRS(smgrs, 4))
+                end
+
+                outtxt = outtxt .. string.format("\n\nLoad Area: %s", source_text)
+                outtxt = outtxt .. source_coords
+                outtxt = outtxt .. string.format("\n\nTime limit: %d minutes", math.floor((accepted_mission.time_limit_seconds or 0) / 60))
+                outtxt = outtxt .. string.format("\nExpected reward: %d XP", accepted_mission.xp_reward or 0)
+                outtxt = outtxt .. "\n\nManifest:\n" .. (accepted_mission.strategic_manifest_text or "- None")
+            end
         end
 
         -- Add co-op join code if this is a co-op operation
@@ -1712,6 +2157,20 @@ do
             local op = self.active_operations[i]
             if op then
                 local all_objectives_complete = true
+                local skip_operation = false
+
+                if op.type == OperationTypes.STRATEGIC_AIRLIFT
+                and op.deadline_time
+                and timer.getTime() > op.deadline_time then
+                    local leader_unit = Unit.getByName(op.assigned_unit_name)
+                    if leader_unit and leader_unit:isExist() then
+                        trigger.action.outTextForUnit(leader_unit:getID(), "Strategic Airlift failed: mission timer expired.", 12)
+                        trigger.action.outSoundForUnit(leader_unit:getID(), "chatter3.ogg")
+                    end
+                    self:cancelStrategicAirliftOperation(op, true)
+                    table.remove(self.active_operations, i)
+                    skip_operation = true
+                end
 
                 ---@type Unit
                 local player_unit = player_unit_for_cap or Unit.getByName(op.assigned_unit_name)
@@ -1720,7 +2179,7 @@ do
                 -- (crates can land after player RTB/ejects/crashes)
                 local can_check_objectives = (player_unit and player_unit:isExist()) or op.type == OperationTypes.AIRDROP
                 
-                if can_check_objectives then
+                if can_check_objectives and not skip_operation then
                     for _, obj in ipairs(op.objectives) do
                         if not obj.completed then
 
@@ -1812,6 +2271,16 @@ do
                                     break
                                 end
                             end
+                        end
+
+                        if op.type == OperationTypes.STRATEGIC_AIRLIFT then
+                            local op_uid = op.operation_uid
+                            self:cancelStrategicAirliftOperation(op, false)
+                            timer.scheduleFunction(function()
+                                if op_uid then
+                                    ctld.cleanupOperationAssets(op_uid)
+                                end
+                            end, {}, timer.getTime() + Config.operations.strategic_airlift.cleanup_delay)
                         end
 
                         table.remove(self.active_operations, i)
