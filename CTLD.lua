@@ -56,7 +56,7 @@ ctld.aircraft_limits = {
 ---@type Asset[]
 ctld.placed_assets = {} -- store for persistence, save function will check all units and statics are alive before saving
 
--- Caches Active (Airlift) operation operation_id, operation type, load_zone_name, target_zone_name
+-- Caches Active operations by unit operation_id, operation type, load_zone_name, target_zone_name
 ctld.operation_context_by_unit = {}
 
 -- Temporary operation assets are tracked outside ctld.placed_assets to avoid persistence.
@@ -428,7 +428,7 @@ function ctld.load(part, unit)
     table.insert(user.parts, part)
 
     if op_context and op_context.operation_id then
-        ctld.registerOperationLoad(op_context.operation_id, part.name)
+        ctld.addLoadforOperation(op_context.operation_id, part.name)
     end
 
     if user.is_dynamic_cargo then
@@ -1718,7 +1718,7 @@ end
 
 ---@param operation_id string
 ---@param part_name string
-function ctld.registerOperationLoad(operation_id, part_name)
+function ctld.addLoadforOperation(operation_id, part_name)
     if not operation_id or not part_name then return end
     ctld.operation_loads[operation_id] = ctld.operation_loads[operation_id] or {}
     ctld.operation_loads[operation_id][part_name] = (ctld.operation_loads[operation_id][part_name] or 0) + 1
@@ -1750,7 +1750,7 @@ function ctld.getOperationAssets(operation_id)
 end
 
 ---@param operation_id string
-function ctld.cleanupOperationAssets(operation_id)
+function ctld.clearOperationAssets(operation_id)
     local assets = ctld.operation_assets[operation_id]
     if not assets then
         ctld.operation_loads[operation_id] = nil

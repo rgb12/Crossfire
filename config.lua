@@ -349,6 +349,7 @@ Config = {
         BLUFOR_dispatcher_interval = 10*60+8, -- (seconds), avoid multiples of 15 to reduce lag spikes
         REDFOR_dispatcher_interval = 8*60+8, -- (seconds), avoid multiples of 15 to reduce lag spikes
         max_tasks_per_airbase = 4, -- maximum number of concurrent tasks per airbase
+        warehouse_aircraft_reserve = 2, -- minimum aircraft to leave in stock so AI does not empty the warehouse
         
         max_jtac_per_airbase = 2,
         max_cas_per_airbase = 1,

@@ -2077,8 +2077,9 @@ do
         -- Check each weapon requirement
         for wpn_id,amount in pairs(WarehouseManager.AIPayloads[airbase_coalition][ai_task_type]) do
             local current_count = warehouse:getItemCount(wpn_id)
-            if current_count < amount then
-                MissionLogger:info("[PAYLOAD CHECK] "..ai_task_type.." payload INSUFFICIENT: need "..amount.." of "..wpn_id..", have "..current_count)
+            local critical_amount = math.max(current_count-2,0)
+            if critical_amount < amount then
+                MissionLogger:info("[PAYLOAD CHECK] "..ai_task_type.." payload INSUFFICIENT: need "..amount.." of "..wpn_id..", have "..critical_amount)
                 return false
             end
         end
@@ -2086,6 +2087,10 @@ do
         MissionLogger:info("[PAYLOAD CHECK] "..ai_task_type.." payload OK")
         return true
 
+    end
+
+    function WarehouseManager:getAircraftReserveThreshold()
+        return (Config.tasking and Config.tasking.warehouse_aircraft_reserve) or 2
     end
 
     function WarehouseManager:checkAircraftInStock(airbase_name,ai_task_type)
@@ -2107,7 +2112,8 @@ do
             --warehouse_name =
             local acft_name = WarehouseManager.AirbaseGroupData[airbase_name][side][ai_task_type].warehouse_name
             local template_gr_name = WarehouseManager.AirbaseGroupData[airbase_name][side][ai_task_type].group_name
-            if warehouse:getItemCount(acft_name) > 0 then
+            local reserve_threshold = self:getAircraftReserveThreshold()
+            if warehouse:getItemCount(acft_name) > reserve_threshold then
                 return true, template_gr_name
             else
                 return false

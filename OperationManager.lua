@@ -637,17 +637,17 @@ do
                 if zone.side == friendly_coalition and discovered_zones_set[zone.name] and zone.level < 4 then
                     local closest_enemy_zone, dist = zone:getClosestZone(enemy_coalition)
                     if closest_enemy_zone and dist and dist < Config.operations.max_distance_to_frontline_for_airdrops then
-                        local op = self:createReinforcementOperation(zone)
+                        local op = self:createREINFORCEMENTOperation(zone)
                         table.insert(self.available_operations, op)
                     end
                 end
 
-                -- STRATEGIC AIRLIFT between friendly logistics nodes.
-                if Config.operations.strategic_airlift and Config.operations.strategic_airlift.enabled
+                -- STRATEGIC AIRLIFT between friendly logistics zones
+                if Config.operations.strategic_airlift.enabled
                 and zone.side == friendly_coalition and discovered_zones_set[zone.name] then
                     local target_zone = self:findStrategicAirliftTargetZone(zone, friendly_coalition, discovered_zones_set)
                     if target_zone and not self:isMissionProposed(target_zone.name) and not self:isZoneActive(target_zone.name) then
-                        local op = self:createStrategicAirliftOperation(zone, target_zone)
+                        local op = self:createSTRATEGICAIRLIFTOperation(zone, target_zone)
                         if op then
                             table.insert(self.available_operations, op)
                         end
@@ -763,8 +763,7 @@ do
             or part.type == ctld.AssetTypes.VEHICLES then
                 local valid = true
                 if part.type == ctld.AssetTypes.VEHICLES then
-                    local max_crates = (Config.operations.strategic_airlift and Config.operations.strategic_airlift.max_vehicle_crates_required) or 3
-                    if (part.crates_required or 1) > max_crates then
+                    if (part.crates_required or 1) > Config.operations.strategic_airlift.max_vehicle_crates_required then
                         valid = false
                     end
                 end
@@ -804,24 +803,24 @@ do
         local crates = self:filterPartsByType(eligible, ctld.AssetTypes.CARGO_CRATES)
         local vehicles = self:filterPartsByType(eligible, ctld.AssetTypes.VEHICLES)
 
-        local w_troops = (cfg.category_weights and cfg.category_weights.troops) or 35
-        local w_crates = (cfg.category_weights and cfg.category_weights.crates) or 40
-        local w_vehicles = (cfg.category_weights and cfg.category_weights.vehicles) or 25
+        local troops_weight = (cfg.category_weights and cfg.category_weights.troops) or 35
+        local crates_weight = (cfg.category_weights and cfg.category_weights.crates) or 40
+        local vehicles_weight = (cfg.category_weights and cfg.category_weights.vehicles) or 25
 
         local function pick_category()
-            local total = w_troops + w_crates + w_vehicles
+            local total = troops_weight + crates_weight + vehicles_weight
             local r = math.random(1, total)
-            if r <= w_troops then return ctld.AssetTypes.TROOPS end
-            if r <= (w_troops + w_crates) then return ctld.AssetTypes.CARGO_CRATES end
+            if r <= troops_weight then return ctld.AssetTypes.TROOPS end
+            if r <= (troops_weight + crates_weight) then return ctld.AssetTypes.CARGO_CRATES end
             return ctld.AssetTypes.VEHICLES
         end
 
         local manifest_by_name = {}
         for _ = 1, total_items do
-            local cat = pick_category()
+            local category = pick_category()
             local pool = troops
-            if cat == ctld.AssetTypes.CARGO_CRATES then pool = crates end
-            if cat == ctld.AssetTypes.VEHICLES then pool = vehicles end
+            if category == ctld.AssetTypes.CARGO_CRATES then pool = crates end
+            if category == ctld.AssetTypes.VEHICLES then pool = vehicles end
 
             if #pool > 0 then
                 local picked = pool[math.random(1, #pool)]
@@ -900,7 +899,7 @@ do
 
         if operation.operation_uid then
             if cleanup_assets then
-                ctld.cleanupOperationAssets(operation.operation_uid)
+                ctld.clearOperationAssets(operation.operation_uid)
             else
                 ctld.clearOperationLoads(operation.operation_uid)
             end
@@ -1128,7 +1127,7 @@ do
         return op
     end
 
-    function OperationManager:createReinforcementOperation(target_zone)
+    function OperationManager:createREINFORCEMENTOperation(target_zone)
         local manager = self
 
         ---@type Operation
@@ -1261,7 +1260,7 @@ do
     ---@param load_zone ZoneHandler
     ---@param target_zone ZoneHandler
     ---@return Operation|nil
-    function OperationManager:createStrategicAirliftOperation(load_zone, target_zone)
+    function OperationManager:createSTRATEGICAIRLIFTOperation(load_zone, target_zone)
         local manager = self
         local manifest = self:buildStrategicAirliftManifest()
         if not manifest or #manifest == 0 then return nil end
@@ -2445,7 +2444,7 @@ do
                             self:cancelStrategicAirliftOperation(op, false)
                             timer.scheduleFunction(function()
                                 if op_uid then
-                                    ctld.cleanupOperationAssets(op_uid)
+                                    ctld.clearOperationAssets(op_uid)
                                 end
                             end, {}, timer.getTime() + Config.operations.strategic_airlift.cleanup_delay)
                         end

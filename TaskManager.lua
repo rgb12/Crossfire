@@ -736,6 +736,7 @@ do
     ---@return ZoneHandler|nil,string|nil -- closest airbase, group name
     function TaskManager:findClosestAirbaseWithAircraftInStock(to_zone,side,aircraft_type, aircraft_amount,ai_task_type)
         local loop_prevention = 0
+        local aircraft_reserve = WarehouseManager:getAircraftReserveThreshold()
 
         local unavail_airbases = {}
         local closest_airbase = to_zone:getClosestZone(side,unavail_airbases,{ZoneTypes.AIRBASE})
@@ -759,7 +760,7 @@ do
                         group_name = WarehouseManager.AirbaseGroupData[closest_airbase.airbase_name][side][aircraft_type].group_name
                     end
                     -- MissionLogger:info("Airbase:" .. closest_airbase.airbase_name .. " has ".. aircraft_count .." ".. aircraft_type .." available.")  
-                    if aircraft_count and aircraft_count>=aircraft_amount and group_name then
+                    if aircraft_count and math.max(aircraft_count-aircraft_reserve,0)>=aircraft_amount and group_name then
 
                         if not self:checkIfMaxTasksReached(closest_airbase,side,ai_task_type) then
                             return closest_airbase,group_name
