@@ -57,7 +57,7 @@ ctld.aircraft_limits = {
 ctld.placed_assets = {} -- store for persistence, save function will check all units and statics are alive before saving
 
 -- Caches Active operations by unit operation_id, operation type, load_zone_name, target_zone_name
-ctld.operation_context_by_unit = {}
+ctld.operation_tasking_by_unit = {}
 
 -- Temporary operation assets are tracked outside ctld.placed_assets to avoid persistence.
 -- [operation_id] = { { unit_name, part_name, object_type, coalition, point }, ... }
@@ -332,13 +332,23 @@ function ctld.load(part, unit)
         return
     end
 
-    local op_context = ctld.getOperationContextForUnit(unit)
-    if op_context
-    and op_context.operation_type == OperationTypes.STRATEGIC_AIRLIFT
-    and op_context.load_zone_name
+    local op_tasking = ctld.getOperationTaskingForUnit(unit)
+    if op_tasking
+    and op_tasking.operation_type == OperationTypes.STRATEGIC_AIRLIFT
+    and op_tasking.load_zone_name
     and unit_zone
-    and unit_zone.name ~= op_context.load_zone_name then
-        trigger.action.outTextForUnit(unit_id, "Negative, Strategic Airlift load must be performed at " .. op_context.load_zone_name, 8)
+    and unit_zone.name ~= op_tasking.load_zone_name then
+        trigger.action.outTextForUnit(unit_id, "Negative, Strategic Airlift load must be performed at " .. op_tasking.load_zone_name, 8)
+        trigger.action.outSoundForUnit(unit_id, "transmission1.ogg")
+        return
+    end
+
+    if op_tasking
+    and op_tasking.operation_type == OperationTypes.RECOVER
+    and op_tasking.load_zone_name
+    and unit_zone
+    and unit_zone.name ~= op_tasking.load_zone_name then
+        trigger.action.outTextForUnit(unit_id, "Negative, Recover load must be performed at " .. op_tasking.load_zone_name, 8)
         trigger.action.outSoundForUnit(unit_id, "transmission1.ogg")
         return
     end
@@ -427,8 +437,8 @@ function ctld.load(part, unit)
 
     table.insert(user.parts, part)
 
-    if op_context and op_context.operation_id then
-        ctld.addLoadforOperation(op_context.operation_id, part.name)
+    if op_tasking and op_tasking.operation_id then
+        ctld.addLoadforOperation(op_tasking.operation_id, part.name)
     end
 
     if user.is_dynamic_cargo then
@@ -543,7 +553,7 @@ function ctld.unpack(unit)
         table.insert(packed_parts_by_name[part_name].objs, part_data.obj)
     end
 
-    local op_context = ctld.getOperationContextForUnit(unit)
+    local op_tasking = ctld.getOperationTaskingForUnit(unit)
 
     -- First pass: Collect all SAM units to be created, grouped by group_requirement
     local sam_groups_to_spawn = {}  -- {group_requirement = {units = {...}, existing_group = group_obj}}
@@ -674,8 +684,8 @@ function ctld.unpack(unit)
         })
 
         if spawned_group then
-            if op_context and op_context.operation_id then
-                ctld.registerOperationAsset(op_context.operation_id, {
+            if op_tasking and op_tasking.operation_id then
+                ctld.registerOperationAsset(op_tasking.operation_id, {
                     unit_name = unit_table.name,
                     part_name = vehicle_data.part.name,
                     point = vehicle_data.pos,
@@ -749,8 +759,8 @@ function ctld.unpack(unit)
             if spawned_group then
                 -- Record all newly added units in placed_assets, unless this is operation cargo
                 for _, unit_data in ipairs(sam_data.units) do
-                    if op_context and op_context.operation_id then
-                        ctld.registerOperationAsset(op_context.operation_id, {
+                    if op_tasking and op_tasking.operation_id then
+                        ctld.registerOperationAsset(op_tasking.operation_id, {
                             unit_name = unit_data.unit_data.name,
                             part_name = unit_data.part.name,
                             point = unit_data.pos,
@@ -1476,9 +1486,9 @@ end
 ---@param unit Unit
 ---@param part part
 function ctld.spawnCargoCrate(unit,part)
-    local op_context = ctld.getOperationContextForUnit(unit)
+    local op_tasking = ctld.getOperationTaskingForUnit(unit)
 
-    if (not op_context or not op_context.operation_id)
+    if (not op_tasking or not op_tasking.operation_id)
     and #ctld.placed_assets >= Config.ctld.max_placed_assets then
         trigger.action.outTextForUnit(unit:getID(), "Cannot load: Maximum placed assets limit reached ("..Config.ctld.max_placed_assets..").", 5)
         return
@@ -1496,17 +1506,24 @@ function ctld.spawnCargoCrate(unit,part)
         type_to_spawn = part.name
     end
 
+    local crate_name = Config.ctld.packed_asset_prefix..part.name.."_"..ctld.getNextGroupId()
+    if op_tasking
+    and op_tasking.operation_type == OperationTypes.RECOVER
+    and op_tasking.operation_tag then
+        crate_name = Config.ctld.packed_asset_prefix .. part.name .. "_" .. op_tasking.operation_tag .. "_" .. ctld.getNextGroupId()
+    end
+
     local crate = mist.dynAddStatic({
         type = type_to_spawn,
-        name = Config.ctld.packed_asset_prefix..part.name.."_"..ctld.getNextGroupId(),
+        name = crate_name,
         country = unit:getCountry(),
         category = "Cargos",
         x = point.x,
         y = point.z
     })
     if crate then
-        if op_context and op_context.operation_id then
-            ctld.registerOperationAsset(op_context.operation_id, {
+        if op_tasking and op_tasking.operation_id then
+            ctld.registerOperationAsset(op_tasking.operation_id, {
                 unit_name = crate.name,
                 part_name = part.name,
                 point = point,
@@ -1529,9 +1546,9 @@ end
 ---@param unit Unit
 ---@param part part
 function ctld.spawnTroop(unit,part)
-    local op_context = ctld.getOperationContextForUnit(unit)
+    local op_tasking = ctld.getOperationTaskingForUnit(unit)
 
-    if (not op_context or not op_context.operation_id)
+    if (not op_tasking or not op_tasking.operation_id)
     and #ctld.placed_assets >= Config.ctld.max_placed_assets then
         trigger.action.outTextForUnit(unit:getID(), "Cannot load: Maximum placed assets limit reached ("..Config.ctld.max_placed_assets..").", 5)
         return
@@ -1560,8 +1577,8 @@ function ctld.spawnTroop(unit,part)
     category = Group.Category.GROUND,
     })
     if troop then
-        if op_context and op_context.operation_id then
-            ctld.registerOperationAsset(op_context.operation_id, {
+        if op_tasking and op_tasking.operation_id then
+            ctld.registerOperationAsset(op_tasking.operation_id, {
                 unit_name = unit_name,
                 part_name = part.name,
                 point = point,
@@ -1693,27 +1710,27 @@ end
 
 ---@param unit Unit|nil
 ---@return table|nil
-function ctld.getOperationContextForUnit(unit)
+function ctld.getOperationTaskingForUnit(unit)
     if not unit or not unit.getID then return nil end
-    return ctld.operation_context_by_unit[unit:getID()]
+    return ctld.operation_tasking_by_unit[unit:getID()]
 end
 
 ---@param unit Unit
----@param context table|nil
-function ctld.setOperationContextForUnit(unit, context)
+---@param tasking table|nil
+function ctld.setOperationTaskingForUnit(unit, tasking)
     if not unit or not unit.getID then return end
     local unit_id = unit:getID()
-    if context == nil then
-        ctld.operation_context_by_unit[unit_id] = nil
+    if tasking == nil then
+        ctld.operation_tasking_by_unit[unit_id] = nil
     else
-        ctld.operation_context_by_unit[unit_id] = context
+        ctld.operation_tasking_by_unit[unit_id] = tasking
     end
 end
 
 ---@param unit Unit
-function ctld.clearOperationContextForUnit(unit)
+function ctld.clearOperationTaskingForUnit(unit)
     if not unit or not unit.getID then return end
-    ctld.operation_context_by_unit[unit:getID()] = nil
+    ctld.operation_tasking_by_unit[unit:getID()] = nil
 end
 
 ---@param operation_id string

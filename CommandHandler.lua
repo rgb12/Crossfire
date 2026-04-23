@@ -158,12 +158,7 @@ do
         if not unit or not unit:isExist() then return end
         if unit.getPlayerName and unit:getPlayerName() and unit.getCoalition then
 
-            local operation_manager = nil
-            if unit:getCoalition() == coalition.side.RED then
-                operation_manager = TheatreCommander.red_op_manager
-            elseif unit:getCoalition() == coalition.side.BLUE then
-                operation_manager = TheatreCommander.blue_op_manager
-            end
+            local operation_manager = TheatreCommander.operation_manager
             if not operation_manager then return end
 
             local group_id = gr:getID()
@@ -199,7 +194,7 @@ do
                         missionCommands.addCommandForGroup(group_id,tostring(code), digit2,
                             function(c,u)
                                 
-                                if u and u:getCoalition() == operation_manager.side then
+                                if u and (u:getCoalition() == coalition.side.BLUE or u:getCoalition() == coalition.side.RED) then
                                     operation_manager:activateOperation(u, c)
                                 end
                             end, code, unit)
@@ -220,7 +215,7 @@ do
                         local join_code = tonumber(i1 .. i2 .. i3)
                         missionCommands.addCommandForGroup(group_id, tostring(join_code), digit2,
                             function(code, unit)
-                                if unit and unit:getCoalition() == operation_manager.side then
+                                if unit and (unit:getCoalition() == coalition.side.BLUE or unit:getCoalition() == coalition.side.RED) then
                                     operation_manager:joinCoopOperation(unit, code)
                                 end
                             end, join_code, unit)

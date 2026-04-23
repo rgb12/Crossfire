@@ -91,6 +91,17 @@ Config = {
             }
         },
 
+        recover = {
+            enabled = true,
+            min_crates = 2,
+            max_crates = 4,
+            min_spawn_distance = 200, -- (meters) from source zone center
+            max_spawn_distance = 300, -- (meters) from source zone center
+            delivery_radius = 1200, -- (meters) delivery check radius around destination center
+            max_distance_to_frontline = 300*1000, -- (meters) source must be near frontline
+            xp_reward = 700,
+        },
+
         operation_refresh_time = 30, --(seconds) this is to set a cooldown for generating operations
 
         
@@ -111,6 +122,19 @@ Config = {
                 "C-130J-30",
             },
             [OperationTypes.REINFORCEMENT] = {
+                "UH-1H",
+                "Mi-8MT",
+                "Mi-24P",
+                "CH-47Fbl1",
+                "SA342L",
+                "SA342M",
+                "SA342Mistral",
+                "SA342Minigun",
+                "UH-60L",
+                "AH-64D_BLK_II"
+            },
+            [OperationTypes.RECOVER] = {
+                "C-130J-30",
                 "UH-1H",
                 "Mi-8MT",
                 "Mi-24P",
