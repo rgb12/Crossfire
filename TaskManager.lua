@@ -611,9 +611,57 @@ do
 
             self:setCAPTUREHELITask(helo_sent.name,side,to_zone,from_zone)
 
-            from_zone.capture_heli_avail = from_zone.capture_heli_avail - 1
+            from_zone.heli_avail = (from_zone.heli_avail or 0) - 1
             from_zone:drawF10()
             MissionLogger:info(utils.coalitionToString(side) .." heli from " ..from_zone.name .. " sent to capture zone: " .. to_zone.name)
+            return true
+        elseif ai_task_type == AITaskTypes.REINFORCEMENT_HELO and to_zone and from_zone then
+
+            if prevent_duplicates and EnrouteManager:findByToZone(to_zone, side, {AITaskTypes.REINFORCEMENT_HELO}) then
+                if user_requested then
+                    local txt = "Reinforcement helicopter already enroute to " .. to_zone.name
+                    trigger.action.outTextForCoalition(side, txt, 5)
+                end
+                return false
+            end
+
+            local template_name = nil
+            if side == coalition.side.RED then
+                template_name = GroupData.COMMON_ASSETS.RED.reinforcement_helicopter or GroupData.COMMON_ASSETS.RED.capture_helicopter
+            elseif side == coalition.side.BLUE then
+                template_name = GroupData.COMMON_ASSETS.BLUE.reinforcement_helicopter or GroupData.COMMON_ASSETS.BLUE.capture_helicopter
+            end
+
+            if not template_name then
+                MissionLogger:info("Reinforcement Helo spawn failed: missing template name.")
+                return false
+            end
+
+            local helo_sent = mist.teleportToPoint({
+                groupName = template_name,
+                point = from_zone.zone.point,
+                action = "clone"
+            })
+
+            if not helo_sent then
+                MissionLogger:info("Reinforcement Helo spawn failed, no heli sent")
+                return false
+            end
+
+            EnrouteManager:add({
+                group_name = helo_sent.name,
+                to_zone = to_zone,
+                from_zone = from_zone,
+                side = side,
+                ai_task_type = AITaskTypes.REINFORCEMENT_HELO,
+                aborted = false
+            })
+
+            self:setCAPTUREHELITask(helo_sent.name, side, to_zone, from_zone)
+
+            from_zone.heli_avail = (from_zone.heli_avail or 0) - 1
+            from_zone:drawF10()
+            MissionLogger:info(utils.coalitionToString(side) .." reinforcement heli from " .. from_zone.name .. " sent to " .. to_zone.name)
             return true
         end
 

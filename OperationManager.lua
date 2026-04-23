@@ -633,6 +633,15 @@ do
                     end
                 end
 
+                -- REINFORCEMENT (helicopter) over friendly zones
+                if zone.side == friendly_coalition and discovered_zones_set[zone.name] and zone.level < 4 then
+                    local closest_enemy_zone, dist = zone:getClosestZone(enemy_coalition)
+                    if closest_enemy_zone and dist and dist < Config.operations.max_distance_to_frontline_for_airdrops then
+                        local op = self:createReinforcementOperation(zone)
+                        table.insert(self.available_operations, op)
+                    end
+                end
+
                 -- STRATEGIC AIRLIFT between friendly logistics nodes.
                 if Config.operations.strategic_airlift and Config.operations.strategic_airlift.enabled
                 and zone.side == friendly_coalition and discovered_zones_set[zone.name] then
@@ -1050,11 +1059,15 @@ do
             coop_join_code = nil,
             objectives = {
                 {
-                    description = "Successfully deliver ".. Config.operations.airdrop_min_crates_landed .. "x CDS CRATES to " .. target_zone.name .. " via air drop.",
+                    description = "Successfully deliver supply crates (".. (Config.operations.reinforcement_required_supplies or 300) .." supplies) to " .. target_zone.name .. " via air drop.",
                     completed = false,
                     check = function(self, player_unit)
                         local zone = ZoneHandler.getFromName(target_zone.name)
                         if not zone then return false end
+                            local required_supplies = Config.operations.reinforcement_required_supplies
+                            local supplies_per_crate = Config.ctld.supply_crate_supplies
+                            local required_crates = math.ceil(required_supplies / math.max(supplies_per_crate, 1))
+
                             local volume = {
                                 id = world.VolumeType.SPHERE,
                                 params = {
@@ -1063,29 +1076,36 @@ do
                                 }
                             }
 
-                            local cargo_names = {}
-                            local foundCargo = false
-                            local cargo_count = 0
+                            local supply_crate_objs = {}
+                            local supply_crate_names = {}
                             world.searchObjects({Object.Category.CARGO}, volume, function(obj)
-                                if obj and obj:isExist() and obj.getVelocity and obj.getName then
-                                    table.insert(cargo_names, obj:getName())
-                                    MissionLogger:info("Found cargo: "..obj:getName())
+                                if obj and obj:isExist() and obj.getVelocity and obj.getName and obj.getTypeName then
+                                    -- Only supply crates count toward reinforcement upgrades.
+                                    if obj:getTypeName() ~= CargoCrates.SuppliesCrate then
+                                        return true
+                                    end
 
                                     local vel = obj:getVelocity()
-                                    -- Checks if cargo has landed
                                     local speed = math.sqrt(vel.x^2 + vel.y^2 + vel.z^2)
                                     if speed < 1 then
-                                        cargo_count = cargo_count + 1
-                                        if cargo_count >= Config.operations.airdrop_min_crates_landed then
-                                            foundCargo = true
-                                        end
+                                        table.insert(supply_crate_objs, obj)
+                                        table.insert(supply_crate_names, obj:getName())
                                     end
                                 end
                                 return true
                             end)
 
-                            if foundCargo then
-                                MissionLogger:info("Airdrop objective completed! Cargo landed count: "..cargo_count)
+                            if #supply_crate_objs >= required_crates then
+                                MissionLogger:info("Airdrop objective completed! Supply crates in zone: "..#supply_crate_objs)
+
+                                -- Consume the required supply crates for the upgrade.
+                                for i = 1, required_crates do
+                                    local crate_obj = supply_crate_objs[i]
+                                    if crate_obj and crate_obj:isExist() then
+                                        crate_obj:destroy()
+                                    end
+                                end
+
                                 if zone.level < 4 then
                                     zone.level = zone.level + 1
                                     UnitHandler.updateZoneUnits(zone)
@@ -1098,23 +1118,139 @@ do
                                     trigger.action.outTextForUnit(player_unit:getID(), "AIRDROP: "..zone.name.." is already at tier 4/4.",10)
                                 end
 
-                                -- Delete cargo crates from world
-                                timer.scheduleFunction(function ()
-                                    MissionLogger:info("Removing cargo crates for airdrop objective.")
-                                    for _, cname in ipairs(cargo_names) do
-                                        -- MissionLogger:info("Looking for cargo: "..cname)
-                                        local cargo_obj = StaticObject.getByName(cname)
-                                        if cargo_obj and cargo_obj:isExist() then
-                                            -- MissionLogger:info("Destroying cargo: "..cname)
-                                            cargo_obj:destroy()
-                                        end
-                                    end
-
-                                end, {}, timer.getTime() + 120)
-
                                 return true
                             end
                         return false
+                    end
+                }
+            }
+        }
+        return op
+    end
+
+    function OperationManager:createReinforcementOperation(target_zone)
+        local manager = self
+
+        ---@type Operation
+        local op = {
+            type = OperationTypes.REINFORCEMENT,
+            code = self:createOperationCode(),
+            status = OperationStatus.AVAILABLE,
+            xp_reward = 1000,
+            target_zone_name = target_zone.name,
+            operation_name = operations_name[math.random(#operations_name)],
+            is_coop = false,
+            coop_leader_id = nil,
+            coop_leader_name = nil,
+            coop_members = {},
+            coop_join_code = nil,
+            objectives = {
+                {
+                    description = string.format("Load supply crates totaling %d supplies", (Config.operations.reinforcement_required_supplies or 300)),
+                    completed = false,
+                    check = function(self_obj, player_unit)
+                        if not player_unit or not player_unit:isExist() then return false end
+
+                        local owner_op = nil
+                        for _, active_op in ipairs(manager.active_operations) do
+                            if active_op.assigned_unit_name == player_unit:getName()
+                            and active_op.type == OperationTypes.REINFORCEMENT then
+                                owner_op = active_op
+                                break
+                            end
+                        end
+                        if not owner_op or not owner_op.operation_uid then return false end
+
+                        local required_supplies = (Config.operations and Config.operations.reinforcement_required_supplies) or 300
+                        local supplies_per_crate = (Config.ctld and Config.ctld.supply_crate_supplies) or 50
+                        local required_crates = math.ceil(required_supplies / math.max(supplies_per_crate, 1))
+
+                        local loaded = ctld.getOperationLoads(owner_op.operation_uid)
+                        if (loaded[CargoCrates.SuppliesCrate] or 0) < required_crates then
+                            return false
+                        end
+
+                        trigger.action.outTextForUnit(player_unit:getID(), "Reinforcement: Supplies loaded. Proceed to target area for delivery.", 10)
+                        trigger.action.outSoundForUnit(player_unit:getID(), "radio_txrx.ogg")
+                        return true
+                    end
+                },
+                {
+                    description = string.format("Unload supply crates to %s", target_zone.name),
+                    completed = false,
+                    check = function(self_obj, player_unit)
+                        if not player_unit or not player_unit:isExist() then return false end
+                        if player_unit:inAir() then return false end
+
+                        local owner_op = nil
+                        for _, active_op in ipairs(manager.active_operations) do
+                            if active_op.assigned_unit_name == player_unit:getName()
+                            and active_op.type == OperationTypes.REINFORCEMENT then
+                                owner_op = active_op
+                                break
+                            end
+                        end
+                        if not owner_op then return false end
+
+                        local zone = ZoneHandler.getFromName(target_zone.name)
+                        if not zone then return false end
+
+                        if not zone:isPointInsideZone(player_unit:getPoint()) then
+                            return false
+                        end
+
+                        local required_supplies = (Config.operations and Config.operations.reinforcement_required_supplies) or 300
+                        local supplies_per_crate = (Config.ctld and Config.ctld.supply_crate_supplies) or 50
+                        local required_crates = math.ceil(required_supplies / math.max(supplies_per_crate, 1))
+
+                        local volume = {
+                            id = world.VolumeType.SPHERE,
+                            params = {
+                                point = zone.zone.point,
+                                radius = zone.zone.radius
+                            }
+                        }
+
+                        local supply_crate_objs = {}
+                        world.searchObjects({Object.Category.CARGO}, volume, function(obj)
+                            if obj and obj:isExist() and obj.getVelocity and obj.getTypeName then
+                                if obj:getTypeName() ~= CargoCrates.SuppliesCrate then
+                                    return true
+                                end
+                                local vel = obj:getVelocity()
+                                local speed = math.sqrt(vel.x^2 + vel.y^2 + vel.z^2)
+                                if speed < 1 then
+                                    table.insert(supply_crate_objs, obj)
+                                end
+                            end
+                            return true
+                        end)
+
+                        if #supply_crate_objs < required_crates then
+                            return false
+                        end
+
+                        -- Consume the required supply crates for the upgrade.
+                        for i = 1, required_crates do
+                            local crate_obj = supply_crate_objs[i]
+                            if crate_obj and crate_obj:isExist() then
+                                crate_obj:destroy()
+                            end
+                        end
+
+                        if zone.level < 4 then
+                            zone.level = zone.level + 1
+                            UnitHandler.updateZoneUnits(zone)
+                            zone:drawF10()
+                            zone.next_level_up_avail = timer.getTime() + (Config.logistics_level_up_interval or (16 * 60))
+                            trigger.action.outSoundForCoalition(zone.side, "radio_beep.ogg")
+                            trigger.action.outTextForCoalition(zone.side,
+                                "SITREP: Reinforcement supplies delivered to " .. zone.name .. ". The sector has been upgraded to Tier " .. zone.level .. " of the 4-tier standard.", 10)
+                        else
+                            trigger.action.outTextForUnit(player_unit:getID(), "REINFORCEMENT: "..zone.name.." is already at tier 4/4.", 10)
+                        end
+
+                        return true
                     end
                 }
             }
@@ -2025,6 +2161,28 @@ do
             end
         end
 
+        if accepted_mission.type == OperationTypes.REINFORCEMENT then
+            if not ctld or not ctld.getAircraftLimit then
+                trigger.action.outTextForUnit(unit_id, "Reinforcement unavailable: CTLD is not initialized.", 10)
+                trigger.action.outSoundForUnit(unit_id, "radio_txrx.ogg")
+                return
+            end
+
+            local desc = unit:getDesc()
+            if not (desc and desc.category == Unit.Category.HELICOPTER) then
+                trigger.action.outTextForUnit(unit_id, "Reinforcement requires a helicopter.", 10)
+                trigger.action.outSoundForUnit(unit_id, "radio_txrx.ogg")
+                return
+            end
+
+            local acft_limit = ctld.getAircraftLimit(unit)
+            if not acft_limit then
+                trigger.action.outTextForUnit(unit_id, "Reinforcement requires a CTLD-supported helicopter.", 10)
+                trigger.action.outSoundForUnit(unit_id, "radio_txrx.ogg")
+                return
+            end
+        end
+
         -- For CSAR operations, handle differently
         local zone_tgt = nil
         if accepted_mission.type == OperationTypes.CSAR then
@@ -2074,6 +2232,15 @@ do
                 operation_id = accepted_mission.operation_uid,
                 operation_type = accepted_mission.type,
                 load_zone_name = accepted_mission.load_zone_name,
+                target_zone_name = accepted_mission.target_zone_name,
+            })
+        end
+
+        if accepted_mission.type == OperationTypes.REINFORCEMENT then
+            accepted_mission.operation_uid = string.format("reinforce_%d_%d", accepted_mission.code or 0, math.floor(timer.getTime()))
+            ctld.setOperationContextForUnit(unit, {
+                operation_id = accepted_mission.operation_uid,
+                operation_type = accepted_mission.type,
                 target_zone_name = accepted_mission.target_zone_name,
             })
         end

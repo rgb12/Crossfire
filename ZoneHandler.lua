@@ -45,7 +45,7 @@ do
                 obj.next_level_up_avail = timer.getTime()
             end
             obj.ammo_depot_intact = false
-            obj.capture_heli_avail = obj.capture_heli_avail or 0
+            obj.heli_avail = obj.heli_avail or obj.capture_heli_avail or 0
         end
 
         if obj.zone_type == ZoneTypes.STRONGPOINT then
@@ -182,7 +182,7 @@ do
             text_display = text_display .. "\nAttack Convoys: " .. (self.attack_convoy or 0)
         elseif self.zone_type == ZoneTypes.LOGISTICS then
             text_display = text_display .. "\nLOGISTICS"
-            text_display = text_display .. "\nCapture Helicopters: " .. (self.capture_heli_avail or 0)
+            text_display = text_display .. "\nHelicopters: " .. (self.heli_avail or 0)
         elseif self.zone_type == ZoneTypes.FARP then
             text_display = text_display .. "\nFARP"
         elseif self.zone_type == ZoneTypes.SAMSITE then
@@ -438,7 +438,7 @@ do
                 UnitHandler.clone(GroupData.LOGISTICS_SITES.BLUE[self.level].group_name, self,true)
                 WarehouseManager:handleIncomingSupplies(self.side,{WarehouseManager.StockTypes.LOGISTICS_CAPTURE})
             end
-            self.capture_heli_avail = 0
+            self.heli_avail = 0
             -- Mark static as dead, this prevents the check function from flagging it as dead
             self.linked_ammo_depot = nil
             self.ammo_depot_intact = false
@@ -670,7 +670,7 @@ do
             self.last_capture_attempt = nil
             
             self.attack_convoy = 0
-            self.capture_heli_avail = 0
+            self.heli_avail = 0
             self:drawF10()
             self:updateDiscoveredZones()
             
@@ -715,7 +715,7 @@ do
     end
 
     function ZoneHandler:hasCaptureHeliAvailable()
-        return self.capture_heli_avail > 0
+        return (self.heli_avail or 0) > 0
     end
 
     ---@return boolean
@@ -814,8 +814,9 @@ do
         if math.random(1,100) > chance then return end
 
         if self.zone_type == ZoneTypes.LOGISTICS then
-            if self.capture_heli_avail < Config.tasking.max_capture_helicopters_per_logistics_zone then
-                self.capture_heli_avail = self.capture_heli_avail +1
+            self.heli_avail = self.heli_avail or 0
+            if self.heli_avail < Config.tasking.max_capture_helicopters_per_logistics_zone then
+                self.heli_avail = self.heli_avail + 1
             end
         elseif self.zone_type == ZoneTypes.STRONGPOINT then
             if self.attack_convoy < Config.tasking.max_attack_convoys_per_strongpoint_zone then

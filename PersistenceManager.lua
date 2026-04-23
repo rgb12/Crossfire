@@ -51,7 +51,7 @@ do
                 airbase_name = z.airbase_name,  -- Only for airbases
                 sam_classification = z.sam_classification,  -- Only for SAM sites
                 
-                capture_heli_avail = z.capture_heli_avail or 0,
+                heli_avail = z.heli_avail or 0,
                 attack_convoy = z.attack_convoy or 0,
                 
                 -- State tracking
@@ -230,7 +230,14 @@ do
             if zone_data then
                 -- Refund Asset Counts to the Save Data
                 if enroute.ai_task_type == AITaskTypes.CAPTURE_HELO then
-                    zone_data.capture_heli_avail = (zone_data.capture_heli_avail or 0) + 1
+                    zone_data.heli_avail = (zone_data.heli_avail or 0) + 1
+                elseif enroute.ai_task_type == AITaskTypes.REINFORCEMENT_HELO then
+                    zone_data.heli_avail = (zone_data.heli_avail or 0) + 1
+
+                    local required_supplies = (Config.operations and Config.operations.reinforcement_required_supplies) or 300
+                    local level = zone_data.level or 1
+                    local cap = (Config.supplies and Config.supplies.supplies_cap and Config.supplies.supplies_cap[level]) or 0
+                    zone_data.local_supplies = math.min((zone_data.local_supplies or 0) + required_supplies, cap)
                 elseif enroute.ai_task_type == AITaskTypes.ATTACK_CONVOY then
                     zone_data.attack_convoy = (zone_data.attack_convoy or 0) + 1
                 end
@@ -239,6 +246,7 @@ do
             -- Refund Aircraft & Payloads to the Warehouse Data
             -- (Skip ground assets that don't use warehouses)
             if enroute.ai_task_type ~= AITaskTypes.CAPTURE_HELO
+            and enroute.ai_task_type ~= AITaskTypes.REINFORCEMENT_HELO
             and enroute.ai_task_type ~= AITaskTypes.ATTACK_CONVOY
             and enroute.ai_task_type ~= AITaskTypes.RESUPPLY_CARGO then
                 
@@ -423,7 +431,7 @@ do
                 zone.sam_classification = saved_zone.sam_classification
                 
                 -- Restore dynamic counters
-                zone.capture_heli_avail = saved_zone.capture_heli_avail or 0
+                zone.heli_avail = saved_zone.heli_avail or saved_zone.capture_heli_avail or 0
                 zone.attack_convoy = saved_zone.attack_convoy or 0
                 
                 -- Restore state tracking

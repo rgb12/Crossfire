@@ -30,7 +30,7 @@ do
                     if EnrouteManager:findByFromZone(zone,side_sending_capture,{AITaskTypes.CAPTURE_HELO}) then return end
     
                     -- checks if closest zone can deploy a heli
-                    if zone.capture_heli_avail and zone.capture_heli_avail>0 and zones_distance <= Config.capture_helicopter_max_range then
+                    if zone.heli_avail and zone.heli_avail > 0 and zones_distance <= Config.capture_helicopter_max_range then
                         -- send heli
                         TaskManager:initiateAITask(AITaskTypes.CAPTURE_HELO,side_sending_capture,true,to_zone,zone,false)
                         return
@@ -49,31 +49,25 @@ do
 
         local zone_coal_check = ZoneHandler.getFromName(enroute_group.to_zone.name)
         if not zone_coal_check then return false end
-        if zone_coal_check.side ~= coalition.side.NEUTRAL then return false end
 
-        local capture_group = Group.getByName(enroute_group.group_name)
-        if not capture_group or not capture_group:isExist() then return false end
+        local helo_group = Group.getByName(enroute_group.group_name)
+        if not helo_group or not helo_group:isExist() then return false end
 
-        ------------[capture zone checks]------------
-        -- group is in zone and capture succeeds
         if enroute_group.ai_task_type == AITaskTypes.CAPTURE_HELO then
+            if zone_coal_check.side ~= coalition.side.NEUTRAL then return false end
+
             MissionLogger:info("Heli captured zone: " .. enroute_group.to_zone.zone.name)
-            -- remove heli from enroutes
             EnrouteManager:remove(enroute_group.group_name)
-        else
-            -- MissionLogger:info("Capture group not in zone or not all units are in zone")
-            return false -- capture not successful
+
+            if enroute_group.side == coalition.side.RED then
+                enroute_group.to_zone:capture(coalition.side.RED)
+            elseif enroute_group.side == coalition.side.BLUE then
+                enroute_group.to_zone:capture(coalition.side.BLUE)
+            end
+            return true
         end
 
-        ------------[cancelling all other enemy helicopters inbound for this zone]------------
-
-        -- flip zone ownership
-        if enroute_group.side == coalition.side.RED then
-            enroute_group.to_zone:capture(coalition.side.RED)
-        elseif enroute_group.side == coalition.side.BLUE then
-            enroute_group.to_zone:capture(coalition.side.BLUE)
-        end
-        return true
+        return false
     end
 
     ---@param side coalition.side
@@ -440,9 +434,33 @@ do
         local t5m_update = function()
             MissionLogger:info("5 mins")
 
-
-
             timer.scheduleFunction(function () --caching and cleaning when other functions free up
+                -- Logistics auto upgrade (performance-friendly: only evaluated every 5 minutes)
+                local required_supplies = Config.logistics_auto_upgrade_required_supplies or 300
+                local chance = Config.logistics_auto_upgrade_chance or 25
+                local now = timer.getTime()
+
+                for _, zone in ipairs(zones) do
+                    if zone.side ~= coalition.side.NEUTRAL
+                    and zone.zone_type == ZoneTypes.LOGISTICS
+                    and (zone.level or 1) < 4
+                    and (zone.local_supplies or 0) >= required_supplies
+                    and (zone.next_level_up_avail == nil or now >= zone.next_level_up_avail)
+                    then
+                        if math.random(1, 100) <= chance then
+                            zone.local_supplies = math.max((zone.local_supplies or 0) - required_supplies, 0)
+                            zone.level = (zone.level or 1) + 1
+                            zone.next_level_up_avail = now + (Config.logistics_level_up_interval or (16 * 60))
+
+                            UnitHandler.updateZoneUnits(zone)
+                            zone:drawF10()
+
+                            trigger.action.outTextForCoalition(zone.side, zone.name.." has reached operational tier "..zone.level.."/4", 10)
+                            trigger.action.outSoundForCoalition(zone.side, "radio_beep3.ogg")
+                        end
+                    end
+                end
+
                 for i = #EnrouteManager.enroutes, 1, -1 do
                     local enroute = EnrouteManager.enroutes[i]
                     if enroute then
@@ -1022,7 +1040,7 @@ do
             if idx <= #unassigned then
                 unassigned[idx].zone_type = ZoneTypes.LOGISTICS
                 unassigned[idx].next_level_up_avail = timer.getTime()
-                unassigned[idx].capture_heli_avail = 4
+                unassigned[idx].heli_avail = 4
                 idx = idx + 1
                 assigned_guaranteed = assigned_guaranteed + 1
             end
@@ -1088,7 +1106,7 @@ do
                     elseif budget_logistics > 0 then
                         zone.zone_type = ZoneTypes.LOGISTICS
                         zone.next_level_up_avail = timer.getTime()
-                        zone.capture_heli_avail = 4
+                        zone.heli_avail = 4
                         budget_logistics = budget_logistics - 1
                     elseif budget_ew > 0 then
                         zone.zone_type = ZoneTypes.EWSITE

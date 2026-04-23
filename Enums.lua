@@ -139,6 +139,7 @@ AITaskTypes = {
     STRIKE = "STRIKE",
     ATTACK_CONVOY = "ATTACK CONVOY",
     CAPTURE_HELO = "CAPTURE HELI",
+    REINFORCEMENT_HELO = "REINFORCEMENT HELI",
     RESUPPLY_CARGO = "RESUPPLY CARGO",
     RECON = "RECON"
 }
@@ -154,6 +155,7 @@ OperationTypes = {
     RUNWAY_BOMBING = "Runway Bombing",
     RECON = "Recon",
     AIRDROP = "Airdrop",
+    REINFORCEMENT = "Reinforcement",
     STRATEGIC_AIRLIFT = "Strategic Airlift",
     INTERCEPT = "Intercept",
     CSAR = "CSAR",

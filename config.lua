@@ -39,6 +39,7 @@ Config = {
         cap_max_radius_from_zone = 28*1000, -- (meters)
         max_distance_to_frontline_for_airdrops = 300*1000, -- (meters)
         airdrop_min_crates_landed = 6, -- minimum number of crates that must land to consider the airdrop successful
+        reinforcement_required_supplies = 300, -- supplies required to upgrade a zone via AIRDROP / REINFORCEMENT (ex: 300 with 50/crate => 6 supply crates)
         csar_rescue_radius = 50, -- (meters) distance from downed pilot required to complete rescue
         intercept_required_kills = 2, -- number of aircraft/helicopters to destroy to complete INTERCEPT
         intercept_max_distance_to_enemy = 200*1000, -- (meters) max distance from friendly zone to enemy zone for INTERCEPT to be proposed
@@ -108,6 +109,18 @@ Config = {
             },
             [OperationTypes.AIRDROP] = {
                 "C-130J-30",
+            },
+            [OperationTypes.REINFORCEMENT] = {
+                "UH-1H",
+                "Mi-8MT",
+                "Mi-24P",
+                "CH-47Fbl1",
+                "SA342L",
+                "SA342M",
+                "SA342Mistral",
+                "SA342Minigun",
+                "UH-60L",
+                "AH-64D_BLK_II"
             },
             [OperationTypes.CAS] = {
                 "A-10C_2",
@@ -440,6 +453,8 @@ Config = {
     logistics_upgrade_chance = 15, -- (%) every minute the dice is rolled
     logistics_level_up_interval = 16*60, -- (seconds) minimum time between level ups
     logistics_ammo_depot_respawn_time = 3*60, -- (seconds) time it takes for an ammo depot to respawn after being destroyed
+    logistics_auto_upgrade_required_supplies = 300, -- supplies required in a LOGISTICS zone stock to be eligible for auto upgrade
+    logistics_auto_upgrade_chance = 25, -- (%) evaluated at the 5-minute tick for eligible LOGISTICS zones
     comms_tower_respawn_time = 45*60, -- (seconds)
     
     comms_tower_lost_penalty = 1.1, -- the respawn time is multiplied by this much when a comms tower is lost @depracted

@@ -958,7 +958,7 @@ do
 
             local from_zone = nil
             for _, log_zone in ipairs(zones) do
-                if log_zone.side == side and log_zone.zone_type == ZoneTypes.LOGISTICS and log_zone.capture_heli_avail > 0 then
+                if log_zone.side == side and log_zone.zone_type == ZoneTypes.LOGISTICS and (log_zone.heli_avail or 0) > 0 then
                     from_zone = log_zone
                     break
                 end
@@ -972,6 +972,34 @@ do
                 trigger.action.outSoundForCoalition(side, "Radio squelch.ogg")
             else
                 trigger.action.outTextForGroup(gr_id, "Helicopter capture request failed (no assets available).", 10)
+                trigger.action.outSoundForGroup(gr_id, "Radio squelch.ogg")
+            end
+        end
+
+        local function executeReinforcementHeloRequest(u, to_zone)
+            if not CommandHandler.isGrounded(unit, gr_id) then return end
+
+            local required_supplies = (Config.operations and Config.operations.reinforcement_required_supplies) or 300
+
+            local from_zone = nil
+            for _, log_zone in ipairs(zones) do
+                if log_zone.side == side
+                and log_zone.zone_type == ZoneTypes.LOGISTICS
+                and (log_zone.heli_avail or 0) > 0
+                then
+                    from_zone = log_zone
+                    break
+                end
+            end
+
+            if not checkSupplies(u, required_supplies, from_zone) then return end
+
+            if from_zone and TaskManager:initiateAITask(AITaskTypes.REINFORCEMENT_HELO, side, false, to_zone, from_zone, true) then
+                deductSupplies(u, required_supplies, from_zone)
+                trigger.action.outTextForCoalition(side, "Request accepted, Reinforcement helicopter dispatched to " .. to_zone.name .. ", " .. required_supplies .. " supplies used.", 10)
+                trigger.action.outSoundForCoalition(side, "Radio squelch.ogg")
+            else
+                trigger.action.outTextForGroup(gr_id, "Reinforcement helicopter request failed (no assets available).", 10)
                 trigger.action.outSoundForGroup(gr_id, "Radio squelch.ogg")
             end
         end
@@ -1124,6 +1152,18 @@ do
                         return zone.side == coalition.side.NEUTRAL and utils.tableContains(discovered, zone.name)
                     end, executeCaptureHeloRequest)
                     createSelectAreaMenu(commands, "CMD-HQ Negative capture tasking. No neutral zones are currently identified.")
+                end,
+                arg = nil
+            },
+            {
+                name = "Request Helicopter Reinforcement",
+                func = function()
+                    local commands = buildZoneCommandList(function(zone, discovered)
+                        return zone.side == side
+                            and zone.level and zone.level < 4
+                            and utils.tableContains(discovered, zone.name)
+                    end, executeReinforcementHeloRequest)
+                    createSelectAreaMenu(commands, "CMD-HQ Negative reinforcement tasking. No eligible friendly sectors are currently identified.")
                 end,
                 arg = nil
             },
