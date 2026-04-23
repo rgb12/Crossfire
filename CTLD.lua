@@ -453,6 +453,7 @@ function ctld.unpack(unit)
     MissionLogger:info("Unpacking")
     local unit_id = unit:getID()
     local unit_pos = unit:getPoint()
+    local unpack_heading = mist.getHeading(unit, true) or 0
     if unit:inAir() then
         trigger.action.outTextForUnit(unit_id,"Negative, cannot unpack while airborne.", 5)
         trigger.action.outSoundForUnit(unit_id, "transmission1.ogg")
@@ -638,6 +639,7 @@ function ctld.unpack(unit)
                         name = Config.ctld.unpacked_asset_prefix..part.name.."_"..u_id,
                         x = pos.x,
                         y = pos.z,
+                        heading = unpack_heading,
                     }
                     table.insert(sam_groups_to_spawn[group_req].units, {
                         unit_data = unit_table,
@@ -661,6 +663,7 @@ function ctld.unpack(unit)
             name = Config.ctld.unpacked_asset_prefix..vehicle_data.part.name .. "_" .. u_id,
             x = vehicle_data.pos.x,
             y = vehicle_data.pos.z,
+            heading = unpack_heading,
         }
         local group_name = "ctld_gr_"..mist.getNextGroupId()
         local spawned_group = mist.dynAdd({
@@ -685,6 +688,7 @@ function ctld.unpack(unit)
                     asset_name = vehicle_data.part.name,
                     part_name = vehicle_data.part.name,
                     point = vehicle_data.pos,
+                    heading = unpack_heading,
                     type = vehicle_data.part.type,
                     coalition = unit:getCoalition(),
                     is_group = false
@@ -719,6 +723,7 @@ function ctld.unpack(unit)
                         name = gu:getName(),
                         x = gu:getPoint().x,
                         y = gu:getPoint().z,
+                        heading = mist.getHeading(gu) or 0,
                     })
                 end
                 -- Destroy old group before respawning
@@ -758,6 +763,7 @@ function ctld.unpack(unit)
                             asset_name = unit_data.part.name,
                             part_name = unit_data.part.name,
                             point = unit_data.pos,
+                            heading = unit_data.unit_data.heading,
                             type = ctld.AssetTypes.SAM,
                             coalition = unit:getCoalition(),
                             is_group = true,
@@ -1535,6 +1541,7 @@ function ctld.spawnTroop(unit,part)
     if unit:getTypeName() == "C-130J-30" then
         point = ctld.getPointAt6Oclock(unit, ctld.getSecureDistanceFromUnit(unit))
     end
+    local spawn_heading = mist.getHeading(unit) or 0
 
     local u_id = mist.getNextUnitId()
     local unit_name = part.name .. "_" .. u_id
@@ -1546,6 +1553,7 @@ function ctld.spawnTroop(unit,part)
         name = unit_name,
         x = point.x,
         y = point.z,
+        heading = spawn_heading,
     }
     },
     country = unit:getCountry(),
@@ -1566,6 +1574,7 @@ function ctld.spawnTroop(unit,part)
                 asset_name = part.name,
                 part_name = part.name,
                 point = point,
+                heading = spawn_heading,
                 type = ctld.AssetTypes.TROOPS,
                 coalition = unit:getCoalition()
             })

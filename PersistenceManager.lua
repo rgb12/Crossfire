@@ -153,7 +153,8 @@ do
                                     table.insert(group_units_data, {
                                         type = unit:getTypeName(),
                                         name = unit:getName(),
-                                        point = unit:getPoint()
+                                        point = unit:getPoint(),
+                                        heading = mist.getHeading(unit, true) or 0
                                     })
                             end
                         end
@@ -200,7 +201,8 @@ do
                                 shape_name = asset.shape_name,
                                 type = asset.type,
                                 point = obj:getPoint(),
-                                coalition = asset.coalition
+                                coalition = asset.coalition,
+                                heading = mist.getHeading(obj, true) or 0
                             })
                         elseif not obj:inAir() then
                             table.insert(PersistenceManager.data.placed_assets, {
@@ -208,7 +210,8 @@ do
                                 asset_name = asset.asset_name,
                                 type = asset.type,
                                 point = obj:getPoint(),
-                                coalition = asset.coalition or obj:getCoalition()
+                                coalition = asset.coalition or obj:getCoalition(),
+                                heading = mist.getHeading(obj, true) or 0
                             })
                         end
                     end
@@ -524,7 +527,7 @@ do
                         category = saved_asset.category or "Fortifications",
                         x = saved_asset.point.x,
                         y = saved_asset.point.z,
-                        heading = 0
+                        heading = saved_asset.heading or 0
                     })
                 end
             end
@@ -594,6 +597,7 @@ do
                                 name = unit_data.name,
                                 x = unit_data.point.x,
                                 y = unit_data.point.z,
+                                heading = unit_data.heading or 0,
                             })
                         end
                         
@@ -612,7 +616,8 @@ do
                                 asset_name = saved_asset.asset_name,
                                 type = saved_asset.type,
                                 coalition = saved_asset.coalition,
-                                unit_count = #units_table
+                                unit_count = #units_table,
+                                units = saved_asset.units
                             })
                             MissionLogger:info(string.format("Restored group %s with %d units", saved_asset.group_name, #units_table))
                         end
@@ -630,7 +635,8 @@ do
                                 shape_name = saved_asset.shape_name,
                                 type = saved_asset.type,
                                 point = saved_asset.point,
-                                coalition = saved_asset.coalition
+                                coalition = saved_asset.coalition,
+                                heading = saved_asset.heading
                             })
                         else
                             local part = nil
@@ -651,7 +657,7 @@ do
                                     local unit_name = saved_asset.type == ctld.AssetTypes.VEHICLES
                                         and Config.ctld.unpacked_asset_prefix ..part.name .. "_" .. u_id
                                         or part.name .. "_" .. u_id
-                                    
+
                                     local spawned_group = mist.dynAdd({
                                         units = {{
                                             type = part.name,
@@ -659,18 +665,20 @@ do
                                             name = unit_name,
                                             x = saved_asset.point.x,
                                             y = saved_asset.point.z,
+                                            heading = saved_asset.heading or 0,
                                         }},
                                         country = country_id,
                                         category = Group.Category.GROUND,
                                     })
-                                    
+
                                     if spawned_group then
                                         table.insert(ctld.placed_assets, {
                                             unit_name = unit_name,
                                             asset_name = part.name,
                                             point = saved_asset.point,
                                             type = saved_asset.type,
-                                            coalition = saved_asset.coalition
+                                            coalition = saved_asset.coalition,
+                                            heading = saved_asset.heading
                                         })
                                     end
                                 end
@@ -680,7 +688,7 @@ do
                 end
             end
         end
-        
+
         MissionLogger:info("Mission state successfully restored.")
         --trigger.action.outText("Persistence, restored from last save.", 10)
         return true
@@ -690,7 +698,7 @@ function PersistenceManager:saveUserDataToFile()
         if not PersistenceManager.enabled then return end
         if not PersistenceManager.user_data_file_path then return end
         if not JSON then return end
-        
+
         local file_content = JSON:encode(ExperienceManager.user_data)
 
         if file_content then
@@ -728,7 +736,7 @@ function PersistenceManager:saveUserDataToFile()
 
     function PersistenceManager:autoSave()
         if not Config or not Config.persistence or not Config.persistence.save_interval then return end
-        
+
         MissionLogger:info("Auto-save enabled.")
 
         timer.scheduleFunction(function()
