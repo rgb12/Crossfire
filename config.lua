@@ -51,6 +51,8 @@ Config = {
             delivery_radius = 1200, -- (meters) delivery check radius around target zone center
             cleanup_delay = 120, -- (seconds) delay before delivered operation assets are removed
             stage_hold_duration = 45, -- (seconds) hold near destination before completion
+            completion_supply_bonus = 900, -- supplies granted to the destination area when strategic airlift completes
+            completion_supply_bonus_variance = 150, -- random variance applied to the completion supply bonus
 
             min_manifest_items = 3,
             max_manifest_items = 6,
@@ -109,6 +111,18 @@ Config = {
             },
             [OperationTypes.AIRDROP] = {
                 "C-130J-30",
+            },
+            [OperationTypes.STRATEGIC_AIRLIFT] = {
+                "C-130J-30",
+                "UH-1H",
+                "Mi-8MT",
+                "Mi-24P",
+                "CH-47Fbl1",
+                "SA342L",
+                "SA342M",
+                "SA342Mistral",
+                "SA342Minigun",
+                "UH-60L",
             },
             [OperationTypes.REINFORCEMENT] = {
                 "UH-1H",
@@ -191,7 +205,7 @@ Config = {
     jupiter_password = "", -- password required before the -, example password = 12 then the command is 12-discover
 
     allow_air_spawn = true, -- prevents or not air spawns for players
-    enable_slot_blocker = true, -- enables/disables the slot blocker system to prevent players spawning in enemy airbases
+    enable_slot_blocker = false, -- enables/disables the slot blocker system to prevent players spawning in enemy airbases
     enable_warehouse = true, -- this does not disable/enable the system, but stocks will be nearly unlimited if disabled
     allow_resupply = true, -- this will enable/disable resupply aircrafts, this will make the misison significantly harder
     enabled_su25t_blufor = true, -- adds the SU-25T to the blufor warehouse inventory
@@ -387,15 +401,17 @@ Config = {
         minimum_enemy_distance = 10*1000, -- (meters) nearest enemy zone to source airbase
         midpoint_ratio = 0.5, -- place tanker sector at this ratio from source toward nearest enemy zone
         route_switch_distance = 3000, -- (meters) switch leg when this close to endpoint
-        leg_length = 70*1000, -- (meters) straight refuel leg length
-        sector_width = 24*1000, -- (meters) width of drawn sector corridor
+        leg_length = 100*1000, -- (meters) straight refuel leg length
+        sector_width = 40*1000, -- (meters) width of drawn sector corridor
         rounded_corner_radius = 5000, -- (meters)
         rounded_corner_segments = 5, -- number of segments per corner arc
+        edge_inset = 10*1000,
+
 
         text_title = "Tanker Sector",
         text_color = {56/255,56/255,56/255,1},
         text_background = {156/255,156/255,156/255,0.6},
-        line_color = {56/255,56/255,56/255,1},
+        line_color = {156/255,156/255,156/255,0.9},
 
         drogue = {
             altitude_ft = 23000, --feet

@@ -376,6 +376,7 @@ function Jupiter:onEvent(event)
         elseif command == "-regenops" then
             TheatreCommander.blue_op_manager:forceRegenerateOperations()
             TheatreCommander.red_op_manager:forceRegenerateOperations()
+            trigger.action.outText("Jupiter: Operations regenerated.",5)
             cmd_executed = true
         elseif command == "-sendresupply" then
             TheatreCommander.sendWarehouseResupply(coalition.side.BLUE,false)

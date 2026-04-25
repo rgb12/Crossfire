@@ -332,11 +332,7 @@ do
                 zone.comms_tower_intact = true
                 zone.linked_comms_tower = comms_tower.name
                 
-                if zone.side == coalition.side.BLUE then
-                    stats.blue_comms_antennas = stats.blue_comms_antennas +1
-                else
-                    stats.red_comms_antennas = stats.red_comms_antennas +1
-                end
+                utils.editCommsAntennasCount(coalition.side.BLUE, 1)
                
                 table.insert(zone.linked_statics, comms_tower.name)
                 return true

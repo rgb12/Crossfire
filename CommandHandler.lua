@@ -231,7 +231,7 @@ do
                             function(c)
                                 local live_unit = getCurrentPlayerUnit()
                                 if live_unit and live_unit:getCoalition() == operation_manager.side then
-                                    operation_manager:activateOperation(live_unit, c)
+                                    operation_manager:initiateOperation(live_unit, c)
                                 end
                             end, code)
                     end

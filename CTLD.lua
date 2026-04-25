@@ -278,6 +278,8 @@ end
 function ctld.load(part, unit)
     -- If the unit is dynamic cargo capable, then spawn a cargo crate nearby, otherwise store in ctld.users
     local unit_id = unit:getID()
+    local op_context = ctld.getOperationContextForUnit(unit)
+    local is_strategic_airlift = op_context and op_context.operation_type == OperationTypes.STRATEGIC_AIRLIFT
 
     if unit:inAir() then
         trigger.action.outTextForUnit(unit_id,"Negative, cannot load while airborne.", 5)
@@ -289,16 +291,22 @@ function ctld.load(part, unit)
     local unit_zone = nil
     for _,zone in ipairs(zones) do
         if zone:isPointInsideZone(unit_pos) then
-            if utils.tableContains(Config.ctld.allowed_load_zones, zone.zone_type) then
-                unit_zone = zone
-                break
-            end
+            unit_zone = zone
+            break
         end
     end
     if not unit_zone then
         trigger.action.outTextForUnit(unit_id,"Negative, cannot load: Not in a valid load zone.", 5)
         trigger.action.outSoundForUnit(unit_id, "transmission1.ogg")
         return
+    end
+
+    if not is_strategic_airlift and not Config.ctld.allow_load_anywhere then
+        if not utils.tableContains(Config.ctld.allowed_load_zones, unit_zone.zone_type) then
+            trigger.action.outTextForUnit(unit_id,"Negative, cannot load: Not in a valid load zone.", 5)
+            trigger.action.outSoundForUnit(unit_id, "transmission1.ogg")
+            return
+        end
     end
 
     if ctld.player_cooldowns[unit_id] == nil then
@@ -332,7 +340,6 @@ function ctld.load(part, unit)
         return
     end
 
-    local op_context = ctld.getOperationContextForUnit(unit)
     if op_context
     and op_context.operation_type == OperationTypes.STRATEGIC_AIRLIFT
     and op_context.load_zone_name
@@ -343,40 +350,81 @@ function ctld.load(part, unit)
         return
     end
 
-    if unit_zone.ammo_depot_intact ~= true then
-        trigger.action.outTextForUnit(unit_id, "Negative, cannot load: Ammunition Depot is required to access supplies in this zone.", 10)
-        trigger.action.outSoundForUnit(unit_id, "transmission1.ogg")
-        return
-    end
-
-    -- check local supplies
-    local supply_count = unit_zone.local_supplies or 0
-    if part.req_supplies then
-        if supply_count < part.req_supplies then
-            trigger.action.outTextForUnit(unit_id, "Negative, cannot load: Not enough supplies for "..part.desc..". Requires "..part.req_supplies.." supplies.", 10)
+    if is_strategic_airlift then
+        local strategic_manifest = op_context and op_context.strategic_manifest
+        if not strategic_manifest or #strategic_manifest == 0 then
+            trigger.action.outTextForUnit(unit_id, "Negative, Strategic Airlift manifest is unavailable.", 8)
             trigger.action.outSoundForUnit(unit_id, "transmission1.ogg")
             return
         end
-    end
 
-    -- check max parts
-    if part.type == ctld.AssetTypes.CARGO_CRATES or part.type == ctld.AssetTypes.VEHICLES or part.type == ctld.AssetTypes.SAM then
-        if #user.parts >= aircraft_limit.max_parts then
-            trigger.action.outTextForUnit(unit_id,"Negative, cannot load part: "..part.desc..". Max parts limit reached.", 5)
-            trigger.action.outSoundForUnit(unit_id, "transmission1.ogg")
-            return
-        end
-    elseif part.type == ctld.AssetTypes.TROOPS then
-        local current_troops = 0
-        for _, p in ipairs(user.parts) do
-            if p.type == ctld.AssetTypes.TROOPS then
-                current_troops = current_troops + 1
+        local is_requested_part = false
+        local requested_quantity = 0
+        for _, req in ipairs(strategic_manifest) do
+            if req.part_name == part.name then
+                is_requested_part = true
+                requested_quantity = req.quantity or 0
+                break
             end
         end
-        if (current_troops + 1) > aircraft_limit.max_troops then
-            trigger.action.outTextForUnit(unit_id,"Negative, cannot load troop: "..part.desc..". Max troops limit reached ("..aircraft_limit.max_troops..").", 5)
+
+        if not is_requested_part then
+            trigger.action.outTextForUnit(unit_id, "Negative, Strategic Airlift does not request " .. part.desc .. ".", 8)
             trigger.action.outSoundForUnit(unit_id, "transmission1.ogg")
             return
+        end
+
+        if not op_context or not op_context.operation_id then
+            trigger.action.outTextForUnit(unit_id, "Negative, Strategic Airlift manifest is unavailable.", 8)
+            trigger.action.outSoundForUnit(unit_id, "transmission1.ogg")
+            return
+        end
+
+        local operation_id = op_context.operation_id
+        local loaded_for_operation = ctld.getOperationLoads(operation_id)
+        if (loaded_for_operation[part.name] or 0) >= requested_quantity then
+            trigger.action.outTextForUnit(unit_id, "Negative, Strategic Airlift already has enough " .. part.desc .. " loaded.", 8)
+            trigger.action.outSoundForUnit(unit_id, "transmission1.ogg")
+            return
+        end
+    end
+
+    if not is_strategic_airlift then
+        if unit_zone.ammo_depot_intact ~= true then
+            trigger.action.outTextForUnit(unit_id, "Negative, cannot load: Ammunition Depot is required to access supplies in this zone.", 10)
+            trigger.action.outSoundForUnit(unit_id, "transmission1.ogg")
+            return
+        end
+
+        -- check local supplies
+        local supply_count = unit_zone.local_supplies or 0
+        if part.req_supplies then
+            if supply_count < part.req_supplies then
+                trigger.action.outTextForUnit(unit_id, "Negative, cannot load: Not enough supplies for "..part.desc..". Requires "..part.req_supplies.." supplies.", 10)
+                trigger.action.outSoundForUnit(unit_id, "transmission1.ogg")
+                return
+            end
+        end
+
+        -- check max parts
+        if part.type == ctld.AssetTypes.CARGO_CRATES or part.type == ctld.AssetTypes.VEHICLES or part.type == ctld.AssetTypes.SAM then
+            if #user.parts >= aircraft_limit.max_parts then
+                trigger.action.outTextForUnit(unit_id,"Negative, cannot load part: "..part.desc..". Max parts limit reached.", 5)
+                trigger.action.outSoundForUnit(unit_id, "transmission1.ogg")
+                return
+            end
+        elseif part.type == ctld.AssetTypes.TROOPS then
+            local current_troops = 0
+            for _, p in ipairs(user.parts) do
+                if p.type == ctld.AssetTypes.TROOPS then
+                    current_troops = current_troops + 1
+                end
+            end
+            if (current_troops + 1) > aircraft_limit.max_troops then
+                trigger.action.outTextForUnit(unit_id,"Negative, cannot load troop: "..part.desc..". Max troops limit reached ("..aircraft_limit.max_troops..").", 5)
+                trigger.action.outSoundForUnit(unit_id, "transmission1.ogg")
+                return
+            end
         end
     end
 
@@ -1062,7 +1110,6 @@ function ctld.listSupplies(unit)
 
             local zone_level = zone.level or 1
             local zone_has_depot = zone.linked_statics and #zone.linked_statics > 0 and zone.ammo_depot_intact == true
-            MissionLogger:info(zone.name, zone_has_depot)
 
             local current_cap = 0
 
@@ -1084,7 +1131,7 @@ function ctld.listSupplies(unit)
                 coalition_supplies = coalition_supplies + zone_supplies
 
                 if zone:isPointInsideZone(unit_point) then
-                    txt_heading = "Logistics SITREP: ".. zone_supplies .. " / " .. current_cap .. " local available supplies.\n"
+                    txt_heading = "Logistics SITREP".. zone_supplies .. " / " .. current_cap .. " local available supplies.\n"
                 end
 
                 txt_body = txt_body .. "\n - ".. zone.name .. "            "..zone_supplies.."/"..current_cap.."      +".. zone_production .. " / minute"
@@ -1727,9 +1774,9 @@ end
 ---@param operation_id string
 ---@return table<string, number>
 function ctld.getOperationLoads(operation_id)
+    if not operation_id then return {} end
     return ctld.operation_loads[operation_id] or {}
 end
-
 ---@param operation_id string
 function ctld.clearOperationLoads(operation_id)
     ctld.operation_loads[operation_id] = nil
