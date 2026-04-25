@@ -415,3 +415,9 @@ function utils.buildRoundedRectAroundSegment(point_a, point_b, width_m, corner_r
 
     return points
 end
+
+---@param MHz number
+---@return number
+function utils.MHztoHz(MHz)
+    return MHz*1e6
+end

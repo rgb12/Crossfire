@@ -167,21 +167,52 @@ do
             if not operation_manager then return end
 
             local group_id = gr:getID()
+            local group_name = gr:getName()
+
+            local function getCurrentPlayerUnit()
+                local live_group = Group.getByName(group_name)
+                if not live_group or not live_group.isExist or not live_group:isExist() then
+                    return nil
+                end
+
+                local group_size = live_group:getSize() or 0
+                for i = 1, group_size do
+                    local member = live_group:getUnit(i)
+                    if member and member:isExist() and member.getPlayerName and member:getPlayerName() then
+                        return member
+                    end
+                end
+
+                local fallback = live_group:getUnit(1)
+                if fallback and fallback:isExist() then
+                    return fallback
+                end
+                return nil
+            end
 
             local missions_submenu = missionCommands.addSubMenuForGroup(group_id, "Operations")
             CommandHandler.addToMenuTracking(group_id, missions_submenu, "operations_menu")
 
             missionCommands.addCommandForGroup(group_id, "Available Operations", missions_submenu,function()
-                operation_manager:showAvailableOperations(unit)
+                local live_unit = getCurrentPlayerUnit()
+                if live_unit then
+                    operation_manager:showAvailableOperations(live_unit)
+                end
             end)
 
             missionCommands.addCommandForGroup(group_id, "Active Operation", missions_submenu,function()
-                operation_manager:showActiveOperation(unit)
+                local live_unit = getCurrentPlayerUnit()
+                if live_unit then
+                    operation_manager:showActiveOperation(live_unit)
+                end
             end)
             local cancel_op_menu = missionCommands.addSubMenuForGroup(group_id, "Cancel Active Operation",missions_submenu)
 
             missionCommands.addCommandForGroup(group_id, "Confirm (Cancel Active Operation)", cancel_op_menu,function()
-                operation_manager:cancelOperation(unit)
+                local live_unit = getCurrentPlayerUnit()
+                if live_unit then
+                    operation_manager:cancelOperation(live_unit)
+                end
             end)
 
 
@@ -197,12 +228,12 @@ do
                     for _, i3 in ipairs(digit_order) do
                         local code = tonumber(i1 .. i2 .. i3)
                         missionCommands.addCommandForGroup(group_id,tostring(code), digit2,
-                            function(c,u)
-                                
-                                if u and u:getCoalition() == operation_manager.side then
-                                    operation_manager:activateOperation(u, c)
+                            function(c)
+                                local live_unit = getCurrentPlayerUnit()
+                                if live_unit and live_unit:getCoalition() == operation_manager.side then
+                                    operation_manager:activateOperation(live_unit, c)
                                 end
-                            end, code, unit)
+                            end, code)
                     end
                 end
             end
@@ -219,21 +250,28 @@ do
                     for _, i3 in ipairs(digit_order) do
                         local join_code = tonumber(i1 .. i2 .. i3)
                         missionCommands.addCommandForGroup(group_id, tostring(join_code), digit2,
-                            function(code, unit)
-                                if unit and unit:getCoalition() == operation_manager.side then
-                                    operation_manager:joinCoopOperation(unit, code)
+                            function(code)
+                                local live_unit = getCurrentPlayerUnit()
+                                if live_unit and live_unit:getCoalition() == operation_manager.side then
+                                    operation_manager:joinCoopOperation(live_unit, code)
                                 end
-                            end, join_code, unit)
+                            end, join_code)
                     end
                 end
             end
 
             missionCommands.addCommandForGroup(group_id, "Leave CO-OP", coop_submenu, function()
-                operation_manager:leaveCoopOperation(unit)
+                local live_unit = getCurrentPlayerUnit()
+                if live_unit then
+                    operation_manager:leaveCoopOperation(live_unit)
+                end
             end)
 
             missionCommands.addCommandForGroup(group_id, "CO-OP Status", coop_submenu, function()
-                operation_manager:showCoopOperationStatus(unit)
+                local live_unit = getCurrentPlayerUnit()
+                if live_unit then
+                    operation_manager:showCoopOperationStatus(live_unit)
+                end
             end)
         end
     end
@@ -925,7 +963,7 @@ do
                 trigger.action.outTextForCoalition(side, "Request accepted, TANKER package dispatched from " .. supply_zone.name .. ", "..Config.supplies.tasking_costs.TANKER.." supplies used.", 10)
                 trigger.action.outSoundForCoalition(side, "Radio squelch.ogg")
             else
-                trigger.action.outTextForGroup(gr_id, "TANKER request failed (No sector available).", 10)
+                trigger.action.outTextForGroup(gr_id, "TANKER request failed.", 10)
                 trigger.action.outSoundForGroup(gr_id, "Radio squelch.ogg")
             end
         end
@@ -1102,10 +1140,10 @@ do
                 return
             end
 
-            trigger.action.outTextForGroup(gr_id, "CMD-HQ - Select target area with F10/Request Tasking", 8)
+            trigger.action.outTextForGroup(gr_id, "CMD-HQ - Select target area with the F10 Radio Menu", 8)
             trigger.action.outSoundForGroup(gr_id, "Radio squelch.ogg")
 
-            local temp_submenu = missionCommands.addSubMenuForGroup(gr_id, "(#) Select Area", tasking_main_submenu)
+            local temp_submenu = missionCommands.addSubMenuForGroup(gr_id, "(#) Select Area")
             CommandHandler.addToMenuTracking(gr_id, temp_submenu, "tasking_temp_zone")
 
             local token = 1 -- this prevents a new select menu from being removed by an old timer.
@@ -1204,7 +1242,7 @@ do
                 arg = nil
             },
             {
-                name = "Request Tanker Sector",
+                name = "Request Tanker",
                 func = function()
                     local requesting_airbase = utils.fetchSuppliesZoneFromUnit(unit)
                     if not requesting_airbase or requesting_airbase.zone_type ~= ZoneTypes.AIRBASE then

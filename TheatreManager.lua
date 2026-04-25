@@ -4,7 +4,9 @@ local ticks5m = 0
 TheatreCommander = {}
 do
 
+    ---@type OperationManager
     TheatreCommander.blue_op_manager = nil
+    ---@type OperationManager
     TheatreCommander.red_op_manager = nil
 
     ---@param to_zone ZoneHandler
@@ -507,7 +509,7 @@ do
             TheatreCommander.red_op_manager:tick()
         end
 
-        TaskManager:maintainTankerSectors()
+        TaskManager:checkTankerSectors()
         
         for i = #EnrouteManager.enroutes, 1, -1 do
             local enroute = EnrouteManager.enroutes[i]
@@ -906,7 +908,7 @@ do
         for _, point in ipairs(smoke_points) do
             smoke_id = smoke_id + 1
             local smoke_string = "TheatreSmoke" .. smoke_id
-            local duration = math.random(5*60, 12*60) -- 2-5 minutes
+            local duration = math.random(8*60, 16*60) -- 8-16 minutes
             trigger.action.effectSmokeBig(point,math.random(5,8),1,smoke_string)
 
                 timer.scheduleFunction(function ()

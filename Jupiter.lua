@@ -350,9 +350,17 @@ function Jupiter:onEvent(event)
             else
                 trigger.action.outText("Jupiter: No zone found within 10km for Recon tasking.", 5)
             end
+        elseif command == "-regenops" then
+            TheatreCommander.blue_op_manager:forceRegenerateOperations()
+            TheatreCommander.red_op_manager:forceRegenerateOperations()
+            cmd_executed = true
         elseif command == "-sendresupply" then
             TheatreCommander.sendWarehouseResupply(coalition.side.BLUE,false)
             TheatreCommander.sendWarehouseResupply(coalition.side.RED,false)
+            cmd_executed = true
+        elseif command == "-spawntanker" then
+            local zone = ZoneHandler.getFromName("VAZIANI")
+            TaskManager:initiateAITask(AITaskTypes.TANKER, coalition.side.BLUE, false, nil,zone , true)
             cmd_executed = true
         elseif command == "-resupply" then
             if param1 == "help" then

@@ -678,7 +678,7 @@ do
 
         trigger.action.outSound("radio click.ogg")
         MissionLogger:info("Zone " .. self.zone.name .. " captured by " .. utils.coalitionToString(self.side))
-
+        
         -- Invalidate cached operation lists immediately after ownership changes.
         if TheatreCommander.blue_op_manager and TheatreCommander.blue_op_manager.forceRegenerateOperations then
             TheatreCommander.blue_op_manager:forceRegenerateOperations()

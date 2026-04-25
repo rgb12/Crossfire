@@ -7,6 +7,10 @@ do
         [coalition.side.BLUE] = 0,
         [coalition.side.RED] = 0,
     }
+    ---@type number[]
+    TaskManager.assignedFrequencies = {}
+    ---@type number[]
+    TaskManager.assignedTACANS = {}
 
     ---@param ai_task_type AITaskTypes
     ---@param side coalition.side
@@ -170,7 +174,7 @@ do
             end
 
             local tanker_from_airbase = self:countActiveTankerSectorsFromAirbase(from_zone, side)
-            if tanker_from_airbase >= (Config.tasking.max_tanker_per_airbase or 2) then
+            if tanker_from_airbase >=Config.tasking.max_tanker_per_airbase then
                 sendText("TANKER unavailable from "..from_zone.name..", max tanker sectors from this airbase reached.")
                 return false
             end
@@ -182,14 +186,13 @@ do
                 return false
             end
 
-            local min_enemy_distance = Config.tanker.minimum_enemy_distance or (100*1000)
+            local min_enemy_distance = Config.tanker.minimum_enemy_distance
             if nearest_enemy_dist < min_enemy_distance then
-                sendText("TANKER unavailable, nearest enemy is too close to "..from_zone.name.." (minimum "..math.floor(min_enemy_distance/1000).."km).")
+                sendText("TANKER unavailable, nearest enemy area is too close to "..from_zone.name.." (minimum "..math.floor(min_enemy_distance/1000).."km)")
                 return false
             end
-
-            local midpoint_ratio = Config.tanker.midpoint_ratio or 0.5
-            local center_point = utils.pointAlongSegment(from_zone.zone.point, nearest_enemy_zone.zone.point, midpoint_ratio)
+            MissionLogger:info("Attempting tanker spawn")
+            local center_point = utils.pointAlongSegment(from_zone.zone.point, nearest_enemy_zone.zone.point, Config.tanker.midpoint_ratio)
 
             local path_dx = nearest_enemy_zone.zone.point.x - from_zone.zone.point.x
             local path_dz = nearest_enemy_zone.zone.point.z - from_zone.zone.point.z
@@ -235,6 +238,14 @@ do
                 center_point = center_point,
                 waypoint_1 = wp1,
                 waypoint_2 = wp2,
+                frequencies = {
+                    [TankerRoles.BOOM] = self:createFrequency(225,398), -- in MHz
+                    [TankerRoles.DROGUE] = self:createFrequency(225,398), -- in MHz
+                },
+                tacan = {
+                    [TankerRoles.BOOM] = self:createTACAN(50,80),
+                    [TankerRoles.DROGUE] = self:createTACAN(50,80)
+                },
                 route_targets = {
                     boom = 2,
                     drogue = 1,
@@ -251,30 +262,46 @@ do
             if delay_max < delay_min then
                 delay_max = delay_min
             end
-            local spawn_delay = math.random(delay_min, delay_max)
+            local spawn_delay = 2--math.random(delay_min, delay_max)
 
-            timer.scheduleFunction(function()
+           timer.scheduleFunction(function()
+                MissionLogger:info("spawn delay")
                 local sector = self.TankerSectors[sector_id]
                 if not sector or not sector.active then return end
 
-                local boom_alt = mist.utils.feetToMeters((Config.tanker.boom and Config.tanker.boom.altitude_ft) or 25000)
-                local drogue_alt = mist.utils.feetToMeters((Config.tanker.drogue and Config.tanker.drogue.altitude_ft) or 20000)
+                local boom_alt = mist.utils.feetToMeters(Config.tanker.boom.altitude_ft)
+                local drogue_alt = mist.utils.feetToMeters(Config.tanker.drogue.altitude_ft)
+
+                local boom_lane_wp1, boom_lane_wp2 = self:getTankerLaneWaypoints(sector, "boom")
+                local drogue_lane_wp1, drogue_lane_wp2 = self:getTankerLaneWaypoints(sector, "drogue")
+
+                local drogue_spawn = {
+                    x = drogue_lane_wp1.x,
+                    y = drogue_alt,
+                    z = drogue_lane_wp1.z
+                }
+                local boom_spawn = {
+                    x = boom_lane_wp1.x,
+                    y = boom_alt,
+                    z = boom_lane_wp1.z
+                }
 
                 local boom_group = mist.teleportToPoint({
                     groupName = side_assets.tanker_boom,
-                    point = { x = sector.waypoint_1.x, y = boom_alt, z = sector.waypoint_1.z },
-                    action = "clone"
+                    point = boom_spawn,
+                    action = "clone",
+                    radius=0
                 })
                 local drogue_group = mist.teleportToPoint({
                     groupName = side_assets.tanker_drogue,
-                    point = { x = sector.waypoint_2.x, y = drogue_alt, z = sector.waypoint_2.z },
-                    action = "clone"
+                    point = drogue_spawn,
+                    action = "clone",
+                    radius=0
                 })
 
                 if not boom_group or not drogue_group then
                     self:cleanupTankerSectorById(sector_id, true)
-                    trigger.action.outTextForCoalition(side, "TANKER spawn failed, verify tanker template groups in mission editor.", 10)
-                    trigger.action.outSoundForCoalition(side, "radio_beep3.ogg")
+                    trigger.action.outTextForCoalition(side, "TANKER spawn failed, verify tanker template groups.", 10)
                     return
                 end
 
@@ -301,15 +328,18 @@ do
                 })
 
                 self:drawTankerSector(sector)
-                self:assignTankerLeg(sector, "boom")
-                self:assignTankerLeg(sector, "drogue")
+                
+                timer.scheduleFunction(function ()
+                    self:assignTankerLeg(sector, TankerRoles.BOOM)
+                    self:assignTankerLeg(sector, TankerRoles.DROGUE)
+                end,{}, timer.getTime()+12)
 
                 trigger.action.outTextForCoalition(side, "TANKER package on station from "..from_zone.name..".", 10)
                 trigger.action.outSoundForCoalition(side, "transmission1.ogg")
             end, {}, timer.getTime() + spawn_delay)
 
             if user_requested then
-                trigger.action.outTextForCoalition(side, "TANKER package preparing, launch in "..delay_min.."-"..delay_max.." seconds.", 10)
+                trigger.action.outTextForCoalition(side, "TANKER package preparing, active in "..delay_min.."-"..delay_max.." seconds.", 10)
                 trigger.action.outSoundForCoalition(side, "Radio squelch.ogg")
             end
 
@@ -824,9 +854,7 @@ do
         -- CruiseMissile weapon flag from DCS weapon flags enum.
         local tomahawk_weapon_flag = 2097152
 
-        pcall(function()
-            ship_controller:setOption(AI.Option.Naval.id.ROE, AI.Option.Naval.val.ROE.OPEN_FIRE)
-        end)
+        ship_controller:setOption(AI.Option.Naval.id.ROE, AI.Option.Naval.val.ROE.OPEN_FIRE)
 
         local target_points = {}
 
@@ -1231,7 +1259,7 @@ do
             -- 6. Set the complete mission
             ctrl:setTask(missionTask)
 
-            -- 7. Set AI options for AWACS (run, don't fight)
+            -- 7. Set AI options for AWACS
             ctrl:setOption(AI.Option.Air.id.PROHIBIT_AG, true)
             ctrl:setOption(AI.Option.Air.id.PROHIBIT_AA, true)
             ctrl:setOption(AI.Option.Air.id.REACTION_ON_THREAT, AI.Option.Air.val.REACTION_ON_THREAT.PASSIVE_DEFENCE)
@@ -1699,6 +1727,8 @@ do
     ---@param sector any
     function TaskManager:drawTankerSector(sector)
         if not sector then return end
+        MissionLogger:info("drawing tanker sector")
+
 
         sector.mark_ids = sector.mark_ids or { lines = {}, text = nil }
 
@@ -1713,16 +1743,9 @@ do
             sector.mark_ids.lines = {}
         end
 
-        local side_palette = Config.draw_color_palette.neutral_palette
-        if sector.side == coalition.side.BLUE then
-            side_palette = Config.draw_color_palette.blue_palette
-        elseif sector.side == coalition.side.RED then
-            side_palette = Config.draw_color_palette.red_palette
-        end
-
-        local border_color = side_palette[1]
-        local text_color = side_palette[3]
-        local text_bg = side_palette[4]
+        local line_color = Config.tanker.line_color
+        local text_color = Config.tanker.text_color
+        local text_bg = Config.tanker.text_background
 
         local path_points = utils.buildRoundedRectAroundSegment(
             sector.waypoint_1,
@@ -1736,18 +1759,18 @@ do
             local p1 = path_points[i]
             local p2 = path_points[(i % #path_points) + 1]
             local mark_id = nextMarkId()
-            trigger.action.lineToAll(sector.side, mark_id, p1, p2, border_color, utils.LineStyle.DOTTED, true)
+            trigger.action.lineToAll(sector.side, mark_id, p1, p2, line_color, utils.LineStyle.DOTTED, true)
             table.insert(sector.mark_ids.lines, mark_id)
         end
 
         local text_display = string.format(
-            "%s %d\nDrogue: %s AM / %s\nBoom: %s AM / %s",
+            "%s %d\nDrogue: %s AM / %sX\nBoom: %s AM / %sX",
             Config.tanker.text_title or "Tanker Sector",
             sector.serial or 1,
-            tostring((Config.tanker.drogue and Config.tanker.drogue.frequency) or "271.5"),
-            tostring((Config.tanker.drogue and Config.tanker.drogue.tacan) or "37X"),
-            tostring((Config.tanker.boom and Config.tanker.boom.frequency) or "271.25"),
-            tostring((Config.tanker.boom and Config.tanker.boom.tacan) or "41X")
+            tostring(sector.frequencies[TankerRoles.DROGUE] or "U"), -- drogue freq
+            tostring(sector.tacan[TankerRoles.DROGUE] or "U"), -- drogue tacan
+            tostring(sector.frequencies[TankerRoles.BOOM] or "U"), -- boom freq
+            tostring(sector.tacan[TankerRoles.BOOM] or "U") -- boom tacan
         )
 
         sector.mark_ids.text = nextMarkId()
@@ -1756,26 +1779,82 @@ do
 
     ---@param sector any
     ---@param role string
+    ---@return table, table
+    function TaskManager:getTankerLaneWaypoints(sector, role)
+        local p1 = sector.waypoint_1
+        local p2 = sector.waypoint_2
+
+        local dx = p2.x - p1.x
+        local dz = p2.z - p1.z
+        local len = math.sqrt((dx * dx) + (dz * dz))
+        if len < 1 then
+            return p1, p2
+        end
+
+        local nx = -dz / len
+        local nz = dx / len
+        local lane_sep = 3000
+        local lane_offset = lane_sep * 0.5
+        local sign = role == "drogue" and 1 or -1
+
+        local lane_p1 = {
+            x = p1.x + (nx * lane_offset * sign),
+            y = p1.y,
+            z = p1.z + (nz * lane_offset * sign)
+        }
+        local lane_p2 = {
+            x = p2.x + (nx * lane_offset * sign),
+            y = p2.y,
+            z = p2.z + (nz * lane_offset * sign)
+        }
+
+        return lane_p1, lane_p2
+    end
+
+---@param sector any
+    ---@param role string
     function TaskManager:assignTankerLeg(sector, role)
         if not sector or not sector.active then return end
 
-        local group_name = role == "boom" and sector.boom_group_name or sector.drogue_group_name
+        local group_name = nil
+        if role == TankerRoles.BOOM then
+            group_name = sector.boom_group_name
+        elseif role == TankerRoles.DROGUE then
+            group_name = sector.drogue_group_name
+        end
+
         if not group_name then return end
 
         local tanker_group = Group.getByName(group_name)
         if not (tanker_group and tanker_group:isExist()) then return end
+        MissionLogger:info("Assigning tanker legs")
 
         local ctrl = tanker_group:getController()
         if not ctrl then return end
 
-        local role_cfg = role == "boom" and (Config.tanker.boom or {}) or (Config.tanker.drogue or {})
-        local altitude = mist.utils.feetToMeters(role_cfg.altitude_ft or 22000)
-        local speed = role_cfg.speed or 165
-        local target_idx = (sector.route_targets and sector.route_targets[role]) or 2
-        local target_point = target_idx == 1 and sector.waypoint_1 or sector.waypoint_2
-        local start_pos = mist.getLeadPos(group_name) or tanker_group:getUnit(1):getPoint()
+        local role_config = role == "boom" and (Config.tanker.boom or {}) or (Config.tanker.drogue or {})
+        local altitude = mist.utils.feetToMeters(role_config.altitude_ft or 22000)
+        local lane_wp1, lane_wp2 = self:getTankerLaneWaypoints(sector, role)
 
-        local tankerTask = { id = 'Tanker' }
+        local orbit_point = role == "drogue" and lane_wp1 or lane_wp2
+        local orbit_point2 = role == "drogue" and lane_wp2 or lane_wp1
+
+        local clock_wise = true
+        if role == TankerRoles.BOOM then
+            clock_wise = false
+        end
+
+        local freq = sector.frequencies[TankerRoles.BOOM]*1e6
+        if role == TankerRoles.DROGUE then
+            freq = sector.frequencies[TankerRoles.DROGUE]*1e6
+        end
+        local tacan = sector.tacan[TankerRoles.BOOM]
+        if role == TankerRoles.DROGUE then
+            tacan = sector.tacan[TankerRoles.DROGUE]
+        end
+
+        local tankerTask = { id = 'Tanker', params = {} }
+            
         local eplrsTask = {
             id = "WrappedAction",
             params = {
@@ -1786,44 +1865,52 @@ do
             }
         }
 
+        local frequencyTask = {
+            id = 'SetFrequency',
+            params = {
+                frequency = freq,
+                modulation = radio.modulation.AM,
+                power = 50,
+            }
+        }
+        local tacanTask = {
+            id = "ActivateBeacon",
+            params = {
+                type = 4, -- TACAN
+                AA = true,
+                unitId = tanker_group:getID(),
+                modeChannel = "X",
+                channel = tacan,
+                system = 4,
+                callsign = "TKR",
+                bearing = true,
+                frequency = math.random(1000e6,2000e6)
+
+            }
+        }
+
+
+        local orbitTask = {
+           id = 'Orbit',
+            params = {
+                pattern = AI.Task.OrbitPattern.RACE_TRACK,
+                point = mist.utils.makeVec2(orbit_point2),
+                point2= mist.utils.makeVec2(orbit_point),
+                speed = role_config.speed, --in m/s
+                altitude = altitude,
+                clockWise = clock_wise
+            }
+        }
+        
         local comboTask = {
             id = 'ComboTask',
             params = {
-                tasks = { tankerTask, eplrsTask }
+                tasks = { tankerTask, eplrsTask, orbitTask }
             }
         }
-
-        local missionTask = {
-            id = 'Mission',
-            params = {
-                route = {
-                    airborne = true,
-                    points = {
-                        {
-                            type = AI.Task.WaypointType.TURNING_POINT,
-                            x = start_pos.x,
-                            y = start_pos.z,
-                            speed = speed,
-                            action = AI.Task.TurnMethod.FLY_OVER_POINT,
-                            alt = altitude,
-                            alt_type = AI.Task.AltitudeType.BARO,
-                        },
-                        {
-                            type = AI.Task.WaypointType.TURNING_POINT,
-                            x = target_point.x,
-                            y = target_point.z,
-                            speed = speed,
-                            action = AI.Task.TurnMethod.FLY_OVER_POINT,
-                            alt = altitude,
-                            alt_type = AI.Task.AltitudeType.BARO,
-                            task = comboTask,
-                        },
-                    }
-                }
-            }
-        }
-
-        ctrl:setTask(missionTask)
+        ctrl:setCommand(frequencyTask)
+        ctrl:setCommand(tacanTask)
+        ctrl:setTask(comboTask)
 
         ctrl:setOption(AI.Option.Air.id.PROHIBIT_AG, true)
         ctrl:setOption(AI.Option.Air.id.PROHIBIT_AA, true)
@@ -1832,6 +1919,8 @@ do
 
         sector.last_task_time = sector.last_task_time or {}
         sector.last_task_time[role] = timer.getTime()
+        MissionLogger:info("Tanker legs assigned")
+
     end
 
     ---@param sector_id string
@@ -1877,7 +1966,7 @@ do
         self.TankerSectors[sector_id] = nil
     end
 
-    function TaskManager:maintainTankerSectors()
+    function TaskManager:checkTankerSectors()
         local sectors_to_cleanup = {}
 
         for sector_id, sector in pairs(self.TankerSectors) do
@@ -1895,27 +1984,6 @@ do
 
         for _, sector_id in ipairs(sectors_to_cleanup) do
             self:cleanupTankerSectorById(sector_id, true)
-        end
-
-        local switch_distance = Config.tanker.route_switch_distance or 3000
-        for _, sector in pairs(self.TankerSectors) do
-            if sector and sector.active then
-                for _, role in ipairs({"boom", "drogue"}) do
-                    local group_name = role == "boom" and sector.boom_group_name or sector.drogue_group_name
-                    if group_name then
-                        local pos = mist.getLeadPos(group_name)
-                        local target_idx = (sector.route_targets and sector.route_targets[role]) or 2
-                        local target_point = target_idx == 1 and sector.waypoint_1 or sector.waypoint_2
-
-                        if not sector.last_task_time
-                        or not sector.last_task_time[role]
-                        or (pos and mist.utils.get2DDist(pos, target_point) <= switch_distance) then
-                            sector.route_targets[role] = target_idx == 1 and 2 or 1
-                            self:assignTankerLeg(sector, role)
-                        end
-                    end
-                end
-            end
         end
     end
 
@@ -1973,6 +2041,34 @@ do
         end
 
         convoy_group:getController():setTask({ id = 'Mission', params = { route = { points = points } } })
+    end
+
+    ---@param min_Mhz number
+    ---@param max_Mhz number
+    ---@param c number|nil
+    function TaskManager:createFrequency(min_Mhz,max_Mhz,c)
+        if not c then c=0 end
+        if c>1000 then return min_Mhz end
+        local freq = math.random(min_Mhz,max_Mhz)
+        if not TaskManager.assignedFrequencies[utils.MHztoHz(freq)] then
+            table.insert(TaskManager.assignedFrequencies,freq )
+            return freq
+        end
+        return TaskManager:createFrequency(min_Mhz,max_Mhz,c+1)
+    end
+
+    ---@param min_ch number
+    ---@param max_ch number
+    ---@param c number|nil
+    function TaskManager:createTACAN(min_ch,max_ch,c)
+        if not c then c=0 end
+        if c>1000 then return min_ch end
+        local ch = math.random(min_ch,max_ch)
+        if not TaskManager.assignedTACANS[ch] then
+            return ch
+        end
+        return TaskManager:createTACAN(min_ch,max_ch,c+1)
+
     end
 
 end

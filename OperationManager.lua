@@ -35,13 +35,12 @@
 ---@field active_operations Operation[]
 OperationManager = {}
 do
-    OperationManager.__index = OperationManager
 
     OperationManager.instances = {}
 
     OperationManager.EventHandler = {}
 
-    ---@param event table
+   ---@param event table
     function OperationManager.EventHandler:onEvent(event)
         if not OperationManager.instances then return end
         for _, instance in ipairs(OperationManager.instances) do
@@ -51,6 +50,7 @@ do
 
 
     function OperationManager:new(side, home_airbase)
+        self.__index = self
         local obj = {
             side = side,
             home_airbase = home_airbase,
@@ -61,7 +61,7 @@ do
             generation_cooldown = Config.operations.operation_refresh_time or 30, -- seconds
         }
         setmetatable(obj, self)
-        table.insert(OperationManager.instances, obj) -- Add this new instance to our list
+        table.insert(OperationManager.instances, obj)
         world.addEventHandler(OperationManager.EventHandler)
         return obj
     end
@@ -443,7 +443,6 @@ do
     function OperationManager:generateOperations()
         -- Performance optimization: Use cached operations if recently generated
         local current_time = timer.getTime()
-        
         -- Allow first generation (last_generation_time == 0) or if cooldown has elapsed
         if self.last_generation_time > 0 and (current_time - self.last_generation_time < self.generation_cooldown) then
             return -- Use cached operations
@@ -2089,7 +2088,6 @@ do
         if not unit then return end
         if not unit.getPlayerName then return end
         local unit_id = unit:getID()
-
         -- Check if player already has a mission
         for _, active_op in ipairs(self.active_operations) do
             if active_op.assigned_player_id == unit_id then

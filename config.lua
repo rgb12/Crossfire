@@ -62,32 +62,32 @@ Config = {
             max_vehicle_crates_required = 3, -- avoids very heavy/slow manifests for this operation type
 
             min_route_distance = {
-                helicopter = 30000,
-                fixed_wing = 90000,
+                ["helicopter"] = 30000,
+                ["fixed_wing"] = 90000,
             },
             max_route_distance = {
-                helicopter = 150000,
-                fixed_wing = 350000,
+                ["helicopter"] = 150000,
+                ["fixed_wing"] = 350000,
             },
 
             seconds_per_km = {
-                helicopter = 85,
-                fixed_wing = 65,
+                ["helicopter"] = 85,
+                ["fixed_wing"] = 65,
             },
             min_time = {
-                helicopter = 20*60,
-                fixed_wing = 35*60,
+                ["helicopter"] = 20*60,
+                ["fixed_wing"] = 35*60,
             },
             max_time = {
-                helicopter = 45*60,
-                fixed_wing = 90*60,
+                ["helicopter"] = 45*60,
+                ["fixed_wing"] = 90*60,
             },
 
             base_xp = 1200,
             xp_per_km = 2,
             xp_aircraft_category_multiplier = {
-                helicopter = 0.95,
-                fixed_wing = 1.15,
+                ["helicopter"] = 0.95,
+                ["fixed_wing"] = 1.15,
             }
         },
 
@@ -357,8 +357,8 @@ Config = {
         max_strike_per_airbase = 2,
         max_cap_per_airbase = 2,
         max_awacs_per_airbase = 1,
-        max_tanker_per_airbase = 2,
-        max_recon_per_airbase = 2,
+        max_tanker_per_airbase = 1,
+        max_recon_per_airbase = 1,
         
         max_jtac_theatre = 4, -- per coalition, only for AI auto tasking
         max_cas_theatre = 4,-- per coalition, only for AI auto tasking
@@ -382,9 +382,9 @@ Config = {
     },
 
     tanker = {
-        spawn_delay_min = 120, -- (seconds)
-        spawn_delay_max = 300, -- (seconds)
-        minimum_enemy_distance = 100*1000, -- (meters) nearest enemy zone to source airbase
+        spawn_delay_min = 12, -- (seconds)
+        spawn_delay_max = 12, -- (seconds)
+        minimum_enemy_distance = 10*1000, -- (meters) nearest enemy zone to source airbase
         midpoint_ratio = 0.5, -- place tanker sector at this ratio from source toward nearest enemy zone
         route_switch_distance = 3000, -- (meters) switch leg when this close to endpoint
         leg_length = 70*1000, -- (meters) straight refuel leg length
@@ -393,20 +393,26 @@ Config = {
         rounded_corner_segments = 5, -- number of segments per corner arc
 
         text_title = "Tanker Sector",
+        text_color = {56/255,56/255,56/255,1},
+        text_background = {156/255,156/255,156/255,0.6},
+        line_color = {56/255,56/255,56/255,1},
+
         drogue = {
-            callsign = "Texaco",
-            frequency = "271.5",
-            tacan = "37X",
-            altitude_ft = 20000,
-            speed = 165, -- m/s
+            altitude_ft = 23000, --feet
+            speed = 232, -- m/s
         },
         boom = {
-            callsign = "Shell",
-            frequency = "271.25",
-            tacan = "41X",
-            altitude_ft = 25000,
-            speed = 165, -- m/s
+            altitude_ft = 20000,
+            speed = 220, -- m/s
         },
+        frequencies = {
+            min_MHz = 296,
+            max_MHz = 302
+        },
+        tacan = {
+            min_ch = 50,
+            max_ch = 80
+        } -- __X, the Y channel cannot be set via script (DCS Core issue)
     },
     
     ctld = {
@@ -563,8 +569,8 @@ GroupData = {
             attack_convoy = "BLUE Attack Convoy",
             jtac = "BLUE JTAC",
             farp = "BLUE FARP VEHICLES",
-            tanker_drogue = "BLUE TANKER DROGUE",
-            tanker_boom = "BLUE TANKER BOOM",
+            tanker_drogue = "BLUE DROGUE TANKER",
+            tanker_boom = "BLUE BOOM TANKER",
         },
     
         RED = {
@@ -572,8 +578,8 @@ GroupData = {
             capture_helicopter = "RED Capture Helo",
             attack_convoy = "RED Attack Convoy",
             farp = "RED FARP VEHICLES",
-            tanker_drogue = "RED TANKER DROGUE",
-            tanker_boom = "RED TANKER BOOM",
+            tanker_drogue = "RED DROGUE TANKER",
+            tanker_boom = "RED BOOM TANKER",
         }
     },
 

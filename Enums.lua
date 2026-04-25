@@ -165,8 +165,14 @@ OperationTypes = {
 
 ---@enum UserAircraftCategories
 UserAircraftCategories = {
-    HELICOPTER = 1,
-    FIXED_WING = 2
+    HELICOPTER = "helicopter",
+    FIXED_WING = "fixed_wing"
+}
+
+---@enum TankerRoles
+TankerRoles = {
+    BOOM = "boom",
+    DROGUE = "drogue"
 }
 
 ---@enum OperationStatus

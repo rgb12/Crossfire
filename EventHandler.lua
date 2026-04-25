@@ -134,6 +134,7 @@ function ev:onEvent(event)
                             local rank_name = "Unranked"
                             local next_rank_xp = nil
                             local next_rank = "..."
+
                             for i = #Config.reward_system.ranks, 1, -1 do
                                 local rank = Config.reward_system.ranks[i]
                                 if user.xp >= rank.xp_required then
@@ -145,6 +146,7 @@ function ev:onEvent(event)
                                     break
                                 end
                             end
+
                             if not next_rank then next_rank = "No Next Rank" end
                             local out_text = string.format("< XP and Rank >\n\nRank: %s\n\nXP: %d (+%d)\nMissions Completed: %d\n\nNext Rank: %s\n  %s XP",
                                 rank_name, user.xp, user.unclaimed_xp, user.missions_completed, next_rank, next_rank_xp)
