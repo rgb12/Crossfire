@@ -24,104 +24,45 @@
 ---@field time_limit_seconds number | nil -- Mission timer for Strategic Airlift
 ---@field deadline_time number | nil -- Absolute mission deadline for Strategic Airlift
 ---@field operation_uid string | nil -- Runtime unique id for temporary asset tracking
----@field required_recover_crates number | nil -- Required crate count for Recover operations
----@field recover_op_tag string | nil -- OPID tag used for Recover crate naming
 
 ---@class OperationManager
 ---@field side coalition.side
----@field home_airbase ZoneHandler|nil
+---@field home_airbase ZoneHandler
 ---@field last_generation_time number
 ---@field generation_cooldown number seconds>0
 ---@field downed_pilots vec3[]
 ---@field available_operations Operation[]
 ---@field active_operations Operation[]
----@field blue_downed_pilots vec3[]
----@field red_downed_pilots vec3[]
----@field blue_available_operations Operation[]
----@field red_available_operations Operation[]
----@field blue_active_operations Operation[]
----@field red_active_operations Operation[]
 OperationManager = {}
 do
     OperationManager.__index = OperationManager
 
-    OperationManager.instance = nil
-    OperationManager.event_handler_registered = false
+    OperationManager.instances = {}
 
     OperationManager.EventHandler = {}
 
     ---@param event table
     function OperationManager.EventHandler:onEvent(event)
-        local instance = OperationManager.instance
-        if not instance then return end
-        pcall(function() instance:onEvent(event) end)
+        if not OperationManager.instances then return end
+        for _, instance in ipairs(OperationManager.instances) do
+            pcall(function() instance:onEvent(event) end)
+        end
     end
 
-    ---@param side coalition.side
-    function OperationManager:setCoalitionScope(side)
-        if side ~= coalition.side.BLUE and side ~= coalition.side.RED then
-            return
-        end
 
-        self.side = side
-        self.home_airbase = (side == coalition.side.BLUE and blue_airbase) or red_airbase or self.home_airbase
-        self.downed_pilots = (side == coalition.side.BLUE and self.blue_downed_pilots) or self.red_downed_pilots
-        self.available_operations = (side == coalition.side.BLUE and self.blue_available_operations) or self.red_available_operations
-        self.active_operations = (side == coalition.side.BLUE and self.blue_active_operations) or self.red_active_operations
-    end
-
-    ---@param unit Unit|nil
-    function OperationManager:setCoalitionScopeForUnit(unit)
-        if not unit or not unit.getCoalition then return end
-        self:setCoalitionScope(unit:getCoalition())
-    end
-
-    ---@param coalition_side coalition.side
-    ---@return Operation[]
-    function OperationManager:getActiveOperationsForSide(coalition_side)
-        if coalition_side == coalition.side.BLUE then
-            return self.blue_active_operations
-        end
-        if coalition_side == coalition.side.RED then
-            return self.red_active_operations
-        end
-        return {}
-    end
-
-    function OperationManager:new(blue_home_airbase, red_home_airbase)
-        if OperationManager.instance then
-            OperationManager.instance.home_airbase = blue_home_airbase or OperationManager.instance.home_airbase
-            OperationManager.instance.blue_home_airbase = blue_home_airbase or OperationManager.instance.blue_home_airbase
-            OperationManager.instance.red_home_airbase = red_home_airbase or OperationManager.instance.red_home_airbase
-            return OperationManager.instance
-        end
-
+    function OperationManager:new(side, home_airbase)
         local obj = {
-            side = coalition.side.BLUE,
-            home_airbase = blue_home_airbase,
-            blue_home_airbase = blue_home_airbase,
-            red_home_airbase = red_home_airbase,
+            side = side,
+            home_airbase = home_airbase,
             downed_pilots = {},
             available_operations = {},
             active_operations = {},
-            blue_downed_pilots = {},
-            red_downed_pilots = {},
-            blue_available_operations = {},
-            red_available_operations = {},
-            blue_active_operations = {},
-            red_active_operations = {},
-            blue_last_generation_time = 0,
-            red_last_generation_time = 0,
             last_generation_time = 0, -- Cache timestamp
             generation_cooldown = Config.operations.operation_refresh_time or 30, -- seconds
         }
         setmetatable(obj, self)
-        obj:setCoalitionScope(coalition.side.BLUE)
-        OperationManager.instance = obj
-        if not OperationManager.event_handler_registered then
-            world.addEventHandler(OperationManager.EventHandler)
-            OperationManager.event_handler_registered = true
-        end
+        table.insert(OperationManager.instances, obj) -- Add this new instance to our list
+        world.addEventHandler(OperationManager.EventHandler)
         return obj
     end
 
@@ -129,7 +70,6 @@ do
     ---@param unit Unit
     function OperationManager:showActiveOperation(unit)
         if not unit or not unit.getPlayerName then return end
-        self:setCoalitionScopeForUnit(unit)
         local unit_id = unit:getID()
 
         local active_mission = nil
@@ -225,10 +165,6 @@ do
 
     --- @param event table
     function OperationManager:onEvent(event)
-        if event and event.initiator and event.initiator.getCoalition then
-            self:setCoalitionScope(event.initiator:getCoalition())
-        end
-
         if event.id == world.event.S_EVENT_DEAD or event.id == world.event.S_EVENT_CRASH or event.id == world.event.S_EVENT_PILOT_DEAD then
             if event.initiator and event.initiator.getPlayerName then
                 local dead_unit_name = event.initiator.unit_name or event.initiator:getName()
@@ -274,8 +210,6 @@ do
                                 trigger.action.outTextForCoalition(self.side, "Operation " .. op.operation_name .. " failed: all operatives lost.", 15)
                                 if op.type == OperationTypes.STRATEGIC_AIRLIFT then
                                     self:cancelStrategicAirliftOperation(op, true)
-                                elseif op.type == OperationTypes.RECOVER then
-                                    self:cancelRecoverOperation(op, true)
                                 end
                                 table.remove(self.active_operations, i)
                             end
@@ -285,8 +219,6 @@ do
                             trigger.action.outTextForCoalition(self.side, "SITREP: " .. op.operation_name .. " operation failed!.", 15)
                             if op.type == OperationTypes.STRATEGIC_AIRLIFT then
                                 self:cancelStrategicAirliftOperation(op, true)
-                            elseif op.type == OperationTypes.RECOVER then
-                                self:cancelRecoverOperation(op, true)
                             end
                             table.remove(self.active_operations, i)
                         end
@@ -451,8 +383,6 @@ do
                                 
                                 if op.type == OperationTypes.STRATEGIC_AIRLIFT then
                                     self:cancelStrategicAirliftOperation(op, true)
-                                elseif op.type == OperationTypes.RECOVER then
-                                    self:cancelRecoverOperation(op, true)
                                 end
                                 table.remove(self.active_operations, i)
                             end
@@ -462,8 +392,6 @@ do
                             trigger.action.outTextForCoalition(self.side, op.type .. " " .. op.operation_name .. " operation failed, operative left.", 15)
                             if op.type == OperationTypes.STRATEGIC_AIRLIFT then
                                 self:cancelStrategicAirliftOperation(op, true)
-                            elseif op.type == OperationTypes.RECOVER then
-                                self:cancelRecoverOperation(op, true)
                             end
                             table.remove(self.active_operations, i)
                         end
@@ -515,18 +443,12 @@ do
     function OperationManager:generateOperations()
         -- Performance optimization: Use cached operations if recently generated
         local current_time = timer.getTime()
-        local last_generation_time = (self.side == coalition.side.BLUE and self.blue_last_generation_time) or self.red_last_generation_time
         
         -- Allow first generation (last_generation_time == 0) or if cooldown has elapsed
-        if last_generation_time > 0 and (current_time - last_generation_time < self.generation_cooldown) then
+        if self.last_generation_time > 0 and (current_time - self.last_generation_time < self.generation_cooldown) then
             return -- Use cached operations
         end
         MissionLogger:info("Regenerating operations")
-        if self.side == coalition.side.BLUE then
-            self.blue_last_generation_time = current_time
-        else
-            self.red_last_generation_time = current_time
-        end
         self.last_generation_time = current_time
         
         local reference_pos = self.home_airbase.zone.point
@@ -547,7 +469,6 @@ do
             return op_type == OperationTypes.CAP
                 or op_type == OperationTypes.INTERCEPT
                 or op_type == OperationTypes.AIRDROP
-                or op_type == OperationTypes.RECOVER
                 or op_type == OperationTypes.STRATEGIC_AIRLIFT
         end
 
@@ -721,23 +642,6 @@ do
                     end
                 end
 
-                -- RECOVER operation from frontline defensive sites to friendly AIRBASE/FARP
-                if Config.operations.recover and Config.operations.recover.enabled
-                and zone.side == friendly_coalition
-                and discovered_zones_set[zone.name]
-                and utils.tableContains({ZoneTypes.STRONGPOINT, ZoneTypes.SAMSITE, ZoneTypes.EWSITE}, zone.zone_type) then
-                    local closest_enemy_zone, dist = zone:getClosestZone(enemy_coalition)
-                    if closest_enemy_zone and dist and dist < (Config.operations.recover.max_distance_to_frontline or Config.operations.max_distance_to_frontline_for_airdrops) then
-                        local recover_target = self:findRecoverTargetZone(zone, friendly_coalition, discovered_zones_set)
-                        if recover_target and not self:isMissionProposed(recover_target.name) and not self:isZoneActive(recover_target.name) then
-                            local op = self:createRECOVEROperation(zone, recover_target)
-                            if op then
-                                table.insert(self.available_operations, op)
-                            end
-                        end
-                    end
-                end
-
                 -- STRATEGIC AIRLIFT between friendly logistics zones
                 if Config.operations.strategic_airlift.enabled
                 and zone.side == friendly_coalition and discovered_zones_set[zone.name] then
@@ -848,63 +752,6 @@ do
         table.sort(candidates, function(a, b) return a.dist < b.dist end)
         local pick_idx = math.random(1, #candidates)
         return candidates[pick_idx].zone
-    end
-
-    ---@param source_zone ZoneHandler
-    ---@param friendly_coalition coalition.side
-    ---@param discovered_set table<string, boolean>
-    ---@return ZoneHandler|nil
-    function OperationManager:findRecoverTargetZone(source_zone, friendly_coalition, discovered_set)
-        local candidates = {}
-        for _, zone in ipairs(zones) do
-            if zone.name ~= source_zone.name
-            and zone.side == friendly_coalition
-            and discovered_set[zone.name]
-            and (zone.zone_type == ZoneTypes.AIRBASE or zone.zone_type == ZoneTypes.FARP) then
-                table.insert(candidates, zone)
-            end
-        end
-
-        if #candidates == 0 then return nil end
-        return candidates[math.random(1, #candidates)]
-    end
-
-    ---@param op Operation
-    ---@param source_zone ZoneHandler
-    function OperationManager:spawnRecoverSourceCrates(op, source_zone)
-        if not op or not op.operation_uid or not source_zone or not source_zone.zone then return end
-        local recover_cfg = (Config.operations and Config.operations.recover) or {}
-        local min_dist = recover_cfg.min_spawn_distance or 200
-        local max_dist = recover_cfg.max_spawn_distance or 300
-        local count = op.required_recover_crates or 2
-        local op_tag = op.recover_op_tag or "OPID"
-
-        for i = 1, count do
-            local theta = math.random() * 2 * math.pi
-            local dist = math.random(min_dist, max_dist)
-            local x = source_zone.zone.point.x + (math.cos(theta) * dist)
-            local z = source_zone.zone.point.z + (math.sin(theta) * dist)
-            local name = string.format("%s%s_%d", Config.ctld.packed_asset_prefix, op_tag, ctld.getNextGroupId())
-
-            local spawned = mist.dynAddStatic({
-                type = CargoCrates.SuppliesCrate,
-                name = name,
-                country = self.side == coalition.side.BLUE and country.id.USA or country.id.RUSSIA,
-                category = "Cargos",
-                x = x,
-                y = z
-            })
-
-            if spawned then
-                ctld.registerOperationAsset(op.operation_uid, {
-                    unit_name = name,
-                    part_name = CargoCrates.SuppliesCrate,
-                    point = { x = x, y = land.getHeight({ x = x, y = z }), z = z },
-                    object_type = "static",
-                    coalition = self.side
-                })
-            end
-        end
     end
 
     ---@return part[]
@@ -1047,7 +894,7 @@ do
             leader = Unit.getByName(operation.assigned_unit_name)
         end
         if leader and leader:isExist() then
-            ctld.clearOperationTaskingForUnit(leader)
+            ctld.clearOperationContextForUnit(leader)
         end
 
         if operation.operation_uid then
@@ -1057,113 +904,6 @@ do
                 ctld.clearOperationLoads(operation.operation_uid)
             end
         end
-    end
-
-    ---@param operation Operation
-    ---@param cleanup_assets boolean
-    function OperationManager:cancelRecoverOperation(operation, cleanup_assets)
-        if not operation then return end
-
-        local leader = nil
-        if operation.assigned_unit_name then
-            leader = Unit.getByName(operation.assigned_unit_name)
-        end
-        if leader and leader:isExist() then
-            ctld.clearOperationTaskingForUnit(leader)
-        end
-
-        if operation.operation_uid then
-            if cleanup_assets then
-                ctld.clearOperationAssets(operation.operation_uid)
-            else
-                ctld.clearOperationLoads(operation.operation_uid)
-            end
-        end
-    end
-
-    ---@param source_zone ZoneHandler
-    ---@param target_zone ZoneHandler
-    ---@return Operation
-    function OperationManager:createRECOVEROperation(source_zone, target_zone)
-        local manager = self
-        local recover_cfg = (Config.operations and Config.operations.recover) or {}
-        local min_crates = recover_cfg.min_crates or 2
-        local max_crates = recover_cfg.max_crates or 4
-        local required_crates = math.random(min_crates, max_crates)
-
-        ---@type Operation
-        local op = {
-            type = OperationTypes.RECOVER,
-            code = self:createOperationCode(),
-            status = OperationStatus.AVAILABLE,
-            xp_reward = recover_cfg.xp_reward or 700,
-            load_zone_name = source_zone.name,
-            target_zone_name = target_zone.name,
-            operation_name = operations_name[math.random(#operations_name)],
-            is_coop = false,
-            coop_leader_id = nil,
-            coop_leader_name = nil,
-            coop_members = {},
-            coop_join_code = nil,
-            required_recover_crates = required_crates,
-            delivery_radius = recover_cfg.delivery_radius or 1200,
-            objectives = {
-                {
-                    description = string.format("Load %d recover crates at %s", required_crates, source_zone.name),
-                    completed = false,
-                    check = function(self_obj, player_unit)
-                        if not player_unit or not player_unit:isExist() then return false end
-
-                        local owner_op = nil
-                        for _, active_op in ipairs(manager.active_operations) do
-                            if active_op.assigned_unit_name == player_unit:getName()
-                            and active_op.type == OperationTypes.RECOVER then
-                                owner_op = active_op
-                                break
-                            end
-                        end
-                        if not owner_op or not owner_op.operation_uid then return false end
-
-                        local loaded = ctld.getOperationLoads(owner_op.operation_uid)
-                        if (loaded[CargoCrates.SuppliesCrate] or 0) < (owner_op.required_recover_crates or required_crates) then
-                            return false
-                        end
-
-                        trigger.action.outTextForUnit(player_unit:getID(), "Recover: cargo loaded. Proceed to destination and unload.", 10)
-                        trigger.action.outSoundForUnit(player_unit:getID(), "radio_txrx.ogg")
-                        return true
-                    end
-                },
-                {
-                    description = string.format("Unload recover crates at %s", target_zone.name),
-                    completed = false,
-                    check = function(self_obj, player_unit)
-                        if not player_unit or not player_unit:isExist() then return false end
-
-                        local owner_op = nil
-                        for _, active_op in ipairs(manager.active_operations) do
-                            if active_op.assigned_unit_name == player_unit:getName()
-                            and active_op.type == OperationTypes.RECOVER then
-                                owner_op = active_op
-                                break
-                            end
-                        end
-                        if not owner_op then return false end
-
-                        local delivered = manager:getStrategicAirliftDeliveredCounts(owner_op)
-                        if (delivered[CargoCrates.SuppliesCrate] or 0) < (owner_op.required_recover_crates or required_crates) then
-                            return false
-                        end
-
-                        trigger.action.outTextForUnit(player_unit:getID(), "Recover: delivery confirmed. Supplies are available for unpack.", 10)
-                        trigger.action.outSoundForUnit(player_unit:getID(), "radio_txrx.ogg")
-                        return true
-                    end
-                }
-            }
-        }
-
-        return op
     end
 
     function OperationManager:createCASOperation(target_zone)
@@ -2026,7 +1766,6 @@ do
     ---@param show_coop_only boolean|nil -- If true, only show operations that support co-op
     function OperationManager:showAvailableOperations(unit, show_coop_only)
         if not unit or not unit:isExist() or not unit.getPlayerName or not unit.hasAttribute then return end
-        self:setCoalitionScopeForUnit(unit)
 
         self:generateOperations()
 
@@ -2110,7 +1849,6 @@ do
     function OperationManager:cancelOperation(unit)
         if not unit then return end
         if not unit.getPlayerName then return end
-        self:setCoalitionScopeForUnit(unit)
         local unit_id = unit:getID()
 
         for i, active_op in ipairs(self.active_operations) do
@@ -2125,8 +1863,6 @@ do
 
                 if active_op.type == OperationTypes.STRATEGIC_AIRLIFT then
                     self:cancelStrategicAirliftOperation(active_op, true)
-                elseif active_op.type == OperationTypes.RECOVER then
-                    self:cancelRecoverOperation(active_op, true)
                 end
                 
                 table.remove(self.active_operations, i)
@@ -2150,7 +1886,6 @@ do
     ---@param join_code number
     function OperationManager:joinCoopOperation(unit, join_code)
         if not unit or not unit.getPlayerName then return end
-        self:setCoalitionScopeForUnit(unit)
         local unit_id = unit:getID()
 
         -- Check if player already has an active operation
@@ -2230,7 +1965,6 @@ do
     ---@param operation Operation|nil
     function OperationManager:leaveCoopOperation(unit, operation)
         if not unit or not unit.getPlayerName then return end
-        self:setCoalitionScopeForUnit(unit)
         local unit_id = unit:getID()
 
         local target_op = operation
@@ -2275,7 +2009,6 @@ do
     ---@param unit Unit
     function OperationManager:showCoopOperationStatus(unit)
         if not unit or not unit.getPlayerName then return end
-        self:setCoalitionScopeForUnit(unit)
         local unit_id = unit:getID()
 
         -- Find if player is leader or member of a co-op operation
@@ -2355,7 +2088,6 @@ do
     function OperationManager:activateOperation(unit, code)
         if not unit then return end
         if not unit.getPlayerName then return end
-        self:setCoalitionScopeForUnit(unit)
         local unit_id = unit:getID()
 
         -- Check if player already has a mission
@@ -2450,30 +2182,6 @@ do
             end
         end
 
-        if accepted_mission.type == OperationTypes.RECOVER then
-            if not ctld or not ctld.getAircraftLimit then
-                trigger.action.outTextForUnit(unit_id, "Recover unavailable: CTLD is not initialized.", 10)
-                trigger.action.outSoundForUnit(unit_id, "radio_txrx.ogg")
-                return
-            end
-
-            local desc = unit:getDesc()
-            local is_heli = desc and desc.category == Unit.Category.HELICOPTER
-            local is_c130 = unit:getTypeName() == "C-130J-30"
-            if not is_heli and not is_c130 then
-                trigger.action.outTextForUnit(unit_id, "Recover requires C-130 or a helicopter.", 10)
-                trigger.action.outSoundForUnit(unit_id, "radio_txrx.ogg")
-                return
-            end
-
-            local acft_limit = ctld.getAircraftLimit(unit)
-            if not acft_limit then
-                trigger.action.outTextForUnit(unit_id, "Recover requires a CTLD-supported transport aircraft.", 10)
-                trigger.action.outSoundForUnit(unit_id, "radio_txrx.ogg")
-                return
-            end
-        end
-
         -- For CSAR operations, handle differently
         local zone_tgt = nil
         if accepted_mission.type == OperationTypes.CSAR then
@@ -2519,7 +2227,7 @@ do
             accepted_mission.xp_reward = self:computeStrategicAirliftReward(load_zone, target_zone, aircraft_category)
             accepted_mission.operation_uid = string.format("airlift_%d_%d", accepted_mission.code or 0, math.floor(timer.getTime()))
 
-            ctld.setOperationTaskingForUnit(unit, {
+            ctld.setOperationContextForUnit(unit, {
                 operation_id = accepted_mission.operation_uid,
                 operation_type = accepted_mission.type,
                 load_zone_name = accepted_mission.load_zone_name,
@@ -2529,28 +2237,11 @@ do
 
         if accepted_mission.type == OperationTypes.REINFORCEMENT then
             accepted_mission.operation_uid = string.format("reinforce_%d_%d", accepted_mission.code or 0, math.floor(timer.getTime()))
-            ctld.setOperationTaskingForUnit(unit, {
+            ctld.setOperationContextForUnit(unit, {
                 operation_id = accepted_mission.operation_uid,
                 operation_type = accepted_mission.type,
                 target_zone_name = accepted_mission.target_zone_name,
             })
-        end
-
-        if accepted_mission.type == OperationTypes.RECOVER then
-            accepted_mission.operation_uid = string.format("recover_%d_%d", accepted_mission.code or 0, math.floor(timer.getTime()))
-            accepted_mission.recover_op_tag = string.format("[OPID%d]", accepted_mission.code or 0)
-            ctld.setOperationTaskingForUnit(unit, {
-                operation_id = accepted_mission.operation_uid,
-                operation_type = accepted_mission.type,
-                load_zone_name = accepted_mission.load_zone_name,
-                target_zone_name = accepted_mission.target_zone_name,
-                operation_tag = accepted_mission.recover_op_tag,
-            })
-
-            local source_zone = ZoneHandler.getFromName(accepted_mission.load_zone_name)
-            if source_zone then
-                self:spawnRecoverSourceCrates(accepted_mission, source_zone)
-            end
         end
         
         -- Initialize co-op fields if this is a co-op operation
@@ -2612,18 +2303,6 @@ do
                 outtxt = outtxt .. string.format("\n\nTime limit: %d minutes", math.floor((accepted_mission.time_limit_seconds or 0) / 60))
                 outtxt = outtxt .. string.format("\nExpected reward: %d XP", accepted_mission.xp_reward or 0)
                 outtxt = outtxt .. "\n\nManifest:\n" .. (accepted_mission.strategic_manifest_text or "- None")
-            end
-
-            if accepted_mission.type == OperationTypes.RECOVER then
-                local load_zone = ZoneHandler.getFromName(accepted_mission.load_zone_name)
-                if load_zone and load_zone.zone and load_zone.zone.point then
-                    local slat, slon = coord.LOtoLL(load_zone.zone.point)
-                    local smgrs = coord.LLtoMGRS(slat, slon)
-                    outtxt = outtxt .. string.format("\n\nSource Area: %s", accepted_mission.load_zone_name or "Unknown")
-                    outtxt = outtxt .. string.format("\nCoordinates:\n%s\n%s\nMGRS: %s", mist.tostringLL(slat, slon, 4), mist.tostringLL(slat, slon, 4, true), mist.tostringMGRS(smgrs, 4))
-                end
-                outtxt = outtxt .. string.format("\n\nRecover ID: %s", accepted_mission.recover_op_tag or "[OPID]")
-                outtxt = outtxt .. "\nUnload delivered crates and unpack them to convert into supplies."
             end
         end
 
@@ -2768,9 +2447,6 @@ do
                                     ctld.clearOperationAssets(op_uid)
                                 end
                             end, {}, timer.getTime() + Config.operations.strategic_airlift.cleanup_delay)
-                        elseif op.type == OperationTypes.RECOVER then
-                            -- Keep delivered crates available so players can unpack them manually.
-                            self:cancelRecoverOperation(op, false)
                         end
 
                         table.remove(self.active_operations, i)
@@ -2781,20 +2457,12 @@ do
     end
 
     function OperationManager:tick()
-        self:setCoalitionScope(coalition.side.BLUE)
-        self:checkObjectives()
-        self:setCoalitionScope(coalition.side.RED)
         self:checkObjectives()
     end
     
     -- Force regeneration of operations (call when zones change ownership)
     function OperationManager:forceRegenerateOperations()
-        self.blue_last_generation_time = 0
-        self.red_last_generation_time = 0
         self.last_generation_time = 0
-        self:setCoalitionScope(coalition.side.BLUE)
-        self:generateOperations()
-        self:setCoalitionScope(coalition.side.RED)
         self:generateOperations()
     end
 end

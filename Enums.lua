@@ -156,7 +156,6 @@ OperationTypes = {
     RECON = "Recon",
     AIRDROP = "Airdrop",
     REINFORCEMENT = "Reinforcement",
-    RECOVER = "Recover",
     STRATEGIC_AIRLIFT = "Strategic Airlift",
     INTERCEPT = "Intercept",
     CSAR = "CSAR",

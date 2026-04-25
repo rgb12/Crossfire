@@ -4,7 +4,8 @@ local ticks5m = 0
 TheatreCommander = {}
 do
 
-    TheatreCommander.operation_manager = nil
+    TheatreCommander.blue_op_manager = nil
+    TheatreCommander.red_op_manager = nil
 
     ---@param to_zone ZoneHandler
     ---@param side_sending_capture coalition.side
@@ -98,10 +99,8 @@ do
                 return
             end
 
-            if TheatreCommander.operation_manager then
-                for _, operation in pairs(TheatreCommander.operation_manager:getActiveOperationsForSide(coalition.side.BLUE)) do
-                    table.insert(active_zones, operation.target_zone_name)
-                end
+            for _,operation in pairs(TheatreCommander.blue_op_manager.active_operations) do
+                table.insert(active_zones, operation.target_zone_name)
             end
 
         elseif side == coalition.side.RED then
@@ -112,10 +111,8 @@ do
                 return
             end
 
-            if TheatreCommander.operation_manager then
-                for _, operation in pairs(TheatreCommander.operation_manager:getActiveOperationsForSide(coalition.side.RED)) do
-                    table.insert(active_zones, operation.target_zone_name)
-                end
+            for _,operation in pairs(TheatreCommander.red_op_manager.active_operations) do
+                table.insert(active_zones, operation.target_zone_name)
             end
         end
         
@@ -503,8 +500,11 @@ do
     
         ticks = ticks + 15
     
-        if TheatreCommander.operation_manager then
-            TheatreCommander.operation_manager:tick()
+        if TheatreCommander.blue_op_manager then
+            TheatreCommander.blue_op_manager:tick()
+        end
+        if TheatreCommander.red_op_manager then
+            TheatreCommander.red_op_manager:tick()
         end
 
         TaskManager:maintainTankerSectors()
@@ -1261,8 +1261,9 @@ do
 
         TheatreCommander.checkAirbasesCoalition()
 
-        -- Create singleton Operation Manager for both coalitions
-        TheatreCommander.operation_manager = OperationManager:new(blue_airbase, red_airbase)
+        -- Create Operation Managers for each coalition
+        TheatreCommander.blue_op_manager = OperationManager:new(coalition.side.BLUE, blue_airbase)
+        TheatreCommander.red_op_manager = OperationManager:new(coalition.side.RED, red_airbase)
 
         
         timer.scheduleFunction(TheatreCommander.sendWarehouseResupply, coalition.side.BLUE, timer.getTime() + Config.std_resupply_time)

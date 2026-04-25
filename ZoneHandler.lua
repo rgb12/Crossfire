@@ -680,8 +680,11 @@ do
         MissionLogger:info("Zone " .. self.zone.name .. " captured by " .. utils.coalitionToString(self.side))
 
         -- Invalidate cached operation lists immediately after ownership changes.
-        if TheatreCommander.operation_manager and TheatreCommander.operation_manager.forceRegenerateOperations then
-            TheatreCommander.operation_manager:forceRegenerateOperations()
+        if TheatreCommander.blue_op_manager and TheatreCommander.blue_op_manager.forceRegenerateOperations then
+            TheatreCommander.blue_op_manager:forceRegenerateOperations()
+        end
+        if TheatreCommander.red_op_manager and TheatreCommander.red_op_manager.forceRegenerateOperations then
+            TheatreCommander.red_op_manager:forceRegenerateOperations()
         end
 
         timer.scheduleFunction(function ()
