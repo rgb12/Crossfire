@@ -246,6 +246,29 @@ function Jupiter:onEvent(event)
             trigger.action.outText("Active groups: "..#b_gr+#r_gr.."\nActive units: "..units,15)
             cmd_executed = true
 
+        elseif command == "-airkill" then
+            local radius = tonumber(param1) or 5000 -- Default 5000m radius
+            local count = 0
+        
+            -- Define search volume
+            local volS = {
+                id = world.VolumeType.SPHERE,
+                params = { point = vec3, radius = radius }
+            }
+            
+            -- Callback function to destroy found objects
+            local function killObject(obj, val)
+                if obj and obj:isExist() and obj:inAir() then
+                    obj:destroy()
+                    count = count + 1
+                end
+                return true
+            end
+            
+            world.searchObjects({Object.Category.UNIT,Object.Category.STATIC}, volS, killObject)
+            
+            trigger.action.outText(string.format("Jupiter: Destroyed %d airborne objects in %dm radius.", count, radius), 5)
+            cmd_executed = true
         elseif command == "-destroy" then
             local radius = tonumber(param1) or 5000 -- Default 5000m radius
             local count = 0
