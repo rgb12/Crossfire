@@ -268,6 +268,7 @@ do
                 MissionLogger:info("spawn delay")
                 local sector = self.TankerSectors[sector_id]
                 if not sector or not sector.active then return end
+                MissionLogger:info("spawn delay pass 2")
 
                 local boom_alt = mist.utils.feetToMeters(Config.tanker.boom.altitude_ft)
                 local drogue_alt = mist.utils.feetToMeters(Config.tanker.drogue.altitude_ft)
@@ -1764,7 +1765,7 @@ do
         end
 
         local text_display = string.format(
-            "%s %d\nDrogue: %s AM / %sX\nBoom: %s AM / %sX",
+            "%s #%d\nDROGUE: %s AM / %sX\nBOOM: %s AM / %sX",
             Config.tanker.text_title or "Tanker Sector",
             sector.serial or 1,
             tostring(sector.frequencies[TankerRoles.DROGUE] or "U"), -- drogue freq
@@ -1793,19 +1794,26 @@ do
 
         local nx = -dz / len
         local nz = dx / len
+        local edge_inset = Config.tanker.edge_inset
+        local max_inset = math.max(0, (len * 0.5) - 1)
+        local inset = math.min(edge_inset, max_inset)
+        local start_x = p1.x + (dx / len) * inset
+        local start_z = p1.z + (dz / len) * inset
+        local end_x = p2.x - (dx / len) * inset
+        local end_z = p2.z - (dz / len) * inset
         local lane_sep = 3000
         local lane_offset = lane_sep * 0.5
         local sign = role == "drogue" and 1 or -1
 
         local lane_p1 = {
-            x = p1.x + (nx * lane_offset * sign),
+            x = start_x + (nx * lane_offset * sign),
             y = p1.y,
-            z = p1.z + (nz * lane_offset * sign)
+            z = start_z + (nz * lane_offset * sign)
         }
         local lane_p2 = {
-            x = p2.x + (nx * lane_offset * sign),
+            x = end_x + (nx * lane_offset * sign),
             y = p2.y,
-            z = p2.z + (nz * lane_offset * sign)
+            z = end_z + (nz * lane_offset * sign)
         }
 
         return lane_p1, lane_p2
