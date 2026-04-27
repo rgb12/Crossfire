@@ -49,6 +49,7 @@ Config = {
         strategic_airlift = {
             enabled = true,
             delivery_radius = 1200, -- (meters) delivery check radius around target zone center
+            boarded_object_height_agl = 0.5, -- (meters) packed object is considered boarded when above this AGL threshold
             cleanup_delay = 120, -- (seconds) delay before delivered operation assets are removed
             stage_hold_duration = 45, -- (seconds) hold near destination before completion
             completion_supply_bonus = 900, -- supplies granted to the destination area when strategic airlift completes
@@ -72,14 +73,8 @@ Config = {
                 ["helicopter"] = 85,
                 ["fixed_wing"] = 65,
             },
-            min_time = {
-                ["helicopter"] = 20*60,
-                ["fixed_wing"] = 35*60,
-            },
-            max_time = {
-                ["helicopter"] = 45*60,
-                ["fixed_wing"] = 90*60,
-            },
+            min_time = 20*60,
+            max_time = 90*60,
             supplies_per_asset = 180,
             base_xp = 1200,
             xp_per_km = 2,
@@ -110,8 +105,6 @@ Config = {
             },
             [OperationTypes.STRATEGIC_AIRLIFT] = {
                 "C-130J-30",
-                "UH-1H",
-                "CH-47Fbl1",
             },
             [OperationTypes.REINFORCEMENT] = {
                 "CH-47Fbl1",

@@ -638,11 +638,10 @@ do
                         table.insert(self.available_operations, op)
                     end
                 end
-                -- STRATEGIC AIRLIFT between friendly logistics zones
+                -- STRATEGIC AIRLIFT from any friendly zone to friendly airbase/FARP destinations
                 if Config.operations.strategic_airlift.enabled
                 and zone.side == friendly_coalition
-                and discovered_zones_set[zone.name]
-                and not self:isStrategicAirliftLoadZone(zone) then
+                and discovered_zones_set[zone.name] then
                     local target_zone = self:findStrategicAirliftTargetZone(zone, friendly_coalition, discovered_zones_set)
                     if target_zone and not self:isMissionProposed(target_zone.name) and not self:isZoneActive(target_zone.name) then
                         local op = self:createSTRATEGICAIRLIFTOperation(zone, target_zone)
@@ -706,9 +705,14 @@ do
     ---@param aircraft_category UserAircraftCategories
     ---@return number
     function OperationManager:computeStrategicAirliftTimeLimit(load_zone, target_zone, aircraft_category)
+        local cfg = Config.operations.strategic_airlift or {}
         local dist_m = mist.utils.get2DDist(load_zone.zone.point, target_zone.zone.point)
-        local raw = math.floor((dist_m / 1000) * Config.operations.strategic_airlift.seconds_per_km[aircraft_category])
-        return math.max(Config.operations.strategic_airlift.min_time[aircraft_category], math.min(raw, Config.operations.strategic_airlift.max_time[aircraft_category]))
+        local speed_map = cfg.seconds_per_km or {}
+        local sec_per_km = speed_map[aircraft_category] or speed_map[UserAircraftCategories.FIXED_WING] or 65
+        local raw = math.floor((dist_m / 1000) * sec_per_km)
+        local min_time = cfg.min_time or 0
+        local max_time = cfg.max_time or raw
+        return math.max(min_time, math.min(raw, max_time))
     end
 
     ---@param load_zone ZoneHandler
@@ -727,9 +731,9 @@ do
 
     ---@param zone ZoneHandler|nil
     ---@return boolean
-    function OperationManager:isStrategicAirliftLoadZone(zone)
+    function OperationManager:isStrategicAirliftTargetZone(zone)
         if not zone then return false end
-        return utils.tableContains(Config.ctld.allowed_load_zones or {}, zone.zone_type)
+        return zone.zone_type == ZoneTypes.AIRBASE or zone.zone_type == ZoneTypes.FARP
     end
 
     ---@param load_zone ZoneHandler
@@ -741,7 +745,7 @@ do
         for _, zone in ipairs(zones) do
             if zone.name ~= load_zone.name
             and zone.side == friendly_coalition
-            and self:isStrategicAirliftLoadZone(zone)
+            and self:isStrategicAirliftTargetZone(zone)
             and discovered_set[zone.name] then
                 local dist = mist.utils.get2DDist(load_zone.zone.point, zone.zone.point)
                 if dist >= Config.operations.strategic_airlift.min_route_distance and dist <= Config.operations.strategic_airlift.max_route_distance then
@@ -859,6 +863,48 @@ do
             table.insert(lines, string.format("- %s x%d", row.part_desc, row.quantity))
         end
         return table.concat(lines, "\n")
+    end
+
+    ---@param operation Operation|nil
+    ---@param zone ZoneHandler|nil
+    ---@return boolean, table<string, number>, table<string, Object[]>
+    function OperationManager:isStrategicAirliftManifestBoardedInZone(operation, zone)
+        local delivered = {}
+        local delivered_objects = {}
+        if not operation or not zone then return false, delivered, delivered_objects end
+
+        local required = {}
+        for _, req in ipairs(operation.strategic_manifest or {}) do
+            required[req.part_name] = req.quantity or 0
+        end
+
+        local threshold = (Config.operations.strategic_airlift and Config.operations.strategic_airlift.boarded_object_height_agl) or 0.5
+        local objects_in_zone = UnitHandler.findObjectsInZone(zone)
+        for _, obj in pairs(objects_in_zone) do
+            if obj and obj:isExist() and obj.getPoint and obj.getName then
+                local asset_name = obj:getName()
+                local part_name = asset_name and ctld.getPackedPartName(asset_name) or nil
+                if part_name and required[part_name] then
+                    local point = obj:getPoint()
+                    if point then
+                        local ground_y = land.getHeight({ x = point.x, y = point.z })
+                        if point.y > (ground_y + threshold) then
+                            delivered[part_name] = (delivered[part_name] or 0) + 1
+                            delivered_objects[part_name] = delivered_objects[part_name] or {}
+                            table.insert(delivered_objects[part_name], obj)
+                        end
+                    end
+                end
+            end
+        end
+
+        for _, req in ipairs(operation.strategic_manifest or {}) do
+            if (delivered[req.part_name] or 0) < (req.quantity or 0) then
+                return false, delivered, delivered_objects
+            end
+        end
+
+        return true, delivered, delivered_objects
     end
 
     ---@param operation Operation
@@ -1249,8 +1295,6 @@ do
 
         local hold_duration = Config.operations.strategic_airlift.stage_hold_duration
 
-        local target_zone_point = target_zone.zone.point
-
         ---@type Operation
         local op = {
             type = OperationTypes.STRATEGIC_AIRLIFT,
@@ -1282,22 +1326,8 @@ do
 
                         if not load_zone_op:isPointInsideZone(player_unit:getPoint()) then return false end
 
-                        local ctld_user = ctld.users[player_unit:getID()]
-                        if not ctld_user then return false end
-
-                        local loaded = {}
-                        for _,part in pairs(ctld_user.parts) do
-                            if not loaded[part.name] then
-                                loaded[part.name] = 0
-                            end
-                            loaded[part.name] = loaded[part.name] + 1
-                        end
-
-                        for _, req in ipairs(active_user_operation.strategic_manifest or {}) do
-                            if (loaded[req.part_name] or 0) < req.quantity then
-                                return false
-                            end
-                        end
+                        local is_manifest_boarded = self:isStrategicAirliftManifestBoardedInZone(active_user_operation, load_zone_op)
+                        if not is_manifest_boarded then return false end
 
                         trigger.action.outTextForUnit(player_unit:getID(), "Strategic Airlift: Manifest loaded. Proceed to target area for unloading.", 10)
                         trigger.action.outSoundForUnit(player_unit:getID(), "radio_txrx.ogg")
@@ -1309,15 +1339,31 @@ do
                     completed = false,
                     start_time = nil,
                     check = function(self_obj, player_unit,active_user_operation)
-                        if not player_unit or not player_unit:isExist() then return false end
-                        if player_unit:inAir() then return false end
-                        if mist.vec.mag(player_unit:getVelocity()) > 1 then return false end
-                        if not active_user_operation then return false end
+                        if not player_unit or not player_unit:isExist() then
+                            self_obj.start_time = nil
+                            return false
+                        end
+                        if player_unit:inAir() then
+                            self_obj.start_time = nil
+                            return false
+                        end
+                        if mist.vec.mag(player_unit:getVelocity()) > 1 then
+                            self_obj.start_time = nil
+                            return false
+                        end
+                        if not active_user_operation then
+                            self_obj.start_time = nil
+                            return false
+                        end
 
                         local zone = ZoneHandler.getFromName(active_user_operation.target_zone_name)
-                        if not zone then return false end
+                        if not zone then
+                            self_obj.start_time = nil
+                            return false
+                        end
 
                         if not zone:isPointInsideZone(player_unit:getPoint()) then
+                            self_obj.start_time = nil
                             return false
                         end
 
@@ -1343,27 +1389,10 @@ do
 
                         local unload_zone = ZoneHandler.getFromName(user_operation.target_zone_name)
                         if not unload_zone then return false end
-                        local objects_in_zone = UnitHandler.findObjectsInZone(unload_zone)
+                        if not unload_zone:isPointInsideZone(player_unit:getPoint()) then return false end
 
-                        local delivered = {}
-                        local delivered_objects = {}
-                        for _,obj in pairs(objects_in_zone) do
-                            if obj and obj:isExist() and not obj:inAir() then
-                                local asset_name = obj.getName and obj:getName() or nil
-                                local part_name = asset_name and ctld.getPackedPartName(asset_name) or nil
-                                if part_name and ctld.findPartByName(part_name) then
-                                    delivered[part_name] = (delivered[part_name] or 0) + 1
-                                    delivered_objects[part_name] = delivered_objects[part_name] or {}
-                                    table.insert(delivered_objects[part_name], obj)
-                                end
-                            end
-                        end
-
-                        for _, req in ipairs(user_operation.strategic_manifest or {}) do
-                            if (delivered[req.part_name] or 0) < req.quantity then
-                                return false
-                            end
-                        end
+                        local is_manifest_boarded, _, delivered_objects = self:isStrategicAirliftManifestBoardedInZone(user_operation, unload_zone)
+                        if not is_manifest_boarded then return false end
 
                         trigger.action.outTextForUnit(player_unit:getID(), "Strategic Airlift: Manifest delivery confirmed.", 10)
                         trigger.action.outSoundForUnit(player_unit:getID(), "radio_txrx.ogg")
@@ -2454,7 +2483,7 @@ do
                                 end
                                 bonus = math.max(0, bonus)
 
-                                if bonus > 0 then
+                                if bonus > 0 and target_zone.ammo_depot_intact == true then
                                     local local_cap = Config.supplies.supplies_cap[target_zone.level or 1] or 0
                                     target_zone.local_supplies = math.min((target_zone.local_supplies or 0) + bonus, local_cap)
                                     target_zone:drawF10()

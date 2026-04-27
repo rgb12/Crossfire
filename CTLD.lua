@@ -19,7 +19,7 @@ ctld.CargoCrates = {
     MOAB = "gbu_43b_airdrop",
     LargeContainer = "iso_container",
     SmallContainer = "iso_container_small",
-    SuppliesCrate = "container_cargo"
+    SuppliesCrate = "cds_crate"
 }
 
 ---@class acft_limits
@@ -391,12 +391,6 @@ function ctld.load(part, unit)
             return
         end
 
-        if not airlift_operation then
-            trigger.action.outTextForUnit(unit_id, "Negative, Strategic Airlift manifest is unavailable.", 8)
-            trigger.action.outSoundForUnit(unit_id, "transmission1.ogg")
-            return
-        end
-
         if (airlift_operation.loaded_parts[part.name] or 0) >= requested_quantity then
             trigger.action.outTextForUnit(unit_id, "Negative, Strategic Airlift already has enough " .. part.desc .. " loaded.", 8)
             trigger.action.outSoundForUnit(unit_id, "transmission1.ogg")
@@ -486,7 +480,9 @@ function ctld.load(part, unit)
     end
 
     -- Add part to user's cargo
-    unit_zone.local_supplies = math.max((unit_zone.local_supplies or 0) - (part.req_supplies or 0),0)
+    if not airlift_operation then
+        unit_zone.local_supplies = math.max((unit_zone.local_supplies or 0) - (part.req_supplies or 0),0)
+    end
 
     table.insert(user.parts, part)
 
@@ -863,7 +859,17 @@ function ctld.unload(unit)
         return
     end
     local unit_pos = unit:getPoint()
-    local is_in_zone = utils.getZoneOfUnitFromPosition(unit_pos) ~= nil
+    local unit_zone = utils.getZoneOfUnitFromPosition(unit_pos)
+    local is_in_zone = unit_zone ~= nil
+
+    local is_aircraft = unit and unit.hasAttribute and (unit:hasAttribute("Airplanes") or unit:hasAttribute("Helicopters"))
+    local is_logistics_unload_zone = unit_zone and utils.tableContains(Config.ctld.allowed_load_zones or {}, unit_zone.zone_type)
+    if is_aircraft and is_logistics_unload_zone then
+        trigger.action.outTextForUnit(unit_id, "Cannot unload in Airbase, FARP, or Logistics zones.", 5)
+        trigger.action.outSoundForUnit(unit_id, "transmission1.ogg")
+        return
+    end
+
     if is_in_zone and not Config.ctld.allow_unloading_in_zones then
         trigger.action.outTextForUnit(unit_id,"Cannot unload in this area.", 5)
         trigger.action.outSoundForUnit(unit_id, "transmission1.ogg")
