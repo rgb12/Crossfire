@@ -332,7 +332,7 @@ do
                 zone.comms_tower_intact = true
                 zone.linked_comms_tower = comms_tower.name
                 
-                utils.editCommsAntennasCount(coalition.side.BLUE, 1)
+                utils.editCommsAntennasCount(zone.side, 1)
                
                 table.insert(zone.linked_statics, comms_tower.name)
                 return true
@@ -605,4 +605,45 @@ function UnitHandler.checkIfZoneHasUnitWithAttributes(zone, attributes)
         end
     end
     return false
+end
+
+---@param zone ZoneHandler
+---@return Object[]
+function UnitHandler.findObjectsInZone(zone)
+    local objects = {}
+    local volume = nil
+    if zone:isCircle() then
+        volume = {
+            id = world.VolumeType.SPHERE,
+            params = {
+                point = zone.zone.point,
+                radius = zone.zone.radius
+            }
+        }
+    elseif zone:isQuad() then
+        -- bounding box around quad vertices
+        local min_x, max_x = math.huge, -math.huge
+        local min_z, max_z = math.huge, -math.huge
+        for _, v in ipairs(zone.zone.vertices) do
+            if v.x < min_x then min_x = v.x end
+            if v.x > max_x then max_x = v.x end
+            if v.z < min_z then min_z = v.z end
+            if v.z > max_z then max_z = v.z end
+        end
+        volume = {
+            id = world.VolumeType.BOX,
+            params = {
+                min = { x = min_x, y = -1000, z = min_z },
+                max = { x = max_x, y = 99999, z = max_z }
+            }
+        }
+    end
+    if not volume then return objects end
+    world.searchObjects({Object.Category.CARGO, Object.Category.UNIT, Object.Category.STATIC}, volume, function(obj)
+        if obj and obj:isExist() and obj.getVelocity and obj.getTypeName then
+            table.insert(objects,obj)
+        end
+        return true
+    end)
+    return objects
 end

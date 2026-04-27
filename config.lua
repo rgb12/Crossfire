@@ -63,14 +63,10 @@ Config = {
             },
             max_vehicle_crates_required = 3, -- avoids very heavy/slow manifests for this operation type
 
-            min_route_distance = {
-                ["helicopter"] = 30000,
-                ["fixed_wing"] = 90000,
-            },
-            max_route_distance = {
-                ["helicopter"] = 150000,
-                ["fixed_wing"] = 350000,
-            },
+
+
+            min_route_distance = 20*1000,
+            max_route_distance = 200*1000,
 
             seconds_per_km = {
                 ["helicopter"] = 85,
@@ -84,7 +80,7 @@ Config = {
                 ["helicopter"] = 45*60,
                 ["fixed_wing"] = 90*60,
             },
-
+            supplies_per_asset = 180,
             base_xp = 1200,
             xp_per_km = 2,
             xp_aircraft_category_multiplier = {
@@ -115,20 +111,13 @@ Config = {
             [OperationTypes.STRATEGIC_AIRLIFT] = {
                 "C-130J-30",
                 "UH-1H",
-                "Mi-8MT",
-                "Mi-24P",
                 "CH-47Fbl1",
-                "SA342L",
-                "SA342M",
-                "SA342Mistral",
-                "SA342Minigun",
-                "UH-60L",
             },
             [OperationTypes.REINFORCEMENT] = {
+                "CH-47Fbl1",
                 "UH-1H",
                 "Mi-8MT",
                 "Mi-24P",
-                "CH-47Fbl1",
                 "SA342L",
                 "SA342M",
                 "SA342Mistral",
