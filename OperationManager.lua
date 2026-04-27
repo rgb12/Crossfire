@@ -878,7 +878,6 @@ do
             required[req.part_name] = req.quantity or 0
         end
 
-        local threshold = (Config.operations.strategic_airlift and Config.operations.strategic_airlift.boarded_object_height_agl) or 0.5
         local objects_in_zone = UnitHandler.findObjectsInZone(zone)
         for _, obj in pairs(objects_in_zone) do
             if obj and obj:isExist() and obj.getPoint and obj.getName then
@@ -888,7 +887,7 @@ do
                     local point = obj:getPoint()
                     if point then
                         local ground_y = land.getHeight({ x = point.x, y = point.z })
-                        if point.y > (ground_y + threshold) then
+                        if point.y > (ground_y + Config.operations.strategic_airlift.boarded_object_height_agl) then
                             delivered[part_name] = (delivered[part_name] or 0) + 1
                             delivered_objects[part_name] = delivered_objects[part_name] or {}
                             table.insert(delivered_objects[part_name], obj)
@@ -945,6 +944,7 @@ do
 
         if operation.operation_id then
             ctld.clearOperationLoads(operation.operation_id)
+            ctld.clearOperationContextForOperation(operation.operation_id)
             if cleanup_assets then
                 ctld.clearOperationAssets(operation.operation_id)
             end
@@ -1121,11 +1121,10 @@ do
                             }
 
                             local supply_crate_objs = {}
-                            local supply_crate_names = {}
                             world.searchObjects({Object.Category.CARGO}, volume, function(obj)
                                 if obj and obj:isExist() and obj.getVelocity and obj.getName and obj.getTypeName then
                                     -- Only supply crates count toward reinforcement upgrades.
-                                    if obj:getTypeName() ~= CargoCrates.SuppliesCrate then
+                                    if ctld.isSupplyCrate(obj:getName()) then
                                         return true
                                     end
 
@@ -1133,7 +1132,6 @@ do
                                     local speed = math.sqrt(vel.x^2 + vel.y^2 + vel.z^2)
                                     if speed < 1 then
                                         table.insert(supply_crate_objs, obj)
-                                        table.insert(supply_crate_names, obj:getName())
                                     end
                                 end
                                 return true
@@ -1171,6 +1169,7 @@ do
         return op
     end
 
+    ---@param target_zone ZoneHandler
     function OperationManager:createREINFORCEMENTOperation(target_zone)
         local required_supplies = Config.operations.reinforcement_required_supplies
         local supplies_per_crate = Config.ctld.supply_crate_supplies
@@ -1196,48 +1195,45 @@ do
                     check = function(self_obj, player_unit,active_user_operation)
                         if not player_unit or not player_unit:isExist() then return false end
                         if player_unit:inAir() then return false end
-                        if not active_user_operation or not active_user_operation.operation_id then return false end
 
-                        local loaded = ctld.getOperationLoads(active_user_operation.operation_id)
-                        if (loaded[CargoCrates.SuppliesCrate] or 0) < required_crates then
-                            return false
-                        end
+                        -- detect if the supply crates are near the aircraft
+                        local player_point = player_unit:getPoint()
+                        local volume = {
+                            id = world.VolumeType.SPHERE,
+                            params = {
+                                point = player_point,
+                                radius = 60
+                            }
+                        }
+                        local supply_crates_nearby = 0
+                        world.searchObjects({Object.Category.CARGO}, volume, function(obj)
+                            if obj and obj:isExist() and ctld.isSupplyCrate(obj:getName())then
+                                supply_crates_nearby = supply_crates_nearby + 1
+                            end
+                            return true
+                        end)
+                        if supply_crates_nearby < required_crates then return false end
 
-                        trigger.action.outTextForUnit(player_unit:getID(), "Reinforcement: Supplies loaded. Proceed to target area for delivery.", 10)
+                                                trigger.action.outTextForUnit(player_unit:getID(), "REINFORCEMENT: Crates are within sling-load range. Proceed to the target area for delivery.", 10)
                         trigger.action.outSoundForUnit(player_unit:getID(), "radio_txrx.ogg")
                         return true
                     end
                 },
                 {
-                    description = "Unload supply crates at "..target_zone.name,
+                                            description = "Hold on the ground in "..target_zone.name.." until the cargo is extracted",
                     completed = false,
                     check = function(self_obj, player_unit)
                         if not player_unit or not player_unit:isExist() then return false end
                         if player_unit:inAir() then return false end
 
-                        local active_user_operation = nil
-                        for _, active_op in ipairs(self.active_operations) do
-                            if active_op.assigned_unit_name == player_unit:getName()
-                            and active_op.type == OperationTypes.REINFORCEMENT then
-                                active_user_operation = active_op
-                                break
-                            end
-                        end
-                        if not active_user_operation then return false end
+                        if not target_zone:isPointInsideZone(player_unit:getPoint()) then return false end
 
-                        local zone = ZoneHandler.getFromName(target_zone.name)
-                        if not zone then return false end
-
-                        if not zone:isPointInsideZone(player_unit:getPoint()) then
-                            return false
-                        end
-
-                        local objects = UnitHandler.findObjectsInZone(zone)
+                        local objects = UnitHandler.findObjectsInZone(target_zone)
                         if #objects == 0 then return false end
                         ---@type Object[]
                         local supply_crates_in_zone = {}
                         for _,obj in pairs(objects) do
-                            if obj:isExist() and obj:getTypeName() == CargoCrates.SuppliesCrate then
+                            if obj:isExist() and ctld.isSupplyCrate(obj:getName()) then
 
                                 local vel = obj:getVelocity()
                                 local speed = math.sqrt(vel.x^2 + vel.y^2 + vel.z^2)
@@ -1247,10 +1243,9 @@ do
                                 local is_on_ground = math.abs(land.getHeight(mist.utils.makeVec2(point))-point.y) < 1
 
                                 if speed_ok and is_on_ground then
-                                    table.insert(objects, obj)
+                                    table.insert(supply_crates_in_zone,obj)
                                 end
 
-                                table.insert(supply_crates_in_zone,obj)
                             end
                         end
 
@@ -1266,16 +1261,16 @@ do
                             end
                         end
 
-                        if zone.level < 4 then
-                            zone.level = zone.level + 1
-                            UnitHandler.updateZoneUnits(zone)
-                            zone:drawF10()
-                            zone.next_level_up_avail = timer.getTime() + Config.logistics_level_up_interval
-                            trigger.action.outSoundForCoalition(zone.side, "radio_beep.ogg")
-                            trigger.action.outTextForCoalition(zone.side,
-                                "SITREP: Reinforcement supplies delivered to " .. zone.name .. ". The sector has been upgraded to Tier " .. zone.level .. " of the 4-tier standard.", 10)
+                        if target_zone.level < 4 then
+                            target_zone.level = target_zone.level + 1
+                            UnitHandler.updateZoneUnits(target_zone)
+                            target_zone:drawF10()
+                            target_zone.next_level_up_avail = timer.getTime() + Config.logistics_level_up_interval
+                            trigger.action.outSoundForCoalition(target_zone.side, "radio_beep.ogg")
+                            trigger.action.outTextForCoalition(target_zone.side,
+                                "SITREP: " .. target_zone.name .. " has reached operational tier " .. target_zone.level.." / 4", 10)
                         else
-                            trigger.action.outTextForUnit(player_unit:getID(), "REINFORCEMENT: "..zone.name.." is already at tier 4/4.", 10)
+                            trigger.action.outTextForUnit(player_unit:getID(), "REINFORCEMENT: "..target_zone.name.." is already at tier 4/4.", 10)
                         end
 
                         return true
@@ -1313,7 +1308,7 @@ do
             strategic_manifest_text = self:formatStrategicAirliftManifest(manifest),
             objectives = {
                 {
-                    description = string.format("Load manifest via CTLD at %s", load_zone.name),
+                    description = string.format('Load manifest via CTLD "Load" at %s', load_zone.name),
                     completed = false,
                     check = function(self_obj, player_unit,active_user_operation)
                         if not player_unit or not player_unit:isExist() then return false end
@@ -1329,7 +1324,7 @@ do
                         local is_manifest_boarded = self:isStrategicAirliftManifestBoardedInZone(active_user_operation, load_zone_op)
                         if not is_manifest_boarded then return false end
 
-                        trigger.action.outTextForUnit(player_unit:getID(), "Strategic Airlift: Manifest loaded. Proceed to target area for unloading.", 10)
+                        trigger.action.outTextForUnit(player_unit:getID(), "Manifest loaded. Proceed to target area for unloading.", 10)
                         trigger.action.outSoundForUnit(player_unit:getID(), "radio_txrx.ogg")
                         return true
                     end
@@ -1376,8 +1371,8 @@ do
                         return (timer.getTime() - self_obj.start_time) >= (hold_duration or 45)
                     end
                 },
-                {
-                    description = string.format("Unload manifest at %s", target_zone.name),
+             {
+                    description = string.format("Hold position on the ground in %s until the cargo is extracted", target_zone.name),
                     completed = false,
                     check = function(self_obj, player_unit,user_operation)
                         if not player_unit or not player_unit:isExist() then return false end
@@ -1394,19 +1389,11 @@ do
                         local is_manifest_boarded, _, delivered_objects = self:isStrategicAirliftManifestBoardedInZone(user_operation, unload_zone)
                         if not is_manifest_boarded then return false end
 
-                        trigger.action.outTextForUnit(player_unit:getID(), "Strategic Airlift: Manifest delivery confirmed.", 10)
+                        trigger.action.outTextForUnit(player_unit:getID(), "Strategic Airlift: Hold position confirmed. Ground crews are extracting the cargo.", 10)
                         trigger.action.outSoundForUnit(player_unit:getID(), "radio_txrx.ogg")
 
-                        timer.scheduleFunction(function()
-                            -- Destroy the delivered cargo so the destination stays clean after completion.
-                            for _, objs in pairs(delivered_objects) do
-                                for _, obj in ipairs(objs) do
-                                    if obj and obj:isExist() then
-                                        obj:destroy()
-                                    end
-                                end
-                            end
-                        end,{},timer.getTime()+Config.operations.strategic_airlift.cleanup_delay)
+                        -- Cleanup is natively and instantly handled by `self:cancelStrategicAirliftOperation(op, true)` 
+                        -- fired by the state manager upon objective completion.
 
                         return true
                     end
@@ -1897,6 +1884,8 @@ do
 
                 if active_op.type == OperationTypes.STRATEGIC_AIRLIFT then
                     self:cancelStrategicAirliftOperation(active_op, true)
+                elseif active_op.operation_id then
+                    ctld.clearOperationContextForOperation(active_op.operation_id)
                 end
                 
                 table.remove(self.active_operations, i)
@@ -2423,95 +2412,98 @@ do
                                 end
                             end
                         end
-                        
+
                         -- Count actual participants and determine bonus
                         local coop_participant_count = #participants_to_reward
-                        
+
                         -- If no participants are alive, operation fails silently
                         if coop_participant_count == 0 then
                             table.remove(self.active_operations, i)
-                            return
-                        end
-                        
-                        -- Mark operation as completed only if we have participants
-                        op.status = OperationStatus.COMPLETED
-                        
-                        local coop_bonus_multiplier = 1.0
-                        
-                        -- Only apply bonus if 2 or more players are actually participating
-                        if coop_participant_count >= 2 then
-                            coop_bonus_multiplier = 1.0 + (Config.reward_system.coop_xp_bonus or 0.25)
-                        end
-                        
-                        -- Award XP to all participants
-                        for _, participant_unit in ipairs(participants_to_reward) do
-                            local participant_unit_id = participant_unit:getID()
-                            trigger.action.outTextForUnit(participant_unit_id, "Operation " .. op.operation_name .. " completed !", 20)
-                            trigger.action.outSoundForUnit(participant_unit_id,"chatter2.ogg")
-                            
-                            local user = ExperienceManager:fetchUser(participant_unit)
-                            if user then
-                                user.missions_completed = user.missions_completed + 1
-                                
-                                -- Apply base XP with co-op bonus (only if 2+ players)
-                                local base_xp = op.xp_reward or 500
-                                local total_xp = math.floor(base_xp * coop_bonus_multiplier)
-                                user.unclaimed_xp = user.unclaimed_xp + total_xp
+                        else
 
-                                local reward_msg = "+" .. total_xp .. " XP"
-                                
-                                -- Only show bonus message if there were actually 2+ players
-                                if coop_participant_count >= 2 then
-                                    local bonus_pct = math.floor((coop_bonus_multiplier - 1.0) * 100)
-                                    reward_msg = reward_msg .. string.format("\n[+%d%% CO-OP Bonus with %d players]", bonus_pct, coop_participant_count)
-                                end
-                                
-                                reward_msg = reward_msg .. "\nReturn to base to claim your rewards."
-                                
-                                trigger.action.outTextForUnit(participant_unit_id, reward_msg, 10)
+                            -- Mark operation as completed only if we have participants
+                            op.status = OperationStatus.COMPLETED
+
+                            local coop_bonus_multiplier = 1.0
+
+                            -- Only apply bonus if 2 or more players are actually participating
+                            if coop_participant_count >= 2 then
+                                coop_bonus_multiplier = 1.0 + (Config.reward_system.coop_xp_bonus or 0.25)
                             end
-                        end
 
-                        if op.type == OperationTypes.STRATEGIC_AIRLIFT then
-                            local target_zone = ZoneHandler.getFromName(op.target_zone_name)
-                            if target_zone then
-                                local cfg = Config.operations.strategic_airlift or {}
-                                local bonus = cfg.completion_supply_bonus or 0
-                                local variance = cfg.completion_supply_bonus_variance or 0
-                                if variance > 0 then
-                                    bonus = bonus + math.random(-variance, variance)
-                                end
-                                bonus = math.max(0, bonus)
+                            -- Award XP to all participants
+                            for _, participant_unit in ipairs(participants_to_reward) do
+                                local participant_unit_id = participant_unit:getID()
+                                trigger.action.outTextForUnit(participant_unit_id, "Operation " .. op.operation_name .. " completed !", 20)
+                                trigger.action.outSoundForUnit(participant_unit_id,"chatter2.ogg")
 
-                                if bonus > 0 and target_zone.ammo_depot_intact == true then
-                                    local local_cap = Config.supplies.supplies_cap[target_zone.level or 1] or 0
-                                    target_zone.local_supplies = math.min((target_zone.local_supplies or 0) + bonus, local_cap)
-                                    target_zone:drawF10()
+                                local user = ExperienceManager:fetchUser(participant_unit)
+                                if user then
+                                    user.missions_completed = user.missions_completed + 1
 
-                                    trigger.action.outTextForCoalition(self.side,string.format("Strategic Airlift delivered %d supplies to %s.", bonus, target_zone.name), 12)
-                                    trigger.action.outSoundForCoalition(self.side, "radio_beep3.ogg")
+                                    -- Apply base XP with co-op bonus (only if 2+ players)
+                                    local base_xp = op.xp_reward or 500
+                                    local total_xp = math.floor(base_xp * coop_bonus_multiplier)
+                                    user.unclaimed_xp = user.unclaimed_xp + total_xp
 
+                                    local reward_msg = "+" .. total_xp .. " XP"
+
+                                    -- Only show bonus message if there were actually 2+ players
+                                    if coop_participant_count >= 2 then
+                                        local bonus_pct = math.floor((coop_bonus_multiplier - 1.0) * 100)
+                                        reward_msg = reward_msg .. string.format("\n[+%d%% CO-OP Bonus with %d players]", bonus_pct, coop_participant_count)
+                                    end
+
+                                    reward_msg = reward_msg .. "\nReturn to base to claim your rewards."
+
+                                    trigger.action.outTextForUnit(participant_unit_id, reward_msg, 10)
                                 end
                             end
 
-                            self:cancelStrategicAirliftOperation(op, true)
+                            if op.type == OperationTypes.STRATEGIC_AIRLIFT then
+                                local target_zone = ZoneHandler.getFromName(op.target_zone_name)
+                                if target_zone then
+                                    local bonus = Config.operations.strategic_airlift .completion_supply_bonus
+                                    local variance = Config.operations.strategic_airlift .completion_supply_bonus_variance
+                                    if variance > 0 then
+                                        bonus = bonus + math.random(-variance, variance)
+                                    end
+                                    bonus = math.max(0, bonus)
+
+                                    if bonus > 0 and target_zone.ammo_depot_intact == true then
+                                        local local_cap = Config.supplies.supplies_cap[target_zone.level or 1] or 0
+                                        target_zone.local_supplies = math.min((target_zone.local_supplies or 0) + bonus, local_cap)
+                                        target_zone:drawF10()
+
+                                        trigger.action.outTextForCoalition(self.side,string.format("Strategic Airlift delivered %d supplies to %s.", bonus, target_zone.name), 12)
+                                        trigger.action.outSoundForCoalition(self.side, "radio_beep3.ogg")
+
+                                    end
+                                end
+
+                                self:cancelStrategicAirliftOperation(op, true)
+                            end
+
+                        if op.operation_id then
+                            ctld.clearOperationContextForOperation(op.operation_id)
                         end
 
-                        -- For CSAR operations, remove the rescued pilot from the downed_pilots list
-                        if op.type == OperationTypes.CSAR and op.pilot_position then
-                            for j = #self.downed_pilots, 1, -1 do
-                                local pilot_pos = self.downed_pilots[j]
-                                -- Check if this is the same pilot (within 1 meter tolerance)
-                                if pilot_pos and mist.utils.get3DDist(pilot_pos, op.pilot_position) < 1 then
-                                    table.remove(self.downed_pilots, j)
-                                    MissionLogger:info("Removed rescued pilot from downed_pilots list")
-                                    break
+                            -- For CSAR operations, remove the rescued pilot from the downed_pilots list
+                            if op.type == OperationTypes.CSAR and op.pilot_position then
+                                for j = #self.downed_pilots, 1, -1 do
+                                    local pilot_pos = self.downed_pilots[j]
+                                    -- Check if this is the same pilot (within 1 meter tolerance)
+                                    if pilot_pos and mist.utils.get3DDist(pilot_pos, op.pilot_position) < 1 then
+                                        table.remove(self.downed_pilots, j)
+                                        MissionLogger:info("Removed rescued pilot from downed_pilots list")
+                                        break
+                                    end
                                 end
                             end
+
+                            table.remove(self.active_operations, i)
                         end
 
-
-                        table.remove(self.active_operations, i)
                     end
                 end
             end

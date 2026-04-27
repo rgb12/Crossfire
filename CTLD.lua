@@ -11,16 +11,6 @@ ctld.AssetTypes = {
     SAM = "SAM",
     STATIC = "STATIC"
 }
----@enum ctld.CargoCrates
-ctld.CargoCrates = {
-    CDS_BARRELS = "cds_barrels",
-    CDS_CRATES = "cds_crate",
-    ContainerClean = "M92_10Ft_Container",
-    MOAB = "gbu_43b_airdrop",
-    LargeContainer = "iso_container",
-    SmallContainer = "iso_container_small",
-    SuppliesCrate = "cds_crate"
-}
 
 ---@class acft_limits
 ---@field aircraft_type string
@@ -192,14 +182,14 @@ ctld.parts = {
     {name = "SpGH_Dana", desc="SpGH DANA", weight = 1000, type = ctld.AssetTypes.VEHICLES, can_move = true, req_supplies = 100},
 
 
-    --{name = "container_cargo",  desc = "Crate",               weight = 1000, type = ctld.AssetTypes.CARGO_CRATES},
+    {name = "container_cargo",  desc = "Crate",               weight = 1000, type = ctld.AssetTypes.CARGO_CRATES},
     {name = "iso_container",    desc = "Large Container",     weight = 4000, type = ctld.AssetTypes.CARGO_CRATES, req_supplies = 5},
     {name = "iso_container_small",desc = "Small Container",   weight = 2000, type = ctld.AssetTypes.CARGO_CRATES, req_supplies = 5},
     {name = "M92_10Ft_Container",desc = "Clean Container",    weight = 1500, type = ctld.AssetTypes.CARGO_CRATES, req_supplies = 5},
     {name = "gbu_43b_airdrop",  desc = "MOAB",                 weight = 9000, type = ctld.AssetTypes.CARGO_CRATES},
     {name = "cds_barrels",     desc = "CDS Barrels",        weight = 200, type = ctld.AssetTypes.CARGO_CRATES, req_supplies = 5},
-    {name = "cds_crate",       desc = "CDS Crate",           weight = 200, type = ctld.AssetTypes.CARGO_CRATES},
-    {name = ctld.CargoCrates.SuppliesCrate, desc = "Supply Crate", weight = 1000, type = ctld.AssetTypes.CARGO_CRATES, req_supplies = Config.ctld.supply_crate_supplies or 50, supply_amount = Config.ctld.supply_crate_supplies or 50},
+    --{name = "cds_crate",       desc = "CDS Crate",           weight = 200, type = ctld.AssetTypes.CARGO_CRATES},
+    {name = CargoCrates.SUPPLY_CRATE, desc = "Supply Crate", weight = 1000, type = ctld.AssetTypes.CARGO_CRATES, req_supplies = Config.ctld.supply_crate_supplies, supply_amount = Config.ctld.supply_crate_supplies},
 }
 
 
@@ -455,7 +445,7 @@ function ctld.load(part, unit)
 
     -- Check if MOAB in stock
      -- Checks if MOAB in warehouse
-    if part.name == ctld.CargoCrates.MOAB then
+    if part.name == CargoCrates.MOAB then
         local airbase = utils.getZoneOfUnitFromPosition(unit:getPoint())
         if not airbase or not airbase.airbase_name then
             trigger.action.outTextForUnit(unit_id, "Negative, unable to determine airbase for MOAB deployment.", 10)
@@ -1434,7 +1424,7 @@ function ctld.spawnCargoCrate(unit,part)
     MissionLogger:info(string.format("Spawning cargo crate %s", part.name))
 
     local type_to_spawn = Config.ctld.cargo_crate_template
-    if utils.tableContains(ctld.CargoCrates, part.name) then
+    if utils.tableContains(CargoCrates, part.name) then
         type_to_spawn = part.name
     end
 
@@ -1658,6 +1648,18 @@ function ctld.clearOperationContextForUnit(unit)
 end
 
 ---@param operation_id string|nil
+function ctld.clearOperationContextForOperation(operation_id)
+    if not operation_id then return end
+
+    for unit_id, context in pairs(ctld.operation_contexts) do
+        if context and context.operation_id == operation_id then
+            ctld.operation_contexts[unit_id] = nil
+            ctld.airlift_operation_tracking[unit_id] = nil
+        end
+    end
+end
+
+---@param operation_id string|nil
 ---@param asset OperationAsset|nil
 function ctld.registerOperationAsset(operation_id, asset)
     if not operation_id or not asset then return end
@@ -1734,4 +1736,10 @@ function ctld.clearOperationLoads(operation_id)
             ctld.operation_contexts[unit_id] = nil
         end
     end
+end
+
+---@param object_name string
+---@return boolean
+function ctld.isSupplyCrate(object_name)
+    return ctld.getPackedPartName(object_name) == CargoCrates.SUPPLY_CRATE
 end

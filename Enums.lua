@@ -156,7 +156,7 @@ OperationTypes = {
     RECON = "Recon",
     AIRDROP = "Airdrop",
     REINFORCEMENT = "Reinforcement",
-    STRATEGIC_AIRLIFT = "Strategic Airlift",
+    STRATEGIC_AIRLIFT = "Airlift",
     INTERCEPT = "Intercept",
     CSAR = "CSAR",
     DEEP_RECON = "Deep Recon",
@@ -186,12 +186,12 @@ OperationStatus = {
 ---@enum CargoCrates
 CargoCrates = {
     CDS_BARRELS = "cds_barrels",
-    CDS_CRATES = "cds_crate",
+    --CDS_CRATES = "cds_crate",
     ContainerClean = "M92_10Ft_Container",
     MOAB = "gbu_43b_airdrop",
     LargeContainer = "iso_container",
     SmallContainer = "iso_container_small",
-    SuppliesCrate = "container_cargo"
+    SUPPLY_CRATE = "cds_crate"
 }
 
 ---@class CoalSetup
