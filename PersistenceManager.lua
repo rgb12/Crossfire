@@ -12,6 +12,96 @@ do
     PersistenceManager.enabled = false
     PersistenceManager.data = {}
 
+    local function cleanJSON(json_text)
+        if not json_text or json_text == "" then
+            return json_text
+        end
+
+        local indent = 0
+        local output = {}
+        local stack = {}
+        local in_string = false
+        local escaped = false
+
+        local function append(chunk)
+            output[#output + 1] = chunk
+        end
+
+        local function current_frame()
+            return stack[#stack]
+        end
+
+        local function start_value()
+            local frame = current_frame()
+            if frame and frame.pending_indent then
+                append("\n")
+                append(string.rep("    ", indent))
+                frame.pending_indent = false
+            end
+            if frame then
+                frame.has_content = true
+            end
+        end
+
+        for i = 1, #json_text do
+            local char = json_text:sub(i, i)
+
+            if in_string then
+                append(char)
+                if escaped then
+                    escaped = false
+                elseif char == "\\" then
+                    escaped = true
+                elseif char == '"' then
+                    in_string = false
+                end
+            elseif char == '"' then
+                start_value()
+                in_string = true
+                append(char)
+            elseif char == '{' or char == '[' then
+                start_value()
+                append(char)
+                indent = indent + 1
+                stack[#stack + 1] = {
+                    close = char == '{' and '}' or ']',
+                    has_content = false,
+                    pending_indent = true
+                }
+            elseif char == '}' or char == ']' then
+                local frame = current_frame()
+                if frame then
+                    if frame.has_content then
+                        append("\n")
+                        indent = math.max(indent - 1, 0)
+                        append(string.rep("    ", indent))
+                    else
+                        indent = math.max(indent - 1, 0)
+                    end
+                    append(char)
+                    stack[#stack] = nil
+                else
+                    append(char)
+                end
+            elseif char == ',' then
+                append(char)
+                local frame = current_frame()
+                if frame then
+                    frame.pending_indent = true
+                end
+            elseif char == ':' then
+                append(": ")
+            elseif char:match("%s") then
+                -- Skip insignificant whitespace from the compact encoder.
+            else
+                start_value()
+                append(char)
+            end
+        end
+
+        return table.concat(output)
+    end
+
     function PersistenceManager:isEnabled()
         if not Config or not Config.persistence then return false end
 
@@ -311,7 +401,7 @@ do
 
         if not JSON then return end
             ---@diagnostic disable-next-line: undefined-field
-            local file_content = JSON:encode(PersistenceManager.data)
+            local file_content = cleanJSON(JSON:encode(PersistenceManager.data))
             if file_content then
 
                 local file= io.open(PersistenceManager.mission_save_file_path, "w")
@@ -699,7 +789,7 @@ function PersistenceManager:saveUserDataToFile()
         if not PersistenceManager.user_data_file_path then return end
         if not JSON then return end
 
-        local file_content = JSON:encode(ExperienceManager.user_data)
+    local file_content = cleanJSON(JSON:encode(ExperienceManager.user_data))
 
         if file_content then
             local file = io.open(PersistenceManager.user_data_file_path, "w")
