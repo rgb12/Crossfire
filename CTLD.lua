@@ -556,7 +556,6 @@ function ctld.unpack(unit)
     for _, asset in ipairs(unpacked_assets_nearby) do
         local asset_name = asset:getName()
         local part_name = ctld.getUnpackedPartName(asset_name)
-        MissionLogger:info("Unpacked asset name: "..asset_name.." part name: "..part_name)
         if part_name then
             for _, part in ipairs(ctld.parts) do
                 if part.name == part_name then
@@ -605,13 +604,13 @@ function ctld.unpack(unit)
         local crates_required = part.crates_required or 1
         local available_crates = #crate_data.objs
 
-        if part.type == ctld.AssetTypes.CARGO_CRATES and (part.supply_amount or 0) > 0 then
+        if part.name == CargoCrates.SUPPLY_CRATE and (part.supply_amount or 0) > 0 then
             for _, crate_obj in ipairs(crate_data.objs) do
                 if crate_obj and crate_obj:isExist() then
                     local crate_point = crate_obj:getPoint()
                     local target_zone = utils.fetchSuppliesZoneFromPoint(crate_point, unit:getCoalition())
                     if not target_zone then
-                        trigger.action.outTextForUnit(unit_id, "Negative, cannot unpack supply crate: not inside a friendly supply zone.", 5)
+                        trigger.action.outTextForUnit(unit_id, "Negative, cannot unpack supply crate in this area.", 5)
                         trigger.action.outSoundForUnit(unit_id, "transmission1.ogg")
                     elseif target_zone.ammo_depot_intact ~= true then
                         trigger.action.outTextForUnit(unit_id, "Negative, cannot unpack supply crate.", 5)

@@ -880,7 +880,7 @@ do
 
         local objects_in_zone = UnitHandler.findObjectsInZone(zone)
         for _, obj in pairs(objects_in_zone) do
-            if obj and obj:isExist() and obj.getPoint and obj.getName then
+            if obj and obj:isExist() then
                 local asset_name = obj:getName()
                 local part_name = asset_name and ctld.getPackedPartName(asset_name) or nil
                 if part_name and required[part_name] then
@@ -904,37 +904,6 @@ do
         end
 
         return true, delivered, delivered_objects
-    end
-
-    ---@param operation Operation
-    ---@return table<string, number>
-    function OperationManager:getStrategicAirliftDeliveredCounts(operation)
-        local counts = {}
-        if not operation or not operation.operation_id then return counts end
-
-        local assets = ctld.fetchOperationAssets(operation.operation_id)
-        local target_zone = ZoneHandler.getFromName(operation.target_zone_name)
-        if not target_zone then return counts end
-
-        for _, asset in ipairs(assets) do
-            local obj = nil
-            if asset.object_type == "static" then
-                obj = StaticObject.getByName(asset.unit_name)
-            else
-                obj = Unit.getByName(asset.unit_name)
-            end
-
-
-
-            if obj and obj:isExist() and obj.getPoint and not obj:inAir() then
-                local point = obj:getPoint()
-                if mist.utils.get2DDist(point, target_zone.zone.point) <= Config.operations.strategic_airlift.delivery_radius then
-                    counts[asset.part_name] = (counts[asset.part_name] or 0) + 1
-                end
-            end
-        end
-
-        return counts
     end
 
     ---@param operation Operation
@@ -1372,7 +1341,7 @@ do
                     end
                 },
              {
-                    description = string.format("Hold position on the ground in %s until the cargo is extracted", target_zone.name),
+                    description = string.format("Hold position on the ground at %s until the cargo is extracted.", target_zone.name),
                     completed = false,
                     check = function(self_obj, player_unit,user_operation)
                         if not player_unit or not player_unit:isExist() then return false end
@@ -1389,11 +1358,8 @@ do
                         local is_manifest_boarded, _, delivered_objects = self:isStrategicAirliftManifestBoardedInZone(user_operation, unload_zone)
                         if not is_manifest_boarded then return false end
 
-                        trigger.action.outTextForUnit(player_unit:getID(), "Strategic Airlift: Hold position confirmed. Ground crews are extracting the cargo.", 10)
+                        trigger.action.outTextForUnit(player_unit:getID(), "Strategic Airlift: Hold position confirmed. Ground crews are extracting the cargo...", 10)
                         trigger.action.outSoundForUnit(player_unit:getID(), "radio_txrx.ogg")
-
-                        -- Cleanup is natively and instantly handled by `self:cancelStrategicAirliftOperation(op, true)` 
-                        -- fired by the state manager upon objective completion.
 
                         return true
                     end
@@ -2463,8 +2429,8 @@ do
                             if op.type == OperationTypes.STRATEGIC_AIRLIFT then
                                 local target_zone = ZoneHandler.getFromName(op.target_zone_name)
                                 if target_zone then
-                                    local bonus = Config.operations.strategic_airlift .completion_supply_bonus
-                                    local variance = Config.operations.strategic_airlift .completion_supply_bonus_variance
+                                    local bonus = Config.operations.strategic_airlift.completion_supply_bonus
+                                    local variance = Config.operations.strategic_airlift.completion_supply_bonus_variance
                                     if variance > 0 then
                                         bonus = bonus + math.random(-variance, variance)
                                     end
@@ -2475,7 +2441,7 @@ do
                                         target_zone.local_supplies = math.min((target_zone.local_supplies or 0) + bonus, local_cap)
                                         target_zone:drawF10()
 
-                                        trigger.action.outTextForCoalition(self.side,string.format("Strategic Airlift delivered %d supplies to %s.", bonus, target_zone.name), 12)
+                                        trigger.action.outTextForCoalition(self.side,string.format("Airlift delivered %d supplies to %s", bonus, target_zone.name), 12)
                                         trigger.action.outSoundForCoalition(self.side, "radio_beep3.ogg")
 
                                     end
