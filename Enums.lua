@@ -97,23 +97,12 @@ Airbases = {
     }
 }
 
-
 ---@enum SAM_TYPES
 SAM_TYPES = {
     SHORT_RANGE = 1,
     MEDIUM_RANGE = 2,
     LONG_RANGE = 3
 }
-
-
----@enum ScenarioDifficulty
-ScenarioDifficulty = {
-    EASY = 1,
-    MEDIUM = 2,
-    HARD = 3,
-    EXPERT = 4
-}
-
 
 ---@enum ZoneTypes
 ZoneTypes = {
@@ -212,19 +201,6 @@ CargoCrates = {
 ---@class Resupply
 ---@field blue_point vec3
 ---@field red_point vec3
-
----@class Scenario
----@field name string
----@field difficulty ScenarioDifficulty
----@field description string
----@field estimated_users number
----@field coalition_setup CoalSetup
----@field red_airbase ZoneHandler|nil
----@field blue_airbase ZoneHandler|nil
----@field logistics_setup LogisticsSetup
----@field carrier_setup CarrierSetup|nil
----@field resupply Resupply
----@field zones ZoneHandler[]
 
 
 MissionLogger = mist.Logger:new("MissionLogger", 3)

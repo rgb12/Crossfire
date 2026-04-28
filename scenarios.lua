@@ -1,8 +1,13 @@
---[[
-    scenarios.lua
-    Crossfire Mission Scenarios
-
-]]
+---@class Scenario
+---@field name string
+---@field description string
+---@field coalition_setup CoalSetup
+---@field red_airbase ZoneHandler|nil
+---@field blue_airbase ZoneHandler|nil
+---@field logistics_setup LogisticsSetup
+---@field carrier_setup CarrierSetup|nil
+---@field resupply Resupply
+---@field zones ZoneHandler[]
 
 ---@type Scenario[]
 Scenarios = {
@@ -31,8 +36,6 @@ Scenarios = {
             carrier_unit_name = "Carrier",
             enabled = true
         },
-        estimated_users = 1, -- IMPORTANT: if you plan on using multiplayer, set this value accordingly, it will scale the warehouse stocks
-        difficulty = ScenarioDifficulty.EASY, -- no function
         
         -- MAIN RED AIRBASE
         red_airbase = ZoneHandler:new({
@@ -98,8 +101,6 @@ Scenarios = {
             tomahawk_launcher_unit_name = "Naval Launcher",
             enabled = true
         },
-        estimated_users = 1,
-        difficulty = ScenarioDifficulty.MEDIUM,
         red_airbase = ZoneHandler:new({
             name = "SENAKI",
             airbase_name = Airbases.Caucasus.Senaki_Kolkhi,
@@ -176,8 +177,6 @@ Scenarios = {
             carrier_unit_name = "Carrier",
             enabled = false
         },
-        estimated_users = 1,
-        difficulty = ScenarioDifficulty.MEDIUM,
         blue_airbase = ZoneHandler:new({
             name = "KHALKHALAH",
             airbase_name = Airbases.Syria.Khalkhalah,
@@ -259,6 +258,11 @@ Scenarios = {
         }
     }
 }
+
+
+-- [INSERT CUSTOM SCENARIO HERE]
+
+-- [**********]
 
 ---@type ZoneHandler[]
 zones = {}
