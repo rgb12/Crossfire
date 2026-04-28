@@ -1,10 +1,23 @@
+---@class CoalSetup
+---@field initial_dist_blue_to_frontline number
+---@field auto_coalition_designation boolean
+---@field dist_variance number
+
+---@class CarrierSetup
+---@field carrier_unit_name string
+---@field tomahawk_launcher_unit_name string|nil
+---@field enabled boolean
+
+---@class Resupply
+---@field blue_point vec3
+---@field red_point vec3
+
 ---@class Scenario
 ---@field name string
 ---@field description string
 ---@field coalition_setup CoalSetup
 ---@field red_airbase ZoneHandler|nil
 ---@field blue_airbase ZoneHandler|nil
----@field logistics_setup LogisticsSetup
 ---@field carrier_setup CarrierSetup|nil
 ---@field resupply Resupply
 ---@field zones ZoneHandler[]
@@ -18,11 +31,6 @@ Scenarios = {
             initial_dist_blue_to_frontline = 33000, -- (meters) all zones under that distance from the main airbase will be blue
             dist_variance = 0, -- (meters) add +/- variance to the field above
             auto_coalition_designation = true, -- overrides the above
-        },
-        logistics_setup = {
-            upgrade_range = 30000, -- (meters) maximum range at which a logistics zone can upgrade a zone nearby
-            heli_capture_range = 60000, -- (meters) max range for capture AI helicopters
-            max_dist_to_frontline = 40000 -- (meters) Logistics zones will not upgrade other zones if the nearest enemy zone is further than this distance
         },
         resupply = {
             --blue_point = { x=-00005476, y=2000,z=00224066}, --for dev
@@ -72,7 +80,6 @@ Scenarios = {
             ZoneHandler:new({name = "CHECKPOINT-YANKEE"}),
             ZoneHandler:new({name = "OUTPOST-DELTA"}),
             ZoneHandler:new({name = "ACE"}),
-            
             ZoneHandler:new({name = "HEART", zone_type = ZoneTypes.FARP}), -- make sure you add aircraft clients so users can spawn
             ZoneHandler:new({name = "LONDON", zone_type = ZoneTypes.FARP}),
             ZoneHandler:new({name = "KRYMSK", zone_type = ZoneTypes.AIRBASE, airbase_name = Airbases.Caucasus.Krymsk}),
@@ -85,11 +92,6 @@ Scenarios = {
             initial_dist_blue_to_frontline = 80000, --meters
             dist_variance = 5000, --meters
             auto_coalition_designation = true, -- overrides the above
-        },
-        logistics_setup = {
-            upgrade_range = 60000, --meters
-            heli_capture_range = 150000, --meters
-            max_dist_to_frontline = 80000 --meters
         },
         resupply = {
             --blue_point = { x=-00310000, y=2000,z=00901479}, --for dev
@@ -156,64 +158,12 @@ Scenarios = {
         } -- 43 zones
     },
     {
-        name = "Syria Sandblast",
-        description = "Action-packed scenario set in Syria.",
-        coalition_setup = {
-            initial_dist_blue_to_frontline = 16000, --meters
-            dist_variance = 0, --meters
-            auto_coalition_designation = true, -- overrides the above
-        },
-        logistics_setup = {
-            upgrade_range = 30000, --meters
-            heli_capture_range = 150000, --meters
-            max_dist_to_frontline = 50000 --meters
-        },
-        resupply = {
-            --blue_point = { x=-00310000, y=2000,z=00901479}, --for dev
-            blue_point = { x = -00212555, y = 6096, z = 00151669 },
-            red_point = { x = -00025609, y = 6096, z = 00118626 }
-        },
-        carrier_setup = {
-            carrier_unit_name = "Carrier",
-            enabled = false
-        },
-        blue_airbase = ZoneHandler:new({
-            name = "KHALKHALAH",
-            airbase_name = Airbases.Syria.Khalkhalah,
-            zone_type = ZoneTypes.AIRBASE}),
-        red_airbase =  ZoneHandler:new({
-            name = "AL-DUMAYR",
-            airbase_name = Airbases.Syria.Al_Dumayr,
-            zone_type = ZoneTypes.AIRBASE}),
-        zones = {
-            ZoneHandler:new({name = "BURAQ"}),
-            ZoneHandler:new({name = "DELTA"}),
-            ZoneHandler:new({name = "BRAVO"}),
-            ZoneHandler:new({name = "EASTPOINT"}),
-            ZoneHandler:new({name = "SOUTHPOINT"}),
-            ZoneHandler:new({name = "ALPHA"}),
-            ZoneHandler:new({name = "SAND"}),
-            ZoneHandler:new({name = "HOTEL"}),
-            ZoneHandler:new({name = "FOXTROT"}),
-            ZoneHandler:new({name = "RESORT", zone_type = ZoneTypes.FARP,}),
-            ZoneHandler:new({name = "GOLF", zone_type = ZoneTypes.FARP,}),
-            ZoneHandler:new({name = "CHARLIE", zone_type = ZoneTypes.FARP,}),
-            ZoneHandler:new({name = "MARJ-RUHAYYIL", zone_type = ZoneTypes.AIRBASE, airbase_name = Airbases.Syria.Marj_Ruhayyil}),
-            ZoneHandler:new({name = "MEZZEH", zone_type = ZoneTypes.AIRBASE, airbase_name = Airbases.Syria.Mezzeh}),
-        }
-    },
-    {
         name = "Syrian Resolve",
         description = "Dedicated scenario set in Syria.",
         coalition_setup = {
             initial_dist_blue_to_frontline = 45000, --meters
             dist_variance = 0, --meters
             auto_coalition_designation = true, -- overrides the above
-        },
-        logistics_setup = {
-            upgrade_range = 30000, --meters
-            heli_capture_range = 150000, --meters
-            max_dist_to_frontline = 50000 --meters
         },
         resupply = {
             blue_point = { x = 00029810, y = 6096, z = 00156947 },
@@ -224,8 +174,6 @@ Scenarios = {
             tomahawk_launcher_unit_name = "Naval Launcher",
             enabled = true
         },
-        estimated_users = 1,
-        difficulty = ScenarioDifficulty.MEDIUM,
         blue_airbase = ZoneHandler:new({
             name = "SHAYRAT",
             airbase_name = Airbases.Syria.Shayrat,

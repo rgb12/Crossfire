@@ -183,24 +183,4 @@ CargoCrates = {
     SUPPLY_CRATE = "cds_crate"
 }
 
----@class CoalSetup
----@field initial_dist_blue_to_frontline number
----@field auto_coalition_designation boolean
----@field dist_variance number
-
----@class LogisticsSetup
----@field upgrade_range number
----@field heli_capture_range number
----@field max_dist_to_frontline number
-
----@class CarrierSetup
----@field carrier_unit_name string
----@field tomahawk_launcher_unit_name string|nil
----@field enabled boolean
-
----@class Resupply
----@field blue_point vec3
----@field red_point vec3
-
-
 MissionLogger = mist.Logger:new("MissionLogger", 3)
