@@ -420,11 +420,6 @@ function Jupiter:onEvent(event)
             else
                 trigger.action.outText("Jupiter: No zone found within 10km for capture.", 5)
             end
-        elseif command == "-scalewarehouse" then
-            local scale = tonumber(param1) or 1.0
-            Scenario.estimated_users = math.max(1,scale)
-            trigger.action.outText(string.format("Jupiter: Scaled warehouse stock calculations for %d users.", Scenario.estimated_users), 5)
-            cmd_executed = true
         elseif command == "-addxp" then
             local xp_to_add = tonumber(param1) or 1000
             -- Find all players within 500m of the marker
@@ -469,6 +464,8 @@ function Jupiter:onEvent(event)
                 trigger.action.outText("XP multiplier (x"..multiplier..") active for "..time.." minutes!",10)
                 cmd_executed=true
             end
+        else
+            trigger.action.outText("Jupiter: unknown command",5)
         end
         -- 3. Cleanup: Remove the map marker if a command was recognized
         timer.scheduleFunction(function()
