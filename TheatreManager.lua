@@ -396,9 +396,6 @@ do
         local t1m_update = function()
             MissionLogger:info("1 minute")
 
-
-    
-            local upgraded_zone = false
             local capture_helicopter_sent = false
             for _, zone in ipairs(zones) do
 
@@ -426,6 +423,28 @@ do
                         TaskManager:initiateAITask(AITaskTypes.ATTACK_CONVOY,zone.side,true,nil,zone,false)
                     end
 
+                    -- this spawns a reinforcement helicopter
+                    if math.random(1,100) <= Config.reinforcement_chance and zone.zone_type == ZoneTypes.LOGISTICS
+                    and zone.heli_avail > 0
+                    and #EnrouteManager:findByTaskType(AITaskTypes.REINFORCEMENT_HELO,zone.side) < 2
+                    and #EnrouteManager:findByFromZone(zone,zone.side,{AITaskTypes.REINFORCEMENT_HELO, AITaskTypes.CAPTURE_HELO})
+                    then
+                        local zones_to_upgrade = zone:filterZonesByDistance(zone.side,{},{},true)
+                        local zone_to_upgrade = nil
+                        if #zones_to_upgrade > 0 then
+                            for _,zone_t_u in ipairs(zones_to_upgrade) do
+                                if zone_t_u.level < 4
+                                and not EnrouteManager:findByToZone(zone_t_u,zone.side,{AITaskTypes.REINFORCEMENT_HELO, AITaskTypes.CAPTURE_HELO}) then
+                                    zone_to_upgrade = zone_t_u
+                                    break
+                                end
+                            end
+                        end
+
+                        if zone_to_upgrade then
+                            TaskManager:initiateAITask(AITaskTypes.REINFORCEMENT_HELO,zone.side,true,zone,zone_to_upgrade,false)
+                        end
+                    end
                     
             end
             ctld.monitorFARPDestruction()
@@ -946,7 +965,6 @@ do
         end
 
         -- 2. APPLY DIFFICULTY (Zone Count) & REBUILD GLOBAL ZONES TABLE
-        local diff_setting = Scenario.difficulty
         local active_ratio = 1
 
         utils.shuffleTable(all_other_zones)
@@ -963,7 +981,7 @@ do
             table.insert(zones, all_other_zones[i])
         end
 
-        MissionLogger:info("Theatre Gen: Difficulty " .. diff_setting .. ". Total Zones Active: " .. #zones .. " (Includes 2 Bases). Removed " .. (#all_other_zones - active_count) .. " unused zones.")
+        MissionLogger:info("Theatre Generation: Total Zones Active: " .. #zones .. " (Includes 2 Bases). Removed " .. (#all_other_zones - active_count) .. " unused zones.")
 
         -- 3. ASSIGN COALITIONS (Frontline Logic)
         local blue_pool = {}

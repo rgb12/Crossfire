@@ -282,6 +282,36 @@ do
         return self.zone.type == 0
     end
 
+
+    ---@param side coalition.side
+    ---@param ignore_zone_types ZoneTypes[] Do not allow these zone types
+    ---@param zone_types_filter ZoneTypes[] Only allow these zones types
+    ---@param discovered boolean
+    ---@return ZoneHandler[]
+    function ZoneHandler:filterZonesByDistance(side,ignore_zone_types, zone_types_filter, discovered)
+        local sorted_zones = {}
+        local discovered_zones = {}
+        if side == coalition.side.BLUE then
+            discovered_zones = stats.blue_discovered_zones
+        else
+            discovered_zones = stats.red_discovered_zones
+        end
+
+        for _,zone in pairs(zones) do
+            if (#ignore_zone_types==0 or not utils.tableContains(ignore_zone_types,zone.zone_type))
+            and (#zone_types_filter==0 or utils.tableContains(zone_types_filter,zone.zone_type))
+            and zone.side == side
+            and zone.name ~= self.name
+            and (not discovered or utils.tableContains(discovered_zones,zone.name)) then
+                table.insert(sorted_zones,zone)
+            end
+        end
+        table.sort(sorted_zones, function(a,b)
+            return mist.utils.get2DDist(self.zone.point,a.zone.point) < mist.utils.get2DDist(self.zone.point,b.zone.point)
+        end)
+        return sorted_zones
+    end
+
     ---@param side coalition.side
     ---@param ignore_zone_names string[]|nil
     ---@param zone_types ZoneTypes[]|nil

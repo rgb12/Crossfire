@@ -196,7 +196,8 @@ Config = {
 
     cooldown_before_capture_attempt = 10*60, -- (seconds)
     retry_capture_chance = 50, -- (%) Every minute, subject to various checks and conditions
-    
+    reinforcement_chance = 5, -- (%) for every minute
+
     std_resupply_time = 45*60, -- (seconds) periodic resupply aircraft time interval
     random_resupply_types = true , -- enables/disables random resupply types, if disabled only INITIAL resupplies will arrive
     -- INITIAL resupply is equivalent to what the warehouses were given at mission start
