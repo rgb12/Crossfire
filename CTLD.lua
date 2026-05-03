@@ -485,6 +485,7 @@ function ctld.load(part, unit)
         if part.type == ctld.AssetTypes.TROOPS then
             ctld.spawnTroop(unit, part)
             trigger.action.outTextForUnit(unit_id, "Troop deployed.", 5)
+            trigger.action.outSoundForUnit(unit_id, "transmission1.ogg")
         elseif part.type == ctld.AssetTypes.CARGO_CRATES or part.type == ctld.AssetTypes.VEHICLES or part.type == ctld.AssetTypes.SAM then
             -- spawn cargo crate nearby 
             ctld.spawnCargoCrate(unit, part)
@@ -503,6 +504,14 @@ function ctld.unpack(unit)
     local unit_id = unit:getID()
     local unit_pos = unit:getPoint()
     local unpack_heading = mist.getHeading(unit, true) or 0
+
+    local operation_context = ctld.fetchOperationContextForUnit(unit)
+    if operation_context and operation_context.operation_type == OperationTypes.STRATEGIC_AIRLIFT then
+        trigger.action.outTextForUnit(unit_id, "Negative, cannot unpack during Strategic Airlift operations.", 5)
+        trigger.action.outSoundForUnit(unit_id, "transmission1.ogg")
+        return
+    end
+
     if unit:inAir() then
         trigger.action.outTextForUnit(unit_id,"Negative, cannot unpack while airborne.", 5)
         trigger.action.outSoundForUnit(unit_id, "transmission1.ogg")
@@ -1607,6 +1616,8 @@ function ctld.getUnpackedPartName(asset_name)
 end
 
 function ctld.getPackedPartName(asset_name)
+    if not asset_name then return nil end
+    asset_name = asset_name:gsub("^CRG:", "")
     return asset_name:match("^" .. Config.ctld.packed_asset_prefix .. "(.+)_%d+$")
 end
 
