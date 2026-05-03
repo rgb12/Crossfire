@@ -427,7 +427,7 @@ do
                     if math.random(1,100) <= Config.reinforcement_chance and zone.zone_type == ZoneTypes.LOGISTICS
                     and zone.heli_avail > 0
                     and #EnrouteManager:findByTaskType(AITaskTypes.REINFORCEMENT_HELO,zone.side) < 2
-                    and #EnrouteManager:findByFromZone(zone,zone.side,{AITaskTypes.REINFORCEMENT_HELO, AITaskTypes.CAPTURE_HELO})
+                    and not EnrouteManager:findByFromZone(zone,zone.side,{AITaskTypes.REINFORCEMENT_HELO, AITaskTypes.CAPTURE_HELO})
                     then
                         local zones_to_upgrade = zone:filterZonesByDistance(zone.side,{},{},true)
                         local zone_to_upgrade = nil
