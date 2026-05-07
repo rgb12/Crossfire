@@ -664,11 +664,14 @@ do
 
             -- Adds supplies on capture
             timer.scheduleFunction(function ()
-                local added_supplies = Config.supplies.supplies_looted_on_destroyed + math.random(-Config.supplies.supplies_looted_on_destroyed_variance,Config.supplies.supplies_looted_on_destroyed_variance)
-                local local_cap = Config.supplies.supplies_cap[self.level or 1] or 0
-                self.local_supplies = math.min((self.local_supplies or 0) + added_supplies, local_cap)
-                trigger.action.outTextForCoalition(2,"Frontline forces looted " .. added_supplies .. " supplies from "..self.name, 10)
-                trigger.action.outSoundForCoalition(2, "radio_beep3.ogg")
+                if self.ammo_depot_intact then
+                    
+                    local added_supplies = Config.supplies.supplies_looted_on_destroyed + math.random(-Config.supplies.supplies_looted_on_destroyed_variance,Config.supplies.supplies_looted_on_destroyed_variance)
+                    local local_cap = Config.supplies.supplies_cap[self.level or 1] or 0
+                    self.local_supplies = math.min((self.local_supplies or 0) + added_supplies, local_cap)
+                    trigger.action.outTextForCoalition(2,"Frontline forces looted " .. added_supplies .. " supplies from "..self.name, 10)
+                    trigger.action.outSoundForCoalition(2, "radio_beep3.ogg")
+                end
             end,{},timer.getTime()+math.random(30,60))
 
         elseif self.side == coalition.side.RED then
@@ -678,11 +681,13 @@ do
             end
             -- Adds supplies on capture
             timer.scheduleFunction(function ()
+                if self.ammo_depot_intact then
                     local added_supplies = Config.supplies.supplies_looted_on_destroyed + math.random(-Config.supplies.supplies_looted_on_destroyed_variance,Config.supplies.supplies_looted_on_destroyed_variance)
-                local local_cap = Config.supplies.supplies_cap[self.level or 1] or 0
-                self.local_supplies = math.min((self.local_supplies or 0) + added_supplies, local_cap)
-                trigger.action.outTextForCoalition(1,"Frontline forces looted " .. added_supplies .. " supplies from "..self.name, 10)
-                trigger.action.outSoundForCoalition(1, "radio_beep3.ogg")
+                    local local_cap = Config.supplies.supplies_cap[self.level or 1] or 0
+                    self.local_supplies = math.min((self.local_supplies or 0) + added_supplies, local_cap)
+                    trigger.action.outTextForCoalition(1,"Frontline forces looted " .. added_supplies .. " supplies from "..self.name, 10)
+                    trigger.action.outSoundForCoalition(1, "radio_beep3.ogg")
+                end
             end,{},timer.getTime()+math.random(30,60))
 
             trigger.action.outTextForCoalition(2,"SITEP: Allied forces lost control of " .. self.name .. ".", 15)
