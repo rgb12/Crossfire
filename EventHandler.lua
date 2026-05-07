@@ -19,8 +19,8 @@ function ev:onEvent(event)
         and unit:isExist() and unit.getPlayerName and unit:getPlayerName() then
   
             local function checkSpawnAllowed() -- Slot blocker
-
                 if not unit or not unit.isExist or not unit:isExist() or not unit.getCoalition then return end
+                MissionLogger:info("Slot blocker checking for ".. unit:getName())
                 local unit_pos = unit:getPoint()
                 local unit_coalition = unit:getCoalition()
                 -- Checks if the player has the right to spawn in the airbase
@@ -203,7 +203,6 @@ function ev:onEvent(event)
         local unit = event.initiator
         if unit and unit.isExist and unit:isExist() and unit.getGroup then
             local group_name = unit:getGroup():getName()
-            -- checks if a capture heli aborted, if yes, remove it from enroute_capture_heli
             MissionLogger:info("AI unit aborted mission: " .. unit:getName())
 
             local enroute_aborted = EnrouteManager:findByGroup(group_name)
@@ -269,10 +268,10 @@ function ev:onEvent(event)
                             zone_coal_check.next_level_up_avail = timer.getTime() + (Config.logistics_level_up_interval or (16 * 60))
                             UnitHandler.updateZoneUnits(zone_coal_check)
                             zone_coal_check:drawF10()
-
+                            
                             local delivered_supplies = (Config.operations and Config.operations.reinforcement_required_supplies) or 300
                             trigger.action.outTextForCoalition(enroute_heli.side,
-                                string.format("SITREP: Reinforcement supplies delivered to %s (%d supplies).", zone_coal_check.name, delivered_supplies), 10)
+                                string.format("SITREP: %s has reached operational tier %d/4 ", zone_coal_check.name, delivered_supplies), 10)
                             trigger.action.outSoundForCoalition(enroute_heli.side, "radio_beep3.ogg")
                         end
 

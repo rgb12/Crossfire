@@ -282,16 +282,16 @@ do
                     end
                 end
             end
-        elseif event.id == world.event.S_EVENT_HIT and event.weapon then
+        elseif event.id == world.event.S_EVENT_SHOT and event.weapon then
             local weapon_desc = event.weapon:getDesc()
             if not weapon_desc or not weapon_desc.category then return end
 
-            local is_bomb_or_rocket = (weapon_desc.category == Weapon.Category.BOMB
-                                       or weapon_desc.category == Weapon.Category.ROCKET)
+            local is_bomb_or_rocket = weapon_desc.category == Weapon.Category.BOMB
+                                       --or weapon_desc.category == Weapon.Category.ROCKET)
             if not is_bomb_or_rocket then return end
 
-            local hit_point = event.weapon:getPoint()
-            if not hit_point then return end
+            local release_point = event.weapon:getPoint()
+            if not release_point then return end
 
             local lock_duration = Config.operations.runway_destroyed_duration or 3600
             for _, zone in ipairs(zones) do
@@ -302,16 +302,21 @@ do
                         if runways then
                             for _, runway in pairs(runways) do
                                 if runway.position and runway.course and runway.length and runway.width then
-                                    local dx = hit_point.x - runway.position.x
-                                    local dz = hit_point.z - runway.position.z
-                                    local cos_course = math.cos(runway.course)
-                                    local sin_course = math.sin(runway.course)
+                                    local dx = release_point.x - runway.position.x
+                                    local dz = release_point.z - runway.position.z
+                                    local course = runway.course
+                                    if course > (2 * math.pi) then
+                                        course = math.rad(course)
+                                    end
+                                    local cos_course = math.cos(course)
+                                    local sin_course = math.sin(course)
 
-                                    local local_x = dx * cos_course + dz * sin_course
-                                    local local_z = -dx * sin_course + dz * cos_course
+                                    local local_x = dx * sin_course + dz * cos_course
+                                    local local_z = dx * cos_course - dz * sin_course
 
-                                    if math.abs(local_x) <= (runway.length / 2)
-                                    and math.abs(local_z) <= (runway.width / 2) then
+                                    if math.abs(local_x) <= ((runway.width / 2) + 150)
+                                    and math.abs(local_z) <= ((runway.length / 2) + 150) then
+                                        MissionLogger:info("Inside")
                                         zone:markRunwayDisabled(lock_duration)
                                         zone:drawF10()
 
@@ -877,7 +882,6 @@ do
         for _, req in ipairs(operation.strategic_manifest or {}) do
             required[req.part_name] = req.quantity or 0
         end
-
         local objects_in_zone = UnitHandler.findObjectsInZone(zone)
         for _, obj in pairs(objects_in_zone) do
             if obj and obj:isExist() then
@@ -896,7 +900,6 @@ do
                 end
             end
         end
-
         for _, req in ipairs(operation.strategic_manifest or {}) do
             if (delivered[req.part_name] or 0) < (req.quantity or 0) then
                 return false, delivered, delivered_objects
@@ -1340,7 +1343,7 @@ do
                         return (timer.getTime() - self_obj.start_time) >= (hold_duration or 45)
                     end
                 },
-             {
+                {
                     description = string.format("Hold position on the ground at %s until the cargo is extracted.", target_zone.name),
                     completed = false,
                     check = function(self_obj, player_unit,user_operation)
@@ -1358,7 +1361,7 @@ do
                         local is_manifest_boarded, _, delivered_objects = self:isStrategicAirliftManifestBoardedInZone(user_operation, unload_zone)
                         if not is_manifest_boarded then return false end
 
-                        trigger.action.outTextForUnit(player_unit:getID(), "Strategic Airlift: Hold position confirmed. Ground crews are extracting the cargo...", 10)
+                        trigger.action.outTextForUnit(player_unit:getID(), "Strategic Airlift: Hold position. Ground crews are extracting the cargo...", 10)
                         trigger.action.outSoundForUnit(player_unit:getID(), "radio_txrx.ogg")
 
                         return true
@@ -1507,7 +1510,7 @@ do
             coop_join_code = nil,
             objectives = {
                 {
-                    description = "Render any " .. target_zone.name .." runway inoperable",
+                    description = "Release bombs or rockets above any " .. target_zone.name .. " runway to render it inoperable",
                     completed = false,
                     check = function()
                         local zone = ZoneHandler.getFromName(target_zone.name)
@@ -2266,9 +2269,9 @@ do
             
             local lat, lon = coord.LOtoLL(accepted_mission.pilot_position)
             local mgrs = coord.LLtoMGRS(lat, lon)
-            outtxt = outtxt .. string.format("\n\nDowned pilot location (approximate):\n%s\n%s\nMGRS: %s", 
+            outtxt = outtxt .. string.format("\n\nApproximate pilot location:\n%s\n%s\nMGRS: %s", 
                 mist.tostringLL(lat, lon, 4), mist.tostringLL(lat, lon, 4, true), mist.tostringMGRS(mgrs, 4))
-            outtxt = outtxt .. "\n\nGreen smoke has been deployed at the pilot's location."
+            outtxt = outtxt .. "\n\nSmoke has been deployed near the pilot's location."
             outtxt = outtxt .. string.format("\n\nLand within %dm of the pilot to complete the rescue.", Config.operations.csar_rescue_radius or 50)
         elseif accepted_mission.type == OperationTypes.STRATEGIC_AIRLIFT then
 
