@@ -1017,20 +1017,43 @@ do
         local function executeReinforcementHeloRequest(u, to_zone)
             if not CommandHandler.isGrounded(unit, gr_id) then return end
 
-            local required_supplies = (Config.operations and Config.operations.reinforcement_required_supplies) or 300
+            local required_supplies = Config.operations.reinforcement_required_supplies
 
-            local from_zone = nil
+            local max_logistics_range_m = 150000
+            local logistics_candidates = {}
             for _, log_zone in ipairs(zones) do
-                if log_zone.side == side
-                and log_zone.zone_type == ZoneTypes.LOGISTICS
-                and (log_zone.heli_avail or 0) > 0
-                then
-                    from_zone = log_zone
-                    break
+                if log_zone.side == side and log_zone.zone_type == ZoneTypes.LOGISTICS then
+                    local dist = mist.utils.get2DDist(log_zone.zone.point, to_zone.zone.point)
+                    if dist <= max_logistics_range_m then
+                        table.insert(logistics_candidates, {zone = log_zone, dist = dist})
+                    end
                 end
             end
 
-            if not checkSupplies(u, required_supplies, from_zone) then return end
+            table.sort(logistics_candidates, function(a, b)
+                return a.dist < b.dist
+            end)
+
+            local from_zone = nil
+            for _, candidate in ipairs(logistics_candidates) do
+                local log_zone = candidate.zone
+                if (log_zone.heli_avail or 0) > 0 then
+                    if checkSupplies(u, required_supplies, log_zone) then
+                        from_zone = log_zone
+                        break
+                    end
+                end
+            end
+
+            if not from_zone then
+                if #logistics_candidates == 0 then
+                    trigger.action.outTextForGroup(gr_id, "CMD-HQ - Negative, no logistics zones within 150 km of " .. to_zone.name .. ".", 10)
+                else
+                    trigger.action.outTextForGroup(gr_id, "CMD-HQ - Negative, no logistics zones within 150 km have available helicopters and supplies.", 10)
+                end
+                trigger.action.outSoundForGroup(gr_id, "Radio squelch.ogg")
+                return
+            end
 
             if from_zone and TaskManager:initiateAITask(AITaskTypes.REINFORCEMENT_HELO, side, false, to_zone, from_zone, true) then
                 deductSupplies(u, required_supplies, from_zone)
@@ -1184,7 +1207,7 @@ do
                 arg = nil
             },
             {
-                name = "Request Helicopter Capture",
+                name = "Request Capture",
                 func = function()
                     local commands = buildZoneCommandList(function(zone, discovered)
                         return zone.side == coalition.side.NEUTRAL and utils.tableContains(discovered, zone.name)
@@ -1194,14 +1217,15 @@ do
                 arg = nil
             },
             {
-                name = "Request Helicopter Reinforcement",
+                name = "Request Reinforcement",
                 func = function()
                     local commands = buildZoneCommandList(function(zone, discovered)
                         return zone.side == side
                             and zone.level and zone.level < 4
                             and utils.tableContains(discovered, zone.name)
+                            and not EnrouteManager:findByToZone(zone, zone.side, {AITaskTypes.REINFORCEMENT_HELO})
                     end, executeReinforcementHeloRequest)
-                    createSelectAreaMenu(commands, "CMD-HQ Negative reinforcement tasking. No eligible friendly sectors are currently identified.")
+                    createSelectAreaMenu(commands, "CMD-HQ Negative. No eligible friendly sectors are currently identified.")
                 end,
                 arg = nil
             },
