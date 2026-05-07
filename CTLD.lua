@@ -207,7 +207,7 @@ function ctld.initF10RadioMenu(group)
     
         local load_troops_submenu = missionCommands.addSubMenuForGroup(gr_id, "Troops", load_submenu)
         
-        local load_CARGO_CRATES_submenu = missionCommands.addSubMenuForGroup(gr_id, "Cargo Crates", load_submenu)
+        local load_CARGO_CRATES_submenu = missionCommands.addSubMenuForGroup(gr_id, "Crates", load_submenu)
         local load_vehicles_submenu = missionCommands.addSubMenuForGroup(gr_id, "Vehicles", load_submenu)
         local load_sam_submenu = missionCommands.addSubMenuForGroup(gr_id, "SAM", load_submenu)
     
@@ -860,13 +860,6 @@ function ctld.unload(unit)
     local unit_zone = utils.getZoneOfUnitFromPosition(unit_pos)
     local is_in_zone = unit_zone ~= nil
 
-    local is_aircraft = unit and unit.hasAttribute and (unit:hasAttribute("Airplanes") or unit:hasAttribute("Helicopters"))
-    local is_logistics_unload_zone = unit_zone and utils.tableContains(Config.ctld.allowed_load_zones or {}, unit_zone.zone_type)
-    if is_aircraft and is_logistics_unload_zone then
-        trigger.action.outTextForUnit(unit_id, "Cannot unload in Airbase, FARP, or Logistics zones.", 5)
-        trigger.action.outSoundForUnit(unit_id, "transmission1.ogg")
-        return
-    end
 
     if is_in_zone and not Config.ctld.allow_unloading_in_zones then
         trigger.action.outTextForUnit(unit_id,"Cannot unload in this area.", 5)
