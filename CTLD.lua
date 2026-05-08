@@ -182,14 +182,14 @@ ctld.parts = {
     {name = "SpGH_Dana", desc="SpGH DANA", weight = 1000, type = ctld.AssetTypes.VEHICLES, can_move = true, req_supplies = 100},
 
 
-    {name = "container_cargo",  desc = "Crate",               weight = 1000, type = ctld.AssetTypes.CARGO_CRATES},
+    {name = CargoCrates.SUPPLY_CRATE, desc = "Supply Crate", weight = 100, type = ctld.AssetTypes.CARGO_CRATES, req_supplies = Config.ctld.supply_crate_supplies, supply_amount = Config.ctld.supply_crate_supplies},
+    {name = "container_cargo",  desc = "Cargo Container",               weight = 1000, type = ctld.AssetTypes.CARGO_CRATES, req_supplies = 5},
     {name = "iso_container",    desc = "Large Container",     weight = 4000, type = ctld.AssetTypes.CARGO_CRATES, req_supplies = 5},
     {name = "iso_container_small",desc = "Small Container",   weight = 2000, type = ctld.AssetTypes.CARGO_CRATES, req_supplies = 5},
     {name = "M92_10Ft_Container",desc = "Clean Container",    weight = 1500, type = ctld.AssetTypes.CARGO_CRATES, req_supplies = 5},
     {name = "gbu_43b_airdrop",  desc = "MOAB",                 weight = 9000, type = ctld.AssetTypes.CARGO_CRATES},
     {name = "cds_barrels",     desc = "CDS Barrels",        weight = 200, type = ctld.AssetTypes.CARGO_CRATES, req_supplies = 5},
     --{name = "cds_crate",       desc = "CDS Crate",           weight = 200, type = ctld.AssetTypes.CARGO_CRATES},
-    {name = CargoCrates.SUPPLY_CRATE, desc = "Supply Crate", weight = 1000, type = ctld.AssetTypes.CARGO_CRATES, req_supplies = Config.ctld.supply_crate_supplies, supply_amount = Config.ctld.supply_crate_supplies},
 }
 
 
