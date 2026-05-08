@@ -144,4 +144,25 @@ do
         return results
     end
 
+    function EnrouteManager:checkEnroutes()
+        local enroutes = self.enroutes
+        for i = #enroutes, 1, -1 do
+            local enroute = enroutes[i]
+            if not enroute then
+                table.remove(enroutes, i)
+            else
+                local grp = Group.getByName(enroute.group_name)
+                if not grp or not grp:isExist() then
+                    if enroute.ai_task_type == AITaskTypes.JTAC and enroute.jtac then
+                        missionCommands.removeItemForCoalition(enroute.jtac.side, enroute.jtac.jtac_menu)
+                        enroute.jtac.jtac_menu = nil
+                    end
+
+                    table.remove(enroutes, i)
+                    MissionLogger:info("EnrouteManager: Removed "..enroute.ai_task_type.." from enroutes: " .. enroute.group_name)
+                end
+            end
+        end
+    end
+
 end

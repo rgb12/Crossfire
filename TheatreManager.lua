@@ -446,7 +446,8 @@ do
                         end
                     end
                     
-            end
+                end
+            EnrouteManager:checkEnroutes()
             ctld.monitorFARPDestruction()
 
             Frontline.drawFrontline()
