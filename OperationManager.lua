@@ -626,21 +626,17 @@ do
                     end
                 end
 
-                -- AIRDROP over friendly zones
+                -- AIRDROP or REINFORCEMENT over friendly zones (mutually exclusive)
                 if zone.side == friendly_coalition and discovered_zones_set[zone.name] and zone.level < 4 then
                     local closest_enemy_zone, dist = zone:getClosestZone(enemy_coalition)
                     if closest_enemy_zone and dist and dist < Config.operations.max_distance_to_frontline_for_airdrops then
-                        local op = self:createAIRDROPOperation(zone)
-                        table.insert(self.available_operations, op)
-                    end
-                end
-
-                -- REINFORCEMENT (helicopter) over friendly zones
-                if zone.side == friendly_coalition and discovered_zones_set[zone.name] and zone.level < 4 then
-                    local closest_enemy_zone, dist = zone:getClosestZone(enemy_coalition)
-                    if closest_enemy_zone and dist and dist < Config.operations.max_distance_to_frontline_for_airdrops then
-                        local op = self:createREINFORCEMENTOperation(zone)
-                        table.insert(self.available_operations, op)
+                        if math.random(0,100) > 50 then
+                            local op = self:createAIRDROPOperation(zone)
+                            table.insert(self.available_operations, op)
+                        else
+                            local op = self:createREINFORCEMENTOperation(zone)
+                            table.insert(self.available_operations, op)
+                        end
                     end
                 end
                 -- STRATEGIC AIRLIFT from any friendly zone to friendly airbase/FARP destinations
@@ -1068,7 +1064,7 @@ do
             type = OperationTypes.AIRDROP,
             code = self:createOperationCode(),
             status = OperationStatus.AVAILABLE,
-            xp_reward = math.random(9,12)*1000,
+            xp_reward = math.random(9,12)*100,
             target_zone_name = target_zone.name,
             operation_name = operations_name[math.random(#operations_name)],
             is_coop = false,
@@ -1097,13 +1093,11 @@ do
                                 if obj and obj:isExist() and obj.getVelocity and obj.getName and obj.getTypeName then
                                     -- Only supply crates count toward reinforcement upgrades.
                                     if ctld.isSupplyCrate(obj:getName()) then
-                                        return true
-                                    end
-
-                                    local vel = obj:getVelocity()
-                                    local speed = math.sqrt(vel.x^2 + vel.y^2 + vel.z^2)
-                                    if speed < 1 then
-                                        table.insert(supply_crate_objs, obj)
+                                        local vel = obj:getVelocity()
+                                        local speed = math.sqrt(vel.x^2 + vel.y^2 + vel.z^2)
+                                        if speed < 1 then
+                                            table.insert(supply_crate_objs, obj)
+                                        end
                                     end
                                 end
                                 return true
@@ -1126,7 +1120,7 @@ do
                                     zone:drawF10()
                                     zone.next_level_up_avail = timer.getTime() + Config.logistics_level_up_interval
                                     trigger.action.outSoundForCoalition(zone.side,"radio_beep.ogg")
-                                    trigger.action.outTextForCoalition(zone.side, "SITREP: Successful chute deployment over " .. zone.name .. ". Airdrop supplies have been processed, upgrading the sector to Tier " .. zone.level .. " of the 4-tier standard.",10)
+                                    trigger.action.outTextForCoalition(zone.side, "SITREP: Successful chute deployment over " .. zone.name .. ". Airdrop supplies have been processed, upgrading the sector to operational tier " .. zone.level .. " / 4",10)
                                 else
                                     trigger.action.outTextForUnit(player_unit:getID(), "AIRDROP: "..zone.name.." is already at tier 4/4.",10)
                                 end
@@ -1280,7 +1274,7 @@ do
             strategic_manifest_text = self:formatStrategicAirliftManifest(manifest),
             objectives = {
                 {
-                    description = string.format('Load manifest via CTLD "Load" at %s', load_zone.name),
+                    description = string.format('Load manifest via CTLD at %s', load_zone.name),
                     completed = false,
                     check = function(self_obj, player_unit,active_user_operation)
                         if not player_unit or not player_unit:isExist() then return false end
