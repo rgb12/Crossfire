@@ -1310,17 +1310,17 @@ do
                 [WarehouseManager.Flags.SUPER_530D] = math.random(8,14),
                 [WarehouseManager.Flags.MAGIC_II] = math.random(8,14),
 
-                [WarehouseManager.AircraftFlags.A10C_TANK_KILLER_II] = 4,
-                [WarehouseManager.AircraftFlags.E3A] = 1,
+                [WarehouseManager.AircraftFlags.A10C_TANK_KILLER_II] = 8,
+                [WarehouseManager.AircraftFlags.E3A] = 2,
                 [WarehouseManager.AircraftFlags.F15E_SE] = 4,
-                [WarehouseManager.AircraftFlags.F16C_BL50] = 2,
+                [WarehouseManager.AircraftFlags.F16C_BL50] = 8,
                 [WarehouseManager.AircraftFlags.FA18C_HORNET] = 6,
                 [WarehouseManager.AircraftFlags.M2000C] = 4,
                 [WarehouseManager.AircraftFlags.MIRAGE_2000_5] = 4,
                 [WarehouseManager.AircraftFlags.F15C] = 4,
                 [WarehouseManager.AircraftFlags.F_14A_135_GR] = 4,
                 [WarehouseManager.AircraftFlags.RQ_1A_PREDATOR] = 3,
-                [WarehouseManager.AircraftFlags.C130J_30] = 2,
+                [WarehouseManager.AircraftFlags.C130J_30] = 6,
 
             },
             [coalition.side.RED] = {
@@ -2090,7 +2090,7 @@ do
     end
 
     function WarehouseManager:getAircraftReserveThreshold()
-        return (Config.tasking and Config.tasking.warehouse_aircraft_reserve) or 2
+        return Config.tasking.warehouse_aircraft_reserve or 2
     end
 
     ---@param airbase_name string
