@@ -1744,5 +1744,15 @@ end
 ---@param object_name string
 ---@return boolean
 function ctld.isSupplyCrate(object_name)
-    return ctld.getPackedPartName(object_name) == CargoCrates.SUPPLY_CRATE
+    local packed_name = ctld.getPackedPartName(object_name)
+    if packed_name and packed_name == CargoCrates.SUPPLY_CRATE then
+        return true
+    end
+
+    -- Fallback: require packed prefix and supply crate key in name
+    local cleaned = tostring(object_name):gsub("^CRG:", "")
+    if not string.find(cleaned, Config.ctld.packed_asset_prefix, 1, true) then
+        return false
+    end
+    return string.find(cleaned, CargoCrates.SUPPLY_CRATE, 1, true) ~= nil
 end
