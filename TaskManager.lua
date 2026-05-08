@@ -764,49 +764,52 @@ do
     ---@param aircraft_type string
     ---@param aircraft_amount number
     ---@param ai_task_type AITaskTypes
-    ---@return ZoneHandler|nil,string|nil -- closest airbase, group name
-    function TaskManager:findClosestAirbaseWithAircraftInStock(to_zone,side,aircraft_type, aircraft_amount,ai_task_type)
-        local loop_prevention = 0
-        local aircraft_reserve = WarehouseManager:getAircraftReserveThreshold()
+    ---@return ZoneHandler|nil,string|nil
+    function TaskManager:findClosestAirbaseWithAircraftInStock(to_zone, side, aircraft_type, aircraft_amount, ai_task_type)
 
-        local unavail_airbases = {}
-        local closest_airbase = to_zone:getClosestZone(side,unavail_airbases,{ZoneTypes.AIRBASE})
-        while closest_airbase and closest_airbase.airbase_name and loop_prevention < 400 do
+        -- Loop through all zones, check if in stock and then sort by distance
+        local candidates = {}
 
-            if not self:isAirbaseRunwayOperational(closest_airbase) then
-                MissionLogger:info("Airbase:" .. closest_airbase.airbase_name .. " runway inoperable, skipping spawn source.")
-            else
-                ---@diagnostic disable-next-line: undefined-field
-                local airbase = Airbase.getByName(closest_airbase.airbase_name)
-                if airbase and airbase:getCoalition() == side then
-                    local airbase_warehouse = airbase:getWarehouse()
-
+        for _,zone in ipairs(zones) do
+            if zone.zone_type == ZoneTypes.AIRBASE and zone.side == side and zone.airbase_name then
+                if self:isAirbaseRunwayOperational(zone)
+                and not self:checkIfMaxTasksReached(zone, side, ai_task_type) then
+                    local airbase = Airbase.getByName(zone.airbase_name)
+                    local warehouse = (airbase and airbase:getCoalition() == side) and airbase:getWarehouse() or nil
                     local aircraft_count = 0
                     local group_name
 
-                    if WarehouseManager.AirbaseGroupData[closest_airbase.airbase_name]
-                    and WarehouseManager.AirbaseGroupData[closest_airbase.airbase_name][side]
-                    and WarehouseManager.AirbaseGroupData[closest_airbase.airbase_name][side][aircraft_type] then
-                        aircraft_count =airbase_warehouse:getItemCount(WarehouseManager.AirbaseGroupData[closest_airbase.airbase_name][side][aircraft_type].warehouse_name)
-                        group_name = WarehouseManager.AirbaseGroupData[closest_airbase.airbase_name][side][aircraft_type].group_name
+                    if warehouse
+                    and WarehouseManager.AirbaseGroupData[zone.airbase_name]
+                    and WarehouseManager.AirbaseGroupData[zone.airbase_name][side]
+                    and WarehouseManager.AirbaseGroupData[zone.airbase_name][side][aircraft_type]
+                    then
+                        local airbase_entry = WarehouseManager.AirbaseGroupData[zone.airbase_name][side][aircraft_type]
+                        aircraft_count = warehouse:getItemCount(airbase_entry.warehouse_name)
+                        group_name = airbase_entry.group_name
                     end
-                    -- MissionLogger:info("Airbase:" .. closest_airbase.airbase_name .. " has ".. aircraft_count .." ".. aircraft_type .." available.")  
-                    if aircraft_count and math.max(aircraft_count-aircraft_reserve,0)>=aircraft_amount and group_name then
 
-                        if not self:checkIfMaxTasksReached(closest_airbase,side,ai_task_type) then
-                            return closest_airbase,group_name
-                        else
-                            MissionLogger:info("Airbase:" .. closest_airbase.airbase_name .. " has reached max task limit.")
-                        end
+                    local aircraft_reserve = WarehouseManager:getAircraftReserveThreshold()
+                    if aircraft_count
+                    and math.max(aircraft_count - aircraft_reserve, 0) >= aircraft_amount
+                    and group_name then
+                        table.insert(candidates,{
+                            zone = zone,
+                            template_gr_name = group_name,
+                            dist = mist.utils.get2DDist(to_zone.zone.point,zone.zone.point)
+                        })
                     end
                 end
             end
-            table.insert(unavail_airbases,closest_airbase.name)
-            closest_airbase,_ = to_zone:getClosestZone(side,unavail_airbases,{ZoneTypes.AIRBASE})
-            loop_prevention = loop_prevention+1
         end
-        if loop_prevention >395 then MissionLogger:warn("Loop prevention prevented crash") end
-        return nil,nil
+        table.sort(candidates, function(a, b)
+            return a.dist < b.dist
+        end)
+
+        if #candidates > 0 then
+            return candidates[1].zone, candidates[1].template_gr_name
+        end
+        return nil
     end
 
     ---@param to_zone ZoneHandler

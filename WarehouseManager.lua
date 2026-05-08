@@ -2093,6 +2093,9 @@ do
         return (Config.tasking and Config.tasking.warehouse_aircraft_reserve) or 2
     end
 
+    ---@param airbase_name string
+    ---@param ai_task_type AITaskTypes
+    ---@return boolean,string|nil
     function WarehouseManager:checkAircraftInStock(airbase_name,ai_task_type)
 
         local airbase = Airbase.getByName(airbase_name)
@@ -2108,19 +2111,15 @@ do
         and WarehouseManager.AirbaseGroupData[airbase_name][side]
         and WarehouseManager.AirbaseGroupData[airbase_name][side][ai_task_type]
         then
-            -- group_name = "BLUE JTAC VAZIANI",
-            --warehouse_name =
             local acft_name = WarehouseManager.AirbaseGroupData[airbase_name][side][ai_task_type].warehouse_name
             local template_gr_name = WarehouseManager.AirbaseGroupData[airbase_name][side][ai_task_type].group_name
-            local reserve_threshold = self:getAircraftReserveThreshold()
-            if warehouse:getItemCount(acft_name) > reserve_threshold then
+            if warehouse:getItemCount(acft_name) > self:getAircraftReserveThreshold() then
                 return true, template_gr_name
             else
-                return false
+                return false,nil
             end
         end
-        return false
+        return false,nil
     end
-
 
 end
