@@ -489,6 +489,17 @@ do
                     submenu = initial_airbases
                 })
             end
+
+            -- SU-25T BLUFOR Package
+            if side == coalition.side.BLUE and Config.enabled_su25t_blufor then
+                local su25t_airbases = buildAirbaseSubmenu({WarehouseManager.StockTypes.SU25T_BLUFOR}, Config.supplies.resupply_costs.SU25T_BLUFOR, "SU-25T BLUFOR")
+                if #su25t_airbases > 0 then
+                    table.insert(resupply_stock_list, {
+                        name = "SU-25T BLUFOR - " .. Config.supplies.resupply_costs.SU25T_BLUFOR .. " supplies",
+                        submenu = su25t_airbases
+                    })
+                end
+            end
             
             if #resupply_stock_list > 0 then
                 CommandHandler.buildPagedMenuForGroup(gr_id, resupply_menu, resupply_stock_list, 1)

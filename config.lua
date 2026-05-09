@@ -228,6 +228,7 @@ Config = {
             
             ECM = 5000,                -- Jamming pods, countermeasures
             TGP_MISC = 3500,           -- Targeting pods, misc equipment
+            SU25T_BLUFOR = 5000,        -- SU-25T BLUFOR stock package
         },
         tasking_costs = {
             JTAC = 250,
