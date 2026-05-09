@@ -634,7 +634,7 @@ do
                     end
                 end
 
-                trigger.action.outTextForGroup(gr_id, "Aircraft and loaded equipment will be restocked in the warehouse in 10 seconds…", 10)
+                trigger.action.outTextForGroup(gr_id, "****************\n\nAircraft and loaded equipment will be restocked in 10 seconds…\n\n****************", 10)
                 trigger.action.outSoundForGroup(gr_id, "radio_beep3.ogg")
                 timer.scheduleFunction(function()
 

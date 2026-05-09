@@ -453,7 +453,7 @@ Config = {
     logistics_ammo_depot_respawn_time = 45*60, -- (seconds) time it takes for an ammo depot to respawn after being destroyed
     logistics_auto_upgrade_required_supplies = 300, -- supplies required in a LOGISTICS zone stock to be eligible for auto upgrade
     logistics_auto_upgrade_chance = 25, -- (%) evaluated at the 5-minute tick for eligible LOGISTICS zones
-    comms_tower_respawn_time = 45*60, -- (seconds)
+    comms_tower_respawn_time = 55*60, -- (seconds)
 
     comms_tower_lost_penalty = 1.1, -- the respawn time is multiplied by this much when a comms tower is lost @depracted
 

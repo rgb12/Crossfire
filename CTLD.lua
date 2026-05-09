@@ -390,7 +390,7 @@ function ctld.load(part, unit)
 
     if not airlift_operation then
         if unit_zone.ammo_depot_intact ~= true then
-            trigger.action.outTextForUnit(unit_id, "Cannot load: Ammunition Depot is required to access supplies in this zone.", 10)
+            trigger.action.outTextForUnit(unit_id, "Cannot load: ammunition depot is required to access supplies in this zone.", 10)
             trigger.action.outSoundForUnit(unit_id, "transmission1.ogg")
             return
         end
@@ -1023,7 +1023,7 @@ function ctld.listSupplies(unit)
                 coalition_supplies = coalition_supplies + zone_supplies
 
                 if zone:isPointInsideZone(unit_point) then
-                    txt_heading = "Logistics SITREP".. zone_supplies .. " / " .. current_cap .. " local available supplies.\n"
+                    txt_heading = "Logistics SITREP\n\n".. zone_supplies .. " / " .. current_cap .. " local available supplies.\n"
                 end
 
                 txt_body = txt_body .. "\n - ".. zone.name .. "            "..zone_supplies.."/"..current_cap.."      +".. zone_production .. " / minute"
@@ -1033,7 +1033,7 @@ function ctld.listSupplies(unit)
     if relevant_zones == 0 then
         txt_body = txt_body .. "\nNo friendly zones currently have supplies or production."
     else
-        txt_heading = txt_heading .. string.format("Coalition total: %d supplies across %d zone(s).\n", coalition_supplies, relevant_zones)
+        txt_heading = txt_heading .. string.format("%d supplies across %d zone(s).\n", coalition_supplies, relevant_zones)
     end
 
     trigger.action.outTextForUnit(u_id, txt_heading..txt_body, 20)
