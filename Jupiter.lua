@@ -168,6 +168,18 @@ function Jupiter:onEvent(event)
             else
                 trigger.action.outText("Jupiter: No zone found within 10km for Attack Convoy tasking.", 5)
             end
+        elseif command == "-sendrhelo" then
+              local closest_zone, dist = getClosestZone(vec3)
+            if closest_zone and dist <= 10000 then
+                local from_z,_ = closest_zone:getClosestZone(closest_zone.side,nil,{ZoneTypes.LOGISTICS},true)
+                if from_z then
+                    MissionLogger:info(from_z.name)
+                    TaskManager:initiateAITask(AITaskTypes.REINFORCEMENT_HELO,closest_zone.side,false,closest_zone,from_z,true)
+                    cmd_executed = true
+                end
+            else
+                trigger.action.outText("Jupiter: No zone found within 10km for Attack Convoy tasking.", 5)
+            end
         elseif command == "-additemwarehouse" then
             local item_flag = param1
             local quantity = tonumber(args[3]) or 10
