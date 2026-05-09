@@ -211,24 +211,24 @@ Config = {
         resupply_costs = {
 
             INITIAL = 10000,           -- Full initial warehouse stock restoration
-            FARP = 2000,              -- FARP complete resupply
+            FARP = 2500,              -- FARP complete resupply
             
-            AA_AIRCRAFT = 4000,       -- Air-to-air focused aircraft
-            AG_AIRCRAFT = 4500,       -- Air-to-ground focused aircraft
-            CARGO_AIRCRAFT = 2000,    -- Transport/utility aircraft
+            AA_AIRCRAFT = 3500,       -- Air-to-air focused aircraft
+            AG_AIRCRAFT = 3000,       -- Air-to-ground focused aircraft
+            CARGO_AIRCRAFT = 1500,    -- Transport/utility aircraft
             
 
             AIR_AIR_LONG_RANGE = 2000,            -- AIM-120, AIM-54, etc.
-            AIR_AIR_SHORT_RANGE = 1500,           -- AIM-9, R-73, etc.
+            AIR_AIR_SHORT_RANGE = 1200,           -- AIM-9, R-73, etc.
             
-            AIR_GROUND_GUIDED_MISSILES = 2500,   -- AGM-65, Hellfire, etc.
-            AIR_GROUND_GUIDED_BOMBS = 1500,       -- GBU-12, GBU-38, etc.
-            AIR_GROUND_BOMBS = 750,              -- Mk-82, Mk-84, etc.
+            AIR_GROUND_GUIDED_MISSILES = 1800,   -- AGM-65, Hellfire, etc.
+            AIR_GROUND_GUIDED_BOMBS = 1200,       -- GBU-12, GBU-38, etc.
+            AIR_GROUND_BOMBS = 800,              -- Mk-82, Mk-84, etc.
             AIR_GROUND_ROCKETS = 400,            -- Hydra, S-8, etc.
             
-            ECM = 5000,                -- Jamming pods, countermeasures
-            TGP_MISC = 3500,           -- Targeting pods, misc equipment
-            SU25T_BLUFOR = 5000,        -- SU-25T BLUFOR stock package
+            ECM = 2500,                -- Jamming pods, countermeasures
+            TGP_MISC = 2000,           -- Targeting pods, misc equipment
+            SU25T_BLUFOR = 3000,        -- SU-25T BLUFOR stock package
         },
         tasking_costs = {
             JTAC = 250,
