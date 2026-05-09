@@ -17,6 +17,8 @@ do
     AIM_54C_MK60 = "weapons.missiles.AIM_54C_Mk60",
     AIM_54C_MK47 = "weapons.missiles.AIM_54C_Mk47",
     MISTRAL = "weapons.missiles.Mistral",
+    MICA_RF = "weapons.missiles.MICA_R",
+    MICA_IR = "weapons.missiles.MICA_T",
 
     AGM_65D = "weapons.missiles.AGM_65D",
     AGM_65E = "weapons.missiles.AGM_65E",
@@ -1309,6 +1311,8 @@ do
                 [WarehouseManager.Flags.AIM_54C_MK47] = math.random(6,10),
                 [WarehouseManager.Flags.SUPER_530D] = math.random(8,14),
                 [WarehouseManager.Flags.MAGIC_II] = math.random(8,14),
+                [WarehouseManager.Flags.MICA_IR] = math.random(10,12),
+                [WarehouseManager.Flags.MICA_RF] = math.random(10,12),
 
                 [WarehouseManager.AircraftFlags.A10C_TANK_KILLER_II] = 8,
                 [WarehouseManager.AircraftFlags.E3A] = 2,
@@ -1484,7 +1488,8 @@ do
                 [WarehouseManager.Flags.AIM_7M] = math.random(6,10),
                 [WarehouseManager.Flags.AIM_7P] = math.random(6,10),
                 [WarehouseManager.Flags.AIM_7MH] = math.random(6,10),
-                
+                [WarehouseManager.Flags.MICA_IR] = math.random(6,10),
+                [WarehouseManager.Flags.MICA_RF] = math.random(6,10),
             },
             [coalition.side.RED] = {
                 [WarehouseManager.Flags.R27ER] = math.random(20,30),
