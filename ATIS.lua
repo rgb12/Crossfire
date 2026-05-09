@@ -101,6 +101,10 @@ ATIS.soundDurations = {
 }
 
 function ATIS:init()
+    if Config.ATIS_enabled == false then
+        return
+    end
+
     -- Register sound durations with SoundQueuer
     local stagger_delay = 0
 
