@@ -8,7 +8,9 @@ function Frontline.computeFrontline()
             table.insert(data_points, {
                 x = zone.zone.point.x,
                 y = zone.zone.point.z,
-                coalition = zone.side
+                coalition = zone.side,
+                zone_name = zone.name or zone.zone.name,
+                zone_ref = zone
             })
         end
     end
@@ -337,8 +339,99 @@ function Frontline.computeFrontline()
         })
     end
 
+    local function pointKey(point)
+        return tostring(point.x) .. ":" .. tostring(point.y)
+    end
+
+    local function buildAdjacency(triangles, points)
+        local index_by_key = {}
+        for i, p in ipairs(points) do
+            index_by_key[pointKey(p)] = i
+        end
+
+        local adjacency = {}
+        for i = 1, #points do
+            adjacency[i] = {}
+        end
+
+        for _, triangle in ipairs(triangles) do
+            local edges = triangleEdges(triangle)
+            for _, edge in ipairs(edges) do
+                local key1 = pointKey(edge[1])
+                local key2 = pointKey(edge[2])
+                local i1 = index_by_key[key1]
+                local i2 = index_by_key[key2]
+                if i1 and i2 then
+                    if points[i1].coalition == points[i2].coalition then
+                        table.insert(adjacency[i1], i2)
+                        table.insert(adjacency[i2], i1)
+                    end
+                end
+            end
+        end
+
+        return adjacency
+    end
+
+    local function findBaseIndex(base_zone, points)
+        if not base_zone then return nil end
+        for i, p in ipairs(points) do
+            if p.zone_ref == base_zone then
+                return i
+            end
+        end
+        if base_zone.name then
+            for i, p in ipairs(points) do
+                if p.zone_name == base_zone.name then
+                    return i
+                end
+            end
+        end
+        return nil
+    end
+
+    local function collectConnected(start_index, side, adjacency, points)
+        local visited = {}
+        if not start_index then
+            return visited
+        end
+
+        local stack = {start_index}
+        visited[start_index] = true
+
+        while #stack > 0 do
+            local idx = table.remove(stack)
+            for _, neighbor in ipairs(adjacency[idx] or {}) do
+                if not visited[neighbor] and points[neighbor].coalition == side then
+                    visited[neighbor] = true
+                    table.insert(stack, neighbor)
+                end
+            end
+        end
+
+        return visited
+    end
+
     -- Build frontline from Voronoi edges dual to mixed Delaunay edges.
     local delaunay_triangles = computeBoywerWatson(data_points)
+    local adjacency = buildAdjacency(delaunay_triangles, data_points)
+
+    local blue_base_index = findBaseIndex(blue_airbase, data_points)
+    local red_base_index = findBaseIndex(red_airbase, data_points)
+    local blue_connected = collectConnected(blue_base_index, coalition.side.BLUE, adjacency, data_points)
+    local red_connected = collectConnected(red_base_index, coalition.side.RED, adjacency, data_points)
+
+    local filtered_points = {}
+    for i, p in ipairs(data_points) do
+        if blue_connected[i] or red_connected[i] then
+            table.insert(filtered_points, p)
+        end
+    end
+
+    if #filtered_points >= 3 then
+        data_points = filtered_points
+        delaunay_triangles = computeBoywerWatson(data_points)
+    end
     local frontline_points = {}
     local frontline_segments = {}
     local triangle_circumcenters = {}
