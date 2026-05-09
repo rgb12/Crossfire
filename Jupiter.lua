@@ -405,7 +405,7 @@ function Jupiter:onEvent(event)
             else
                 local stocktype_num = tonumber(param1) or 1
                 local closest_zone, dist = getClosestZone(vec3)
-                if closest_zone and dist <= 10000 and closest_zone.airbase_name then
+                if closest_zone and dist <= 10000 and (closest_zone.zone_type == ZoneTypes.AIRBASE or closest_zone.zone_type == ZoneTypes.FARP) then
                     WarehouseManager:attributeAirbaseStock(closest_zone.airbase_name,coalition.side.BLUE,
                         {stocktype_num})
                     cmd_executed = true
