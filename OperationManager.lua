@@ -629,16 +629,18 @@ do
                 -- AIRDROP or REINFORCEMENT over friendly zones (mutually exclusive)
                 if zone.side == friendly_coalition and discovered_zones_set[zone.name] and zone.level < 4 then
                     local closest_enemy_zone, dist = zone:getClosestZone(enemy_coalition)
-                    if closest_enemy_zone and dist and dist < Config.operations.max_distance_to_frontline_for_airdrops then
-                        if math.random(0,100) > 50 then
+                    if closest_enemy_zone and dist  then
+                        if math.random(0,100) > 50 and dist < Config.operations.max_distance_to_frontline_for_airdrops then
                             local op = self:createAIRDROPOperation(zone)
                             table.insert(self.available_operations, op)
-                        else
+                        elseif dist < Config.operations.reinforcement_max_range then
                             local op = self:createREINFORCEMENTOperation(zone)
                             table.insert(self.available_operations, op)
                         end
                     end
                 end
+
+                
                 -- STRATEGIC AIRLIFT from any friendly zone to friendly airbase/FARP destinations
                 if Config.operations.strategic_airlift.enabled
                 and zone.side == friendly_coalition
@@ -962,7 +964,7 @@ do
             type = OperationTypes.CSAR,
             code = self:createOperationCode(),
             status = OperationStatus.AVAILABLE,
-            xp_reward = 600,
+            xp_reward = math.random(12,18)*100,
             target_zone_name = "CSAR Location", -- Special identifier for CSAR
             operation_name = operations_name[math.random(#operations_name)],
             pilot_position = pilot_pos, -- Store the actual position
@@ -1004,7 +1006,7 @@ do
             type = OperationTypes.INTERCEPT,
             code = self:createOperationCode(),
             status = OperationStatus.AVAILABLE,
-            xp_reward = 750,
+            xp_reward = math.random(7,9)*100+50,
             target_zone_name = target_zone.name,
             operation_name = operations_name[math.random(#operations_name)],
             is_coop = true,
@@ -1056,7 +1058,7 @@ do
     end
 
     function OperationManager:createAIRDROPOperation(target_zone)
-        local required_supplies = Config.operations.reinforcement_required_supplies
+        local required_supplies = Config.operations.upgrade_required_supplies
         local supplies_per_crate = Config.ctld.supply_crate_supplies
         local required_crates = math.ceil(required_supplies / math.max(supplies_per_crate, 1))
         ---@type Operation
@@ -1137,7 +1139,7 @@ do
 
     ---@param target_zone ZoneHandler
     function OperationManager:createREINFORCEMENTOperation(target_zone)
-        local required_supplies = Config.operations.reinforcement_required_supplies
+        local required_supplies = Config.operations.upgrade_required_supplies
         local supplies_per_crate = Config.ctld.supply_crate_supplies
         local required_crates = math.ceil(required_supplies / math.max(supplies_per_crate, 1))
 
@@ -1146,7 +1148,7 @@ do
             type = OperationTypes.REINFORCEMENT,
             code = self:createOperationCode(),
             status = OperationStatus.AVAILABLE,
-            xp_reward = math.random(10,15)*1000,
+            xp_reward = math.random(8,10)*100,
             target_zone_name = target_zone.name,
             operation_name = operations_name[math.random(#operations_name)],
             is_coop = false,
@@ -1156,37 +1158,7 @@ do
             coop_join_code = nil,
             objectives = {
                 {
-                    description = "Load "..required_crates.."x supply crates",
-                    completed = false,
-                    check = function(self_obj, player_unit,active_user_operation)
-                        if not player_unit or not player_unit:isExist() then return false end
-                        if player_unit:inAir() then return false end
-
-                        -- detect if the supply crates are near the aircraft
-                        local player_point = player_unit:getPoint()
-                        local volume = {
-                            id = world.VolumeType.SPHERE,
-                            params = {
-                                point = player_point,
-                                radius = 60
-                            }
-                        }
-                        local supply_crates_nearby = 0
-                        world.searchObjects({Object.Category.CARGO}, volume, function(obj)
-                            if obj and obj:isExist() and ctld.isSupplyCrate(obj:getName())then
-                                supply_crates_nearby = supply_crates_nearby + 1
-                            end
-                            return true
-                        end)
-                        if supply_crates_nearby < required_crates then return false end
-
-                                                trigger.action.outTextForUnit(player_unit:getID(), "REINFORCEMENT: Crates are within sling-load range. Proceed to the target area for delivery.", 10)
-                        trigger.action.outSoundForUnit(player_unit:getID(), "radio_txrx.ogg")
-                        return true
-                    end
-                },
-                {
-                                            description = "Hold on the ground in "..target_zone.name.." until the cargo is extracted",
+                    description = "Unload x"..required_crates.. " supply crates at "..target_zone.name,
                     completed = false,
                     check = function(self_obj, player_unit)
                         if not player_unit or not player_unit:isExist() then return false end
@@ -1199,6 +1171,8 @@ do
                         ---@type Object[]
                         local supply_crates_in_zone = {}
                         for _,obj in pairs(objects) do
+                            MissionLogger:info(obj:getName())
+                            MissionLogger:info(ctld.isSupplyCrate(obj:getName()))
                             if obj:isExist() and ctld.isSupplyCrate(obj:getName()) then
 
                                 local vel = obj:getVelocity()
@@ -1206,9 +1180,9 @@ do
                                 local point = obj:getPoint()
 
                                 local speed_ok = speed < 1
-                                local is_on_ground = math.abs(land.getHeight(mist.utils.makeVec2(point))-point.y) < 1
 
-                                if speed_ok and is_on_ground then
+                                MissionLogger:info(speed_ok)
+                                if speed_ok then
                                     table.insert(supply_crates_in_zone,obj)
                                 end
 
@@ -1232,9 +1206,8 @@ do
                             UnitHandler.updateZoneUnits(target_zone)
                             target_zone:drawF10()
                             target_zone.next_level_up_avail = timer.getTime() + Config.logistics_level_up_interval
+                            trigger.action.outTextForCoalition(target_zone.side,"SITREP: " .. target_zone.name .. " has reached operational tier " .. target_zone.level.." / 4", 10)
                             trigger.action.outSoundForCoalition(target_zone.side, "radio_beep.ogg")
-                            trigger.action.outTextForCoalition(target_zone.side,
-                                "SITREP: " .. target_zone.name .. " has reached operational tier " .. target_zone.level.." / 4", 10)
                         else
                             trigger.action.outTextForUnit(player_unit:getID(), "REINFORCEMENT: "..target_zone.name.." is already at tier 4/4.", 10)
                         end
