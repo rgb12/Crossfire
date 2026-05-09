@@ -38,12 +38,14 @@ Config = {
         cap_duration = 8*60, -- (seconds)
         cap_max_radius_from_zone = 28*1000, -- (meters)
         max_distance_to_frontline_for_airdrops = 100*1000, -- (meters)
-        reinforcement_required_supplies = 300, -- supplies required to upgrade a zone via AIRDROP / REINFORCEMENT (ex: 300 with 50/crate => 6 supply crates)
         csar_rescue_radius = 50, -- (meters) distance from downed pilot required to complete rescue
         intercept_required_kills = 2, -- number of aircraft/helicopters to destroy to complete INTERCEPT
         intercept_max_distance_to_enemy = 200*1000, -- (meters) max distance from friendly zone to enemy zone for INTERCEPT to be proposed
         attributes_for_SEAD_targeting = { 'SAM SR', 'SAM TR', 'IR Guided SAM', 'EWR' }, -- unit attributes that make them valid SEAD targets
         runway_destroyed_duration = 60*60, -- (seconds) runtime-only runway disable duration
+        
+        reinforcement_max_range = 50*1000, -- (meters)
+        upgrade_required_supplies = 300, -- supplies required to upgrade a zone via AIRDROP / REINFORCEMENT (ex: 300 with 50/crate => 6 supply crates)
 
         strategic_airlift = {
             enabled = true,

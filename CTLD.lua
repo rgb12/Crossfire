@@ -93,10 +93,10 @@ ctld.FARPs = {} -- store for persistence
 
 
 ctld.dynamic_cargo_capable_units = {
-    "CH-47Fbl1",
-    "UH-1H",
-    "Mi-8MT",
-    "Mi-24P",
+    -- "CH-47Fbl1",
+    -- "UH-1H",
+    -- "Mi-8MT",
+    -- "Mi-24P",
     "C-130J-30"
 }
 

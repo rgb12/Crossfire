@@ -1017,7 +1017,7 @@ do
         local function executeReinforcementHeloRequest(u, to_zone)
             if not CommandHandler.isGrounded(unit, gr_id) then return end
 
-            local required_supplies = Config.operations.reinforcement_required_supplies
+            local required_supplies = Config.operations.upgrade_required_supplies
 
             local max_logistics_range_m = 150000
             local logistics_candidates = {}
