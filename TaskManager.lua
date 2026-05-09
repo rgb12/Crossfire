@@ -1056,7 +1056,7 @@ do
                 AI.Option.Air.val.REACTION_ON_THREAT.PASSIVE_DEFENCE)
 
             end
-        timer.scheduleFunction(startMoving, {}, timer.getTime() + 5)
+        timer.scheduleFunction(startMoving, {}, timer.getTime() + 14)
     end
 
     ---@param convoy_gr_name string

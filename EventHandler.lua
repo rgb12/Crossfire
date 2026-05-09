@@ -234,55 +234,9 @@ function ev:onEvent(event)
 
             -- ABORTED HELI
             local enroute_heli = EnrouteManager:findByGroup(group_name)
-            local group_pos = mist.getLeadPos(group_name)
-            if enroute_heli and enroute_heli.aborted and group_pos and enroute_heli.from_zone:isPointInsideZone(group_pos) then
-                EnrouteManager:remove(group_name)
-                MissionLogger:info("Removed LANDED aborted heli from enroutes: " .. group_name)
-                    timer.scheduleFunction(function ()
-                        unit:getGroup():destroy()
-                    end, {}, timer.getTime() + 10)
-
-                    -- add back the heli to the zone
-                    -- WARN is this necessary, does changing in enroute change in zones as well?
-                    -- local heli_original_zone = ZoneHandler.getFromName(enroute_heli.from_zone.name) -- this checks the side
-
-                    if enroute_heli.from_zone.heli_avail and enroute_heli.side == unit:getCoalition() then
-                        MissionLogger:info("Adding back heli to zone: " .. enroute_heli.from_zone.name)
-                        enroute_heli.from_zone.heli_avail = enroute_heli.from_zone.heli_avail + 1
-                        enroute_heli.from_zone:drawF10()
-                    end
-            elseif enroute_heli then
-                if enroute_heli.ai_task_type == AITaskTypes.CAPTURE_HELO then
-                    TheatreCommander.checkIfCaptureGroupArrived(enroute_heli)
-                elseif enroute_heli.ai_task_type == AITaskTypes.REINFORCEMENT_HELO then
-                    local zone_coal_check = ZoneHandler.getFromName(enroute_heli.to_zone.name)
-                    local landed_pos = group_pos or unit:getPoint()
-
-                    if zone_coal_check
-                    and zone_coal_check.side == enroute_heli.side
-                    and landed_pos
-                    and zone_coal_check:isPointInsideZone(landed_pos)
-                    then
-                        if (zone_coal_check.level or 1) < 4 then
-                            zone_coal_check.level = (zone_coal_check.level or 1) + 1
-                            zone_coal_check.next_level_up_avail = timer.getTime() + (Config.logistics_level_up_interval or (16 * 60))
-                            UnitHandler.updateZoneUnits(zone_coal_check)
-                            zone_coal_check:drawF10()
-                            
-                            local delivered_supplies = (Config.operations and Config.operations.reinforcement_required_supplies) or 300
-                            trigger.action.outTextForCoalition(enroute_heli.side,
-                                string.format("SITREP: %s has reached operational tier %d/4 ", zone_coal_check.name, delivered_supplies), 10)
-                            trigger.action.outSoundForCoalition(enroute_heli.side, "radio_beep3.ogg")
-                        end
-
-                        EnrouteManager:remove(group_name)
-                    end
-
-                end
-
-                timer.scheduleFunction(function ()
-                    unit:getGroup():destroy()
-                end, {}, timer.getTime() + 10)
+            if enroute_heli then
+                local group_pos = mist.getLeadPos(group_name)
+                EnrouteManager:handleHeloLanding(enroute_heli, unit, group_pos)
             end
 
             if unit and unit.getPlayerName and unit:getPlayerName() then

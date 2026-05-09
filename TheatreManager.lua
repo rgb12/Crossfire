@@ -442,7 +442,7 @@ do
                         end
 
                         if zone_to_upgrade then
-                            TaskManager:initiateAITask(AITaskTypes.REINFORCEMENT_HELO,zone.side,true,zone,zone_to_upgrade,false)
+                            TaskManager:initiateAITask(AITaskTypes.REINFORCEMENT_HELO,zone.side,true,zone_to_upgrade,zone,false)
                         end
                     end
                     
@@ -631,6 +631,8 @@ do
                 end
             end
         end
+
+        EnrouteManager:checkAiHeloLandings()
     end
     
     timer.scheduleFunction(tsec_update, {}, timer.getTime() + 15)
