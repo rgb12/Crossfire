@@ -293,7 +293,7 @@ function ctld.load(part, unit)
     local airlift_operation = ctld.airlift_operation_tracking[unit_id]
 
     if unit:inAir() then
-        trigger.action.outTextForUnit(unit_id,"Negative, cannot load while airborne.", 5)
+        trigger.action.outTextForUnit(unit_id,"Cannot load while airborne.", 5)
         trigger.action.outSoundForUnit(unit_id, "transmission1.ogg")
         return
     end
@@ -307,14 +307,14 @@ function ctld.load(part, unit)
         end
     end
     if not unit_zone then
-        trigger.action.outTextForUnit(unit_id,"Negative, cannot load: Not in a valid load zone.", 5)
+        trigger.action.outTextForUnit(unit_id,"Cannot load: Not in a valid load zone.", 5)
         trigger.action.outSoundForUnit(unit_id, "transmission1.ogg")
         return
     end
 
     if not airlift_operation and not Config.ctld.allow_load_anywhere then
         if not utils.tableContains(Config.ctld.allowed_load_zones, unit_zone.zone_type) then
-            trigger.action.outTextForUnit(unit_id,"Negative, cannot load: Not in a valid load zone.", 5)
+            trigger.action.outTextForUnit(unit_id,"Cannot load: Not in a valid load zone.", 5)
             trigger.action.outSoundForUnit(unit_id, "transmission1.ogg")
             return
         end
@@ -327,7 +327,7 @@ function ctld.load(part, unit)
     local current_time = timer.getTime()
     if current_time < ctld.player_cooldowns[unit_id] then
         local wait_time = math.ceil(ctld.player_cooldowns[unit_id] - current_time)
-        trigger.action.outTextForUnit(unit_id, "Negative, cannot load: Wait "..wait_time.." seconds before loading again.", 5)
+        trigger.action.outTextForUnit(unit_id, "Cannot load: Wait "..wait_time.." seconds before loading again.", 5)
         trigger.action.outSoundForUnit(unit_id, "transmission1.ogg")
         return
     end
@@ -346,21 +346,21 @@ function ctld.load(part, unit)
     -- Checks weight and max parts / troops limits
     local aircraft_limit = ctld.getAircraftLimit(unit)
     if not aircraft_limit then
-        trigger.action.outTextForUnit(unit_id, "Negative, aircraft type not supported.", 5)
+        trigger.action.outTextForUnit(unit_id, "Aircraft type not supported.", 5)
         trigger.action.outSoundForUnit(unit_id, "transmission1.ogg")
         return
     end
 
     if airlift_operation then
         if airlift_operation.load_zone_name and unit_zone and unit_zone.name ~= airlift_operation.load_zone_name then
-            trigger.action.outTextForUnit(unit_id, "Negative, Strategic Airlift load must be performed at " .. airlift_operation.load_zone_name, 8)
+            trigger.action.outTextForUnit(unit_id, "Airlift load must be performed at " .. airlift_operation.load_zone_name, 8)
             trigger.action.outSoundForUnit(unit_id, "transmission1.ogg")
             return
         end
 
         local manifest = airlift_operation.manifest
         if not manifest or #manifest == 0 then
-            trigger.action.outTextForUnit(unit_id, "Negative, Strategic Airlift manifest is unavailable.", 8)
+            trigger.action.outTextForUnit(unit_id, "Airlift manifest is unavailable.", 8)
             trigger.action.outSoundForUnit(unit_id, "transmission1.ogg")
             return
         end
@@ -376,13 +376,13 @@ function ctld.load(part, unit)
         end
 
         if not is_requested_part then
-            trigger.action.outTextForUnit(unit_id, "Negative, Strategic Airlift does not request " .. part.desc .. ".", 8)
+            trigger.action.outTextForUnit(unit_id, "Airlift does not request " .. part.desc .. ".", 8)
             trigger.action.outSoundForUnit(unit_id, "transmission1.ogg")
             return
         end
 
         if (airlift_operation.loaded_parts[part.name] or 0) >= requested_quantity then
-            trigger.action.outTextForUnit(unit_id, "Negative, Strategic Airlift already has enough " .. part.desc .. " loaded.", 8)
+            trigger.action.outTextForUnit(unit_id, "Airlift already has enough " .. part.desc .. " loaded.", 8)
             trigger.action.outSoundForUnit(unit_id, "transmission1.ogg")
             return
         end
@@ -390,7 +390,7 @@ function ctld.load(part, unit)
 
     if not airlift_operation then
         if unit_zone.ammo_depot_intact ~= true then
-            trigger.action.outTextForUnit(unit_id, "Negative, cannot load: Ammunition Depot is required to access supplies in this zone.", 10)
+            trigger.action.outTextForUnit(unit_id, "Cannot load: Ammunition Depot is required to access supplies in this zone.", 10)
             trigger.action.outSoundForUnit(unit_id, "transmission1.ogg")
             return
         end
@@ -399,7 +399,7 @@ function ctld.load(part, unit)
         local supply_count = unit_zone.local_supplies or 0
         if part.req_supplies then
             if supply_count < part.req_supplies then
-                trigger.action.outTextForUnit(unit_id, "Negative, cannot load: Not enough supplies for "..part.desc..". Requires "..part.req_supplies.." supplies.", 10)
+                trigger.action.outTextForUnit(unit_id, "Cannot load: Not enough supplies for "..part.desc..". Requires "..part.req_supplies.." supplies.", 10)
                 trigger.action.outSoundForUnit(unit_id, "transmission1.ogg")
                 return
             end
@@ -868,6 +868,12 @@ function ctld.unload(unit)
     end
 
 
+    if ctld.isDynamicCargoCapable(unit) then
+        trigger.action.outTextForUnit(unit_id,"Cannot unload using CTLD, use native unloading.", 5)
+        trigger.action.outSoundForUnit(unit_id, "transmission1.ogg")
+        return
+    end
+
     local user = ctld.users[unit_id]
     if user == nil or #user.parts == 0 then
         trigger.action.outTextForUnit(unit_id,"Negative, no cargo to unload.", 5)
@@ -1094,6 +1100,7 @@ function ctld.listOnboardCargo(unit)
     )
 
     trigger.action.outTextForUnit(unit_id, cargo_list, 30)
+    trigger.action.outSoundForUnit(unit_id, "Radio squelch.ogg")
 end
 
 function ctld.isDynamicCargoCapable(unit)

@@ -239,7 +239,4 @@ zones = {}
         table.insert(zones,blue_airbase)
         table.insert(zones,red_airbase)
     end
-
---trigger.action.outText("Loading assets...",15)
 TheatreCommander.startMission()
-

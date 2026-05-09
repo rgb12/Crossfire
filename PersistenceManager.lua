@@ -327,7 +327,7 @@ do
                 elseif enroute.ai_task_type == AITaskTypes.REINFORCEMENT_HELO then
                     zone_data.heli_avail = (zone_data.heli_avail or 0) + 1
 
-                    local required_supplies = (Config.operations and Config.operations.reinforcement_required_supplies) or 300
+                    local required_supplies = (Config.operations and Config.operations.upgrade_required_supplies) or 300
                     local level = zone_data.level or 1
                     local cap = (Config.supplies and Config.supplies.supplies_cap and Config.supplies.supplies_cap[level]) or 0
                     zone_data.local_supplies = math.min((zone_data.local_supplies or 0) + required_supplies, cap)
