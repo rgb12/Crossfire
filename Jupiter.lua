@@ -69,6 +69,7 @@ function Jupiter:onEvent(event)
         
         local command = args[1]:lower()
         local param1 = args[2]
+        local param2 = args[3]
         
         local cmd_executed = false
 
@@ -102,15 +103,10 @@ function Jupiter:onEvent(event)
             else
                 trigger.action.outText("Jupiter: No zone found within 10km to level up.", 5)
             end
-        elseif command == "-addsuppliesblue" then
-            local supplies_to_add = tonumber(param1) or 500
-            stats.blue_supplies = stats.blue_supplies + supplies_to_add
-            trigger.action.outText("Jupiter: Added "..supplies_to_add.." supplies to BLUE coalition. Total: "..stats.blue_supplies, 5)
-            cmd_executed = true
-        elseif command == "-addsuppliesred" then
-            local supplies_to_add = tonumber(param1) or 500
-            stats.red_supplies = stats.red_supplies + supplies_to_add
-            trigger.action.outText("Jupiter: Added "..supplies_to_add.." supplies to RED coalition. Total: "..stats.red_supplies, 5)
+        
+        elseif command == "-restock" then
+            WarehouseManager:handleIncomingSupplies(coalition.side.BLUE, {WarehouseManager.StockTypes.INITIAL})
+            WarehouseManager:handleIncomingSupplies(coalition.side.RED, {WarehouseManager.StockTypes.INITIAL})
             cmd_executed = true
         elseif command == "-setlevel" then
             local level = tonumber(param1) or 1
@@ -169,6 +165,18 @@ function Jupiter:onEvent(event)
             if closest_zone and dist <= 10000 then
                 TaskManager:initiateAITask(AITaskTypes.ATTACK_CONVOY,closest_zone.side,true,nil,closest_zone,true)
                 cmd_executed = true
+            else
+                trigger.action.outText("Jupiter: No zone found within 10km for Attack Convoy tasking.", 5)
+            end
+        elseif command == "-sendrhelo" then
+              local closest_zone, dist = getClosestZone(vec3)
+            if closest_zone and dist <= 10000 then
+                local from_z,_ = closest_zone:getClosestZone(closest_zone.side,nil,{ZoneTypes.LOGISTICS},true)
+                if from_z then
+                    MissionLogger:info(from_z.name)
+                    TaskManager:initiateAITask(AITaskTypes.REINFORCEMENT_HELO,closest_zone.side,false,closest_zone,from_z,true)
+                    cmd_executed = true
+                end
             else
                 trigger.action.outText("Jupiter: No zone found within 10km for Attack Convoy tasking.", 5)
             end
@@ -250,6 +258,29 @@ function Jupiter:onEvent(event)
             trigger.action.outText("Active groups: "..#b_gr+#r_gr.."\nActive units: "..units,15)
             cmd_executed = true
 
+        elseif command == "-airkill" then
+            local radius = tonumber(param1) or 5000 -- Default 5000m radius
+            local count = 0
+        
+            -- Define search volume
+            local volS = {
+                id = world.VolumeType.SPHERE,
+                params = { point = vec3, radius = radius }
+            }
+            
+            -- Callback function to destroy found objects
+            local function killObject(obj, val)
+                if obj and obj:isExist() and obj:inAir() then
+                    obj:destroy()
+                    count = count + 1
+                end
+                return true
+            end
+            
+            world.searchObjects({Object.Category.UNIT,Object.Category.STATIC}, volS, killObject)
+            
+            trigger.action.outText(string.format("Jupiter: Destroyed %d airborne objects in %dm radius.", count, radius), 5)
+            cmd_executed = true
         elseif command == "-destroy" then
             local radius = tonumber(param1) or 5000 -- Default 5000m radius
             local count = 0
@@ -295,6 +326,19 @@ function Jupiter:onEvent(event)
             else
                 trigger.action.outText("Jupiter: No zone found within 10km for JTAC tasking.", 5)
             end
+        elseif command == "-sendconvoy" then
+            local closest_zone, dist = getClosestZone(vec3)
+            if closest_zone and dist <= 10000 then
+                local enemy_zone = closest_zone:getClosestZone(utils.getEnemyCoalition(closest_zone.side))
+                if not enemy_zone then return end
+
+                TaskManager:initiateAITask(AITaskTypes.ATTACK_CONVOY,enemy_zone.side,true,closest_zone,enemy_zone,true)
+                cmd_executed = true
+            else
+                trigger.action.outText("Jupiter: No zone found within 10km for JTAC tasking.", 5)
+            end
+
+            cmd_executed = true
         elseif command == "-sendstrike" then
             local side_sending = coalition.side.BLUE
             if param1 == "blue" then
@@ -341,9 +385,18 @@ function Jupiter:onEvent(event)
             else
                 trigger.action.outText("Jupiter: No zone found within 10km for Recon tasking.", 5)
             end
+        elseif command == "-regenops" then
+            TheatreCommander.blue_op_manager:forceRegenerateOperations()
+            TheatreCommander.red_op_manager:forceRegenerateOperations()
+            trigger.action.outText("Jupiter: Operations regenerated.",5)
+            cmd_executed = true
         elseif command == "-sendresupply" then
             TheatreCommander.sendWarehouseResupply(coalition.side.BLUE,false)
             TheatreCommander.sendWarehouseResupply(coalition.side.RED,false)
+            cmd_executed = true
+        elseif command == "-spawntanker" then
+            local zone = ZoneHandler.getFromName("VAZIANI")
+            TaskManager:initiateAITask(AITaskTypes.TANKER, coalition.side.BLUE, false, nil,zone , true)
             cmd_executed = true
         elseif command == "-resupply" then
             if param1 == "help" then
@@ -352,13 +405,24 @@ function Jupiter:onEvent(event)
             else
                 local stocktype_num = tonumber(param1) or 1
                 local closest_zone, dist = getClosestZone(vec3)
-                if closest_zone and dist <= 10000 and closest_zone.airbase_name then
+                if closest_zone and dist <= 10000 and (closest_zone.zone_type == ZoneTypes.AIRBASE or closest_zone.zone_type == ZoneTypes.FARP) then
                     WarehouseManager:attributeAirbaseStock(closest_zone.airbase_name,coalition.side.BLUE,
                         {stocktype_num})
                     cmd_executed = true
+                    trigger.action.outText("Jupiter: Resupply completed", 5)
                 else
                     trigger.action.outText("Jupiter: No airbase found within 10km for giving stock.", 5)
                 end
+            end
+        elseif command == "-addsupplies" then
+            local added_supplies = tonumber(param1) or 1000
+            local closest_zone, dist = getClosestZone(vec3)
+            if closest_zone and dist <= 10000 then
+                closest_zone.local_supplies = closest_zone.local_supplies + added_supplies
+                cmd_executed = true
+                trigger.action.outText("Jupiter: Added "..added_supplies.." to "..closest_zone.name, 5)
+            else
+                trigger.action.outText("Jupiter: No zone found within 10km for capture.", 5)
             end
         elseif command == "-capture" then
             local closest_zone, dist = getClosestZone(vec3)
@@ -368,11 +432,6 @@ function Jupiter:onEvent(event)
             else
                 trigger.action.outText("Jupiter: No zone found within 10km for capture.", 5)
             end
-        elseif command == "-scalewarehouse" then
-            local scale = tonumber(param1) or 1.0
-            Scenario.estimated_users = math.max(1,scale)
-            trigger.action.outText(string.format("Jupiter: Scaled warehouse stock calculations for %d users.", Scenario.estimated_users), 5)
-            cmd_executed = true
         elseif command == "-addxp" then
             local xp_to_add = tonumber(param1) or 1000
             -- Find all players within 500m of the marker
@@ -384,7 +443,7 @@ function Jupiter:onEvent(event)
             local total_units = 0
             local function addXPToPlayer(obj, val)
                 total_units = total_units + 1
-                if obj and obj:isExist() and obj.getPlayerName then
+                if obj and obj:isExist() and obj.getPlayerName and obj:getPlayerName() then
                     local player_name = obj:getPlayerName()
                     if player_name then
                         local user = ExperienceManager:fetchUser(obj)
@@ -403,6 +462,22 @@ function Jupiter:onEvent(event)
             MissionLogger:info(string.format("Jupiter -addxp: Found %d units, %d were players", total_units, players_found))
             trigger.action.outText(string.format("Jupiter: Added %d XP to %d players within 500m. (Found %d units total)", xp_to_add, players_found, total_units), 5)
             cmd_executed = true
+        elseif command == "-setxpmult" then
+            local multiplier = tonumber(param1)
+            local time = tonumber(param2) or 5
+            if not multiplier then
+                trigger.action.outText("Jupiter: Invalid multiplier. Usage: -setxpmult <number> <time>", 8)
+            else
+                ExperienceManager.xp_multiplier = math.max(multiplier,1)
+                timer.scheduleFunction(function ()
+                    ExperienceManager.xp_multiplier = 1
+                    trigger.action.outText("XP multiplier ended!",10)
+                end,nil,timer.getTime()+(time*60)) -- time given in minutes
+                trigger.action.outText("XP multiplier (x"..multiplier..") active for "..time.." minutes!",10)
+                cmd_executed=true
+            end
+        else
+            trigger.action.outText("Jupiter: unknown command",5)
         end
         -- 3. Cleanup: Remove the map marker if a command was recognized
         timer.scheduleFunction(function()

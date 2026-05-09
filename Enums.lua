@@ -97,23 +97,12 @@ Airbases = {
     }
 }
 
-
 ---@enum SAM_TYPES
 SAM_TYPES = {
     SHORT_RANGE = 1,
     MEDIUM_RANGE = 2,
     LONG_RANGE = 3
 }
-
-
----@enum ScenarioDifficulty
-ScenarioDifficulty = {
-    EASY = 1,
-    MEDIUM = 2,
-    HARD = 3,
-    EXPERT = 4
-}
-
 
 ---@enum ZoneTypes
 ZoneTypes = {
@@ -134,14 +123,17 @@ AITaskTypes = {
     CAP = "CAP",
     INTERCEPT = "INTERCEPT",
     AWACS = "AWACS",
+    TANKER = "TANKER",
     SEAD = "SEAD",
     STRIKE = "STRIKE",
     ATTACK_CONVOY = "ATTACK CONVOY",
     CAPTURE_HELO = "CAPTURE HELI",
+    REINFORCEMENT_HELO = "REINFORCEMENT HELI",
     RESUPPLY_CARGO = "RESUPPLY CARGO",
     RECON = "RECON"
 }
 
+--- Ensure that isOffensiveOperation and isDefensiveOperation in operation manager are complete
 ---@enum OperationTypes
 OperationTypes = {
     CAP = "CAP",
@@ -149,12 +141,28 @@ OperationTypes = {
     SEAD = "SEAD",
     DEAD = "DEAD",
     CAS = "CAS",
+    RUNWAY_BOMBING = "Runway Bombing",
     RECON = "Recon",
     AIRDROP = "Airdrop",
+    REINFORCEMENT = "Reinforcement",
+    STRATEGIC_AIRLIFT = "Airlift",
     INTERCEPT = "Intercept",
-    CSAR = "CSAR"
+    CSAR = "CSAR",
+    DEEP_RECON = "Deep Recon",
+    DEEP_STRIKE = "Deep strike"
 }
 
+---@enum UserAircraftCategories
+UserAircraftCategories = {
+    HELICOPTER = "helicopter",
+    FIXED_WING = "fixed_wing"
+}
+
+---@enum TankerRoles
+TankerRoles = {
+    BOOM = "boom",
+    DROGUE = "drogue"
+}
 
 ---@enum OperationStatus
 OperationStatus = {
@@ -167,45 +175,12 @@ OperationStatus = {
 ---@enum CargoCrates
 CargoCrates = {
     CDS_BARRELS = "cds_barrels",
-    CDS_CRATES = "cds_crate",
+    --CDS_CRATES = "cds_crate",
     ContainerClean = "M92_10Ft_Container",
     MOAB = "gbu_43b_airdrop",
     LargeContainer = "iso_container",
     SmallContainer = "iso_container_small",
-    SuppliesCrate = "container_cargo"
+    SUPPLY_CRATE = "cds_crate"
 }
-
----@class CoalSetup
----@field initial_dist_blue_to_frontline number
----@field auto_coalition_designation boolean
----@field dist_variance number
-
----@class LogisticsSetup
----@field upgrade_range number
----@field heli_capture_range number
----@field max_dist_to_frontline number
-
----@class CarrierSetup
----@field carrier_unit_name string
----@field tomahawk_launcher_unit_name string|nil
----@field enabled boolean
-
----@class Resupply
----@field blue_point vec3
----@field red_point vec3
-
----@class Scenario
----@field name string
----@field difficulty ScenarioDifficulty
----@field description string
----@field estimated_users number
----@field coalition_setup CoalSetup
----@field red_airbase ZoneHandler|nil
----@field blue_airbase ZoneHandler|nil
----@field logistics_setup LogisticsSetup
----@field carrier_setup CarrierSetup|nil
----@field resupply Resupply
----@field zones ZoneHandler[]
-
 
 MissionLogger = mist.Logger:new("MissionLogger", 3)

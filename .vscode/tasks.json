@@ -6,7 +6,6 @@
             "type": "shell",
             "command": "Get-Content",
             "args": [
-                // IMPORTANT: Update this path to your dcs.log file
                 "C:\\Users\\louis\\Saved Games\\DCS\\Logs\\dcs.log",
                 "-Wait"
             ],

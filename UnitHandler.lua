@@ -3,8 +3,9 @@ do
     ---@param zone ZoneHandler
     ---@param max_tries number|nil
     ---@param clear_radius number|nil
+    ---@param runway_clear_radius number|nil -- for taxiways also
     ---@return vec2
-    function UnitHandler.findClearPoint(zone, max_tries, clear_radius)
+    function UnitHandler.findClearPoint(zone, max_tries, clear_radius, runway_clear_radius)
         max_tries = max_tries or 6
         clear_radius = clear_radius or 50
         local last
@@ -13,13 +14,50 @@ do
 
             if candidate and mist.isTerrainValid(candidate,{"LAND"}) then
                 last = candidate
-                local found = false
+                local is_runway = false
 
-                if clear_radius then
-                    local vol = { id = world.VolumeType.SPHERE, params = { point = candidate, radius = clear_radius } }
-                    world.searchObjects({Object.Category.UNIT,Object.Category.STATIC}, vol, function() found = true end)
+                if runway_clear_radius and runway_clear_radius > 0 then
+                    local r = runway_clear_radius
+                    local sample_point = {x = candidate.x, y = candidate.y}
+                    if land.getSurfaceType(candidate) == land.SurfaceType.RUNWAY then
+                        is_runway = true
+                    else
+                        sample_point.x = candidate.x - r
+                        sample_point.y = candidate.y + r
+                        if land.getSurfaceType(sample_point) == land.SurfaceType.RUNWAY then
+                            is_runway = true
+                        else
+                            sample_point.x = candidate.x - r
+                            sample_point.y = candidate.y - r
+                            if land.getSurfaceType(sample_point) == land.SurfaceType.RUNWAY then
+                                is_runway = true
+                            else
+                                sample_point.x = candidate.x + r
+                                sample_point.y = candidate.y + r
+                                if land.getSurfaceType(sample_point) == land.SurfaceType.RUNWAY then
+                                    is_runway = true
+                                else
+                                    sample_point.x = candidate.x + r
+                                    sample_point.y = candidate.y - r
+                                    if land.getSurfaceType(sample_point) == land.SurfaceType.RUNWAY then
+                                        is_runway = true
+                                    end
+                                end
+                            end
+                        end
+                    end
                 end
-                if not found then return candidate end
+
+                if not is_runway then
+                    local found = false
+
+                    if clear_radius then
+                        local vol = { id = world.VolumeType.SPHERE, params = { point = candidate, radius = clear_radius } }
+                        world.searchObjects({Object.Category.UNIT,Object.Category.STATIC}, vol, function() found = true return false end)
+                    end
+
+                    if not found then return candidate end
+                end
             end
         end
         if not last then return mist.utils.makeVec2(zone.zone.point) end
@@ -251,36 +289,37 @@ do
         end
     end
 
+    ---@param zone ZoneHandler
+    ---@return boolean
     function UnitHandler.initStatics(zone)
-        if zone.side == coalition.side.NEUTRAL then return end
+        if zone.side == coalition.side.NEUTRAL then return false end
         local country_name
         if zone.side == coalition.side.BLUE then country_name = country.id.CJTF_BLUE
         else country_name = country.id.CJTF_RED end
 
-        if zone.zone_type == ZoneTypes.LOGISTICS then
-            if zone.ammo_depot_intact == false then return end
+        if zone.zone_type == ZoneTypes.LOGISTICS or zone.zone_type == ZoneTypes.AIRBASE
+        or zone.zone_type == ZoneTypes.FARP then
+            if zone.ammo_depot_intact == false then return false end
 
-            local point = mist.getRandomPointInZone(zone.name) or {x=zone.zone.point.x+55,y=zone.zone.point.z-29}
-
+            local depot_point = UnitHandler.findClearPoint(zone,30,200,40)
             
             local ammo_depot = mist.dynAddStatic({
                 type = ".Ammunition depot",
                 country = country_name,
                 category = "Warehouses",
-                x = point.x,
-                y = point.y})
+                x = depot_point.x,
+                y = depot_point.y
+            })
             if ammo_depot then
                 zone.ammo_depot_intact = true
                 zone.linked_ammo_depot = ammo_depot.name
-                
+                zone.ammo_depot_last_destroyed = nil
                 table.insert(zone.linked_statics, ammo_depot.name)
-                utils.editAmmoDepotsCount(zone.side, 1)
-            else
-                MissionLogger:error("Could not spawn ammo depot for ".. zone.name)
+                return true
             end
 
         elseif zone.zone_type == ZoneTypes.COMMS then
-            if zone.comms_tower_intact == false then return end
+            if zone.comms_tower_intact == false then return false end
             local point = mist.getRandomPointInZone(zone.name) or {x=zone.zone.point.x+25,y=zone.zone.point.z-19}
 
             local comms_tower = mist.dynAddStatic({
@@ -293,48 +332,25 @@ do
                 zone.comms_tower_intact = true
                 zone.linked_comms_tower = comms_tower.name
                 
-                if zone.side == coalition.side.BLUE then
-                    stats.blue_comms_antennas = stats.blue_comms_antennas +1
-                else
-                    stats.red_comms_antennas = stats.red_comms_antennas +1
-                end
+                utils.editCommsAntennasCount(zone.side, 1)
                
                 table.insert(zone.linked_statics, comms_tower.name)
-               
+                return true
             else
                 MissionLogger:error("Could not spawn comms tower for ".. zone.name)
             end
-
-
-        elseif zone.zone_type == ZoneTypes.AIRBASE then
-            if zone.cmdc_intact == false then return end
-            local cmd_center_point = UnitHandler.findClearPoint(zone,50,500)
-
-            local command_center = mist.dynAddStatic({
-                type = ".Command Center",
-                country = country_name, --81 = CJTF RED | 82= CJTF BLUE
-                category = "Fortifications",
-                x = cmd_center_point.x,
-                y = cmd_center_point.y
-            })
-            if command_center then
-
-                table.insert(zone.linked_statics, command_center.name)
-                zone.cmdc_intact = true
-                utils.editCommandPostsCount(zone.side, 1)
-            else
-                MissionLogger:error("Could not spawn comms tower for ".. zone.name)
-            end
-
         end
-    
+        return false
     end
 
     ---@param zone ZoneHandler
     ---@param restock boolean
     function UnitHandler.initFARP(zone,restock)
         if zone.zone_type ~= ZoneTypes.FARP then return end
-        if zone.side == coalition.side.NEUTRAL then return end
+        if zone.side ~= coalition.side.BLUE then return end
+
+        if not zone.linked_farp then return end
+
 
         local country_name_id
         if zone.side == coalition.side.BLUE then
@@ -344,16 +360,15 @@ do
             country_name_id = country.id.CJTF_RED
             stats.red_farp_zones = stats.red_farp_zones +1
         end
+        
 
-        -- Base coordinates for the zone center (where Invisible FARP goes)
+        -- Base coordinates for the zone center (where Invisible FARP is placed)
         local base_x = zone.zone.point.x
-        local base_y = zone.zone.point.z -- DCS world Z coordinate is Lua's Y
+        local base_y = zone.zone.point.z
 
         -- List of Statics to spawn with their estimated offsets (X, Y)
+        -- Invisible FARPs are placed inside the mission editor
         local farp_statics_to_spawn = {
-            -- Invisible FARP (Center Point)
-            { type = "Invisible FARP", category = "Heliports", shape_name = "invisiblefarp", offset_x = 0, offset_y = 0 },
-
             -- Tents (clustered east of the pad)
             { type = "FARP Tent", category = "Fortifications", offset_x = 5, offset_y = 55 },
             { type = "FARP Tent", category = "Fortifications", offset_x = -15, offset_y = 55 },
@@ -362,11 +377,11 @@ do
             { type = "FARP Ammo Dump Coating", category = "Fortifications", offset_x = 30, offset_y = 5 },
             { type = "FARP Ammo Dump Coating", category = "Fortifications", offset_x = 30, offset_y = -5 },
 
-
             -- Fuel Depots (South of the pad)
             { type = "FARP Fuel Depot", category = "Fortifications", offset_x = 5, offset_y = -60 },
             { type = "FARP Fuel Depot", category = "Fortifications", offset_x = -5, offset_y = -60 },
         }
+
 
         -- Spawn the Statics
         for _, static_data in ipairs(farp_statics_to_spawn) do
@@ -375,37 +390,23 @@ do
                 y = base_y + static_data.offset_y
             }
 
-            -- some dcs quirks with invisible farps .. that makes it work
+            local new_static = mist.dynAddStatic({
+                    type = static_data.type,
+                    shape_name = static_data.shape_name,
+                    country = country_name_id,
+                    category = static_data.category,
+                    x = static_point.x,
+                    y = static_point.y,
+                    heading = 0
+                })
 
-            if not (zone.side == coalition.side.RED and static_data.type == "Invisible FARP")
-            and not (zone.linked_farp and static_data.type == "Invisible FARP") then
- 
-                local new_static = mist.dynAddStatic({
-                        type = static_data.type,
-                        shape_name = static_data.shape_name,
-                        country = country_name_id,
-                        category = static_data.category,
-                        x = static_point.x,
-                        y = static_point.y,
-                        heading = 0
-                    })
-
-                if new_static and new_static.name then
-
-                    
-                    if static_data.type ~= "Invisible FARP" then
-                        -- do not track invisible farps as they are not destroyable
-                        table.insert(zone.linked_statics, new_static.name)
-                    else
-                        zone.linked_farp = new_static.name
-                    end
-            
-                end
+            if new_static and new_static.name then
+                table.insert(zone.linked_statics, new_static.name)
             end
         end
+
+
         -- Add to warehouse
-        
-        -- set warehouse
         if zone.linked_farp and restock then
             timer.scheduleFunction(function()
                 WarehouseManager:clearWarehouse(zone.linked_farp)
@@ -414,35 +415,34 @@ do
         end
 
 
-        local group_template_name = "BLUE FARP" -- Assumes this is the name of your Late Activated group template
         local group_offset_x = -55
         local group_offset_y = 10
         local group_spawn_point = {
             x = base_x + group_offset_x,
             y = base_y + group_offset_y
         }
-
+        
         -- Vehicle group
+        local group_template_name = nil
         if zone.side == coalition.side.RED then
             group_template_name = GroupData.COMMON_ASSETS.RED.farp
-        else 
+        else
             group_template_name = GroupData.COMMON_ASSETS.BLUE.farp
         end
 
-        local vehicles_gr = mist.teleportToPoint({
-            groupName = group_template_name,
-            point = group_spawn_point,
-            action = 'clone',
-            disperse = false,
-            initTasks = true,
-            anyTerrain = true
-        })
+        if group_template_name then
+            local vehicles_gr = mist.teleportToPoint({
+                groupName = group_template_name,
+                point = group_spawn_point,
+                action = 'clone',
+                disperse = false,
+                initTasks = true,
+                anyTerrain = true
+            })
 
-        if vehicles_gr and vehicles_gr.name then
-            table.insert(zone.linked_groups, vehicles_gr.name)
-            MissionLogger:info("Cloned FARP Unit Group: " .. group_template_name)
-        else
-            MissionLogger:error("Failed to clone FARP Unit Group: " .. group_template_name .. ". Ensure the group exists and is Late Activated.")
+            if vehicles_gr and vehicles_gr.name then
+                table.insert(zone.linked_groups, vehicles_gr.name)
+            end
         end
     end
 
@@ -605,4 +605,45 @@ function UnitHandler.checkIfZoneHasUnitWithAttributes(zone, attributes)
         end
     end
     return false
+end
+
+---@param zone ZoneHandler
+---@return Object[]
+function UnitHandler.findObjectsInZone(zone)
+    local objects = {}
+    local volume = nil
+    if zone:isCircle() then
+        volume = {
+            id = world.VolumeType.SPHERE,
+            params = {
+                point = zone.zone.point,
+                radius = zone.zone.radius
+            }
+        }
+    elseif zone:isQuad() then
+        -- bounding box around quad vertices
+        local min_x, max_x = math.huge, -math.huge
+        local min_z, max_z = math.huge, -math.huge
+        for _, v in ipairs(zone.zone.vertices) do
+            if v.x < min_x then min_x = v.x end
+            if v.x > max_x then max_x = v.x end
+            if v.z < min_z then min_z = v.z end
+            if v.z > max_z then max_z = v.z end
+        end
+        volume = {
+            id = world.VolumeType.BOX,
+            params = {
+                min = { x = min_x, y = -1000, z = min_z },
+                max = { x = max_x, y = 99999, z = max_z }
+            }
+        }
+    end
+    if not volume then return objects end
+    world.searchObjects({Object.Category.CARGO, Object.Category.UNIT, Object.Category.STATIC}, volume, function(obj)
+        if obj and obj:isExist() and obj.getVelocity and obj.getTypeName then
+            table.insert(objects,obj)
+        end
+        return true
+    end)
+    return objects
 end

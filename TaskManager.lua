@@ -2,6 +2,15 @@
 TaskManager = {}
 do
     TaskManager.AWACSOrbitArea = {}
+    TaskManager.TankerSectors = {}
+    TaskManager._tankerSerial = {
+        [coalition.side.BLUE] = 0,
+        [coalition.side.RED] = 0,
+    }
+    ---@type number[]
+    TaskManager.assignedFrequencies = {}
+    ---@type table<number, boolean>
+    TaskManager.assignedTACANS = {}
 
     ---@param ai_task_type AITaskTypes
     ---@param side coalition.side
@@ -24,15 +33,39 @@ do
             end
         end
 
-        if AITaskTypes.CAS == ai_task_type and to_zone then
-        
+        ---@param task_label string
+        ---@return ZoneHandler|nil, string|nil
+        local function resolveSourceAirbase(task_label)
+            if from_zone and from_zone.zone_type == ZoneTypes.AIRBASE then
+                if not self:isAirbaseRunwayOperational(from_zone) then
+                    sendText(task_label.." unavailable from "..from_zone.name..", runway is inporable.")
+                    return nil, nil
+                end
+
+                local in_stock, template_gr_name = WarehouseManager:checkAircraftInStock(from_zone.airbase_name, ai_task_type)
+                if not in_stock then
+                    sendText(task_label.." unavailable from "..from_zone.name..", check aircraft availability, warehouse stock and tasking limits.")
+                    return nil, nil
+                end
+                return from_zone, template_gr_name
+            end
+
+            if not to_zone then
+                return nil, nil
+            end
+
             local closest_airbase, template_gr_name = self:findClosestAirbaseWithAircraftInStock(to_zone,side,ai_task_type,2,ai_task_type)
             if not closest_airbase then
-                if user_requested then
-                    trigger.action.outTextForCoalition(side,"CAS unavailable for "..to_zone.name..", check aircraft availability, warehouse stock and tasking limits.",5)
-                end
-                return false
+                sendText(task_label.." unavailable for "..to_zone.name..", check aircraft availability, warehouse stock and tasking limits.")
+                return nil, nil
             end
+            return closest_airbase, template_gr_name
+        end
+
+        if AITaskTypes.CAS == ai_task_type and to_zone then
+        
+            local source_airbase, template_gr_name = resolveSourceAirbase("CAS")
+            if not source_airbase then return false end
 
             if prevent_duplicates and EnrouteManager:findByToZone(to_zone,side,{AITaskTypes.CAS}) then
                 if user_requested then
@@ -41,13 +74,13 @@ do
                 return false
             end
 
-            local airbase = Airbase.getByName(closest_airbase.airbase_name)
+            local airbase = Airbase.getByName(source_airbase.airbase_name)
             if not airbase then return false end
 
-            local enroutes_from_airbase = EnrouteManager:findByFromZone(closest_airbase,side)
+            local enroutes_from_airbase = EnrouteManager:findByFromZone(source_airbase,side)
             if enroutes_from_airbase and #enroutes_from_airbase >= Config.tasking.max_tasks_per_airbase then
                 if user_requested then
-                    trigger.action.outTextForCoalition(side,"CAS unavailable from "..closest_airbase.name..", airbase cannot handle more tasks at the moment.",5)
+                    trigger.action.outTextForCoalition(side,"CAS unavailable from "..source_airbase.name..", airbase cannot handle more tasks at the moment.",5)
                 end
                 return false
             end
@@ -64,7 +97,7 @@ do
             local ai_enroute_data = EnrouteManager:add({
                 to_zone = to_zone,
                 side=side,
-                from_zone=closest_airbase,
+                from_zone=source_airbase,
                 group_name=new_group.name,
                 ai_task_type=ai_task_type
             })
@@ -72,6 +105,11 @@ do
             self:setCASTask(new_group.name,ai_enroute_data)
             return true
         elseif AITaskTypes.AWACS == ai_task_type and from_zone and from_zone.zone_type == ZoneTypes.AIRBASE then
+
+            if not self:isAirbaseRunwayOperational(from_zone) then
+                sendText("AWACS unavailable from "..from_zone.name..", runway is inoperable.")
+                return false
+            end
 
             local enroutes_from_airbase = EnrouteManager:findByFromZone(from_zone,side)
             if enroutes_from_airbase and #enroutes_from_airbase >= Config.tasking.max_tasks_per_airbase then
@@ -113,16 +151,204 @@ do
             })
             self:setAWACSTask(new_group.name,ai_enroute_data)
             return true
-        elseif AITaskTypes.CAP == ai_task_type and to_zone then
+        elseif AITaskTypes.TANKER == ai_task_type and from_zone and from_zone.zone_type == ZoneTypes.AIRBASE then
 
-            local closest_airbase, template_gr_name = self:findClosestAirbaseWithAircraftInStock(to_zone,side,ai_task_type,2,ai_task_type)
-            if not closest_airbase then
+            if not self:isAirbaseRunwayOperational(from_zone) then
+                sendText("TANKER unavailable from "..from_zone.name..", runway is inoperable.")
+                return false
+            end
+
+            local max_tanker_theatre = Config.tasking.max_tanker_per_theatre or 2
+            if self:countActiveTankerSectors(side) >= max_tanker_theatre then
+                sendText("TANKER unavailable, maximum active tanker sectors reached.")
+                return false
+            end
+
+            local enroutes_from_airbase = EnrouteManager:findByFromZone(from_zone,side)
+            if enroutes_from_airbase and #enroutes_from_airbase >= Config.tasking.max_tasks_per_airbase then
                 if user_requested then
-                    txt="CAP unavailable for "..to_zone.name..", check aircraft availability, warehouse stock and tasking limits."
+                    txt="TANKER unavailable from "..from_zone.name..", airbase cannot handle more tasks at the moment."
                     trigger.action.outTextForCoalition(side,txt,5)
                 end
                 return false
             end
+
+            local tanker_from_airbase = self:countActiveTankerSectorsFromAirbase(from_zone, side)
+            if tanker_from_airbase >=Config.tasking.max_tanker_per_airbase then
+                sendText("TANKER unavailable from "..from_zone.name..", max tanker sectors from this airbase reached.")
+                return false
+            end
+
+            local enemy_side = utils.getEnemyCoalition(side)
+            local nearest_enemy_zone, nearest_enemy_dist = from_zone:getClosestZone(enemy_side,nil,nil,false)
+            if not nearest_enemy_zone or not nearest_enemy_dist or nearest_enemy_dist == math.huge then
+                sendText("TANKER unavailable, no enemy zone found for sector placement.")
+                return false
+            end
+
+            local min_enemy_distance = Config.tanker.minimum_enemy_distance
+            if nearest_enemy_dist < min_enemy_distance then
+                sendText("TANKER unavailable, nearest enemy area is too close to "..from_zone.name.." (minimum "..math.floor(min_enemy_distance/1000).."km)")
+                return false
+            end
+            MissionLogger:info("Attempting tanker spawn")
+            local center_point = utils.pointAlongSegment(from_zone.zone.point, nearest_enemy_zone.zone.point, Config.tanker.midpoint_ratio)
+
+            local path_dx = nearest_enemy_zone.zone.point.x - from_zone.zone.point.x
+            local path_dz = nearest_enemy_zone.zone.point.z - from_zone.zone.point.z
+            local path_len = math.sqrt(path_dx * path_dx + path_dz * path_dz)
+            if path_len < 1 then
+                sendText("TANKER unavailable, invalid sector geometry.")
+                return false
+            end
+
+            local ux = path_dx / path_len
+            local uz = path_dz / path_len
+            local leg_ux = -uz
+            local leg_uz = ux
+            local half_leg = (Config.tanker.leg_length or (70*1000)) * 0.5
+
+            local wp1 = {
+                x = center_point.x - (leg_ux * half_leg),
+                y = land.getHeight({ x = center_point.x - (leg_ux * half_leg), y = center_point.z - (leg_uz * half_leg) }),
+                z = center_point.z - (leg_uz * half_leg)
+            }
+            local wp2 = {
+                x = center_point.x + (leg_ux * half_leg),
+                y = land.getHeight({ x = center_point.x + (leg_ux * half_leg), y = center_point.z + (leg_uz * half_leg) }),
+                z = center_point.z + (leg_uz * half_leg)
+            }
+
+            local side_assets = side == coalition.side.BLUE and GroupData.COMMON_ASSETS.BLUE or GroupData.COMMON_ASSETS.RED
+            if not side_assets or not side_assets.tanker_boom or not side_assets.tanker_drogue then
+                sendText("TANKER unavailable, tanker template names are missing from GroupData.COMMON_ASSETS.")
+                return false
+            end
+
+            self._tankerSerial[side] = (self._tankerSerial[side] or 0) + 1
+            local serial_number = self._tankerSerial[side]
+
+            local sector_id = string.format("TANKER_%d_%d_%d", side, math.floor(timer.getTime()), math.random(1000, 9999))
+            self.TankerSectors[sector_id] = {
+                id = sector_id,
+                serial = serial_number,
+                side = side,
+                from_zone = from_zone,
+                enemy_zone = nearest_enemy_zone,
+                center_point = center_point,
+                waypoint_1 = wp1,
+                waypoint_2 = wp2,
+                frequencies = {
+                    [TankerRoles.BOOM] = self:createFrequency(225,398), -- in MHz
+                    [TankerRoles.DROGUE] = self:createFrequency(225,398), -- in MHz
+                },
+                tacan = {
+                    [TankerRoles.BOOM] = self:createTACAN(50,80),
+                    [TankerRoles.DROGUE] = self:createTACAN(50,80)
+                },
+                route_targets = {
+                    boom = 2,
+                    drogue = 1,
+                },
+                mark_ids = {
+                    lines = {},
+                    text = nil,
+                },
+                active = true,
+            }
+
+            local delay_min = Config.tanker.spawn_delay_min or 120
+            local delay_max = Config.tanker.spawn_delay_max or 300
+            if delay_max < delay_min then
+                delay_max = delay_min
+            end
+            local spawn_delay = 2--math.random(delay_min, delay_max)
+
+           timer.scheduleFunction(function()
+                MissionLogger:info("spawn delay")
+                local sector = self.TankerSectors[sector_id]
+                if not sector or not sector.active then return end
+                MissionLogger:info("spawn delay pass 2")
+
+                local boom_alt = mist.utils.feetToMeters(Config.tanker.boom.altitude_ft)
+                local drogue_alt = mist.utils.feetToMeters(Config.tanker.drogue.altitude_ft)
+
+                local boom_lane_wp1, boom_lane_wp2 = self:getTankerLaneWaypoints(sector, "boom")
+                local drogue_lane_wp1, drogue_lane_wp2 = self:getTankerLaneWaypoints(sector, "drogue")
+
+                local drogue_spawn = {
+                    x = drogue_lane_wp1.x,
+                    y = drogue_alt,
+                    z = drogue_lane_wp1.z
+                }
+                local boom_spawn = {
+                    x = boom_lane_wp1.x,
+                    y = boom_alt,
+                    z = boom_lane_wp1.z
+                }
+
+                local boom_group = mist.teleportToPoint({
+                    groupName = side_assets.tanker_boom,
+                    point = boom_spawn,
+                    action = "clone",
+                    radius=0
+                })
+                local drogue_group = mist.teleportToPoint({
+                    groupName = side_assets.tanker_drogue,
+                    point = drogue_spawn,
+                    action = "clone",
+                    radius=0
+                })
+
+                if not boom_group or not drogue_group then
+                    self:cleanupTankerSectorById(sector_id, true)
+                    trigger.action.outTextForCoalition(side, "TANKER spawn failed, verify tanker template groups.", 10)
+                    return
+                end
+
+                sector.boom_group_name = boom_group.name
+                sector.drogue_group_name = drogue_group.name
+
+                EnrouteManager:add({
+                    to_zone = from_zone,
+                    side = side,
+                    from_zone = from_zone,
+                    group_name = boom_group.name,
+                    ai_task_type = AITaskTypes.TANKER,
+                    tanker_sector_id = sector_id,
+                    tanker_role = "boom",
+                })
+                EnrouteManager:add({
+                    to_zone = from_zone,
+                    side = side,
+                    from_zone = from_zone,
+                    group_name = drogue_group.name,
+                    ai_task_type = AITaskTypes.TANKER,
+                    tanker_sector_id = sector_id,
+                    tanker_role = "drogue",
+                })
+
+                self:drawTankerSector(sector)
+                
+                timer.scheduleFunction(function ()
+                    self:assignTankerLeg(sector, TankerRoles.BOOM)
+                    self:assignTankerLeg(sector, TankerRoles.DROGUE)
+                end,{}, timer.getTime()+12)
+
+                trigger.action.outTextForCoalition(side, "TANKER package on station from "..from_zone.name..".", 10)
+                trigger.action.outSoundForCoalition(side, "transmission1.ogg")
+            end, {}, timer.getTime() + spawn_delay)
+
+            if user_requested then
+                trigger.action.outTextForCoalition(side, "TANKER package preparing, active in "..delay_min.."-"..delay_max.." seconds.", 10)
+                trigger.action.outSoundForCoalition(side, "Radio squelch.ogg")
+            end
+
+            return true
+        elseif AITaskTypes.CAP == ai_task_type and to_zone then
+
+            local source_airbase, template_gr_name = resolveSourceAirbase("CAP")
+            if not source_airbase then return false end
 
             if prevent_duplicates and EnrouteManager:findByToZone(to_zone,side,{AITaskTypes.CAP}) then
                 if user_requested then
@@ -132,13 +358,13 @@ do
                 return false
             end
 
-            local airbase = Airbase.getByName(closest_airbase.airbase_name)
+            local airbase = Airbase.getByName(source_airbase.airbase_name)
             if not airbase then return false end
 
-            local enroutes_from_airbase = EnrouteManager:findByFromZone(closest_airbase,side)
+            local enroutes_from_airbase = EnrouteManager:findByFromZone(source_airbase,side)
             if enroutes_from_airbase and #enroutes_from_airbase >= Config.tasking.max_tasks_per_airbase then
                 if user_requested then
-                    txt="CAP unavailable from "..closest_airbase.name..", airbase cannot handle more tasks at the moment."
+                    txt="CAP unavailable from "..source_airbase.name..", airbase cannot handle more tasks at the moment."
                     trigger.action.outTextForCoalition(side,txt,5)
                 end
                 return false
@@ -153,7 +379,7 @@ do
             local ai_enroute_data = EnrouteManager:add({
                 to_zone = to_zone,
                 side=side,
-                from_zone=closest_airbase,
+                from_zone=source_airbase,
                 group_name=new_group.name,
                 ai_task_type=ai_task_type
             })
@@ -162,14 +388,8 @@ do
 
         elseif AITaskTypes.SEAD == ai_task_type and to_zone then
 
-            local closest_airbase, template_gr_name = self:findClosestAirbaseWithAircraftInStock(to_zone,side,ai_task_type,2,ai_task_type)
-            if not closest_airbase then
-                if user_requested then
-                    txt="SEAD unavailable for "..to_zone.name..", check aircraft availability, warehouse stock and tasking limits."
-                    trigger.action.outTextForCoalition(side,txt,5)
-                end
-                return false
-            end
+            local source_airbase, template_gr_name = resolveSourceAirbase("SEAD")
+            if not source_airbase then return false end
 
             if prevent_duplicates and EnrouteManager:findByToZone(to_zone,side,{AITaskTypes.SEAD}) then
                 if user_requested then
@@ -179,14 +399,14 @@ do
                 return false
             end
 
-            local airbase = Airbase.getByName(closest_airbase.airbase_name)
+            local airbase = Airbase.getByName(source_airbase.airbase_name)
             if not airbase then return false end
 
 
-            local enroutes_from_airbase = EnrouteManager:findByFromZone(closest_airbase,side)
+            local enroutes_from_airbase = EnrouteManager:findByFromZone(source_airbase,side)
             if enroutes_from_airbase and #enroutes_from_airbase >= Config.tasking.max_tasks_per_airbase then
                 if user_requested then
-                    txt="SEAD unavailable from "..closest_airbase.name..", airbase cannot handle more tasks at the moment."
+                    txt="SEAD unavailable from "..source_airbase.name..", airbase cannot handle more tasks at the moment."
                     trigger.action.outTextForCoalition(side,txt,5)
                 end
                 return false
@@ -201,7 +421,7 @@ do
             local ai_enroute_data = EnrouteManager:add({
                 to_zone = to_zone,
                 side=side,
-                from_zone=closest_airbase,
+                from_zone=source_airbase,
                 group_name=new_group.name,
                 ai_task_type=ai_task_type
             })
@@ -209,14 +429,8 @@ do
             return true
         elseif AITaskTypes.STRIKE == ai_task_type and to_zone then
 
-            local closest_airbase, template_gr_name = self:findClosestAirbaseWithAircraftInStock(to_zone,side,ai_task_type,2,ai_task_type)
-            if not closest_airbase then
-                if user_requested then
-                    txt="STRIKE unavailable for "..to_zone.name..", check aircraft availability, warehouse stock and tasking limits."
-                    trigger.action.outTextForCoalition(side,txt,5)
-                end
-                return false
-            end
+            local source_airbase, template_gr_name = resolveSourceAirbase("STRIKE")
+            if not source_airbase then return false end
 
             if prevent_duplicates and EnrouteManager:findByToZone(to_zone,side,{AITaskTypes.STRIKE}) then
                 if user_requested then
@@ -226,14 +440,14 @@ do
                 return false
             end
 
-            local airbase = Airbase.getByName(closest_airbase.airbase_name)
+            local airbase = Airbase.getByName(source_airbase.airbase_name)
             if not airbase then return false end
 
 
-            local enroutes_from_airbase = EnrouteManager:findByFromZone(closest_airbase,side)
+            local enroutes_from_airbase = EnrouteManager:findByFromZone(source_airbase,side)
             if enroutes_from_airbase and #enroutes_from_airbase >= Config.tasking.max_tasks_per_airbase then
                 if user_requested then
-                    txt="STRIKE unavailable from "..closest_airbase.name..", airbase cannot handle more tasks at the moment."
+                    txt="STRIKE unavailable from "..source_airbase.name..", airbase cannot handle more tasks at the moment."
                     trigger.action.outTextForCoalition(side,txt,5)
                 end
                 return false
@@ -248,7 +462,7 @@ do
             local ai_enroute_data = EnrouteManager:add({
                 to_zone = to_zone,
                 side=side,
-                from_zone=closest_airbase,
+                from_zone=source_airbase,
                 group_name=new_group.name,
                 ai_task_type=ai_task_type
             })
@@ -428,13 +642,70 @@ do
 
             self:setCAPTUREHELITask(helo_sent.name,side,to_zone,from_zone)
 
-            from_zone.capture_heli_avail = from_zone.capture_heli_avail - 1
+            from_zone.heli_avail = (from_zone.heli_avail or 0) - 1
             from_zone:drawF10()
             MissionLogger:info(utils.coalitionToString(side) .." heli from " ..from_zone.name .. " sent to capture zone: " .. to_zone.name)
+            return true
+        elseif ai_task_type == AITaskTypes.REINFORCEMENT_HELO and to_zone and from_zone then
+
+            if prevent_duplicates and EnrouteManager:findByToZone(to_zone, side, {AITaskTypes.REINFORCEMENT_HELO}) then
+                if user_requested then
+                    local txt = "Reinforcement helicopter already enroute to " .. to_zone.name
+                    trigger.action.outTextForCoalition(side, txt, 5)
+                end
+                return false
+            end
+
+            local template_name = nil
+            if side == coalition.side.RED then
+                template_name = GroupData.COMMON_ASSETS.RED.reinforcement_helicopter or GroupData.COMMON_ASSETS.RED.capture_helicopter
+            elseif side == coalition.side.BLUE then
+                template_name = GroupData.COMMON_ASSETS.BLUE.reinforcement_helicopter or GroupData.COMMON_ASSETS.BLUE.capture_helicopter
+            end
+
+            if not template_name then
+                MissionLogger:info("Reinforcement Helo spawn failed: missing template name.")
+                return false
+            end
+
+            local helo_sent = mist.teleportToPoint({
+                groupName = template_name,
+                point = from_zone.zone.point,
+                action = "clone"
+            })
+
+            if not helo_sent then
+                MissionLogger:info("Reinforcement Helo spawn failed, no heli sent")
+                return false
+            end
+
+            EnrouteManager:add({
+                group_name = helo_sent.name,
+                to_zone = to_zone,
+                from_zone = from_zone,
+                side = side,
+                ai_task_type = AITaskTypes.REINFORCEMENT_HELO,
+                aborted = false
+            })
+
+            self:setCAPTUREHELITask(helo_sent.name, side, to_zone, from_zone)
+
+            from_zone.heli_avail = (from_zone.heli_avail or 0) - 1
+            from_zone:drawF10()
+            MissionLogger:info(utils.coalitionToString(side) .." reinforcement heli from " .. from_zone.name .. " sent to " .. to_zone.name)
             return true
         end
 
         return false
+    end
+
+    ---@param airbase_zone ZoneHandler|nil
+    ---@return boolean
+    function TaskManager:isAirbaseRunwayOperational(airbase_zone)
+        if not airbase_zone then return false end
+        if airbase_zone.zone_type ~= ZoneTypes.AIRBASE then return true end
+        if not airbase_zone.isRunwayDisabled then return true end
+        return not airbase_zone:isRunwayDisabled()
     end
 
 
@@ -444,7 +715,7 @@ do
     ---@param ai_task_type AITaskTypes
     ---@return boolean
     function TaskManager:checkIfMaxTasksReached(airbase,side,ai_task_type)
-        local enroutes_from_airbase = EnrouteManager:findByFromZone(airbase,side,{AITaskTypes.CAS,AITaskTypes.CAP,AITaskTypes.SEAD,AITaskTypes.STRIKE,AITaskTypes.RECON,AITaskTypes.AWACS})
+        local enroutes_from_airbase = EnrouteManager:findByFromZone(airbase,side,{AITaskTypes.CAS,AITaskTypes.CAP,AITaskTypes.SEAD,AITaskTypes.STRIKE,AITaskTypes.RECON,AITaskTypes.AWACS,AITaskTypes.TANKER})
         if not enroutes_from_airbase then return false end
 
         if #enroutes_from_airbase >= Config.tasking.max_tasks_per_airbase then return true end
@@ -479,6 +750,10 @@ do
             if awacs_enroutes and #awacs_enroutes >= Config.tasking.max_awacs_per_airbase then
                 return true
             end
+        elseif ai_task_type == AITaskTypes.TANKER then
+            if self:countActiveTankerSectorsFromAirbase(airbase, side) >= (Config.tasking.max_tanker_per_airbase or 2) then
+                return true
+            end
         end
 
         return false
@@ -489,43 +764,52 @@ do
     ---@param aircraft_type string
     ---@param aircraft_amount number
     ---@param ai_task_type AITaskTypes
-    ---@return ZoneHandler|nil,string|nil -- closest airbase, group name
-    function TaskManager:findClosestAirbaseWithAircraftInStock(to_zone,side,aircraft_type, aircraft_amount,ai_task_type)
-        local loop_prevention = 0
+    ---@return ZoneHandler|nil,string|nil
+    function TaskManager:findClosestAirbaseWithAircraftInStock(to_zone, side, aircraft_type, aircraft_amount, ai_task_type)
 
-        local unavail_airbases = {}
-        local closest_airbase = to_zone:getClosestZone(side,unavail_airbases,{ZoneTypes.AIRBASE})
-        while closest_airbase and closest_airbase.airbase_name and loop_prevention < 400 do
-            ---@diagnostic disable-next-line: undefined-field
-            local airbase = Airbase.getByName(closest_airbase.airbase_name)
-            if airbase and airbase:getCoalition() == side then
-                local airbase_warehouse = airbase:getWarehouse()
+        -- Loop through all zones, check if in stock and then sort by distance
+        local candidates = {}
 
-                local aircraft_count = 0
-                local group_name
+        for _,zone in ipairs(zones) do
+            if zone.zone_type == ZoneTypes.AIRBASE and zone.side == side and zone.airbase_name then
+                if self:isAirbaseRunwayOperational(zone)
+                and not self:checkIfMaxTasksReached(zone, side, ai_task_type) then
+                    local airbase = Airbase.getByName(zone.airbase_name)
+                    local warehouse = (airbase and airbase:getCoalition() == side) and airbase:getWarehouse() or nil
+                    local aircraft_count = 0
+                    local group_name
 
-                if WarehouseManager.AirbaseGroupData[closest_airbase.airbase_name]
-                and WarehouseManager.AirbaseGroupData[closest_airbase.airbase_name][side]
-                and WarehouseManager.AirbaseGroupData[closest_airbase.airbase_name][side][aircraft_type] then
-                    aircraft_count =airbase_warehouse:getItemCount(WarehouseManager.AirbaseGroupData[closest_airbase.airbase_name][side][aircraft_type].warehouse_name)
-                    group_name = WarehouseManager.AirbaseGroupData[closest_airbase.airbase_name][side][aircraft_type].group_name
-                end
-                -- MissionLogger:info("Airbase:" .. closest_airbase.airbase_name .. " has ".. aircraft_count .." ".. aircraft_type .." available.")  
-                if aircraft_count and aircraft_count>=aircraft_amount and group_name then
-                    
-                    if not self:checkIfMaxTasksReached(closest_airbase,side,ai_task_type) then
-                        return closest_airbase,group_name
-                    else
-                        MissionLogger:info("Airbase:" .. closest_airbase.airbase_name .. " has reached max task limit.")
+                    if warehouse
+                    and WarehouseManager.AirbaseGroupData[zone.airbase_name]
+                    and WarehouseManager.AirbaseGroupData[zone.airbase_name][side]
+                    and WarehouseManager.AirbaseGroupData[zone.airbase_name][side][aircraft_type]
+                    then
+                        local airbase_entry = WarehouseManager.AirbaseGroupData[zone.airbase_name][side][aircraft_type]
+                        aircraft_count = warehouse:getItemCount(airbase_entry.warehouse_name)
+                        group_name = airbase_entry.group_name
+                    end
+
+                    local aircraft_reserve = WarehouseManager:getAircraftReserveThreshold()
+                    if aircraft_count
+                    and math.max(aircraft_count - aircraft_reserve, 0) >= aircraft_amount
+                    and group_name then
+                        table.insert(candidates,{
+                            zone = zone,
+                            template_gr_name = group_name,
+                            dist = mist.utils.get2DDist(to_zone.zone.point,zone.zone.point)
+                        })
                     end
                 end
             end
-            table.insert(unavail_airbases,closest_airbase.name)
-            closest_airbase,_ = to_zone:getClosestZone(side,unavail_airbases,{ZoneTypes.AIRBASE})
-            loop_prevention = loop_prevention+1
         end
-        if loop_prevention >395 then MissionLogger:warn("Loop prevention prevented crash") end
-        return nil,nil
+        table.sort(candidates, function(a, b)
+            return a.dist < b.dist
+        end)
+
+        if #candidates > 0 then
+            return candidates[1].zone, candidates[1].template_gr_name
+        end
+        return nil
     end
 
     ---@param to_zone ZoneHandler
@@ -574,9 +858,7 @@ do
         -- CruiseMissile weapon flag from DCS weapon flags enum.
         local tomahawk_weapon_flag = 2097152
 
-        pcall(function()
-            ship_controller:setOption(AI.Option.Naval.id.ROE, AI.Option.Naval.val.ROE.OPEN_FIRE)
-        end)
+        ship_controller:setOption(AI.Option.Naval.id.ROE, AI.Option.Naval.val.ROE.OPEN_FIRE)
 
         local target_points = {}
 
@@ -774,7 +1056,7 @@ do
                 AI.Option.Air.val.REACTION_ON_THREAT.PASSIVE_DEFENCE)
 
             end
-        timer.scheduleFunction(startMoving, {}, timer.getTime() + 5)
+        timer.scheduleFunction(startMoving, {}, timer.getTime() + 14)
     end
 
     ---@param convoy_gr_name string
@@ -840,7 +1122,7 @@ do
 
             ctrl:setCommand({
                 id = "SetInvisible",
-                params = { value = true }
+                params = { value = false }
             })
 
             ctrl:setOption(AI.Option.Air.id.ROE, AI.Option.Air.val.ROE.WEAPON_FREE) --has to be, return fire does not work
@@ -861,7 +1143,7 @@ do
                     point = {
                         x = enroute_data.to_zone.zone.point.x+math.random(-300,300),
                         y = enroute_data.to_zone.zone.point.z+math.random(-300,300)},
-                    speed = 32, --in m/s
+                    speed = 45, --in m/s
                     altitude = mist.utils.feetToMeters(25000)
                 }})
 
@@ -981,7 +1263,7 @@ do
             -- 6. Set the complete mission
             ctrl:setTask(missionTask)
 
-            -- 7. Set AI options for AWACS (run, don't fight)
+            -- 7. Set AI options for AWACS
             ctrl:setOption(AI.Option.Air.id.PROHIBIT_AG, true)
             ctrl:setOption(AI.Option.Air.id.PROHIBIT_AA, true)
             ctrl:setOption(AI.Option.Air.id.REACTION_ON_THREAT, AI.Option.Air.val.REACTION_ON_THREAT.PASSIVE_DEFENCE)
@@ -1400,6 +1682,7 @@ do
                 type = AI.Task.WaypointType.LAND,
                 x = startPos.x,
                 y = startPos.z,
+                speed = 257, -- m/s (approx 500 kts)
                 action = AI.Task.TurnMethod.FIN_POINT,
                 alt = mist.utils.feetToMeters(21000),
                 alt_type = AI.Task.AltitudeType.BARO,
@@ -1418,6 +1701,301 @@ do
             --trigger.action.outSoundForCoalition(enroute_data.side, "transmission1.ogg")
             MissionLogger:info("RECON flight tasked to " .. enroute_data.to_zone.name)
         end, {}, timer.getTime() + 12)
+    end
+
+    ---@param side coalition.side|nil
+    ---@return number
+    function TaskManager:countActiveTankerSectors(side)
+        local count = 0
+        for _, sector in pairs(self.TankerSectors) do
+            if sector and sector.active and (not side or sector.side == side) then
+                count = count + 1
+            end
+        end
+        return count
+    end
+
+    ---@param airbase ZoneHandler
+    ---@param side coalition.side
+    ---@return number
+    function TaskManager:countActiveTankerSectorsFromAirbase(airbase, side)
+        local count = 0
+        for _, sector in pairs(self.TankerSectors) do
+            if sector and sector.active and sector.side == side and sector.from_zone == airbase then
+                count = count + 1
+            end
+        end
+        return count
+    end
+
+    ---@param sector any
+    function TaskManager:drawTankerSector(sector)
+        if not sector then return end
+        MissionLogger:info("drawing tanker sector")
+
+
+        sector.mark_ids = sector.mark_ids or { lines = {}, text = nil }
+
+        if sector.mark_ids.text then
+            trigger.action.removeMark(sector.mark_ids.text)
+            sector.mark_ids.text = nil
+        end
+        if sector.mark_ids.lines then
+            for _, mark_id in ipairs(sector.mark_ids.lines) do
+                trigger.action.removeMark(mark_id)
+            end
+            sector.mark_ids.lines = {}
+        end
+
+        local line_color = Config.tanker.line_color
+        local text_color = Config.tanker.text_color
+        local text_bg = Config.tanker.text_background
+
+        local path_points = utils.buildRoundedRectAroundSegment(
+            sector.waypoint_1,
+            sector.waypoint_2,
+            Config.tanker.sector_width or (24*1000),
+            Config.tanker.rounded_corner_radius or 5000,
+            Config.tanker.rounded_corner_segments or 5
+        )
+
+        for i = 1, #path_points do
+            local p1 = path_points[i]
+            local p2 = path_points[(i % #path_points) + 1]
+            local mark_id = nextMarkId()
+            trigger.action.lineToAll(sector.side, mark_id, p1, p2, line_color, utils.LineStyle.DOTTED, true)
+            table.insert(sector.mark_ids.lines, mark_id)
+        end
+
+        local text_display = string.format(
+            "%s #%d\nDROGUE: %s AM / %sX\nBOOM: %s AM / %sX",
+            Config.tanker.text_title or "Tanker Sector",
+            sector.serial or 1,
+            tostring(sector.frequencies[TankerRoles.DROGUE] or "U"), -- drogue freq
+            tostring(sector.tacan[TankerRoles.DROGUE] or "U"), -- drogue tacan
+            tostring(sector.frequencies[TankerRoles.BOOM] or "U"), -- boom freq
+            tostring(sector.tacan[TankerRoles.BOOM] or "U") -- boom tacan
+        )
+
+        sector.mark_ids.text = nextMarkId()
+        trigger.action.textToAll(sector.side, sector.mark_ids.text, sector.center_point, text_color, text_bg, 13, true, text_display)
+    end
+
+    ---@param sector any
+    ---@param role string
+    ---@return table, table
+    function TaskManager:getTankerLaneWaypoints(sector, role)
+        local p1 = sector.waypoint_1
+        local p2 = sector.waypoint_2
+
+        local dx = p2.x - p1.x
+        local dz = p2.z - p1.z
+        local len = math.sqrt((dx * dx) + (dz * dz))
+        if len < 1 then
+            return p1, p2
+        end
+
+        local nx = -dz / len
+        local nz = dx / len
+        local edge_inset = Config.tanker.edge_inset
+        local max_inset = math.max(0, (len * 0.5) - 1)
+        local inset = math.min(edge_inset, max_inset)
+        local start_x = p1.x + (dx / len) * inset
+        local start_z = p1.z + (dz / len) * inset
+        local end_x = p2.x - (dx / len) * inset
+        local end_z = p2.z - (dz / len) * inset
+        local lane_sep = 3000
+        local lane_offset = lane_sep * 0.5
+        local sign = role == "drogue" and 1 or -1
+
+        local lane_p1 = {
+            x = start_x + (nx * lane_offset * sign),
+            y = p1.y,
+            z = start_z + (nz * lane_offset * sign)
+        }
+        local lane_p2 = {
+            x = end_x + (nx * lane_offset * sign),
+            y = p2.y,
+            z = end_z + (nz * lane_offset * sign)
+        }
+
+        return lane_p1, lane_p2
+    end
+
+---@param sector any
+    ---@param role string
+    function TaskManager:assignTankerLeg(sector, role)
+        if not sector or not sector.active then return end
+
+        local group_name = nil
+        if role == TankerRoles.BOOM then
+            group_name = sector.boom_group_name
+        elseif role == TankerRoles.DROGUE then
+            group_name = sector.drogue_group_name
+        end
+
+        if not group_name then return end
+
+        local tanker_group = Group.getByName(group_name)
+        if not (tanker_group and tanker_group:isExist()) then return end
+        MissionLogger:info("Assigning tanker legs")
+
+        local ctrl = tanker_group:getController()
+        if not ctrl then return end
+
+        local role_config = role == "boom" and (Config.tanker.boom or {}) or (Config.tanker.drogue or {})
+        local altitude = mist.utils.feetToMeters(role_config.altitude_ft or 22000)
+        local lane_wp1, lane_wp2 = self:getTankerLaneWaypoints(sector, role)
+
+        local orbit_point = role == "drogue" and lane_wp1 or lane_wp2
+        local orbit_point2 = role == "drogue" and lane_wp2 or lane_wp1
+
+        local clock_wise = true
+        if role == TankerRoles.BOOM then
+            clock_wise = false
+        end
+
+        local freq = sector.frequencies[TankerRoles.BOOM]*1e6
+        if role == TankerRoles.DROGUE then
+            freq = sector.frequencies[TankerRoles.DROGUE]*1e6
+        end
+        local tacan = sector.tacan[TankerRoles.BOOM]
+        if role == TankerRoles.DROGUE then
+            tacan = sector.tacan[TankerRoles.DROGUE]
+        end
+
+        local tankerTask = { id = 'Tanker', params = {} }
+            
+        local eplrsTask = {
+            id = "WrappedAction",
+            params = {
+                action = {
+                    id = "EPLRS",
+                    params = { value = true, groupId = tanker_group:getID() }
+                }
+            }
+        }
+
+        local frequencyTask = {
+            id = 'SetFrequency',
+            params = {
+                frequency = freq,
+                modulation = radio.modulation.AM,
+                power = 50,
+            }
+        }
+        local tacanTask = {
+            id = "ActivateBeacon",
+            params = {
+                type = 4, -- TACAN
+                AA = true,
+                unitId = tanker_group:getID(),
+                modeChannel = "X",
+                channel = tacan,
+                system = 4,
+                callsign = "TKR",
+                bearing = true,
+                frequency = math.random(1000e6,2000e6)
+
+            }
+        }
+
+
+        local orbitTask = {
+           id = 'Orbit',
+            params = {
+                pattern = AI.Task.OrbitPattern.RACE_TRACK,
+                point = mist.utils.makeVec2(orbit_point2),
+                point2= mist.utils.makeVec2(orbit_point),
+                speed = role_config.speed, --in m/s
+                altitude = altitude,
+                clockWise = clock_wise
+            }
+        }
+        
+        local comboTask = {
+            id = 'ComboTask',
+            params = {
+                tasks = { tankerTask, eplrsTask, orbitTask }
+            }
+        }
+        ctrl:setCommand(frequencyTask)
+        ctrl:setCommand(tacanTask)
+        ctrl:setTask(comboTask)
+
+        ctrl:setOption(AI.Option.Air.id.PROHIBIT_AG, true)
+        ctrl:setOption(AI.Option.Air.id.PROHIBIT_AA, true)
+        ctrl:setOption(AI.Option.Air.id.REACTION_ON_THREAT, AI.Option.Air.val.REACTION_ON_THREAT.PASSIVE_DEFENCE)
+        ctrl:setOption(AI.Option.Air.id.RTB_ON_BINGO, true)
+
+        sector.last_task_time = sector.last_task_time or {}
+        sector.last_task_time[role] = timer.getTime()
+        MissionLogger:info("Tanker legs assigned")
+
+    end
+
+    ---@param sector_id string
+    ---@param destroy_groups boolean|nil
+    function TaskManager:cleanupTankerSectorById(sector_id, destroy_groups)
+        local sector = self.TankerSectors[sector_id]
+        if not sector then return end
+
+        sector.active = false
+
+        if sector.mark_ids then
+            if sector.mark_ids.text then
+                trigger.action.removeMark(sector.mark_ids.text)
+            end
+            if sector.mark_ids.lines then
+                for _, mark_id in ipairs(sector.mark_ids.lines) do
+                    trigger.action.removeMark(mark_id)
+                end
+            end
+        end
+
+        if destroy_groups then
+            local boom_group = Group.getByName(sector.boom_group_name or "")
+            if boom_group and boom_group:isExist() then
+                boom_group:destroy()
+            end
+
+            local drogue_group = Group.getByName(sector.drogue_group_name or "")
+            if drogue_group and drogue_group:isExist() then
+                drogue_group:destroy()
+            end
+        end
+
+        for i = #EnrouteManager.enroutes, 1, -1 do
+            local enroute = EnrouteManager.enroutes[i]
+            if enroute
+            and enroute.ai_task_type == AITaskTypes.TANKER
+            and enroute.tanker_sector_id == sector_id then
+                table.remove(EnrouteManager.enroutes, i)
+            end
+        end
+
+        self.TankerSectors[sector_id] = nil
+    end
+
+    function TaskManager:checkTankerSectors()
+        local sectors_to_cleanup = {}
+
+        for sector_id, sector in pairs(self.TankerSectors) do
+            if sector and sector.active then
+                local boom_group = Group.getByName(sector.boom_group_name or "")
+                local drogue_group = Group.getByName(sector.drogue_group_name or "")
+
+                if not (boom_group and boom_group:isExist() and drogue_group and drogue_group:isExist()) then
+                    table.insert(sectors_to_cleanup, sector_id)
+                end
+            else
+                table.insert(sectors_to_cleanup, sector_id)
+            end
+        end
+
+        for _, sector_id in ipairs(sectors_to_cleanup) do
+            self:cleanupTankerSectorById(sector_id, true)
+        end
     end
 
     ---@param arrival_point vec3
@@ -1474,6 +2052,35 @@ do
         end
 
         convoy_group:getController():setTask({ id = 'Mission', params = { route = { points = points } } })
+    end
+
+    ---@param min_Mhz number
+    ---@param max_Mhz number
+    ---@param c number|nil
+    function TaskManager:createFrequency(min_Mhz,max_Mhz,c)
+        if not c then c=0 end
+        if c>1000 then return min_Mhz end
+        local freq = math.random(min_Mhz,max_Mhz)
+        if not TaskManager.assignedFrequencies[utils.MHztoHz(freq)] then
+            table.insert(TaskManager.assignedFrequencies,freq )
+            return freq
+        end
+        return TaskManager:createFrequency(min_Mhz,max_Mhz,c+1)
+    end
+
+    ---@param min_ch number
+    ---@param max_ch number
+    ---@param c number|nil
+    function TaskManager:createTACAN(min_ch,max_ch,c)
+        if not c then c=0 end
+        if c>1000 then return min_ch end
+        local ch = math.random(min_ch,max_ch)
+        if not TaskManager.assignedTACANS[ch] then
+            TaskManager.assignedTACANS[ch] = true
+            return ch
+        end
+        return TaskManager:createTACAN(min_ch,max_ch,c+1)
+
     end
 
 end

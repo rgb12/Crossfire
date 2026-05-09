@@ -17,6 +17,8 @@ do
     AIM_54C_MK60 = "weapons.missiles.AIM_54C_Mk60",
     AIM_54C_MK47 = "weapons.missiles.AIM_54C_Mk47",
     MISTRAL = "weapons.missiles.Mistral",
+    MICA_RF = "weapons.missiles.MICA_R",
+    MICA_IR = "weapons.missiles.MICA_T",
 
     AGM_65D = "weapons.missiles.AGM_65D",
     AGM_65E = "weapons.missiles.AGM_65E",
@@ -1201,12 +1203,12 @@ do
     WarehouseManager.Stocks = {
         [WarehouseManager.StockTypes.FARP] = {
             [coalition.side.BLUE] = {
-                [WarehouseManager.AircraftFlags.SA342L] = 2,
-                [WarehouseManager.AircraftFlags.SA342M] = 2,
+                [WarehouseManager.AircraftFlags.SA342L] = 4,
+                [WarehouseManager.AircraftFlags.SA342M] = 4,
                 [WarehouseManager.AircraftFlags.UH_1H] = 4,
                 [WarehouseManager.AircraftFlags.OH_58D] = 2,
                 [WarehouseManager.AircraftFlags.OH58D_R] = 4,
-               
+                [WarehouseManager.AircraftFlags.CH47D] = 4,
                 [WarehouseManager.AircraftFlags.AH64D_BLKII] = 4,
 
                 [WarehouseManager.Flags.MISTRAL] = 8,
@@ -1309,18 +1311,20 @@ do
                 [WarehouseManager.Flags.AIM_54C_MK47] = math.random(6,10),
                 [WarehouseManager.Flags.SUPER_530D] = math.random(8,14),
                 [WarehouseManager.Flags.MAGIC_II] = math.random(8,14),
+                [WarehouseManager.Flags.MICA_IR] = math.random(10,12),
+                [WarehouseManager.Flags.MICA_RF] = math.random(10,12),
 
-                [WarehouseManager.AircraftFlags.A10C_TANK_KILLER_II] = 4,
-                [WarehouseManager.AircraftFlags.E3A] = 1,
+                [WarehouseManager.AircraftFlags.A10C_TANK_KILLER_II] = 8,
+                [WarehouseManager.AircraftFlags.E3A] = 2,
                 [WarehouseManager.AircraftFlags.F15E_SE] = 4,
-                [WarehouseManager.AircraftFlags.F16C_BL50] = 2,
+                [WarehouseManager.AircraftFlags.F16C_BL50] = 8,
                 [WarehouseManager.AircraftFlags.FA18C_HORNET] = 6,
                 [WarehouseManager.AircraftFlags.M2000C] = 4,
                 [WarehouseManager.AircraftFlags.MIRAGE_2000_5] = 4,
                 [WarehouseManager.AircraftFlags.F15C] = 4,
                 [WarehouseManager.AircraftFlags.F_14A_135_GR] = 4,
                 [WarehouseManager.AircraftFlags.RQ_1A_PREDATOR] = 3,
-                [WarehouseManager.AircraftFlags.C130J_30] = 2,
+                [WarehouseManager.AircraftFlags.C130J_30] = 6,
 
             },
             [coalition.side.RED] = {
@@ -1369,47 +1373,46 @@ do
         },
         [WarehouseManager.StockTypes.CARRIER_INITAL] = {
             [coalition.side.BLUE] = {
-                [WarehouseManager.Flags.AIM_9X] = math.random(30,50),
-                [WarehouseManager.Flags.AIM_9M] = math.random(30,50),
-                [WarehouseManager.Flags.AIM_120C] = math.random(20,40),
-                [WarehouseManager.Flags.AIM_54C_MK47] = math.random(40,60),
-                [WarehouseManager.Flags.AIM_54C_MK60] = math.random(20,30),
-                [WarehouseManager.Flags.AIM_7F] = math.random(20,30),
-                [WarehouseManager.Flags.AIM_7M] = math.random(20,30),
-                [WarehouseManager.Flags.AIM_7P] = math.random(20,30),
-                [WarehouseManager.Flags.AIM_7MH] = math.random(40,60),
+                [WarehouseManager.Flags.AIM_9X] = math.random(160,220),
+                [WarehouseManager.Flags.AIM_9M] = math.random(180,260),
+                [WarehouseManager.Flags.AIM_120C] = math.random(200,320),
+                [WarehouseManager.Flags.AIM_54C_MK47] = math.random(80,120),
+                [WarehouseManager.Flags.AIM_54C_MK60] = math.random(40,70),
+                [WarehouseManager.Flags.AIM_7F] = math.random(90,140),
+                [WarehouseManager.Flags.AIM_7M] = math.random(110,170),
+                [WarehouseManager.Flags.AIM_7P] = math.random(90,140),
+                [WarehouseManager.Flags.AIM_7MH] = math.random(70,110),
 
 
-                [WarehouseManager.Flags.GBU_12] = math.random(70,90),
-                [WarehouseManager.Flags.GBU_10] = 41,
-                [WarehouseManager.Flags.GBU_16] = 20,
-                [WarehouseManager.Flags.GBU_38] = math.random(50,90),
-                [WarehouseManager.Flags.GBU_31_V_3B] = math.random(20,30),
-                [WarehouseManager.Flags.AGM_154C_JSOW] = 16,
+                [WarehouseManager.Flags.GBU_12] = math.random(240,360),
+                [WarehouseManager.Flags.GBU_10] = math.random(60,100),
+                [WarehouseManager.Flags.GBU_16] = math.random(90,140),
+                [WarehouseManager.Flags.GBU_38] = math.random(200,320),
+                [WarehouseManager.Flags.GBU_31_V_3B] = math.random(90,140),
+                [WarehouseManager.Flags.AGM_154C_JSOW] = math.random(70,110),
 
                 
-                [WarehouseManager.Flags.AGM_65F] = 68,
-                [WarehouseManager.Flags.AGM_65E] = 20,
-                [WarehouseManager.Flags.AGM_88_HARM] = math.random(20,40),
-                [WarehouseManager.Flags.AGM_84D_HARPOON] = 20,
-                [WarehouseManager.Flags.AGM_84H_SLAM_ER] = 8,
-                [WarehouseManager.Flags.AGM_154C_JSOW] = 16,
-                [WarehouseManager.Flags.ADM_141_TALD] = 35,
+                [WarehouseManager.Flags.AGM_65F] = math.random(90,150),
+                [WarehouseManager.Flags.AGM_65E] = math.random(60,100),
+                [WarehouseManager.Flags.AGM_88_HARM] = math.random(60,100),
+                [WarehouseManager.Flags.AGM_84D_HARPOON] = math.random(24,40),
+                [WarehouseManager.Flags.AGM_84H_SLAM_ER] = math.random(16,30),
+                [WarehouseManager.Flags.ADM_141_TALD] = math.random(90,140),
 
-                [WarehouseManager.Flags.MK_82] = 124,
-                [WarehouseManager.Flags.MK_83] = 50,
-                [WarehouseManager.Flags.MK_84] = 30,
-                [WarehouseManager.Flags.HYDRA_70_M151_HE] = 200,
-                [WarehouseManager.Flags.ZUNI_127] = 74,
+                [WarehouseManager.Flags.MK_82] = math.random(320,520),
+                [WarehouseManager.Flags.MK_83] = math.random(160,260),
+                [WarehouseManager.Flags.MK_84] = math.random(80,140),
+                [WarehouseManager.Flags.HYDRA_70_M151_HE] = math.random(900,1400),
+                [WarehouseManager.Flags.ZUNI_127] = math.random(220,360),
 
-                [WarehouseManager.Flags.F14_LANTIRN] = 10,
-                [WarehouseManager.Flags.AAQ_28_LITENING] = 10,
-                [WarehouseManager.Flags.AN_ASQ_228_ATFLIR] = 16,
+                [WarehouseManager.Flags.F14_LANTIRN] = 16,
+                [WarehouseManager.Flags.AAQ_28_LITENING] = 18,
+                [WarehouseManager.Flags.AN_ASQ_228_ATFLIR] = 24,
 
-                [WarehouseManager.AircraftFlags.FA18C_HORNET] = 12,
-                [WarehouseManager.AircraftFlags.E2C_HAWKEYE] = 2,
-                [WarehouseManager.AircraftFlags.F_14A_135_GR] = 8,
-                [WarehouseManager.AircraftFlags.F14B] = 6,
+                [WarehouseManager.AircraftFlags.FA18C_HORNET] = 24,
+                [WarehouseManager.AircraftFlags.E2C_HAWKEYE] = 4,
+                [WarehouseManager.AircraftFlags.F_14A_135_GR] = 12,
+                [WarehouseManager.AircraftFlags.F14B] = 12,
             },
             [coalition.side.RED] = {}
         },
@@ -1485,7 +1488,8 @@ do
                 [WarehouseManager.Flags.AIM_7M] = math.random(6,10),
                 [WarehouseManager.Flags.AIM_7P] = math.random(6,10),
                 [WarehouseManager.Flags.AIM_7MH] = math.random(6,10),
-                
+                [WarehouseManager.Flags.MICA_IR] = math.random(6,10),
+                [WarehouseManager.Flags.MICA_RF] = math.random(6,10),
             },
             [coalition.side.RED] = {
                 [WarehouseManager.Flags.R27ER] = math.random(20,30),
@@ -1731,7 +1735,7 @@ do
     ---@param users_estimate number|nil
     function WarehouseManager:getStockScale(users_estimate)
         local baseline = 1
-        local users = users_estimate or Scenario.estimated_users or 1
+        local users = users_estimate or 1
 
         -- count active human players dynamically
         local players = coalition.getPlayers(coalition.side.BLUE)
@@ -2078,8 +2082,9 @@ do
         -- Check each weapon requirement
         for wpn_id,amount in pairs(WarehouseManager.AIPayloads[airbase_coalition][ai_task_type]) do
             local current_count = warehouse:getItemCount(wpn_id)
-            if current_count < amount then
-                MissionLogger:info("[PAYLOAD CHECK] "..ai_task_type.." payload INSUFFICIENT: need "..amount.." of "..wpn_id..", have "..current_count)
+            local critical_amount = math.max(current_count-2,0)
+            if critical_amount < amount then
+                MissionLogger:info("[PAYLOAD CHECK] "..ai_task_type.." payload INSUFFICIENT: need "..amount.." of "..wpn_id..", have "..critical_amount)
                 return false
             end
         end
@@ -2089,6 +2094,13 @@ do
 
     end
 
+    function WarehouseManager:getAircraftReserveThreshold()
+        return Config.tasking.warehouse_aircraft_reserve or 2
+    end
+
+    ---@param airbase_name string
+    ---@param ai_task_type AITaskTypes
+    ---@return boolean,string|nil
     function WarehouseManager:checkAircraftInStock(airbase_name,ai_task_type)
 
         local airbase = Airbase.getByName(airbase_name)
@@ -2104,18 +2116,15 @@ do
         and WarehouseManager.AirbaseGroupData[airbase_name][side]
         and WarehouseManager.AirbaseGroupData[airbase_name][side][ai_task_type]
         then
-            -- group_name = "BLUE JTAC VAZIANI",
-            --warehouse_name =
             local acft_name = WarehouseManager.AirbaseGroupData[airbase_name][side][ai_task_type].warehouse_name
             local template_gr_name = WarehouseManager.AirbaseGroupData[airbase_name][side][ai_task_type].group_name
-            if warehouse:getItemCount(acft_name) > 0 then
+            if warehouse:getItemCount(acft_name) > self:getAircraftReserveThreshold() then
                 return true, template_gr_name
             else
-                return false
+                return false,nil
             end
         end
-        return false
+        return false,nil
     end
-
 
 end

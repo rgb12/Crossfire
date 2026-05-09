@@ -4,7 +4,9 @@ local ticks5m = 0
 TheatreCommander = {}
 do
 
+    ---@type OperationManager
     TheatreCommander.blue_op_manager = nil
+    ---@type OperationManager
     TheatreCommander.red_op_manager = nil
 
     ---@param to_zone ZoneHandler
@@ -30,7 +32,7 @@ do
                     if EnrouteManager:findByFromZone(zone,side_sending_capture,{AITaskTypes.CAPTURE_HELO}) then return end
     
                     -- checks if closest zone can deploy a heli
-                    if zone.capture_heli_avail and zone.capture_heli_avail>0 and zones_distance <= Config.capture_helicopter_max_range then
+                    if zone.heli_avail and zone.heli_avail > 0 and zones_distance <= Config.capture_helicopter_max_range then
                         -- send heli
                         TaskManager:initiateAITask(AITaskTypes.CAPTURE_HELO,side_sending_capture,true,to_zone,zone,false)
                         return
@@ -49,31 +51,25 @@ do
 
         local zone_coal_check = ZoneHandler.getFromName(enroute_group.to_zone.name)
         if not zone_coal_check then return false end
-        if zone_coal_check.side ~= coalition.side.NEUTRAL then return false end
 
-        local capture_group = Group.getByName(enroute_group.group_name)
-        if not capture_group or not capture_group:isExist() then return false end
+        local helo_group = Group.getByName(enroute_group.group_name)
+        if not helo_group or not helo_group:isExist() then return false end
 
-        ------------[capture zone checks]------------
-        -- group is in zone and capture succeeds
         if enroute_group.ai_task_type == AITaskTypes.CAPTURE_HELO then
+            if zone_coal_check.side ~= coalition.side.NEUTRAL then return false end
+
             MissionLogger:info("Heli captured zone: " .. enroute_group.to_zone.zone.name)
-            -- remove heli from enroutes
             EnrouteManager:remove(enroute_group.group_name)
-        else
-            -- MissionLogger:info("Capture group not in zone or not all units are in zone")
-            return false -- capture not successful
+
+            if enroute_group.side == coalition.side.RED then
+                enroute_group.to_zone:capture(coalition.side.RED)
+            elseif enroute_group.side == coalition.side.BLUE then
+                enroute_group.to_zone:capture(coalition.side.BLUE)
+            end
+            return true
         end
 
-        ------------[cancelling all other enemy helicopters inbound for this zone]------------
-
-        -- flip zone ownership
-        if enroute_group.side == coalition.side.RED then
-            enroute_group.to_zone:capture(coalition.side.RED)
-        elseif enroute_group.side == coalition.side.BLUE then
-            enroute_group.to_zone:capture(coalition.side.BLUE)
-        end
-        return true
+        return false
     end
 
     ---@param side coalition.side
@@ -294,7 +290,7 @@ do
         -- [TASK: STRIKE]
         table.insert(possible_tasks, function()
             local strike_enroute = EnrouteManager:findByTaskType(AITaskTypes.STRIKE, side)
-            MissionLogger:info(string.format("[STRIKE] %s checking STRIKE tasks. Current enroute: %d, max: %d", 
+            MissionLogger:info(string.format("[STRIKE] %s checking STRIKE tasks. Current enroute: %d, max: %d",
                 utils.coalitionToString(side), strike_enroute and #strike_enroute or 0, Config.tasking.max_strike_theatre))
             if strike_enroute and #strike_enroute < Config.tasking.max_strike_theatre
             and side_comms_towers >= Config.tasking_requirements.comms_zones_required_for_strike
@@ -306,16 +302,21 @@ do
                 }
                 local potential_zones = {}
                 for _, zone in ipairs(zones) do
-                    if zone.side == enemy_side and utils.tableContains(valid_strike_targets, zone.zone_type) 
+                    if zone.side == enemy_side and utils.tableContains(valid_strike_targets, zone.zone_type)
                     and not utils.tableContains(active_zones, zone.name)
                     and mist.utils.get2DDist(home_base.zone.point, zone.zone.point) < Config.tasking.max_strike_range then
-                        local discovered = (side == coalition.side.BLUE and utils.tableContains(stats.blue_discovered_zones, zone.name)) or
-                                           (side == coalition.side.RED and utils.tableContains(stats.red_discovered_zones, zone.name))
                         
-                        if discovered then
-                            if not EnrouteManager:findByToZone(zone, side, {AITaskTypes.STRIKE}) then
-                                local dist = mist.utils.get2DDist(home_base.zone.point, zone.zone.point)
-                                table.insert(potential_zones, {distance=dist, zone=zone})
+                        -- Checks if statics are alive
+                        if zone.linked_statics and #zone.linked_statics >= 1 then
+                        
+                            local discovered = (side == coalition.side.BLUE and utils.tableContains(stats.blue_discovered_zones, zone.name)) or
+                                            (side == coalition.side.RED and utils.tableContains(stats.red_discovered_zones, zone.name))
+                            
+                            if discovered then
+                                if not EnrouteManager:findByToZone(zone, side, {AITaskTypes.STRIKE}) then
+                                    local dist = mist.utils.get2DDist(home_base.zone.point, zone.zone.point)
+                                    table.insert(potential_zones, {distance=dist, zone=zone})
+                                end
                             end
                         end
                     end
@@ -395,20 +396,14 @@ do
         local t1m_update = function()
             MissionLogger:info("1 minute")
 
-
-    
-            local upgraded_zone = false
             local capture_helicopter_sent = false
             for _, zone in ipairs(zones) do
 
                     capture_helicopter_sent = TheatreCommander.sendPotentialCapture(zone)
 
-                    if not upgraded_zone then
-                        upgraded_zone = zone:checkLogisticsZone()
-                    end
+                    zone:checkSUPPLIES()
                     zone:checkCOMMSZone()
-                    zone:checkAirbaseZone()
-
+                    zone:checkRunwayStatus()
                     zone:addAIAssets(10) -- Supply chance every minute
 
                     if not capture_helicopter_sent and zone.side ~=coalition.side.NEUTRAL
@@ -428,17 +423,66 @@ do
                         TaskManager:initiateAITask(AITaskTypes.ATTACK_CONVOY,zone.side,true,nil,zone,false)
                     end
 
+                    -- this spawns a reinforcement helicopter
+                    if math.random(1,100) <= Config.reinforcement_chance and zone.zone_type == ZoneTypes.LOGISTICS
+                    and zone.heli_avail > 0
+                    and #EnrouteManager:findByTaskType(AITaskTypes.REINFORCEMENT_HELO,zone.side) < 2
+                    and not EnrouteManager:findByFromZone(zone,zone.side,{AITaskTypes.REINFORCEMENT_HELO, AITaskTypes.CAPTURE_HELO})
+                    then
+                        local zones_to_upgrade = zone:filterZonesByDistance(zone.side,{},{},true)
+                        local zone_to_upgrade = nil
+                        if #zones_to_upgrade > 0 then
+                            for _,zone_t_u in ipairs(zones_to_upgrade) do
+                                if zone_t_u.level < 4
+                                and not EnrouteManager:findByToZone(zone_t_u,zone.side,{AITaskTypes.REINFORCEMENT_HELO, AITaskTypes.CAPTURE_HELO}) then
+                                    zone_to_upgrade = zone_t_u
+                                    break
+                                end
+                            end
+                        end
+
+                        if zone_to_upgrade then
+                            TaskManager:initiateAITask(AITaskTypes.REINFORCEMENT_HELO,zone.side,true,zone_to_upgrade,zone,false)
+                        end
+                    end
                     
-            end
+                end
+            EnrouteManager:checkEnroutes()
             ctld.monitorFARPDestruction()
+
+            Frontline.drawFrontline()
         end
 
         local t5m_update = function()
             MissionLogger:info("5 mins")
 
-
-
             timer.scheduleFunction(function () --caching and cleaning when other functions free up
+                -- Logistics auto upgrade (performance-friendly: only evaluated every 5 minutes)
+                local required_supplies = Config.logistics_auto_upgrade_required_supplies or 300
+                local chance = Config.logistics_auto_upgrade_chance or 25
+                local now = timer.getTime()
+
+                for _, zone in ipairs(zones) do
+                    if zone.side ~= coalition.side.NEUTRAL
+                    and zone.zone_type == ZoneTypes.LOGISTICS
+                    and (zone.level or 1) < 4
+                    and (zone.local_supplies or 0) >= required_supplies
+                    and (zone.next_level_up_avail == nil or now >= zone.next_level_up_avail)
+                    then
+                        if math.random(1, 100) <= chance then
+                            zone.local_supplies = math.max((zone.local_supplies or 0) - required_supplies, 0)
+                            zone.level = (zone.level or 1) + 1
+                            zone.next_level_up_avail = now + (Config.logistics_level_up_interval or (16 * 60))
+
+                            UnitHandler.updateZoneUnits(zone)
+                            zone:drawF10()
+
+                            trigger.action.outTextForCoalition(zone.side, zone.name.." has reached operational tier "..zone.level.."/4", 10)
+                            trigger.action.outSoundForCoalition(zone.side, "radio_beep3.ogg")
+                        end
+                    end
+                end
+
                 for i = #EnrouteManager.enroutes, 1, -1 do
                     local enroute = EnrouteManager.enroutes[i]
                     if enroute then
@@ -484,6 +528,8 @@ do
         if TheatreCommander.red_op_manager then
             TheatreCommander.red_op_manager:tick()
         end
+
+        TaskManager:checkTankerSectors()
         
         for i = #EnrouteManager.enroutes, 1, -1 do
             local enroute = EnrouteManager.enroutes[i]
@@ -585,6 +631,8 @@ do
                 end
             end
         end
+
+        EnrouteManager:checkAiHeloLandings()
     end
     
     timer.scheduleFunction(tsec_update, {}, timer.getTime() + 15)
@@ -861,13 +909,13 @@ do
         6 = medium smoke 
         7 = large smoke
         8 = huge smoke ]]
+
     -- Create 2-4 smokes near the frontline (closes red base), with varying size and duration
     function TheatreCommander:smokeFrontline()
         -- Closest enemy zone distance
         local closest_zone, frontline_dist = blue_airbase:getClosestZone(coalition.side.RED)
         local variance = 20000
         if closest_zone and frontline_dist then
-            MissionLogger:info("closest zone "..closest_zone.name)
             ---@type vec3[]
             local smoke_points = {}
 
@@ -882,10 +930,8 @@ do
         for _, point in ipairs(smoke_points) do
             smoke_id = smoke_id + 1
             local smoke_string = "TheatreSmoke" .. smoke_id
-            local duration = math.random(5*60, 12*60) -- 2-5 minutes
+            local duration = math.random(8*60, 16*60) -- 8-16 minutes
             trigger.action.effectSmokeBig(point,math.random(5,8),1,smoke_string)
-            MissionLogger:info("Smoke #"..smoke_id)
-            MissionLogger:info(point)
 
                 timer.scheduleFunction(function ()
                     trigger.action.effectSmokeStop(smoke_string)
@@ -922,7 +968,6 @@ do
         end
 
         -- 2. APPLY DIFFICULTY (Zone Count) & REBUILD GLOBAL ZONES TABLE
-        local diff_setting = Scenario.difficulty
         local active_ratio = 1
 
         utils.shuffleTable(all_other_zones)
@@ -930,6 +975,7 @@ do
         local active_count = math.ceil(#all_other_zones * active_ratio)
         
         -- Overwrite zones table with only active zones
+        ---@type ZoneHandler[]
         zones = {}
         table.insert(zones, blue_airbase)
         table.insert(zones, red_airbase)
@@ -938,7 +984,7 @@ do
             table.insert(zones, all_other_zones[i])
         end
 
-        MissionLogger:info("Theatre Gen: Difficulty " .. diff_setting .. ". Total Zones Active: " .. #zones .. " (Includes 2 Bases). Removed " .. (#all_other_zones - active_count) .. " unused zones.")
+        MissionLogger:info("Theatre Generation: Total Zones Active: " .. #zones .. " (Includes 2 Bases). Removed " .. (#all_other_zones - active_count) .. " unused zones.")
 
         -- 3. ASSIGN COALITIONS (Frontline Logic)
         local blue_pool = {}
@@ -989,6 +1035,7 @@ do
             if #pool == 0 then return end
             
             -- Find unassigned zones first to calculate budgets correctly
+            ---@type ZoneHandler[]
             local unassigned = {}
             for _, z in ipairs(pool) do
                 if z.zone_type == nil then
@@ -1016,7 +1063,7 @@ do
             if idx <= #unassigned then
                 unassigned[idx].zone_type = ZoneTypes.LOGISTICS
                 unassigned[idx].next_level_up_avail = timer.getTime()
-                unassigned[idx].capture_heli_avail = 4
+                unassigned[idx].heli_avail = 4
                 idx = idx + 1
                 assigned_guaranteed = assigned_guaranteed + 1
             end
@@ -1082,7 +1129,7 @@ do
                     elseif budget_logistics > 0 then
                         zone.zone_type = ZoneTypes.LOGISTICS
                         zone.next_level_up_avail = timer.getTime()
-                        zone.capture_heli_avail = 4
+                        zone.heli_avail = 4
                         budget_logistics = budget_logistics - 1
                     elseif budget_ew > 0 then
                         zone.zone_type = ZoneTypes.EWSITE
@@ -1160,6 +1207,7 @@ do
                 end
             end
 
+            -- Makes all airbases visible
             if zone.zone_type == ZoneTypes.AIRBASE then
                 if not utils.tableContains(stats.blue_discovered_zones, zone.name) then
                     table.insert(stats.blue_discovered_zones, zone.name)
@@ -1167,6 +1215,11 @@ do
                 if not utils.tableContains(stats.red_discovered_zones, zone.name) then
                     table.insert(stats.red_discovered_zones, zone.name)
                 end
+            end
+
+            -- Initial supply stock
+            if zone.zone_type == ZoneTypes.AIRBASE or zone.zone_type == ZoneTypes.FARP then
+                zone.local_supplies = Config.supplies.initial_stock
             end
 
             -- Spawn
@@ -1239,6 +1292,7 @@ do
         timer.scheduleFunction(TheatreCommander.sendWarehouseResupply, coalition.side.BLUE, timer.getTime() + Config.std_resupply_time)
         timer.scheduleFunction(TheatreCommander.sendWarehouseResupply, coalition.side.RED, timer.getTime() + Config.std_resupply_time)
         
+        ATIS:init()
         TheatreCommander:tick()
         
         -- AI DISPATCHER
@@ -1257,11 +1311,11 @@ do
             world.addEventHandler(Jupiter)
         end
         
+        Frontline.drawFrontline()
+
         -- trigger.action.outText("Theatre setup complete.", 5)
-        MissionLogger:info("Mission Commander: Mission Setup Complete.")
+        MissionLogger:info("THEATRE SETUP COMPLETE")
         timer.scheduleFunction(function()
-        -- This only guides the user to ensure everything had time to load, especially just after mission start
-        trigger.action.outText("Assets loaded.",5)
         end, {}, timer.getTime() + 15)
     end
 

@@ -11,16 +11,6 @@ ctld.AssetTypes = {
     SAM = "SAM",
     STATIC = "STATIC"
 }
----@enum ctld.CargoCrates
-ctld.CargoCrates = {
-    CDS_BARRELS = "cds_barrels",
-    CDS_CRATES = "cds_crate",
-    ContainerClean = "M92_10Ft_Container",
-    MOAB = "gbu_43b_airdrop",
-    LargeContainer = "iso_container",
-    SmallContainer = "iso_container_small",
-    SuppliesCrate = "container_cargo"
-}
 
 ---@class acft_limits
 ---@field aircraft_type string
@@ -56,6 +46,40 @@ ctld.aircraft_limits = {
 ---@type Asset[]
 ctld.placed_assets = {} -- store for persistence, save function will check all units and statics are alive before saving
 
+
+
+-- Tracks operation load actions by unit id.
+-- [unit_id] = { [part_name] = count }
+---@class AirliftOperationTracking
+---@field operation_type OperationTypes,
+---@field load_zone_name string
+---@field target_zone_name string
+---@field manifest Manifest
+---@field loaded_parts table<string,number>
+
+---@type table<number,AirliftOperationTracking>
+ctld.airlift_operation_tracking = {}
+
+---@class OperationContext
+---@field operation_id string|nil
+---@field operation_type OperationTypes|nil
+---@field load_zone_name string|nil
+---@field target_zone_name string|nil
+
+---@type table<number,OperationContext>
+ctld.operation_contexts = {}
+
+---@class OperationAsset
+---@field unit_name string
+---@field part_name string
+---@field object_type string
+---@field point vec3|nil
+---@field coalition any|nil
+---@field operation_id string|nil
+
+---@type table<string,OperationAsset[]>
+ctld.operation_assets = {}
+
 ---@class ConstructedFARP
 ---@field farp_name string
 ---@field point vec3
@@ -69,11 +93,11 @@ ctld.FARPs = {} -- store for persistence
 
 
 ctld.dynamic_cargo_capable_units = {
---    "CH-47Fbl1",
---    "UH-1H",
---    "Mi-8MT",
---    "Mi-24P",
-   "C-130J-30"
+    -- "CH-47Fbl1",
+    -- "UH-1H",
+    -- "Mi-8MT",
+    -- "Mi-24P",
+    "C-130J-30"
 }
 
 -- Required unpacked vehicles to assemble a CTLD-built FARP.
@@ -98,6 +122,7 @@ ctld.getNextGroupId = function()
     return ctld.nextGroupId
 end
 
+
 ---@class part
 ---@field name string
 ---@field desc string
@@ -107,6 +132,7 @@ end
 ---@field group_requirement string|nil
 ---@field can_move boolean|nil
 ---@field req_supplies number|nil
+---@field supply_amount number|nil
 
 ---@type part[]
 ctld.parts = {
@@ -156,13 +182,14 @@ ctld.parts = {
     {name = "SpGH_Dana", desc="SpGH DANA", weight = 1000, type = ctld.AssetTypes.VEHICLES, can_move = true, req_supplies = 100},
 
 
-    --{name = "container_cargo",  desc = "Crate",               weight = 1000, type = ctld.AssetTypes.CARGO_CRATES},
+    {name = CargoCrates.SUPPLY_CRATE, desc = "Supply Crate", weight = 100, type = ctld.AssetTypes.CARGO_CRATES, req_supplies = Config.ctld.supply_crate_supplies, supply_amount = Config.ctld.supply_crate_supplies},
+    {name = "container_cargo",  desc = "Cargo Container",               weight = 1000, type = ctld.AssetTypes.CARGO_CRATES, req_supplies = 5},
     {name = "iso_container",    desc = "Large Container",     weight = 4000, type = ctld.AssetTypes.CARGO_CRATES, req_supplies = 5},
     {name = "iso_container_small",desc = "Small Container",   weight = 2000, type = ctld.AssetTypes.CARGO_CRATES, req_supplies = 5},
     {name = "M92_10Ft_Container",desc = "Clean Container",    weight = 1500, type = ctld.AssetTypes.CARGO_CRATES, req_supplies = 5},
     {name = "gbu_43b_airdrop",  desc = "MOAB",                 weight = 9000, type = ctld.AssetTypes.CARGO_CRATES},
     {name = "cds_barrels",     desc = "CDS Barrels",        weight = 200, type = ctld.AssetTypes.CARGO_CRATES, req_supplies = 5},
-    {name = "cds_crate",       desc = "CDS Crate",           weight = 200, type = ctld.AssetTypes.CARGO_CRATES},
+    --{name = "cds_crate",       desc = "CDS Crate",           weight = 200, type = ctld.AssetTypes.CARGO_CRATES},
 }
 
 
@@ -180,7 +207,7 @@ function ctld.initF10RadioMenu(group)
     
         local load_troops_submenu = missionCommands.addSubMenuForGroup(gr_id, "Troops", load_submenu)
         
-        local load_CARGO_CRATES_submenu = missionCommands.addSubMenuForGroup(gr_id, "Cargo Crates", load_submenu)
+        local load_CARGO_CRATES_submenu = missionCommands.addSubMenuForGroup(gr_id, "Crates", load_submenu)
         local load_vehicles_submenu = missionCommands.addSubMenuForGroup(gr_id, "Vehicles", load_submenu)
         local load_sam_submenu = missionCommands.addSubMenuForGroup(gr_id, "SAM", load_submenu)
     
@@ -192,10 +219,6 @@ function ctld.initF10RadioMenu(group)
         missionCommands.addCommandForGroup(gr_id, "Unpack", root_menu, function ()
             ctld.unpack(unit)
         end)
-    
-        -- missionCommands.addCommandForGroup(gr_id, "Load Nearby Crate", root_menu, function ()
-        --     ctld.loadNearbyCrate(unit)
-        -- end)
     
         missionCommands.addCommandForGroup(gr_id, "Unit Attack", root_menu, function ()
             ctld.unitAttack(unit)
@@ -266,28 +289,37 @@ function ctld.load(part, unit)
     -- If the unit is dynamic cargo capable, then spawn a cargo crate nearby, otherwise store in ctld.users
     local unit_id = unit:getID()
 
+    
+    local airlift_operation = ctld.airlift_operation_tracking[unit_id]
+
     if unit:inAir() then
-        trigger.action.outTextForUnit(unit_id,"Negative, cannot load while airborne.", 5)
+        trigger.action.outTextForUnit(unit_id,"Cannot load while airborne.", 5)
         trigger.action.outSoundForUnit(unit_id, "transmission1.ogg")
         return
     end
+
     local unit_pos = unit:getPoint()
-    if not Config.ctld.allow_load_anywhere then
-        local is_in_ctld_zone = false
-        for _,zone in ipairs(zones) do
-            if zone:isPointInsideZone(unit_pos) then
-                if utils.tableContains(Config.ctld.allowed_load_zones, zone.zone_type) then
-                    is_in_ctld_zone = true
-                    break
-                end
-            end
+    local unit_zone = nil
+    for _,zone in ipairs(zones) do
+        if zone:isPointInsideZone(unit_pos) then
+            unit_zone = zone
+            break
         end
-        if not is_in_ctld_zone then
-            trigger.action.outTextForUnit(unit_id,"Negative, cannot load: Not in a valid load zone.", 5)
+    end
+    if not unit_zone then
+        trigger.action.outTextForUnit(unit_id,"Cannot load: Not in a valid load zone.", 5)
+        trigger.action.outSoundForUnit(unit_id, "transmission1.ogg")
+        return
+    end
+
+    if not airlift_operation and not Config.ctld.allow_load_anywhere then
+        if not utils.tableContains(Config.ctld.allowed_load_zones, unit_zone.zone_type) then
+            trigger.action.outTextForUnit(unit_id,"Cannot load: Not in a valid load zone.", 5)
             trigger.action.outSoundForUnit(unit_id, "transmission1.ogg")
             return
         end
     end
+
     if ctld.player_cooldowns[unit_id] == nil then
         ctld.player_cooldowns[unit_id] = 0
     end
@@ -295,7 +327,7 @@ function ctld.load(part, unit)
     local current_time = timer.getTime()
     if current_time < ctld.player_cooldowns[unit_id] then
         local wait_time = math.ceil(ctld.player_cooldowns[unit_id] - current_time)
-        trigger.action.outTextForUnit(unit_id, "Negative, cannot load: Wait "..wait_time.." seconds before loading again.", 5)
+        trigger.action.outTextForUnit(unit_id, "Cannot load: Wait "..wait_time.." seconds before loading again.", 5)
         trigger.action.outSoundForUnit(unit_id, "transmission1.ogg")
         return
     end
@@ -314,45 +346,84 @@ function ctld.load(part, unit)
     -- Checks weight and max parts / troops limits
     local aircraft_limit = ctld.getAircraftLimit(unit)
     if not aircraft_limit then
-        trigger.action.outTextForUnit(unit_id, "Negative, aircraft type not supported.", 5)
+        trigger.action.outTextForUnit(unit_id, "Aircraft type not supported.", 5)
         trigger.action.outSoundForUnit(unit_id, "transmission1.ogg")
         return
     end
 
-    -- check coalition supplies
-    local unit_coal = unit:getCoalition()
-    local supply_count = 0
-    if unit_coal == coalition.side.BLUE then
-        supply_count = stats.blue_supplies
-    elseif unit_coal == coalition.side.RED then
-        supply_count = stats.red_supplies
-    end
-    if part.req_supplies then
-        if supply_count < part.req_supplies then
-            trigger.action.outTextForUnit(unit_id, "Negative, cannot load: Not enough supplies for "..part.desc..". Requires "..part.req_supplies.." supplies.", 10)
+    if airlift_operation then
+        if airlift_operation.load_zone_name and unit_zone and unit_zone.name ~= airlift_operation.load_zone_name then
+            trigger.action.outTextForUnit(unit_id, "Airlift load must be performed at " .. airlift_operation.load_zone_name, 8)
+            trigger.action.outSoundForUnit(unit_id, "transmission1.ogg")
+            return
+        end
+
+        local manifest = airlift_operation.manifest
+        if not manifest or #manifest == 0 then
+            trigger.action.outTextForUnit(unit_id, "Airlift manifest is unavailable.", 8)
+            trigger.action.outSoundForUnit(unit_id, "transmission1.ogg")
+            return
+        end
+
+        local is_requested_part = false
+        local requested_quantity = 0
+        for _, req in ipairs(manifest) do
+            if req.part_name == part.name then
+                is_requested_part = true
+                requested_quantity = req.quantity or 0
+                break
+            end
+        end
+
+        if not is_requested_part then
+            trigger.action.outTextForUnit(unit_id, "Airlift does not request " .. part.desc .. ".", 8)
+            trigger.action.outSoundForUnit(unit_id, "transmission1.ogg")
+            return
+        end
+
+        if (airlift_operation.loaded_parts[part.name] or 0) >= requested_quantity then
+            trigger.action.outTextForUnit(unit_id, "Airlift already has enough " .. part.desc .. " loaded.", 8)
             trigger.action.outSoundForUnit(unit_id, "transmission1.ogg")
             return
         end
     end
 
-    -- check max parts
-    if part.type == ctld.AssetTypes.CARGO_CRATES or part.type == ctld.AssetTypes.VEHICLES or part.type == ctld.AssetTypes.SAM then
-        if #user.parts >= aircraft_limit.max_parts then
-            trigger.action.outTextForUnit(unit_id,"Negative, cannot load part: "..part.desc..". Max parts limit reached.", 5)
+    if not airlift_operation then
+        if unit_zone.ammo_depot_intact ~= true then
+            trigger.action.outTextForUnit(unit_id, "Cannot load: ammunition depot is required to access supplies in this zone.", 10)
             trigger.action.outSoundForUnit(unit_id, "transmission1.ogg")
             return
         end
-    elseif part.type == ctld.AssetTypes.TROOPS then
-        local current_troops = 0
-        for _, p in ipairs(user.parts) do
-            if p.type == ctld.AssetTypes.TROOPS then
-                current_troops = current_troops + 1
+
+        -- check local supplies
+        local supply_count = unit_zone.local_supplies or 0
+        if part.req_supplies then
+            if supply_count < part.req_supplies then
+                trigger.action.outTextForUnit(unit_id, "Cannot load: Not enough supplies for "..part.desc..". Requires "..part.req_supplies.." supplies.", 10)
+                trigger.action.outSoundForUnit(unit_id, "transmission1.ogg")
+                return
             end
         end
-        if (current_troops + 1) > aircraft_limit.max_troops then
-            trigger.action.outTextForUnit(unit_id,"Negative, cannot load troop: "..part.desc..". Max troops limit reached ("..aircraft_limit.max_troops..").", 5)
-            trigger.action.outSoundForUnit(unit_id, "transmission1.ogg")
-            return
+
+        -- check max parts
+        if part.type == ctld.AssetTypes.CARGO_CRATES or part.type == ctld.AssetTypes.VEHICLES or part.type == ctld.AssetTypes.SAM then
+            if #user.parts >= aircraft_limit.max_parts then
+                trigger.action.outTextForUnit(unit_id,"Negative, cannot load part: "..part.desc..". Max parts limit reached.", 5)
+                trigger.action.outSoundForUnit(unit_id, "transmission1.ogg")
+                return
+            end
+        elseif part.type == ctld.AssetTypes.TROOPS then
+            local current_troops = 0
+            for _, p in ipairs(user.parts) do
+                if p.type == ctld.AssetTypes.TROOPS then
+                    current_troops = current_troops + 1
+                end
+            end
+            if (current_troops + 1) > aircraft_limit.max_troops then
+                trigger.action.outTextForUnit(unit_id,"Negative, cannot load troop: "..part.desc..". Max troops limit reached ("..aircraft_limit.max_troops..").", 5)
+                trigger.action.outSoundForUnit(unit_id, "transmission1.ogg")
+                return
+            end
         end
     end
 
@@ -374,7 +445,7 @@ function ctld.load(part, unit)
 
     -- Check if MOAB in stock
      -- Checks if MOAB in warehouse
-    if part.name == ctld.CargoCrates.MOAB then
+    if part.name == CargoCrates.MOAB then
         local airbase = utils.getZoneOfUnitFromPosition(unit:getPoint())
         if not airbase or not airbase.airbase_name then
             trigger.action.outTextForUnit(unit_id, "Negative, unable to determine airbase for MOAB deployment.", 10)
@@ -399,22 +470,22 @@ function ctld.load(part, unit)
     end
 
     -- Add part to user's cargo
-    if unit:getCoalition() == coalition.side.BLUE then
-        if part.req_supplies then
-            stats.blue_supplies = stats.blue_supplies - part.req_supplies
-        end
-    elseif unit:getCoalition() == coalition.side.RED then
-        if part.req_supplies then
-            stats.red_supplies = stats.red_supplies - part.req_supplies
-        end
+    if not airlift_operation then
+        unit_zone.local_supplies = math.max((unit_zone.local_supplies or 0) - (part.req_supplies or 0),0)
     end
 
     table.insert(user.parts, part)
+
+    if airlift_operation then
+        airlift_operation.loaded_parts[part.name] = (airlift_operation.loaded_parts[part.name] or 0) + 1
+    end
+
     if user.is_dynamic_cargo then
 
         if part.type == ctld.AssetTypes.TROOPS then
             ctld.spawnTroop(unit, part)
             trigger.action.outTextForUnit(unit_id, "Troop deployed.", 5)
+            trigger.action.outSoundForUnit(unit_id, "transmission1.ogg")
         elseif part.type == ctld.AssetTypes.CARGO_CRATES or part.type == ctld.AssetTypes.VEHICLES or part.type == ctld.AssetTypes.SAM then
             -- spawn cargo crate nearby 
             ctld.spawnCargoCrate(unit, part)
@@ -432,6 +503,15 @@ function ctld.unpack(unit)
     MissionLogger:info("Unpacking")
     local unit_id = unit:getID()
     local unit_pos = unit:getPoint()
+    local unpack_heading = mist.getHeading(unit, true) or 0
+
+    local operation_context = ctld.fetchOperationContextForUnit(unit)
+    if operation_context and operation_context.operation_type == OperationTypes.STRATEGIC_AIRLIFT then
+        trigger.action.outTextForUnit(unit_id, "Negative, cannot unpack during Strategic Airlift operations.", 5)
+        trigger.action.outSoundForUnit(unit_id, "transmission1.ogg")
+        return
+    end
+
     if unit:inAir() then
         trigger.action.outTextForUnit(unit_id,"Negative, cannot unpack while airborne.", 5)
         trigger.action.outSoundForUnit(unit_id, "transmission1.ogg")
@@ -453,6 +533,7 @@ function ctld.unpack(unit)
         }
     }
 
+    -- Finds nearby unpacked and packed assets
     local unpacked_assets_nearby = {}
     local packed_assets_nearby = {}
     world.searchObjects({Object.Category.CARGO, Object.Category.UNIT}, vol, function(obj)
@@ -479,12 +560,11 @@ function ctld.unpack(unit)
         return true
     end)
 
-    -- Find the assets part descriptions
+    -- Find the assets part descriptions for unpacked assets
     local unpacked_parts = {}
     for _, asset in ipairs(unpacked_assets_nearby) do
         local asset_name = asset:getName()
         local part_name = ctld.getUnpackedPartName(asset_name)
-        MissionLogger:info("Unpacked asset name: "..asset_name.." part name: "..part_name)
         if part_name then
             for _, part in ipairs(ctld.parts) do
                 if part.name == part_name then
@@ -495,6 +575,7 @@ function ctld.unpack(unit)
         end
     end
 
+    -- Find the assets part descriptions for packed assets
     local packed_parts = {}
     for _, asset in ipairs(packed_assets_nearby) do
         local asset_name = asset:getName()
@@ -519,10 +600,12 @@ function ctld.unpack(unit)
         table.insert(packed_parts_by_name[part_name].objs, part_data.obj)
     end
 
+    local op_context = ctld.fetchOperationContextForUnit(unit)
+
     -- First pass: Collect all SAM units to be created, grouped by group_requirement
     local sam_groups_to_spawn = {}  -- {group_requirement = {units = {...}, existing_group = group_obj}}
     local vehicles_to_spawn = {}  -- Regular vehicles spawn immediately
-    
+
     -- Collect all units to unpack
     for part_name, crate_data in pairs(packed_parts_by_name) do
         ---@type part
@@ -530,20 +613,46 @@ function ctld.unpack(unit)
         local crates_required = part.crates_required or 1
         local available_crates = #crate_data.objs
 
-        if available_crates < crates_required then
-            trigger.action.outTextForUnit(unit_id, 
+        if part.name == CargoCrates.SUPPLY_CRATE and (part.supply_amount or 0) > 0 then
+            for _, crate_obj in ipairs(crate_data.objs) do
+                if crate_obj and crate_obj:isExist() then
+                    local crate_point = crate_obj:getPoint()
+                    local target_zone = utils.fetchSuppliesZoneFromPoint(crate_point, unit:getCoalition())
+                    if not target_zone then
+                        trigger.action.outTextForUnit(unit_id, "Negative, cannot unpack supply crate in this area.", 5)
+                        trigger.action.outSoundForUnit(unit_id, "transmission1.ogg")
+                    elseif target_zone.ammo_depot_intact ~= true then
+                        trigger.action.outTextForUnit(unit_id, "Negative, cannot unpack supply crate.", 5)
+                        trigger.action.outSoundForUnit(unit_id, "transmission1.ogg")
+                    else
+                        local zone_level = target_zone.level or 1
+                        local zone_cap = Config.supplies.supplies_cap[zone_level] or 0
+                        local current_supplies = target_zone.local_supplies or 0
+                        local amount = part.supply_amount or 0
+                        if current_supplies + amount > zone_cap then
+                            trigger.action.outTextForUnit(unit_id, string.format("Negative, cannot unpack supply crate: %s can not hold more supplies.", target_zone.name), 5)
+                            trigger.action.outSoundForUnit(unit_id, "transmission1.ogg")
+                        else
+                            target_zone.local_supplies = current_supplies + amount
+                            trigger.action.outTextForUnit(unit_id, string.format("Unpacked %s and restored %d supplies to %s.", part.desc, amount, target_zone.name), 5)
+                            trigger.action.outSoundForUnit(unit_id, "transmission1.ogg")
+                            crate_obj:destroy()
+                        end
+                    end
+                end
+            end
+        elseif available_crates < crates_required then
+            trigger.action.outTextForUnit(unit_id,
                 string.format("Negative, %s requires %d crates, only %d available.", part.desc, crates_required, available_crates), 5)
-        
             trigger.action.outSoundForUnit(unit_id, "transmission1.ogg")
-        
         else
             -- Calculate how many units we can spawn
             local units_to_create = math.floor(available_crates / crates_required)
-            
+
             for i = 1, units_to_create do
                 local crate_idx = (i - 1) * crates_required + 1
                 local pos = crate_data.objs[crate_idx]:getPoint()
-                
+
                 if part.type == ctld.AssetTypes.VEHICLES then
                     -- Store vehicle to spawn immediately
                     table.insert(vehicles_to_spawn, {
@@ -553,11 +662,11 @@ function ctld.unpack(unit)
                         crates_required = crates_required,
                         crate_objs = crate_data.objs
                     })
-                
+
                 elseif part.type == ctld.AssetTypes.SAM then
-                    
+
                     local group_req = part.group_requirement or part.name
-                    
+
                     -- Initialize SAM group if not exists
                     if not sam_groups_to_spawn[group_req] then
                         sam_groups_to_spawn[group_req] = {
@@ -565,7 +674,7 @@ function ctld.unpack(unit)
                             existing_group = nil,
                             group_requirement = group_req
                         }
-                        
+
                         -- Check for existing unpacked SAM group with same requirement
                         for _, existing_asset in ipairs(unpacked_parts) do
                             if existing_asset.part.type == ctld.AssetTypes.SAM and
@@ -578,7 +687,7 @@ function ctld.unpack(unit)
                             end
                         end
                     end
-                    
+
                     -- Add unit to spawn list
                     local u_id = mist.getNextUnitId()
                     local unit_table = {
@@ -587,6 +696,7 @@ function ctld.unpack(unit)
                         name = Config.ctld.unpacked_asset_prefix..part.name.."_"..u_id,
                         x = pos.x,
                         y = pos.z,
+                        heading = unpack_heading,
                     }
                     table.insert(sam_groups_to_spawn[group_req].units, {
                         unit_data = unit_table,
@@ -610,6 +720,7 @@ function ctld.unpack(unit)
             name = Config.ctld.unpacked_asset_prefix..vehicle_data.part.name .. "_" .. u_id,
             x = vehicle_data.pos.x,
             y = vehicle_data.pos.z,
+            heading = unpack_heading,
         }
         local group_name = "ctld_gr_"..mist.getNextGroupId()
         local spawned_group = mist.dynAdd({
@@ -618,22 +729,34 @@ function ctld.unpack(unit)
             country = unit:getCountry(),
             category = Group.Category.GROUND,
         })
-        
+
         if spawned_group then
-            table.insert(ctld.placed_assets, {
-                unit_name = unit_table.name,
-                asset_name = vehicle_data.part.name,
-                point = vehicle_data.pos,
-                type = vehicle_data.part.type,
-                coalition = unit:getCoalition(),
-                is_group = false
-            })
+            if op_context and op_context.operation_id then
+                ctld.registerOperationAsset(op_context.operation_id, {
+                    unit_name = unit_table.name,
+                    part_name = vehicle_data.part.name,
+                    point = vehicle_data.pos,
+                    object_type = "unit",
+                    coalition = unit:getCoalition()
+                })
+            else
+                table.insert(ctld.placed_assets, {
+                    unit_name = unit_table.name,
+                    asset_name = vehicle_data.part.name,
+                    part_name = vehicle_data.part.name,
+                    point = vehicle_data.pos,
+                    heading = unpack_heading,
+                    type = vehicle_data.part.type,
+                    coalition = unit:getCoalition(),
+                    is_group = false
+                })
+            end
 
             trigger.action.outTextForUnit(unit_id, 
                 string.format("Unpacked %s, used %d crate(s)", vehicle_data.part.desc, vehicle_data.crates_required), 3)
             trigger.action.outSoundForUnit(unit_id, "transmission1.ogg")
             end
-        
+
         -- Destroy crates
         for j = vehicle_data.crate_idx, math.min(vehicle_data.crate_idx + vehicle_data.crates_required - 1, #vehicle_data.crate_objs) do
             if vehicle_data.crate_objs[j] and vehicle_data.crate_objs[j]:isExist() then
@@ -646,7 +769,7 @@ function ctld.unpack(unit)
     for group_req, sam_data in pairs(sam_groups_to_spawn) do
         if #sam_data.units > 0 then
             local group_units = {}
-            
+
             -- If existing group, get its units first
             if sam_data.existing_group and sam_data.existing_group:isExist() then
                 local existing_units = sam_data.existing_group:getUnits()
@@ -657,6 +780,7 @@ function ctld.unpack(unit)
                         name = gu:getName(),
                         x = gu:getPoint().x,
                         y = gu:getPoint().z,
+                        heading = mist.getHeading(gu) or 0,
                     })
                 end
                 -- Destroy old group before respawning
@@ -680,18 +804,30 @@ function ctld.unpack(unit)
             })
             
             if spawned_group then
-                -- Record all newly added units in placed_assets
+                -- Record all newly added units in placed_assets, unless this is operation cargo
                 for _, unit_data in ipairs(sam_data.units) do
-                    table.insert(ctld.placed_assets, {
-                        unit_name = unit_data.unit_data.name,
-                        asset_name = unit_data.part.name,
-                        point = unit_data.pos,
-                        type = ctld.AssetTypes.SAM,
-                        coalition = unit:getCoalition(),
-                        is_group = true,
-                        unit_count = #group_units,
-                        group_name = gr_name
-                    })
+                    if op_context and op_context.operation_id then
+                        ctld.registerOperationAsset(op_context.operation_id, {
+                            unit_name = unit_data.unit_data.name,
+                            part_name = unit_data.part.name,
+                            point = unit_data.pos,
+                            object_type = "unit",
+                            coalition = unit:getCoalition()
+                        })
+                    else
+                        table.insert(ctld.placed_assets, {
+                            unit_name = unit_data.unit_data.name,
+                            asset_name = unit_data.part.name,
+                            part_name = unit_data.part.name,
+                            point = unit_data.pos,
+                            heading = unit_data.unit_data.heading,
+                            type = ctld.AssetTypes.SAM,
+                            coalition = unit:getCoalition(),
+                            is_group = true,
+                            unit_count = #group_units,
+                            group_name = gr_name
+                        })
+                    end
                     
                     -- Destroy crates
                     for j = unit_data.crate_idx, math.min(unit_data.crate_idx + unit_data.crates_required - 1, #unit_data.crate_objs) do
@@ -716,165 +852,48 @@ function ctld.unload(unit)
     -- body
     local unit_id = unit:getID()
     if unit:inAir() then
-        trigger.action.outTextForUnit(unit_id,"Negative, cannot unload while airborne.", 5)
+        trigger.action.outTextForUnit(unit_id,"Cannot unload while airborne.", 5)
         trigger.action.outSoundForUnit(unit_id, "transmission1.ogg")
         return
     end
     local unit_pos = unit:getPoint()
-    local is_in_zone = utils.getZoneOfUnitFromPosition(unit_pos) ~= nil
+    local unit_zone = utils.getZoneOfUnitFromPosition(unit_pos)
+    local is_in_zone = unit_zone ~= nil
+
+
     if is_in_zone and not Config.ctld.allow_unloading_in_zones then
-        trigger.action.outTextForUnit(unit_id,"Negative, cannot unload in this area.", 5)
+        trigger.action.outTextForUnit(unit_id,"Cannot unload in this area.", 5)
         trigger.action.outSoundForUnit(unit_id, "transmission1.ogg")
         return
     end
 
 
     if ctld.isDynamicCargoCapable(unit) then
-        -- reject, user has to unload using dcs cargo system
-        trigger.action.outTextForUnit(unit_id,"Negative, use the aircraft's cargo system to load and unload.", 5)
-        trigger.action.outSoundForUnit(unit_id, "transmission1.ogg")
-    else
-        -- remove part from ctld.users and
-        -- spawn the cratre
-        local user = ctld.users[unit_id]
-        if user == nil or #user.parts == 0 then
-            trigger.action.outTextForUnit(unit_id,"Negative, no cargo to unload.", 5)
-            trigger.action.outSoundForUnit(unit_id, "transmission1.ogg")
-            return
-        end
-        local part_to_spawn = user.parts[#user.parts]
-        if part_to_spawn.type == ctld.AssetTypes.TROOPS then
-            ctld.spawnTroop(unit, part_to_spawn)
-        else
-            ctld.spawnCargoCrate(unit, part_to_spawn)
-        end
-
-        local part = table.remove(user.parts)
-        
-        trigger.action.outTextForUnit(unit_id,"Unloaded "..part.desc, 5)
-        trigger.action.outSoundForUnit(unit_id, "transmission1.ogg")
-    end
-end
-
-function ctld.loadNearbyCrate(unit)
-    local unit_id = unit:getID()
-
-    if unit:inAir() then
-        trigger.action.outTextForUnit(unit_id,"Cannot load while in air.", 5)
-        return
-    end
-
-    if ctld.isDynamicCargoCapable(unit) then
-        trigger.action.outTextForUnit(unit_id,"Cannot load nearby crate: Use dynamic cargo system to load crates.", 5)
-        return
-    end
-
-    -- Get aircraft limits
-    local aircraft_limit = ctld.getAircraftLimit(unit)
-    if not aircraft_limit then
-        trigger.action.outTextForUnit(unit_id, "Aircraft type not supported.", 5)
-        return
-    end
-
-    -- search for crates nearby
-    local vol = {
-        id = world.VolumeType.SPHERE,
-        params = {
-            point = unit:getPoint(),
-            radius = Config.ctld.search_radius
-        }
-    }
-    local crates_nearby = {}
-    world.searchObjects({Object.Category.CARGO}, vol, function(obj)
-        if obj and obj:isExist() and obj.getName then
-            local cargoName = obj:getName()
-            -- Check coalition match
-            if obj:getCoalition() ~= unit:getCoalition() then
-                return true
-            end
-            -- checks if cargo is starting with "CTLD_" to identify it as a valid crate
-            if cargoName:match("^CTLD_.+_%d+$") then
-                table.insert(crates_nearby, obj)
-            end
-        end
-        return true
-    end)
-
-    local sorted_crates_by_distance = {}
-    for _, crate in ipairs(crates_nearby) do
-        if crate and crate:isExist() then
-            local dist = mist.utils.get2DDist(unit:getPoint(), crate:getPoint())
-            table.insert(sorted_crates_by_distance, {crate = crate, distance = dist})
-        end
-    end
-    table.sort(sorted_crates_by_distance, function(a,b) return a.distance < b.distance end)
-    if #sorted_crates_by_distance == 0 then
-        trigger.action.outTextForUnit(unit_id,"No crates nearby to load.", 5)
+        trigger.action.outTextForUnit(unit_id,"Cannot unload using CTLD, use native unloading.", 5)
         trigger.action.outSoundForUnit(unit_id, "transmission1.ogg")
         return
     end
-    local closest_crate = sorted_crates_by_distance[1].crate
-    
-    -- Initialize user if needed
-    ctld.users[unit_id] = ctld.users[unit_id] or {
-        parts = {},
-        unit = unit,
-        is_dynamic_cargo = false
-    }
+
     local user = ctld.users[unit_id]
-    
-    local crate_name = closest_crate:getName()
-    local part_name = crate_name:match("^CTLD_(.+)_%d+$")
-    local part_def = nil
-    for _, part in ipairs(ctld.parts) do
-        if part.name == part_name then
-            part_def = part
-            break
-        end
-    end
-    
-    if part_def == nil then return end
-
-    -- Check max parts/troops limits
-    if part_def.type == ctld.AssetTypes.CARGO_CRATES or part_def.type == ctld.AssetTypes.VEHICLES or part_def.type == ctld.AssetTypes.SAM then
-        if #user.parts >= aircraft_limit.max_parts then
-            trigger.action.outTextForUnit(unit_id,"Cannot load crate: Max parts limit reached.", 5)
-            trigger.action.outSoundForUnit(unit_id, "transmission1.ogg")
-            return
-        end
-    elseif part_def.type == ctld.AssetTypes.TROOPS then
-        local current_troops = 0
-        for _, p in ipairs(user.parts) do
-            if p.type == ctld.AssetTypes.TROOPS then
-                current_troops = current_troops + 1
-            end
-        end
-        if (current_troops + 1) > aircraft_limit.max_troops then
-            trigger.action.outTextForUnit(unit_id,"Cannot load troop: Max troops limit reached ("..aircraft_limit.max_troops..").", 5)
-            trigger.action.outSoundForUnit(unit_id, "transmission1.ogg")
-            return
-        end
-    end
-
-    -- Check weight limit
-    local total_weight = 0
-    for _, p in ipairs(user.parts) do
-        total_weight = total_weight + p.weight
-    end
-    total_weight = total_weight + part_def.weight
-    if total_weight > aircraft_limit.weight_limit then
-        trigger.action.outTextForUnit(unit_id,"Cannot load: Weight limit exceeded ("..aircraft_limit.weight_limit.." kg)", 5)
+    if user == nil or #user.parts == 0 then
+        trigger.action.outTextForUnit(unit_id,"Negative, no cargo to unload.", 5)
         trigger.action.outSoundForUnit(unit_id, "transmission1.ogg")
         return
     end
 
-    -- All checks passed - load the crate
-    if closest_crate:isExist() then
-        table.insert(user.parts, part_def)
-        closest_crate:destroy()
-        trigger.action.outTextForUnit(unit_id, "Loaded: "..part_def.desc, 5)
+    local part_to_spawn = user.parts[#user.parts]
+    if part_to_spawn.type == ctld.AssetTypes.TROOPS then
+        ctld.spawnTroop(unit, part_to_spawn)
+    else
+        ctld.spawnCargoCrate(unit, part_to_spawn)
     end
+
+    local part = table.remove(user.parts)
+    
+    trigger.action.outTextForUnit(unit_id,"Unloaded "..part.desc, 5)
+    trigger.action.outSoundForUnit(unit_id, "transmission1.ogg")
 end
+
 
 function ctld.unitAttack(unit)
     -- Find nearby vehicles and assigns them a route for the nearest enemy zone
@@ -953,34 +972,71 @@ end
 function ctld.listSupplies(unit)
     --List the supplies in the zone
     local unit_coalition = unit:getCoalition()
-    local supply_count = 0
-    if unit_coalition == coalition.side.BLUE then
-        supply_count = stats.blue_supplies
-    elseif unit_coalition == coalition.side.RED then
-        supply_count = stats.red_supplies
-    end
+    local unit_point = unit:getPoint()
     local u_id = unit:getID()
 
-    local supplies_cap = math.min(utils.calculateSuppliesCAPforCoalition(unit_coalition), Config.supplies.absolute_max_supplies)
-
-    if supplies_cap == 0 or supply_count == 0 then
-        trigger.action.outTextForUnit(u_id, "Logistics SITREP: No supplies in inventory. Verify integrity of primary Command Centers and Ammo Depots.", 10)
-        trigger.action.outSoundForUnit(u_id, "Radio squelch.ogg")
-        return
-    end
-
-    local out_test = "Logistics SITREP: ".. supply_count .. " / " .. supplies_cap .. " available supplies.\n"
+    local txt_heading = "Logistics SITREP:\n"
+    local txt_body = "\n"
+    local coalition_supplies = 0
+    local relevant_zones = 0
 
     -- Detail the production rates
+    local sorted_zones = {}
     for _, zone in ipairs(zones) do
-        if zone.side == unit_coalition and zone.zone_type == ZoneTypes.LOGISTICS then
-            if zone.ammo_depot_intact then
-                out_test = out_test .. "\n - ".. zone.name .. ": +".. Config.supplies.supplies_income .. " supplies per minute"
-            end
+        if zone.side == unit_coalition and (zone.zone_type == ZoneTypes.AIRBASE or zone.zone_type == ZoneTypes.LOGISTICS
+        or zone.zone_type == ZoneTypes.FARP) then
+            table.insert(sorted_zones, zone)
         end
     end
 
-    trigger.action.outTextForUnit(u_id, out_test, 10)
+    table.sort(sorted_zones, function(a, b)
+        local a_level = a.level or 1
+        local b_level = b.level or 1
+        if a_level == b_level then
+            return (a.name or "") < (b.name or "")
+        end
+        return a_level > b_level
+    end)
+
+    for _, zone in ipairs(sorted_zones) do
+
+            local zone_level = zone.level or 1
+            local zone_has_depot = zone.linked_statics and #zone.linked_statics > 0 and zone.ammo_depot_intact == true
+
+            local current_cap = 0
+
+            local zone_production = 0
+            if zone_has_depot then
+                current_cap = Config.supplies.supplies_cap[zone_level] or 0
+
+                zone_production = Config.supplies.supplies_production[zone_level] or 0
+
+                if zone.zone_type == ZoneTypes.LOGISTICS then
+                    zone_production = zone_production * (Config.supplies.logistics_mult or 2)
+                end
+            end
+
+            local zone_supplies = zone.local_supplies or 0
+
+            if zone_supplies > 0 or zone_production > 0 then
+                relevant_zones = relevant_zones + 1
+                coalition_supplies = coalition_supplies + zone_supplies
+
+                if zone:isPointInsideZone(unit_point) then
+                    txt_heading = "Logistics SITREP\n\n".. zone_supplies .. " / " .. current_cap .. " local available supplies.\n"
+                end
+
+                txt_body = txt_body .. "\n - ".. zone.name .. "            "..zone_supplies.."/"..current_cap.."      +".. zone_production .. " / minute"
+            end
+    end
+
+    if relevant_zones == 0 then
+        txt_body = txt_body .. "\nNo friendly zones currently have supplies or production."
+    else
+        txt_heading = txt_heading .. string.format("%d supplies across %d zone(s).\n", coalition_supplies, relevant_zones)
+    end
+
+    trigger.action.outTextForUnit(u_id, txt_heading..txt_body, 20)
     trigger.action.outSoundForUnit(u_id, "Radio squelch.ogg")
 
 end
@@ -1018,14 +1074,20 @@ function ctld.listOnboardCargo(unit)
     for part_desc, count in pairs(part_count) do
         -- find the amount of crates required to build
         local crates_required = 1
+        local supply_amount = nil
         for _, part in ipairs(ctld.parts) do
             if part.desc == part_desc then
                 crates_required = part.crates_required or 1
+                supply_amount = part.supply_amount
                 break
             end
         end
 
-        cargo_list = cargo_list .. string.format("%s x%d (required: %s)\n", part_desc, count,crates_required)
+        if supply_amount then
+            cargo_list = cargo_list .. string.format("%s x%d (stores: %d supplies)\n", part_desc, count, supply_amount)
+        else
+            cargo_list = cargo_list .. string.format("%s x%d (required: %s)\n", part_desc, count,crates_required)
+        end
     end
 
     --weight
@@ -1038,6 +1100,7 @@ function ctld.listOnboardCargo(unit)
     )
 
     trigger.action.outTextForUnit(unit_id, cargo_list, 30)
+    trigger.action.outSoundForUnit(unit_id, "Radio squelch.ogg")
 end
 
 function ctld.isDynamicCargoCapable(unit)
@@ -1353,7 +1416,10 @@ end
 ---@param unit Unit
 ---@param part part
 function ctld.spawnCargoCrate(unit,part)
-    if #ctld.placed_assets >= Config.ctld.max_placed_assets then
+    local op_context = ctld.fetchOperationContextForUnit(unit)
+
+    if (not op_context or not op_context.operation_id)
+    and #ctld.placed_assets >= Config.ctld.max_placed_assets then
         trigger.action.outTextForUnit(unit:getID(), "Cannot load: Maximum placed assets limit reached ("..Config.ctld.max_placed_assets..").", 5)
         return
     end
@@ -1366,7 +1432,7 @@ function ctld.spawnCargoCrate(unit,part)
     MissionLogger:info(string.format("Spawning cargo crate %s", part.name))
 
     local type_to_spawn = Config.ctld.cargo_crate_template
-    if utils.tableContains(ctld.CargoCrates, part.name) then
+    if utils.tableContains(CargoCrates, part.name) then
         type_to_spawn = part.name
     end
 
@@ -1379,20 +1445,34 @@ function ctld.spawnCargoCrate(unit,part)
         y = point.z
     })
     if crate then
-        table.insert(ctld.placed_assets, {
-            unit_name = crate.name,
-            asset_name = type_to_spawn,
-            point = point,
-            type = ctld.AssetTypes.CARGO_CRATES,
-            coalition = unit:getCoalition()
-        })
+        if op_context and op_context.operation_id then
+            ctld.registerOperationAsset(op_context.operation_id, {
+                unit_name = crate.name,
+                part_name = part.name,
+                point = point,
+                object_type = "static",
+                coalition = unit:getCoalition()
+            })
+        else
+            table.insert(ctld.placed_assets, {
+                unit_name = crate.name,
+                asset_name = type_to_spawn,
+                part_name = part.name,
+                point = point,
+                type = ctld.AssetTypes.CARGO_CRATES,
+                coalition = unit:getCoalition()
+            })
+        end
     end
 end
 
 ---@param unit Unit
 ---@param part part
 function ctld.spawnTroop(unit,part)
-    if #ctld.placed_assets >= Config.ctld.max_placed_assets then
+    local op_context = ctld.fetchOperationContextForUnit(unit)
+
+    if (not op_context or not op_context.operation_id)
+    and #ctld.placed_assets >= Config.ctld.max_placed_assets then
         trigger.action.outTextForUnit(unit:getID(), "Cannot load: Maximum placed assets limit reached ("..Config.ctld.max_placed_assets..").", 5)
         return
     end
@@ -1401,9 +1481,10 @@ function ctld.spawnTroop(unit,part)
     if unit:getTypeName() == "C-130J-30" then
         point = ctld.getPointAt6Oclock(unit, ctld.getSecureDistanceFromUnit(unit))
     end
+    local spawn_heading = mist.getHeading(unit) or 0
 
     local u_id = mist.getNextUnitId()
-    local unit_name = part.name .. "_" .. u_id
+    local unit_name = Config.ctld.packed_asset_prefix .. part.name .. "_" .. u_id
     local troop = mist.dynAdd({
     units = {
         {
@@ -1412,19 +1493,32 @@ function ctld.spawnTroop(unit,part)
         name = unit_name,
         x = point.x,
         y = point.z,
+        heading = spawn_heading,
     }
     },
     country = unit:getCountry(),
     category = Group.Category.GROUND,
     })
     if troop then
-        table.insert(ctld.placed_assets, {
-            unit_name = unit_name,
-            asset_name = part.name,
-            point = point,
-            type = ctld.AssetTypes.TROOPS,
-            coalition = unit:getCoalition()
-        })
+        if op_context and op_context.operation_id then
+            ctld.registerOperationAsset(op_context.operation_id, {
+                unit_name = unit_name,
+                part_name = part.name,
+                point = point,
+                object_type = "unit",
+                coalition = unit:getCoalition()
+            })
+        else
+            table.insert(ctld.placed_assets, {
+                unit_name = unit_name,
+                asset_name = part.name,
+                part_name = part.name,
+                point = point,
+                heading = spawn_heading,
+                type = ctld.AssetTypes.TROOPS,
+                coalition = unit:getCoalition()
+            })
+        end
     end
 end
 
@@ -1522,6 +1616,8 @@ function ctld.getUnpackedPartName(asset_name)
 end
 
 function ctld.getPackedPartName(asset_name)
+    if not asset_name then return nil end
+    asset_name = asset_name:gsub("^CRG:", "")
     return asset_name:match("^" .. Config.ctld.packed_asset_prefix .. "(.+)_%d+$")
 end
 
@@ -1535,4 +1631,135 @@ function ctld.findPartByName(part_name)
         end
     end
     return nil
+end
+
+
+
+---@param unit Unit|nil
+---@return OperationContext|nil
+function ctld.fetchOperationContextForUnit(unit)
+    if not unit then return nil end
+    return ctld.operation_contexts[unit:getID()]
+end
+
+---@param unit Unit|nil
+---@param context OperationContext|nil
+function ctld.setOperationContextForUnit(unit, context)
+    if not unit then return end
+    ctld.operation_contexts[unit:getID()] = context
+end
+
+---@param unit Unit|nil
+function ctld.clearOperationContextForUnit(unit)
+    if not unit then return end
+    local unit_id = unit:getID()
+    ctld.operation_contexts[unit_id] = nil
+    ctld.airlift_operation_tracking[unit_id] = nil
+end
+
+---@param operation_id string|nil
+function ctld.clearOperationContextForOperation(operation_id)
+    if not operation_id then return end
+
+    for unit_id, context in pairs(ctld.operation_contexts) do
+        if context and context.operation_id == operation_id then
+            ctld.operation_contexts[unit_id] = nil
+            ctld.airlift_operation_tracking[unit_id] = nil
+        end
+    end
+end
+
+---@param operation_id string|nil
+---@param asset OperationAsset|nil
+function ctld.registerOperationAsset(operation_id, asset)
+    if not operation_id or not asset then return end
+    if not ctld.operation_assets[operation_id] then
+        ctld.operation_assets[operation_id] = {}
+    end
+    asset.operation_id = operation_id
+    table.insert(ctld.operation_assets[operation_id], asset)
+end
+
+---@param operation_id string|nil
+---@return OperationAsset[]
+function ctld.fetchOperationAssets(operation_id)
+    if not operation_id then return {} end
+    return ctld.operation_assets[operation_id] or {}
+end
+
+---@param operation_id string|nil
+function ctld.clearOperationAssets(operation_id)
+    if not operation_id then return end
+
+    local assets = ctld.operation_assets[operation_id]
+    if not assets then
+        return
+    end
+
+    for _, asset in ipairs(assets) do
+        local obj = nil
+        if asset.object_type == "static" then
+            obj = StaticObject.getByName(asset.unit_name)
+        else
+            obj = Unit.getByName(asset.unit_name)
+        end
+
+        if obj and obj:isExist() then
+            obj:destroy()
+        end
+    end
+
+    ctld.operation_assets[operation_id] = nil
+end
+
+---@param operation_id string|nil
+---@return table<string, number>
+function ctld.getOperationLoads(operation_id)
+    local counts = {}
+    if not operation_id then return counts end
+
+    for unit_id, context in pairs(ctld.operation_contexts) do
+        if context and context.operation_id == operation_id then
+            local user = ctld.users[unit_id]
+            if user and user.parts then
+                for _, part in ipairs(user.parts) do
+                    counts[part.name] = (counts[part.name] or 0) + 1
+                end
+            end
+        end
+    end
+
+    return counts
+end
+
+---@param operation_id string|nil
+function ctld.clearOperationLoads(operation_id)
+    if not operation_id then return end
+
+    for unit_id, context in pairs(ctld.operation_contexts) do
+        if context and context.operation_id == operation_id then
+            local user = ctld.users[unit_id]
+            if user then
+                user.parts = {}
+            end
+            ctld.airlift_operation_tracking[unit_id] = nil
+            ctld.operation_contexts[unit_id] = nil
+        end
+    end
+end
+
+---@param object_name string
+---@return boolean
+function ctld.isSupplyCrate(object_name)
+    local packed_name = ctld.getPackedPartName(object_name)
+    if packed_name and packed_name == CargoCrates.SUPPLY_CRATE then
+        return true
+    end
+
+    -- Fallback: require packed prefix and supply crate key in name
+    local cleaned = tostring(object_name):gsub("^CRG:", "")
+    if not string.find(cleaned, Config.ctld.packed_asset_prefix, 1, true) then
+        return false
+    end
+    return string.find(cleaned, CargoCrates.SUPPLY_CRATE, 1, true) ~= nil
 end

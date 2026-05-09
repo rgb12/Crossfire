@@ -38,7 +38,7 @@ do
     JTAC.categories['Infantry'] = {'Infantry'}
     JTAC.categories['Armor'] = {'Tanks','IFV','APC'}
     JTAC.categories['Support'] = {'Unarmed vehicles','Artillery'}
-    --JTAC.categories['Structures'] = {'StaticObjects'}
+    JTAC.categories['Structures'] = {'Buildings'}
 
     ---@return JTAC
     function JTAC:new(obj)
@@ -124,7 +124,11 @@ do
             self.lasers.laser = Spot.createLaser(unit,{ x = 0, y = 1, z = 0 },self.target:getPoint(), self.laser_code)
             self.lasers.ir = Spot.createInfraRed(unit, { x = 0, y = 1, z = 0 }, self.target:getPoint())
     
-            trigger.action.outTextForCoalition(self.side, self.callsign.." JTAC targeting ".. self.target:getTypeName() .."\nLaser Code: "..self.laser_code, 10)
+            ---@type string
+            local target_name = self.target:getTypeName()
+            if target_name:sub(1,1) == "." then target_name = target_name:sub(2) end
+
+            trigger.action.outTextForCoalition(self.side, self.callsign.." JTAC targeting ".. target_name .."\nLaser Code: "..self.laser_code, 10)
             trigger.action.outSoundForCoalition(self.side, "radio_beep4.ogg")
         end
     end
@@ -278,14 +282,18 @@ do
                     return trigger.action.outTextForCoalition(jtac.side, jtac.callsign..' JTAC scanning... No targets locked.', 10)
                 end
 
-                local toprint = self.callsign.." JTAC\n"
-                if self.priority then toprint = toprint..'Priority: '..self.priority..'\n' end
+                local toprint = jtac.callsign.." JTAC\n"
+                if jtac.priority then toprint = toprint..'Priority: '..jtac.priority..'\n' end
                 
-                toprint = toprint..'Target: '.. jtac.target:getTypeName() ..'\n'
-                toprint = toprint..'Laser Code: '..self.laser_code..'\n'
+                ---@type string
+                local target_name = jtac.target:getTypeName()
+                if target_name:sub(1,1) == "." then target_name = target_name:sub(2) end
+
+                toprint = toprint..'Target: '.. target_name ..'\n'
+                toprint = toprint..'Laser Code: '..jtac.laser_code..'\n'
                 
-                local lat,lon,alt = coord.LOtoLL(self.target:getPoint())
-                local mgrs = coord.LLtoMGRS(coord.LOtoLL(self.target:getPoint()))
+                local lat,lon,alt = coord.LOtoLL(jtac.target:getPoint())
+                local mgrs = coord.LLtoMGRS(coord.LOtoLL(jtac.target:getPoint()))
                 toprint = toprint..'\nDDM:  '.. mist.tostringLL(lat,lon,3)
                 toprint = toprint..'\nDMS:  '.. mist.tostringLL(lat,lon,2,true)
                 toprint = toprint..'\nMGRS: '.. mist.tostringMGRS(mgrs, 5)
@@ -321,6 +329,13 @@ do
                                 unit_count = unit_count + 1
                             end
                         end
+                    end
+                end
+                for _,static_name in pairs(zone.linked_statics) do
+                    local static_obj = StaticObject.getByName(static_name)
+                    if static_obj and static_obj.isExist and static_obj:isExist() then
+                        unit_types["Structure"] = (unit_types["Structure"] or 0) + 1
+                        unit_count = unit_count + 1
                     end
                 end
                 
@@ -361,7 +376,7 @@ do
                 if mist.utils.get2DDist(jtac_gr:getUnit(1):getPoint(), jtac.target:getPoint()) < 20000 then
                     self.smoke_count = self.smoke_count -1
                     trigger.action.smoke(jtac.target:getPosition().p, trigger.smokeColor.Red)
-                    trigger.action.outTextForCoalition(jtac.side, jtac.callsign.." JTAC: Tally RED smoke! ("..self.smoke_count.." left)", 10)
+                    trigger.action.outTextForCoalition(jtac.side, jtac.callsign.." JTAC: RED smoke marker in effect ("..self.smoke_count.." left)", 10)
                     trigger.action.outSoundForCoalition(jtac.side, "radio_beep4.ogg")
                 else
                     trigger.action.outTextForCoalition(jtac.side, jtac.callsign..' JTAC: Too far to deploy smoke accurately.', 10)

@@ -12,6 +12,96 @@ do
     PersistenceManager.enabled = false
     PersistenceManager.data = {}
 
+    local function cleanJSON(json_text)
+        if not json_text or json_text == "" then
+            return json_text
+        end
+
+        local indent = 0
+        local output = {}
+        local stack = {}
+        local in_string = false
+        local escaped = false
+
+        local function append(chunk)
+            output[#output + 1] = chunk
+        end
+
+        local function current_frame()
+            return stack[#stack]
+        end
+
+        local function start_value()
+            local frame = current_frame()
+            if frame and frame.pending_indent then
+                append("\n")
+                append(string.rep("    ", indent))
+                frame.pending_indent = false
+            end
+            if frame then
+                frame.has_content = true
+            end
+        end
+
+        for i = 1, #json_text do
+            local char = json_text:sub(i, i)
+
+            if in_string then
+                append(char)
+                if escaped then
+                    escaped = false
+                elseif char == "\\" then
+                    escaped = true
+                elseif char == '"' then
+                    in_string = false
+                end
+            elseif char == '"' then
+                start_value()
+                in_string = true
+                append(char)
+            elseif char == '{' or char == '[' then
+                start_value()
+                append(char)
+                indent = indent + 1
+                stack[#stack + 1] = {
+                    close = char == '{' and '}' or ']',
+                    has_content = false,
+                    pending_indent = true
+                }
+            elseif char == '}' or char == ']' then
+                local frame = current_frame()
+                if frame then
+                    if frame.has_content then
+                        append("\n")
+                        indent = math.max(indent - 1, 0)
+                        append(string.rep("    ", indent))
+                    else
+                        indent = math.max(indent - 1, 0)
+                    end
+                    append(char)
+                    stack[#stack] = nil
+                else
+                    append(char)
+                end
+            elseif char == ',' then
+                append(char)
+                local frame = current_frame()
+                if frame then
+                    frame.pending_indent = true
+                end
+            elseif char == ':' then
+                append(": ")
+            elseif char:match("%s") then
+                -- Skip insignificant whitespace from the compact encoder.
+            else
+                start_value()
+                append(char)
+            end
+        end
+
+        return table.concat(output)
+    end
+
     function PersistenceManager:isEnabled()
         if not Config or not Config.persistence then return false end
 
@@ -51,18 +141,16 @@ do
                 airbase_name = z.airbase_name,  -- Only for airbases
                 sam_classification = z.sam_classification,  -- Only for SAM sites
                 
-                capture_heli_avail = z.capture_heli_avail or 0,
+                heli_avail = z.heli_avail or 0,
                 attack_convoy = z.attack_convoy or 0,
                 
                 -- State tracking
                 ammo_depot_intact = z.ammo_depot_intact,
                 ammo_depot_time_since_destroyed = z.ammo_depot_last_destroyed and (timer.getTime() - z.ammo_depot_last_destroyed) or nil,
+                local_supplies = z.local_supplies or 0,
 
                 comms_tower_intact = z.comms_tower_intact,
                 comms_tower_time_since_destroyed = z.comms_tower_last_destroyed and (timer.getTime() - z.comms_tower_last_destroyed) or nil,
-
-                cmdc_intact = z.cmdc_intact,
-                cmdc_time_since_destroyed = z.cmdc_last_destroyed and (timer.getTime() - z.cmdc_last_destroyed) or nil,
 
                 -- Zone FARPs are dynamically recreated and may get new object names on restore.
                 -- Persist their warehouse inventory with the zone record so we can remap it.
@@ -155,7 +243,8 @@ do
                                     table.insert(group_units_data, {
                                         type = unit:getTypeName(),
                                         name = unit:getName(),
-                                        point = unit:getPoint()
+                                        point = unit:getPoint(),
+                                        heading = mist.getHeading(unit, true) or 0
                                     })
                             end
                         end
@@ -202,7 +291,8 @@ do
                                 shape_name = asset.shape_name,
                                 type = asset.type,
                                 point = obj:getPoint(),
-                                coalition = asset.coalition
+                                coalition = asset.coalition,
+                                heading = mist.getHeading(obj, true) or 0
                             })
                         elseif not obj:inAir() then
                             table.insert(PersistenceManager.data.placed_assets, {
@@ -210,7 +300,8 @@ do
                                 asset_name = asset.asset_name,
                                 type = asset.type,
                                 point = obj:getPoint(),
-                                coalition = asset.coalition or obj:getCoalition()
+                                coalition = asset.coalition or obj:getCoalition(),
+                                heading = mist.getHeading(obj, true) or 0
                             })
                         end
                     end
@@ -232,7 +323,14 @@ do
             if zone_data then
                 -- Refund Asset Counts to the Save Data
                 if enroute.ai_task_type == AITaskTypes.CAPTURE_HELO then
-                    zone_data.capture_heli_avail = (zone_data.capture_heli_avail or 0) + 1
+                    zone_data.heli_avail = (zone_data.heli_avail or 0) + 1
+                elseif enroute.ai_task_type == AITaskTypes.REINFORCEMENT_HELO then
+                    zone_data.heli_avail = (zone_data.heli_avail or 0) + 1
+
+                    local required_supplies = (Config.operations and Config.operations.upgrade_required_supplies) or 300
+                    local level = zone_data.level or 1
+                    local cap = (Config.supplies and Config.supplies.supplies_cap and Config.supplies.supplies_cap[level]) or 0
+                    zone_data.local_supplies = math.min((zone_data.local_supplies or 0) + required_supplies, cap)
                 elseif enroute.ai_task_type == AITaskTypes.ATTACK_CONVOY then
                     zone_data.attack_convoy = (zone_data.attack_convoy or 0) + 1
                 end
@@ -241,6 +339,7 @@ do
             -- Refund Aircraft & Payloads to the Warehouse Data
             -- (Skip ground assets that don't use warehouses)
             if enroute.ai_task_type ~= AITaskTypes.CAPTURE_HELO
+            and enroute.ai_task_type ~= AITaskTypes.REINFORCEMENT_HELO
             and enroute.ai_task_type ~= AITaskTypes.ATTACK_CONVOY
             and enroute.ai_task_type ~= AITaskTypes.RESUPPLY_CARGO then
                 
@@ -302,7 +401,7 @@ do
 
         if not JSON then return end
             ---@diagnostic disable-next-line: undefined-field
-            local file_content = JSON:encode(PersistenceManager.data)
+            local file_content = cleanJSON(JSON:encode(PersistenceManager.data))
             if file_content then
 
                 local file= io.open(PersistenceManager.mission_save_file_path, "w")
@@ -408,8 +507,6 @@ do
         stats = PersistenceManager.data.stats
         stats.blue_comms_antennas = 0
         stats.red_comms_antennas = 0
-        stats.blue_command_posts = 0
-        stats.red_command_posts = 0
         stats.blue_ammo_depots = 0
         stats.red_ammo_depots = 0
         MissionLogger:info("Stats table restored.")
@@ -427,31 +524,23 @@ do
                 zone.sam_classification = saved_zone.sam_classification
                 
                 -- Restore dynamic counters
-                zone.capture_heli_avail = saved_zone.capture_heli_avail or 0
+                zone.heli_avail = saved_zone.heli_avail or saved_zone.capture_heli_avail or 0
                 zone.attack_convoy = saved_zone.attack_convoy or 0
                 
                 -- Restore state tracking
                 zone.ammo_depot_intact = saved_zone.ammo_depot_intact
                 if saved_zone.ammo_depot_time_since_destroyed then
                     zone.ammo_depot_last_destroyed = timer.getTime() - saved_zone.ammo_depot_time_since_destroyed
+                else
+                    zone.ammo_depot_last_destroyed = nil
                 end
+                zone.local_supplies = saved_zone.local_supplies or 0
                 
                 zone.comms_tower_intact = saved_zone.comms_tower_intact
                 if saved_zone.comms_tower_time_since_destroyed then
                     zone.comms_tower_last_destroyed = timer.getTime() - saved_zone.comms_tower_time_since_destroyed
                 else
                     zone.comms_tower_last_destroyed = nil
-                end
-
-                -- Backward compatibility: old saves may not include cmdc_* fields.
-                zone.cmdc_intact = saved_zone.cmdc_intact
-                if zone.zone_type == ZoneTypes.AIRBASE and zone.cmdc_intact == nil then
-                    zone.cmdc_intact = true
-                end
-                if saved_zone.cmdc_time_since_destroyed then
-                    zone.cmdc_last_destroyed = timer.getTime() - saved_zone.cmdc_time_since_destroyed
-                else
-                    zone.cmdc_last_destroyed = nil
                 end
                 
                 -- Clear runtime tracking arrays - will be repopulated by spawn functions
@@ -506,8 +595,10 @@ do
                 
                 -- Redraw the F10 map
                 zone:drawF10()
+                table.insert(new_zones, zone)
+            else
+                MissionLogger:warn("Restore skipped missing zone: " .. tostring(saved_zone.name))
             end
-            table.insert(new_zones, zone)
         end
         zones = new_zones
         
@@ -526,7 +617,7 @@ do
                         category = saved_asset.category or "Fortifications",
                         x = saved_asset.point.x,
                         y = saved_asset.point.z,
-                        heading = 0
+                        heading = saved_asset.heading or 0
                     })
                 end
             end
@@ -596,6 +687,7 @@ do
                                 name = unit_data.name,
                                 x = unit_data.point.x,
                                 y = unit_data.point.z,
+                                heading = unit_data.heading or 0,
                             })
                         end
                         
@@ -614,7 +706,8 @@ do
                                 asset_name = saved_asset.asset_name,
                                 type = saved_asset.type,
                                 coalition = saved_asset.coalition,
-                                unit_count = #units_table
+                                unit_count = #units_table,
+                                units = saved_asset.units
                             })
                             MissionLogger:info(string.format("Restored group %s with %d units", saved_asset.group_name, #units_table))
                         end
@@ -632,7 +725,8 @@ do
                                 shape_name = saved_asset.shape_name,
                                 type = saved_asset.type,
                                 point = saved_asset.point,
-                                coalition = saved_asset.coalition
+                                coalition = saved_asset.coalition,
+                                heading = saved_asset.heading
                             })
                         else
                             local part = nil
@@ -653,7 +747,7 @@ do
                                     local unit_name = saved_asset.type == ctld.AssetTypes.VEHICLES
                                         and Config.ctld.unpacked_asset_prefix ..part.name .. "_" .. u_id
                                         or part.name .. "_" .. u_id
-                                    
+
                                     local spawned_group = mist.dynAdd({
                                         units = {{
                                             type = part.name,
@@ -661,18 +755,20 @@ do
                                             name = unit_name,
                                             x = saved_asset.point.x,
                                             y = saved_asset.point.z,
+                                            heading = saved_asset.heading or 0,
                                         }},
                                         country = country_id,
                                         category = Group.Category.GROUND,
                                     })
-                                    
+
                                     if spawned_group then
                                         table.insert(ctld.placed_assets, {
                                             unit_name = unit_name,
                                             asset_name = part.name,
                                             point = saved_asset.point,
                                             type = saved_asset.type,
-                                            coalition = saved_asset.coalition
+                                            coalition = saved_asset.coalition,
+                                            heading = saved_asset.heading
                                         })
                                     end
                                 end
@@ -682,11 +778,7 @@ do
                 end
             end
         end
-        
-        -- Updates check
-        if not stats.blue_supplies then stats.blue_supplies = 0 end
-        if not stats.red_supplies then stats.red_supplies = 0 end
-        
+
         MissionLogger:info("Mission state successfully restored.")
         --trigger.action.outText("Persistence, restored from last save.", 10)
         return true
@@ -696,8 +788,8 @@ function PersistenceManager:saveUserDataToFile()
         if not PersistenceManager.enabled then return end
         if not PersistenceManager.user_data_file_path then return end
         if not JSON then return end
-        
-        local file_content = JSON:encode(ExperienceManager.user_data)
+
+    local file_content = cleanJSON(JSON:encode(ExperienceManager.user_data))
 
         if file_content then
             local file = io.open(PersistenceManager.user_data_file_path, "w")
@@ -734,7 +826,7 @@ function PersistenceManager:saveUserDataToFile()
 
     function PersistenceManager:autoSave()
         if not Config or not Config.persistence or not Config.persistence.save_interval then return end
-        
+
         MissionLogger:info("Auto-save enabled.")
 
         timer.scheduleFunction(function()

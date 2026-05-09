@@ -9,6 +9,12 @@
 ---@field aborted boolean|nil for aboted heli
 ---@field redirects_count number|nil for attack convoy
 ---@field stuck_since number|nil timestamp when the enroute got stuck
+---@field tanker_sector_id string|nil
+---@field tanker_role string|nil
+---@field last_pos vec3|nil last observed position for landing checks
+---@field last_pos_time number|nil timestamp of last observed position
+---@field landed_candidate_since number|nil timestamp when landing conditions started
+---@field has_been_airborne boolean|nil true after the heli has lifted off at least once
 
 ---@class EnrouteManager
 ---@field enroutes EnrouteObj[]
@@ -140,6 +146,149 @@ do
             end
         end
         return results
+    end
+
+    function EnrouteManager:checkEnroutes()
+        local enroutes = self.enroutes
+        for i = #enroutes, 1, -1 do
+            local enroute = enroutes[i]
+            if not enroute then
+                table.remove(enroutes, i)
+            else
+                local grp = Group.getByName(enroute.group_name)
+                if not grp or not grp:isExist() then
+                    if enroute.ai_task_type == AITaskTypes.JTAC and enroute.jtac then
+                        missionCommands.removeItemForCoalition(enroute.jtac.side, enroute.jtac.jtac_menu)
+                        enroute.jtac.jtac_menu = nil
+                    end
+
+                    table.remove(enroutes, i)
+                    MissionLogger:info("EnrouteManager: Removed "..enroute.ai_task_type.." from enroutes: " .. enroute.group_name)
+                end
+            end
+        end
+    end
+
+    ---Handle AI helicopter landing logic (event + periodic check)
+    ---@param enroute_heli EnrouteObj
+    ---@param unit Unit
+    ---@param group_pos vec3
+    function EnrouteManager:handleHeloLanding(enroute_heli, unit, group_pos)
+        if not enroute_heli or not unit or not unit.isExist or not unit:isExist() then return end
+
+        local group_name = enroute_heli.group_name
+        local landed_pos = group_pos or unit:getPoint()
+
+        -- ABORTED HELI
+        if enroute_heli.aborted and landed_pos and enroute_heli.from_zone:isPointInsideZone(landed_pos) then
+            EnrouteManager:remove(group_name)
+            MissionLogger:info("Removed LANDED aborted heli from enroutes: " .. group_name)
+            timer.scheduleFunction(function ()
+                unit:getGroup():destroy()
+            end, {}, timer.getTime() + 10)
+
+            if enroute_heli.from_zone.heli_avail and enroute_heli.side == unit:getCoalition() then
+                MissionLogger:info("Adding back heli to zone: " .. enroute_heli.from_zone.name)
+                enroute_heli.from_zone.heli_avail = enroute_heli.from_zone.heli_avail + 1
+                enroute_heli.from_zone:drawF10()
+            end
+            return
+        end
+
+        if enroute_heli.ai_task_type == AITaskTypes.CAPTURE_HELO then
+            TheatreCommander.checkIfCaptureGroupArrived(enroute_heli)
+        elseif enroute_heli.ai_task_type == AITaskTypes.REINFORCEMENT_HELO then
+            local zone_coal_check = ZoneHandler.getFromName(enroute_heli.to_zone.name)
+
+            if zone_coal_check
+            and zone_coal_check.side == enroute_heli.side
+            and landed_pos
+            and zone_coal_check:isPointInsideZone(landed_pos)
+            then
+                if (zone_coal_check.level or 1) < 4 then
+                    zone_coal_check.level = (zone_coal_check.level or 1) + 1
+                    zone_coal_check.next_level_up_avail = timer.getTime() + (Config.logistics_level_up_interval or (16 * 60))
+                    UnitHandler.updateZoneUnits(zone_coal_check)
+                    zone_coal_check:drawF10()
+
+                    trigger.action.outTextForCoalition(enroute_heli.side,
+                        string.format("SITREP: %s has reached operational tier %d/4 ", zone_coal_check.name, zone_coal_check.level), 10)
+                    trigger.action.outSoundForCoalition(enroute_heli.side, "radio_beep3.ogg")
+                end
+
+                EnrouteManager:remove(group_name)
+            end
+        end
+
+        timer.scheduleFunction(function ()
+            unit:getGroup():destroy()
+        end, {}, timer.getTime() + 10)
+    end
+
+    ---Periodic AI helicopter landing check for slope cases
+    function EnrouteManager:checkAiHeloLandings()
+        local enroutes = self.enroutes
+        if #enroutes == 0 then return end
+
+        local now = timer.getTime()
+        for i = #enroutes, 1, -1 do
+            local enroute = enroutes[i]
+            if enroute
+            and (enroute.ai_task_type == AITaskTypes.CAPTURE_HELO or enroute.ai_task_type == AITaskTypes.REINFORCEMENT_HELO or enroute.aborted) then
+                local grp = Group.getByName(enroute.group_name)
+                if grp and grp.isExist and grp:isExist() then
+                    local unit = grp:getUnit(1)
+                    local is_player = unit and unit.getPlayerName and unit:getPlayerName()
+
+                    if unit and unit.isExist and unit:isExist()
+                    and not is_player
+                    and unit.getDesc and unit:getDesc().category == Unit.Category.HELICOPTER
+                    then
+                        local pos = unit:getPoint()
+                        if pos then
+                            if not enroute.has_been_airborne then
+                                if unit:inAir() then
+                                    enroute.has_been_airborne = true
+                                else
+                                    enroute.landed_candidate_since = nil
+                                    enroute.last_pos = { x = pos.x, y = pos.y, z = pos.z }
+                                    enroute.last_pos_time = now
+                                end
+                            end
+
+                            if enroute.has_been_airborne then
+                                local ground = land.getHeight({x = pos.x, y = pos.z})
+                                local agl = pos.y - ground
+                                local last_pos = enroute.last_pos
+                                local handled = false
+
+                                if last_pos then
+                                    local dx = pos.x - last_pos.x
+                                    local dz = pos.z - last_pos.z
+                                    local dist_sq = (dx * dx) + (dz * dz)
+
+                                    if dist_sq <= 100 and agl <= 5 then
+                                        enroute.landed_candidate_since = enroute.landed_candidate_since or now
+                                        if (now - enroute.landed_candidate_since) >= 15 then
+                                            MissionLogger:info("AI Helicopter " .. enroute.group_name .. " considered landed")
+                                            self:handleHeloLanding(enroute, unit, pos)
+                                            handled = true
+                                        end
+                                    else
+                                        enroute.landed_candidate_since = nil
+                                    end
+                                end
+
+                                if not handled then
+                                    enroute.last_pos = { x = pos.x, y = pos.y, z = pos.z }
+                                    enroute.last_pos_time = now
+                                end
+                            end
+                        end
+                    end
+                end
+            end
+        end
     end
 
 end

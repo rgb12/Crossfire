@@ -19,8 +19,8 @@ function ev:onEvent(event)
         and unit:isExist() and unit.getPlayerName and unit:getPlayerName() then
   
             local function checkSpawnAllowed() -- Slot blocker
-
                 if not unit or not unit.isExist or not unit:isExist() or not unit.getCoalition then return end
+                MissionLogger:info("Slot blocker checking for ".. unit:getName())
                 local unit_pos = unit:getPoint()
                 local unit_coalition = unit:getCoalition()
                 -- Checks if the player has the right to spawn in the airbase
@@ -45,14 +45,16 @@ function ev:onEvent(event)
                                         local warehouse = airbase:getWarehouse()
                                         if warehouse then
                                             --MissionLogger:info(warehouse:getInventory())
-                                            local acft_count = warehouse:getItemCount(acft_name) or 0
+                                            local acft_count = (warehouse:getItemCount(acft_name) or 0)+1
                                             --MissionLogger:info(acft_count)
                                             
-                                            if acft_count > 0 then
+                                            if acft_count >= 1 then -- the airplane gets used before this script is executed, this is a must
                                                 can_spawn = true
                                                 
-                                                -- Due to the size of the C130, certain bases do not have spawn slots.
+                                                -- Due to the size of the C130, ALL airbases do not have spawn slots as "takeoff from ramp" but "takeoff from ground".
                                                 -- The workaround is to spawn them as taking off from ground, but the script has to check for this case specifically
+                                                --https://github.com/rgb12/Crossfire/issues/49
+
                                                 if acft_name == WarehouseManager.AircraftFlags.C130J_30 or
                                                 zone.zone_type == ZoneTypes.FARP then
                                                     warehouse:removeItem(acft_name,1)
@@ -67,7 +69,7 @@ function ev:onEvent(event)
                                                 ))
 
                                                 can_spawn = false
-                                                --warehouse:addItem(acft_name,1)
+                                                warehouse:addItem(acft_name,1)
                                                 if acft_name == WarehouseManager.AircraftFlags.C130J_30 then
                                                     trigger.action.outTextForUnit(unit:getID(), "C130J-30 user; If you tried spawning right after mission start, please wait a moment and try again.",30)
                                                 end
@@ -130,8 +132,9 @@ function ev:onEvent(event)
                         local user = ExperienceManager:fetchUser(unit)
                         if user then
                             local rank_name = "Unranked"
-                            local next_rank_xp = 1010101010
+                            local next_rank_xp = nil
                             local next_rank = "..."
+
                             for i = #Config.reward_system.ranks, 1, -1 do
                                 local rank = Config.reward_system.ranks[i]
                                 if user.xp >= rank.xp_required then
@@ -143,6 +146,8 @@ function ev:onEvent(event)
                                     break
                                 end
                             end
+
+                            if not next_rank then next_rank = "No Next Rank" end
                             local out_text = string.format("< XP and Rank >\n\nRank: %s\n\nXP: %d (+%d)\nMissions Completed: %d\n\nNext Rank: %s\n  %s XP",
                                 rank_name, user.xp, user.unclaimed_xp, user.missions_completed, next_rank, next_rank_xp)
                             trigger.action.outTextForGroup(group_id, out_text, 15)
@@ -162,16 +167,7 @@ function ev:onEvent(event)
                 end
             end
 
-            if timer.getTime() < 15 then
-                -- wait for mission to initialize, 15 seconds is just what I found to work during testing, this needs to be improved
-                trigger.action.outTextForUnit(unit:getID(), "Assets and warehouses are still loading; if your slot is blocked, try again in a moment.",20)
-                timer.scheduleFunction(function ()
-                    checkSpawnAllowed()
-                end, {}, timer.getTime() + 15)
-            else
-                checkSpawnAllowed()
-            end
-            -- checkSpawnAllowed()
+            checkSpawnAllowed()
 
         end
     end
@@ -207,7 +203,6 @@ function ev:onEvent(event)
         local unit = event.initiator
         if unit and unit.isExist and unit:isExist() and unit.getGroup then
             local group_name = unit:getGroup():getName()
-            -- checks if a capture heli aborted, if yes, remove it from enroute_capture_heli
             MissionLogger:info("AI unit aborted mission: " .. unit:getName())
 
             local enroute_aborted = EnrouteManager:findByGroup(group_name)
@@ -239,36 +234,9 @@ function ev:onEvent(event)
 
             -- ABORTED HELI
             local enroute_heli = EnrouteManager:findByGroup(group_name)
-            local group_pos = mist.getLeadPos(group_name)
-            if enroute_heli and enroute_heli.aborted and group_pos and enroute_heli.from_zone:isPointInsideZone(group_pos) then
-                EnrouteManager:remove(group_name)
-                MissionLogger:info("Removed LANDED aborted heli from enroutes: " .. group_name)
-                    timer.scheduleFunction(function ()
-                        unit:getGroup():destroy()
-                    end, {}, timer.getTime() + 10)
-
-                    -- add back the heli to the zone
-                    -- WARN is this necessary, does changing in enroute change in zones as well?
-                    -- local heli_original_zone = ZoneHandler.getFromName(enroute_heli.from_zone.name) -- this checks the side
-
-                    if enroute_heli.from_zone.capture_heli_avail and enroute_heli.side == unit:getCoalition() then
-                        MissionLogger:info("Adding back heli to zone: " .. enroute_heli.from_zone.name)
-                        enroute_heli.from_zone.capture_heli_avail = enroute_heli.from_zone.capture_heli_avail + 1
-                        enroute_heli.from_zone:drawF10()
-                    end
-            elseif enroute_heli then
-                -- POSSIBLE CAPTURE HELI
-                    --check if in zone, if so abort all others inbound to the zone
-                    if  TheatreCommander.checkIfCaptureGroupArrived(enroute_heli) then
-                        timer.scheduleFunction(function ()
-                            unit:getGroup():destroy()
-                        end, {}, timer.getTime() + 10)
-                    else
-                        timer.scheduleFunction(function ()
-                            unit:getGroup():destroy()
-                        end, {}, timer.getTime() + 10)
-
-                    end
+            if enroute_heli then
+                local group_pos = mist.getLeadPos(group_name)
+                EnrouteManager:handleHeloLanding(enroute_heli, unit, group_pos)
             end
 
             if unit and unit.getPlayerName and unit:getPlayerName() then

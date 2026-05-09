@@ -7,6 +7,7 @@ do
 
     -- Track group menus: group_menus[group_id] = { {path=..., type=...}, ... }
     CommandHandler.group_menus = {}
+    CommandHandler.temp_select_menu = {}
 
     CommandHandler.destroy_page = 1
 
@@ -56,6 +57,10 @@ do
         if not gr then return end
         local gr_id = gr:getID()
 
+        if type == "tasking_main" or type == "tasking_temp_zone" then
+            CommandHandler.destroySelectMenu(gr_id)
+        end
+
         if CommandHandler.group_menus[gr_id] then
             -- Remove existing menus. 
             for i = #CommandHandler.group_menus[gr_id], 1, -1 do
@@ -72,6 +77,8 @@ do
         if not gr or not gr.isExist or not gr:isExist() then return end
         local gr_id = gr:getID()
 
+        CommandHandler.destroySelectMenu(gr_id)
+
         if CommandHandler.group_menus[gr_id] then
             -- Remove existing menus. 
             for i = #CommandHandler.group_menus[gr_id], 1, -1 do
@@ -86,6 +93,62 @@ do
             CommandHandler.group_menus[gr_id] = {}
         end
         table.insert(CommandHandler.group_menus[gr_id], {path=menu_path, type=menu_type})
+    end
+
+    ---@param gr_id number
+    ---@param menu_path any
+    function CommandHandler.removeTrackedMenuPath(gr_id, menu_path)
+        local tracked_menus = CommandHandler.group_menus[gr_id]
+        if not tracked_menus then return end
+
+        for i = #tracked_menus, 1, -1 do
+            if tracked_menus[i].path == menu_path then
+                table.remove(tracked_menus, i)
+                break
+            end
+        end
+    end
+
+    ---@param gr_id number
+    function CommandHandler.destroySelectMenu(gr_id)
+        local select_menu = CommandHandler.temp_select_menu[gr_id]
+        if not select_menu then return end
+
+        missionCommands.removeItemForGroup(gr_id, select_menu.path)
+        CommandHandler.removeTrackedMenuPath(gr_id, select_menu.path)
+        CommandHandler.temp_select_menu[gr_id] = nil
+    end
+
+    ---@param gr_id number
+    ---@param token number
+    ---@param ttl_sec number
+    function CommandHandler.scheduleTempRequestSubmenuCleanup(gr_id, token, ttl_sec)
+        timer.scheduleFunction(function(args)
+            local select_menu = CommandHandler.temp_select_menu[args.gr_id]
+            if not select_menu then return end
+            if select_menu.token ~= args.token then return end
+            CommandHandler.destroySelectMenu(args.gr_id)
+        end, {gr_id = gr_id, token = token}, timer.getTime() + ttl_sec)
+    end
+
+    ---@param unit Unit|nil
+    ---@param gr_id number|nil
+    ---@return boolean
+    function CommandHandler.isGrounded(unit, gr_id)
+        if not unit or not unit.isExist or not unit:isExist() then
+            return false
+        end
+
+        if unit:inAir() then
+            local message = "CMD-HQ - Negative, unavailable while airborne."
+            if gr_id then
+                trigger.action.outTextForGroup(gr_id, message, 8)
+                trigger.action.outSoundForGroup(gr_id, "Radio squelch.ogg")
+            end
+            return false
+        end
+
+        return true
     end
 
     ---@param gr Group
@@ -104,21 +167,52 @@ do
             if not operation_manager then return end
 
             local group_id = gr:getID()
+            local group_name = gr:getName()
+
+            local function getCurrentPlayerUnit()
+                local live_group = Group.getByName(group_name)
+                if not live_group or not live_group.isExist or not live_group:isExist() then
+                    return nil
+                end
+
+                local group_size = live_group:getSize() or 0
+                for i = 1, group_size do
+                    local member = live_group:getUnit(i)
+                    if member and member:isExist() and member.getPlayerName and member:getPlayerName() then
+                        return member
+                    end
+                end
+
+                local fallback = live_group:getUnit(1)
+                if fallback and fallback:isExist() then
+                    return fallback
+                end
+                return nil
+            end
 
             local missions_submenu = missionCommands.addSubMenuForGroup(group_id, "Operations")
             CommandHandler.addToMenuTracking(group_id, missions_submenu, "operations_menu")
 
             missionCommands.addCommandForGroup(group_id, "Available Operations", missions_submenu,function()
-                operation_manager:showAvailableOperations(unit)
+                local live_unit = getCurrentPlayerUnit()
+                if live_unit then
+                    operation_manager:showAvailableOperations(live_unit)
+                end
             end)
 
             missionCommands.addCommandForGroup(group_id, "Active Operation", missions_submenu,function()
-                operation_manager:showActiveOperation(unit)
+                local live_unit = getCurrentPlayerUnit()
+                if live_unit then
+                    operation_manager:showActiveOperation(live_unit)
+                end
             end)
             local cancel_op_menu = missionCommands.addSubMenuForGroup(group_id, "Cancel Active Operation",missions_submenu)
 
             missionCommands.addCommandForGroup(group_id, "Confirm (Cancel Active Operation)", cancel_op_menu,function()
-                operation_manager:cancelOperation(unit)
+                local live_unit = getCurrentPlayerUnit()
+                if live_unit then
+                    operation_manager:cancelOperation(live_unit)
+                end
             end)
 
 
@@ -134,18 +228,18 @@ do
                     for _, i3 in ipairs(digit_order) do
                         local code = tonumber(i1 .. i2 .. i3)
                         missionCommands.addCommandForGroup(group_id,tostring(code), digit2,
-                            function(c,u)
-                                
-                                if u and u:getCoalition() == operation_manager.side then
-                                    operation_manager:activateOperation(u, c)
+                            function(c)
+                                local live_unit = getCurrentPlayerUnit()
+                                if live_unit and live_unit:getCoalition() == operation_manager.side then
+                                    operation_manager:initiateOperation(live_unit, c)
                                 end
-                            end, code, unit)
+                            end, code)
                     end
                 end
             end
 
             -- Co-op Operations Menu
-            local coop_submenu = missionCommands.addSubMenuForGroup(group_id, "Co-op Operations", missions_submenu)
+            local coop_submenu = missionCommands.addSubMenuForGroup(group_id, "CO-OP Operations", missions_submenu)
 
             local join_coop_menu = missionCommands.addSubMenuForGroup(group_id, "Join CO-OP", coop_submenu)
             
@@ -156,30 +250,39 @@ do
                     for _, i3 in ipairs(digit_order) do
                         local join_code = tonumber(i1 .. i2 .. i3)
                         missionCommands.addCommandForGroup(group_id, tostring(join_code), digit2,
-                            function(code, unit)
-                                if unit and unit:getCoalition() == operation_manager.side then
-                                    operation_manager:joinCoopOperation(unit, code)
+                            function(code)
+                                local live_unit = getCurrentPlayerUnit()
+                                if live_unit and live_unit:getCoalition() == operation_manager.side then
+                                    operation_manager:joinCoopOperation(live_unit, code)
                                 end
-                            end, join_code, unit)
+                            end, join_code)
                     end
                 end
             end
 
             missionCommands.addCommandForGroup(group_id, "Leave CO-OP", coop_submenu, function()
-                operation_manager:leaveCoopOperation(unit)
+                local live_unit = getCurrentPlayerUnit()
+                if live_unit then
+                    operation_manager:leaveCoopOperation(live_unit)
+                end
             end)
 
             missionCommands.addCommandForGroup(group_id, "CO-OP Status", coop_submenu, function()
-                operation_manager:showCoopOperationStatus(unit)
+                local live_unit = getCurrentPlayerUnit()
+                if live_unit then
+                    operation_manager:showCoopOperationStatus(live_unit)
+                end
             end)
         end
     end
+
 
     ---@param gr Group
     function CommandHandler.resourcesRequests(gr)
 
         if not gr or not gr.isExist or not gr:isExist() then return end
         local gr_id = gr:getID()
+        local group_name = gr:getName()
 
         -- Clear existing resources menu before rebuilding
         CommandHandler.clearMenu(gr, "logistics_main")
@@ -231,34 +334,39 @@ do
                             local target_zone = args.target_zone
                             local stock = args.stock_types
                             local cost = args.cost
+                            if not CommandHandler.isGrounded(unit,gr_id) then return end
 
                             -- Check if airbase is still friendly before sending 
                             local ab = ZoneHandler.getFromName(target_zone.name)
                             if not ab then return end
                             if ab.side ~= side then
-                                trigger.action.outTextForGroup(gr_id,"HQ Negative resupply response for " .. target_zone.name .. ": area lost. Stand by for next resupply or capture additional zones.",8)
+                                trigger.action.outTextForGroup(gr_id,"CMD-HQ - Negative resupply response for " .. target_zone.name .. ": area lost. Stand by for next resupply or capture additional zones.",8)
                                 trigger.action.outSoundForGroup(gr_id, "radio_beep3.ogg")
                                 return
                             end
 
-
-                            if side == 2 then
-                                if stats.blue_supplies < cost then
-                                    trigger.action.outTextForGroup(gr_id,"HQ Negative resupply response for " .. target_zone.name .. ": supplies low (" .. stats.blue_supplies .. "/" .. cost .. "). Stand by for next resupply or capture additional zones.",8)
-                                    trigger.action.outSoundForGroup(gr_id, "radio_beep3.ogg")
-                                    return
-                                else
-                                    stats.blue_supplies = math.max(stats.blue_supplies - cost,0)
-                                end
-                            elseif side == 1 then
-                               if stats.red_supplies < cost then
-                                    trigger.action.outTextForGroup(gr_id,"HQ Negative resupply response for " .. target_zone.name .. ": supplies low (" .. stats.red_supplies .. "/" .. cost .. "). Stand by for next convoy or secure more territory.",8)
-                                    trigger.action.outSoundForGroup(gr_id, "radio_beep3.ogg")
-                                    return
-                               else
-                                    stats.red_supplies = math.max(stats.red_supplies - cost,0)
-                                end
+                            local supplies_zone = utils.fetchSuppliesZoneFromUnit(u)
+                            if not supplies_zone then
+                                trigger.action.outTextForGroup(gr_id,"CMD-HQ - CMD-HQ - Negative, action cannot be executed from your position.",8)
+                                trigger.action.outSoundForGroup(gr_id, "radio_beep3.ogg")
+                                return
                             end
+
+                            if supplies_zone.ammo_depot_intact ~= true then
+                                trigger.action.outTextForGroup(gr_id, "CMD-HQ - Negative, no operational Ammunition Depot in your current supply zone.", 8)
+                                trigger.action.outSoundForGroup(gr_id, "radio_beep3.ogg")
+                                return
+                            end
+
+                            local local_supplies = supplies_zone.local_supplies or 0
+                            if local_supplies < cost then
+                                trigger.action.outTextForGroup(gr_id,"CMD-HQ - CMD-HQ - Negative resupply response for " .. target_zone.name .. ", not enough supplies    (" .. local_supplies .. "/" .. cost .. ")",8)
+                                trigger.action.outSoundForGroup(gr_id, "radio_beep3.ogg")
+                                return
+                            else
+                                supplies_zone.local_supplies = math.max(supplies_zone.local_supplies-cost,0)
+                            end
+
                             TheatreCommander.sendWarehouseResupply(side, false, stock, target_zone)
                             trigger.action.outTextForGroup(gr_id,"HQ Resupply dispatched for " .. target_zone.name .. ": " .. args.stock_name .. ".",10)
                             trigger.action.outSoundForGroup(gr_id, "radio_beep3.ogg")
@@ -381,6 +489,17 @@ do
                     submenu = initial_airbases
                 })
             end
+
+            -- SU-25T BLUFOR Package
+            if side == coalition.side.BLUE and Config.enabled_su25t_blufor then
+                local su25t_airbases = buildAirbaseSubmenu({WarehouseManager.StockTypes.SU25T_BLUFOR}, Config.supplies.resupply_costs.SU25T_BLUFOR, "SU-25T BLUFOR")
+                if #su25t_airbases > 0 then
+                    table.insert(resupply_stock_list, {
+                        name = "SU-25T BLUFOR - " .. Config.supplies.resupply_costs.SU25T_BLUFOR .. " supplies",
+                        submenu = su25t_airbases
+                    })
+                end
+            end
             
             if #resupply_stock_list > 0 then
                 CommandHandler.buildPagedMenuForGroup(gr_id, resupply_menu, resupply_stock_list, 1)
@@ -397,26 +516,25 @@ do
                     table.insert(farps_resupply_list, {
                         name = zone.name .. " - " .. Config.supplies.resupply_costs.FARP .. " supplies",
                         func = function (args)
+                            if not CommandHandler.isGrounded(unit,gr_id) then return end
                             local coal = args.side
                             local farp = args.farp_name
                             local name = args.name
 
-                            if side == 2 then
-                                if stats.blue_supplies < Config.supplies.resupply_costs.FARP then
-                                    trigger.action.outTextForGroup(gr_id,"HQ Negative resupply response for " .. name .. ": supplies low (" .. stats.blue_supplies .. "/" .. Config.supplies.resupply_costs.FARP .. "). Stand by for next resupply or capture additional zones.",8)
-                                    trigger.action.outSoundForGroup(gr_id, "radio_beep3.ogg")
-                                    return
-                                else
-                                    stats.blue_supplies = math.max(stats.blue_supplies - Config.supplies.resupply_costs.FARP,0)
-                                end
-                            elseif side == 1 then
-                               if stats.red_supplies < Config.supplies.resupply_costs.FARP then
-                                    trigger.action.outTextForGroup(gr_id,"HQ Negative resupply response for " .. name .. ": supplies low (" .. stats.red_supplies .. "/" .. Config.supplies.resupply_costs.FARP .. "). Stand by for next convoy or secure more territory.",8)
-                                    trigger.action.outSoundForGroup(gr_id, "radio_beep3.ogg")
-                                    return
-                               else
-                                    stats.red_supplies = math.max(stats.red_supplies - Config.supplies.resupply_costs.FARP,0)
-                               end
+                            local supplies_zone = utils.fetchSuppliesZoneFromUnit(unit)
+                            if not supplies_zone then
+                                trigger.action.outTextForGroup(gr_id,"CMD-HQ - Negative, action cannot be executed from your position.",8)
+                                trigger.action.outSoundForGroup(gr_id, "radio_beep3.ogg")
+                                return
+                            end
+
+                            local local_supplies = supplies_zone.local_supplies or 0
+                            if local_supplies < Config.supplies.resupply_costs.FARP then
+                                trigger.action.outTextForGroup(gr_id,"CMD-HQ - Negative resupply response for " .. name .. ", not enough supplies    (" .. local_supplies .. "/" .. Config.supplies.resupply_costs.FARP .. ")",8)
+                                trigger.action.outSoundForGroup(gr_id, "radio_beep3.ogg")
+                                return
+                            else
+                                supplies_zone.local_supplies = math.max(local_supplies - Config.supplies.resupply_costs.FARP,0)
                             end
                             WarehouseManager:attributeAirbaseStock(farp,coal, {WarehouseManager.StockTypes.FARP})
                             trigger.action.outTextForCoalition(coal, "FARP " .. name .. " has been resupplied.", 10)
@@ -431,26 +549,25 @@ do
                     table.insert(farps_resupply_list, {
                         name = farp.display_name .. " - " .. Config.supplies.resupply_costs.FARP .. " supplies",
                         func = function (args)
+                            if not CommandHandler.isGrounded(unit,gr_id) then return end
                             local coal = args.side
                             local farp_name = args.farp_name
                             local name = args.name
 
-                            if side == 2 then
-                                if stats.blue_supplies < Config.supplies.resupply_costs.FARP then
-                                    trigger.action.outTextForGroup(gr_id,"HQ Negative resupply response for " .. name .. ": supplies low (" .. stats.blue_supplies .. "/" .. Config.supplies.resupply_costs.FARP .. "). Stand by for next resupply or capture additional zones.",8)
-                                    trigger.action.outSoundForGroup(gr_id, "radio_beep3.ogg")
-                                    return
-                                else
-                                    stats.blue_supplies = math.max(stats.blue_supplies - Config.supplies.resupply_costs.FARP,0)
-                                end
-                            elseif side == 1 then
-                               if stats.red_supplies < Config.supplies.resupply_costs.FARP then
-                                    trigger.action.outTextForGroup(gr_id,"HQ Negative resupply response for " .. name .. ": supplies low (" .. stats.red_supplies .. "/" .. Config.supplies.resupply_costs.FARP .. "). Stand by for next convoy or secure more territory.",8)
-                                    trigger.action.outSoundForGroup(gr_id, "radio_beep3.ogg")
-                                    return
-                               else
-                                    stats.red_supplies = math.max(stats.red_supplies - Config.supplies.resupply_costs.FARP,0)
-                               end
+                            local supplies_zone = utils.fetchSuppliesZoneFromUnit(unit)
+                            if not supplies_zone then
+                                trigger.action.outTextForGroup(gr_id,"CMD-HQ - Negative, action cannot be executed from your position.",8)
+                                trigger.action.outSoundForGroup(gr_id, "radio_beep3.ogg")
+                                return
+                            end
+
+                            local local_supplies = supplies_zone.local_supplies or 0
+                            if local_supplies < Config.supplies.resupply_costs.FARP then
+                                trigger.action.outTextForGroup(gr_id,"CMD-HQ - Negative resupply response for " .. name .. ", not enough supplies    (" .. local_supplies .. "/" .. Config.supplies.resupply_costs.FARP .. ")",8)
+                                trigger.action.outSoundForGroup(gr_id, "radio_beep3.ogg")
+                                return
+                            else
+                                supplies_zone.local_supplies = math.max(local_supplies - Config.supplies.resupply_costs.FARP,0)
                             end
                             WarehouseManager:attributeAirbaseStock(farp_name,coal, {WarehouseManager.StockTypes.FARP})
                             trigger.action.outTextForCoalition(coal,name .. " has been resupplied.", 10)
@@ -467,35 +584,39 @@ do
                 missionCommands.addCommandForGroup(gr_id, "No FARPs Available", logistics_main_submenu, function() end, nil)
             end
 
-
-            -- local  upgrade_submenu = missionCommands.addSubMenuForGroup(gr_id, "Request Upgrade", logistics_main_submenu)
-            -- if #upgrade_zone_list > 0 then
-            --     CommandHandler.buildPagedMenuForGroup(gr_id, upgrade_submenu, upgrade_zone_list, 1)
-            -- else
-            --     missionCommands.addCommandForGroup(gr_id, "No Zones Available", logistics_main_submenu, function() end, nil)
-            -- end
-
             ---------------------------------------------------------------
             -- Restock Aircraft
             local restock_submenu = missionCommands.addSubMenuForGroup(gr_id, "Restock Aircraft", logistics_main_submenu)
-            missionCommands.addCommandForGroup(gr_id, "Confirm (destroy)", restock_submenu, function()
-                local point = unit:getPoint()
+            missionCommands.addCommandForGroup(gr_id, "Confirm (destroy)", restock_submenu, function(gr_name)
+                if not CommandHandler.isGrounded(unit,gr_id) then return end
+                local restock_gr = Group.getByName(gr_name)
+                if not (restock_gr and restock_gr:isExist()) then return end
+
+                local restock_unit = restock_gr:getUnit(1)
+                if not (restock_unit and restock_unit:isExist()) then return end
+
+                local point = restock_unit:getPoint()
+
                 -- Checks if aircraft is not moving and on ground
                 local aircraft_on_carrier = false
                 local on_carrier = false
-                if  land.getSurfaceType{ x = point.x, y = point.z } == land.SurfaceType.WATER
-                and not unit:inAir() then
+
+                if land.getSurfaceType{ x = point.x, y = point.z } == land.SurfaceType.WATER and not restock_unit:inAir() then
                     aircraft_on_carrier = true
                 end
 
-                if not aircraft_on_carrier then
-                    if aircraftMoving(unit) or unit:inAir() then
-                        trigger.action.outTextForGroup(gr_id, "Restock aborted: Aircraft is not stationary.", 10)
-                        trigger.action.outSoundForGroup(gr_id, "radio_beep3.ogg")
-                        return
+                if (not aircraft_on_carrier) and (aircraftMoving(restock_unit) or restock_unit:inAir()) then
+                    trigger.action.outTextForGroup(gr_id, "Restock aborted: Aircraft is not stationary.", 10)
+                    trigger.action.outSoundForGroup(gr_id, "radio_beep3.ogg")
+                    return
+                end
+
+                if aircraft_on_carrier then
+                    local carrier_unit = nil
+                    if Scenario and Scenario.carrier_setup and Scenario.carrier_setup.carrier_unit_name then
+                        carrier_unit = Unit.getByName(Scenario.carrier_setup.carrier_unit_name)
                     end
-                else
-                    local carrier_unit = Unit.getByName("Carrier")
+
                     if carrier_unit and carrier_unit:isExist() then
                         local carrier_point = carrier_unit:getPoint()
                         local dist_to_carrier = mist.utils.get2DDist(point, carrier_point)
@@ -512,22 +633,38 @@ do
                         return
                     end
                 end
-                trigger.action.outTextForGroup(gr_id, "Aircraft and loaded equipment will be restocked in the warehouse in 10 seconds…", 10)
+
+                trigger.action.outTextForGroup(gr_id, "****************\n\nAircraft and loaded equipment will be restocked in 10 seconds…\n\n****************", 10)
                 trigger.action.outSoundForGroup(gr_id, "radio_beep3.ogg")
                 timer.scheduleFunction(function()
 
+                    local function restock_acft()
+                        MissionLogger:info("Attempting restock")
+                        if restock_gr and restock_gr:isExist() then
+                            MissionLogger:info("Executing restock for group")
+                            restock_gr:destroy()
+                        end
+                        if restock_unit and restock_unit:isExist() then
+                            MissionLogger:info("Executing restock for unit")
+                            restock_unit:destroy()
+                            return
+                        else
+                            MissionLogger:info("Completed restock")
+                            return
+                        end
+                    end
+
                     -- Add the aircraft back to the warehouse
                     if on_carrier then
-                        if gr and gr:isExist() then
-                            return gr:destroy()
-                        end
+                        return restock_acft()
                     else
+                        MissionLogger:info("Attempting restock on land")
+
                         for _,zone in ipairs(zones) do
                             if (zone.zone_type == ZoneTypes.AIRBASE or zone.zone_type == ZoneTypes.FARP) and zone.side == side
                             and zone:isPointInsideZone(point)then
-                                if gr and gr:isExist() then
-                                    return gr:destroy()
-                                end
+                                MissionLogger:info("Restock airbase found")
+                                return restock_acft()
                             end
                         end
 
@@ -535,7 +672,7 @@ do
                     trigger.action.outTextForGroup(gr_id, "Restock aborted: No friendly airbase or FARP nearby.", 10)
                     trigger.action.outSoundForGroup(gr_id, "radio_beep3.ogg")
                 end, {}, timer.getTime() + 10)
-            end, nil)
+            end, group_name)
 
         end
 
@@ -614,39 +751,83 @@ do
 
 
         local side = gr:getCoalition()
-        local side_comms_towers = 0
-        if side == coalition.side.BLUE then
-            side_comms_towers = stats.blue_comms_antennas
-        elseif side == coalition.side.RED then
-            side_comms_towers = stats.red_comms_antennas
-        end
+        local unit = gr:getUnit(1)
 
-        local function deductSupplies(required_supplies)
+        local function getSideCommsTowers()
             if side == coalition.side.BLUE then
-                stats.blue_supplies = math.max(stats.blue_supplies - required_supplies,0)
+                return stats.blue_comms_antennas
             elseif side == coalition.side.RED then
-                stats.red_supplies = math.max(stats.red_supplies - required_supplies,0)
+                return stats.red_comms_antennas
             end
+            return 0
         end
 
-        local function checkSupplies(unit, required_supplies)
-            if side == coalition.side.BLUE  then
-                if stats.blue_supplies >= required_supplies then
-                    return true
-                else
-                    trigger.action.outTextForGroup(gr_id,"Negative, coalition lacks the necessary supplies to support this mission. ".. stats.blue_supplies.."/"..required_supplies,5)
-                    trigger.action.outSoundForGroup(gr_id, "Radio squelch.ogg")
-                    return false
-                end
-            elseif side == coalition.side.RED then
-                if stats.red_supplies >= required_supplies then
-                    return true
-                else
-                    trigger.action.outTextForGroup(gr_id,"Negative, coalition lacks the necessary supplies to support this mission. ".. stats.red_supplies.."/"..required_supplies,5)
-                    trigger.action.outSoundForGroup(gr_id, "Radio squelch.ogg")
-                    return false
-                end
+        ---@param requesting_unit Unit
+        ---@param required_supplies number
+        ---@param supplies_zone ZoneHandler|nil
+        ---@return boolean
+        local function deductSupplies(requesting_unit, required_supplies, supplies_zone)
+            supplies_zone = supplies_zone or utils.fetchSuppliesZoneFromUnit(requesting_unit)
+            if not supplies_zone then return false end
+            supplies_zone.local_supplies = math.max((supplies_zone.local_supplies or 0) - required_supplies,0)
+            return true
+        end
+
+        ---@param requesting_unit Unit
+        ---@param required_supplies number
+        ---@param supplies_zone ZoneHandler|nil
+        ---@return boolean
+        local function checkSupplies(requesting_unit, required_supplies, supplies_zone)
+            supplies_zone = supplies_zone or utils.fetchSuppliesZoneFromUnit(requesting_unit)
+            if not supplies_zone then
+                trigger.action.outTextForGroup(gr_id,"CMD-HQ - Negative, action cannot be executed from your position.",5)
+                trigger.action.outSoundForGroup(gr_id, "Radio squelch.ogg")
+                return false
             end
+
+            if supplies_zone.ammo_depot_intact ~= true then
+                trigger.action.outTextForGroup(gr_id, "CMD-HQ - Negative, no operational Ammunition Depot in your current supply zone.", 5)
+                trigger.action.outSoundForGroup(gr_id, "Radio squelch.ogg")
+                return false
+            end
+
+            local local_supplies = supplies_zone.local_supplies or 0
+            if local_supplies >= required_supplies then
+                return true
+            end
+
+            trigger.action.outTextForGroup(gr_id,"CMD-HQ - Negative,  not enough supplies  (" .. local_supplies .. "/" .. required_supplies .. ")",5)
+            trigger.action.outSoundForGroup(gr_id, "Radio squelch.ogg")
+            return false
+        end
+
+        ---@param to_zone ZoneHandler|nil
+        ---@param ai_task_type AITaskTypes
+        ---@return ZoneHandler|nil
+        local function resolveAirbaseSupplyZone(to_zone, ai_task_type)
+            if not to_zone then return nil end
+            local source_airbase, _ = TaskManager:findClosestAirbaseWithAircraftInStock(to_zone, side, ai_task_type, 2, ai_task_type)
+            return source_airbase
+        end
+
+        ---@param requesting_unit Unit
+        ---@param task_label string
+        ---@return ZoneHandler|nil
+        local function resolveRequestingAirbaseZone(requesting_unit, task_label)
+            local supply_zone = utils.fetchSuppliesZoneFromUnit(requesting_unit)
+            if not supply_zone then
+                trigger.action.outTextForGroup(gr_id, "CMD-HQ - Negative, " .. task_label .. " can only be requested while at a friendly airbase.", 5)
+                trigger.action.outSoundForGroup(gr_id, "Radio squelch.ogg")
+                return nil
+            end
+
+            if supply_zone.zone_type ~= ZoneTypes.AIRBASE then
+                trigger.action.outTextForGroup(gr_id, "CMD-HQ - Negative, " .. task_label .. " can only be requested while at a friendly airbase.", 5)
+                trigger.action.outSoundForGroup(gr_id, "Radio squelch.ogg")
+                return nil
+            end
+
+            return supply_zone
         end
 
         ---@param unit Unit
@@ -655,434 +836,488 @@ do
         local function checkRankRequirement(unit, ai_task_type)
             if not Config.reward_system.enable then return true end
             if not unit or not unit.isExist or not unit:isExist() then return false end
+
             local user = ExperienceManager:fetchUser(unit)
             if not user then return false end
             local required_xp = Config.reward_system.xp_required[ai_task_type]
             if not required_xp then return true end -- No rank requirement
+
             if user.xp >= required_xp then
                 return true
             else
                 local rankreq = ExperienceManager:getRankfromXP(required_xp) or "Unknown"
-                trigger.action.outTextForUnit(unit:getID(),"Negative, insufficient rank for this tasking request.\nRequired rank: "..rankreq..", ".. required_xp .." XP",5)
+                trigger.action.outTextForUnit(unit:getID(),"CMD-HQ - Negative, insufficient rank for this tasking request.\nRequired rank: "..rankreq..", ".. required_xp .." XP",5)
                 trigger.action.outSoundForGroup(gr_id, "Radio squelch.ogg")
                 return false
             end
         end
 
-        local unit = gr:getUnit(1)
+        unit = unit or gr:getUnit(1)
         if not unit or not unit:isExist() or not unit.getCoalition then return end
         local enemy_side = utils.getEnemyCoalition(side)
-        
-        local discovered_zones = {}
-        if side == coalition.side.BLUE then
-            discovered_zones = stats.blue_discovered_zones
-        else
-            discovered_zones = stats.red_discovered_zones
+
+        local function getDiscoveredZones()
+            if side == coalition.side.BLUE then
+                return stats.blue_discovered_zones
+            end
+            return stats.red_discovered_zones
         end
 
-        local main_tasking_list = {}
-
-        local cas_target_list = {}
-        for _, zone in ipairs(zones) do
-            -- Find enemy zones suitable for CAS
-            if zone.side == enemy_side and utils.tableContains(discovered_zones, zone.name) then 
-                table.insert(cas_target_list, {
-                    name = zone.name,
-                    func = function (args)
-                        local u = args.u
-                        local to_zone = args.z
-                        if side_comms_towers < Config.tasking_requirements.comms_zones_required_for_cas then
-                            trigger.action.outTextForGroup(gr_id, "Negative, CAS tasking requires " .. side_comms_towers .. "/"..Config.tasking_requirements.comms_zones_required_for_cas.." active COMMS towers.", 10)
-                            trigger.action.outSoundForGroup(gr_id, "Radio squelch.ogg")
-                            return
-                        end
-
-                        if not checkRankRequirement(u, AITaskTypes.CAS) then return end
-                        if not checkSupplies(u, Config.supplies.tasking_costs.CAS) then return end
-
-                        if TaskManager:initiateAITask(AITaskTypes.CAS, side, false, to_zone, nil, true) then
-                            deductSupplies(Config.supplies.tasking_costs.CAS)
-                            trigger.action.outTextForCoalition(side, "Request accepted, CAS dispatched to " .. to_zone.name .. ", "..Config.supplies.tasking_costs.CAS.." supplies used.", 10)
-                            trigger.action.outSoundForCoalition(side, "Radio squelch.ogg")
-                        else
-                            trigger.action.outTextForGroup(gr_id, "CAS request failed (No assets available).", 10)
-                            trigger.action.outSoundForGroup(gr_id, "Radio squelch.ogg")
-                        end
-                    end,
-                    arg = {u = unit, z = zone}
-                })
+        local function executeCASRequest(u, to_zone)
+            if not CommandHandler.isGrounded(unit,gr_id) then return end
+            local comms = getSideCommsTowers()
+            if comms < Config.tasking_requirements.comms_zones_required_for_cas then
+                trigger.action.outTextForGroup(gr_id, "CMD-HQ - Negative, CAS tasking requires " .. comms .. "/"..Config.tasking_requirements.comms_zones_required_for_cas.." active COMMS towers.", 10)
+                trigger.action.outSoundForGroup(gr_id, "Radio squelch.ogg")
+                return
+            end
+            local supply_zone = resolveRequestingAirbaseZone(u, "CAS")
+            if not supply_zone then return end
+            if not checkRankRequirement(u, AITaskTypes.CAS) then return end
+            if not checkSupplies(u, Config.supplies.tasking_costs.CAS, supply_zone) then return end
+            if TaskManager:initiateAITask(AITaskTypes.CAS, side, false, to_zone, supply_zone, true) then
+                deductSupplies(u, Config.supplies.tasking_costs.CAS, supply_zone)
+                trigger.action.outTextForCoalition(side, "Request accepted, CAS dispatched to " .. to_zone.name .. ", "..Config.supplies.tasking_costs.CAS.." supplies used.", 10)
+                trigger.action.outSoundForCoalition(side, "Radio squelch.ogg")
+            else
+                trigger.action.outTextForGroup(gr_id, "CAS request failed (No assets available).", 10)
+                trigger.action.outSoundForGroup(gr_id, "Radio squelch.ogg")
             end
         end
 
-        local attack_ship_name = Scenario.carrier_setup.tomahawk_launcher_unit_name
-        local naval_strike_list = {}
-        if Scenario.carrier_setup.enabled and attack_ship_name then
-                for _, zone in ipairs(zones) do
-                -- Find enemy zones suitable for CAS
-                if zone.side == enemy_side and utils.tableContains(discovered_zones, zone.name) then 
-                    table.insert(naval_strike_list, {
+        local function executeNavalStrikeRequest(u, to_zone)
+            if not CommandHandler.isGrounded(unit,gr_id) then return end
+            local attack_ship_name = Scenario.carrier_setup.tomahawk_launcher_unit_name
+            if not (Scenario.carrier_setup.enabled and attack_ship_name) then
+                trigger.action.outTextForGroup(gr_id, "CMD-HQ - Negative, Naval strike unavailable.", 10)
+                trigger.action.outSoundForGroup(gr_id, "Radio squelch.ogg")
+                return
+            end
+
+            local u_xp = ExperienceManager:fetchUser(u)
+            if not u_xp then
+                trigger.action.outTextForGroup(gr_id,"Could not fetch user data",10)
+                return
+            end
+
+            if u_xp.xp < Config.reward_system.naval_stike_xp_required then
+                trigger.action.outTextForGroup(gr_id,"Not authorized, required rank: "..ExperienceManager:getRankfromXP(Config.reward_system.naval_stike_xp_required),10)
+                trigger.action.outSoundForGroup(gr_id, "Radio squelch.ogg")
+                return
+            end
+
+            local supply_zone = resolveAirbaseSupplyZone(to_zone, AITaskTypes.CAS)
+            if not checkRankRequirement(u, AITaskTypes.CAS) then return end
+            if not checkSupplies(u, Config.supplies.tasking_costs.NAVAL_STRIKE, supply_zone) then return end
+
+            local ship_unit = Unit.getByName(attack_ship_name)
+            if not (ship_unit and ship_unit.isExist and ship_unit:isExist()) then
+                trigger.action.outTextForGroup(gr_id, "CMD-HQ - Negative, Naval capable asset unavailable.", 10)
+                trigger.action.outSoundForGroup(gr_id, "Radio squelch.ogg")
+                return
+            end
+
+            deductSupplies(u, Config.supplies.tasking_costs.NAVAL_STRIKE, supply_zone)
+            TaskManager:requestNavalStrike(to_zone,ship_unit)
+        end
+
+        local function executeAWACSRequest(u, from_zone)
+            if not CommandHandler.isGrounded(unit,gr_id) then return end
+            local comms = getSideCommsTowers()
+            if comms < Config.tasking_requirements.comms_zones_required_for_awacs then
+                trigger.action.outTextForGroup(gr_id, "CMD-HQ - Negative, AWACS tasking requires " .. comms .. "/"..Config.tasking_requirements.comms_zones_required_for_awacs.." active COMMS towers.", 10)
+                trigger.action.outSoundForGroup(gr_id, "Radio squelch.ogg")
+                return
+            end
+            local supply_zone = resolveRequestingAirbaseZone(u, "AWACS")
+            if not supply_zone then return end
+            if from_zone ~= supply_zone then
+                trigger.action.outTextForGroup(gr_id, "CMD-HQ - Negative, AWACS must launch from your current airbase (" .. supply_zone.name .. ").", 10)
+                trigger.action.outSoundForGroup(gr_id, "Radio squelch.ogg")
+                return
+            end
+            if not checkRankRequirement(u, AITaskTypes.AWACS) then return end
+            if not checkSupplies(u, Config.supplies.tasking_costs.AWACS, supply_zone) then return end
+            if TaskManager:initiateAITask(AITaskTypes.AWACS, side, false, nil, supply_zone, true) then
+                deductSupplies(u, Config.supplies.tasking_costs.AWACS, supply_zone)
+                trigger.action.outTextForCoalition(side, "Request accepted, AWACS dispatched from " .. supply_zone.name .. ", "..Config.supplies.tasking_costs.AWACS.." supplies used.", 10)
+                trigger.action.outSoundForCoalition(side, "Radio squelch.ogg")
+            else
+                trigger.action.outTextForGroup(gr_id, "AWACS request failed (No assets available).", 10)
+                trigger.action.outSoundForGroup(gr_id, "Radio squelch.ogg")
+            end
+        end
+
+        local function executeTankerRequest(u, from_zone)
+            if not CommandHandler.isGrounded(unit,gr_id) then return end
+            local comms = getSideCommsTowers()
+            if comms < Config.tasking_requirements.comms_zones_required_for_tanker then
+                trigger.action.outTextForGroup(gr_id, "CMD-HQ - Negative, TANKER tasking requires " .. comms .. "/"..Config.tasking_requirements.comms_zones_required_for_tanker.." active COMMS towers.", 10)
+                trigger.action.outSoundForGroup(gr_id, "Radio squelch.ogg")
+                return
+            end
+
+            local supply_zone = resolveRequestingAirbaseZone(u, "TANKER")
+            if not supply_zone then return end
+
+            if from_zone ~= supply_zone then
+                trigger.action.outTextForGroup(gr_id, "CMD-HQ - Negative, TANKER package must launch from your current airbase (" .. supply_zone.name .. ").", 10)
+                trigger.action.outSoundForGroup(gr_id, "Radio squelch.ogg")
+                return
+            end
+
+            if not checkRankRequirement(u, AITaskTypes.TANKER) then return end
+            if not checkSupplies(u, Config.supplies.tasking_costs.TANKER, supply_zone) then return end
+
+            if TaskManager:initiateAITask(AITaskTypes.TANKER, side, false, nil, supply_zone, true) then
+                deductSupplies(u, Config.supplies.tasking_costs.TANKER, supply_zone)
+                trigger.action.outTextForCoalition(side, "Request accepted, TANKER package dispatched from " .. supply_zone.name .. ", "..Config.supplies.tasking_costs.TANKER.." supplies used.", 10)
+                trigger.action.outSoundForCoalition(side, "Radio squelch.ogg")
+            else
+                trigger.action.outTextForGroup(gr_id, "TANKER request failed.", 10)
+                trigger.action.outSoundForGroup(gr_id, "Radio squelch.ogg")
+            end
+        end
+
+        local function executeSEADRequest(u, to_zone)
+            if not CommandHandler.isGrounded(unit,gr_id) then return end
+            local comms = getSideCommsTowers()
+            if comms < Config.tasking_requirements.comms_zones_required_for_sead then
+                trigger.action.outTextForGroup(gr_id, "CMD-HQ - Negative, SEAD tasking requires " .. comms .. "/"..Config.tasking_requirements.comms_zones_required_for_sead.." active COMMS towers.", 10)
+                trigger.action.outSoundForGroup(gr_id, "Radio squelch.ogg")
+                return
+            end
+            local supply_zone = resolveRequestingAirbaseZone(u, "SEAD")
+            if not supply_zone then return end
+            if not checkRankRequirement(u, AITaskTypes.SEAD) then return end
+            if not checkSupplies(u, Config.supplies.tasking_costs.SEAD, supply_zone) then return end
+            if TaskManager:initiateAITask(AITaskTypes.SEAD, side, false, to_zone, supply_zone, true) then
+                deductSupplies(u, Config.supplies.tasking_costs.SEAD, supply_zone)
+                trigger.action.outTextForCoalition(side, "Request accepted, SEAD dispatched to " .. to_zone.name .. ", "..Config.supplies.tasking_costs.SEAD.." supplies used.", 10)
+                trigger.action.outSoundForCoalition(side, "Radio squelch.ogg")
+            else
+                trigger.action.outTextForGroup(gr_id, "SEAD request failed (No assets available).", 10)
+                trigger.action.outSoundForGroup(gr_id, "Radio squelch.ogg")
+            end
+        end
+
+        local function executeCaptureHeloRequest(u, to_zone)
+            if not CommandHandler.isGrounded(unit,gr_id) then return end
+            if not checkRankRequirement(u, AITaskTypes.CAPTURE_HELO) then return end
+
+            local from_zone = nil
+            for _, log_zone in ipairs(zones) do
+                if log_zone.side == side and log_zone.zone_type == ZoneTypes.LOGISTICS and (log_zone.heli_avail or 0) > 0 then
+                    from_zone = log_zone
+                    break
+                end
+            end
+
+            if not checkSupplies(u, Config.supplies.tasking_costs.CAPTURE_HELO, from_zone) then return end
+
+            if from_zone and TaskManager:initiateAITask(AITaskTypes.CAPTURE_HELO, side, false, to_zone, from_zone, true) then
+                deductSupplies(u, Config.supplies.tasking_costs.CAPTURE_HELO, from_zone)
+                trigger.action.outTextForCoalition(side, "Request accepted, Helicopter capture dispatched to " .. to_zone.name .. ", " .. Config.supplies.tasking_costs.CAPTURE_HELO .. " supplies used.", 10)
+                trigger.action.outSoundForCoalition(side, "Radio squelch.ogg")
+            else
+                trigger.action.outTextForGroup(gr_id, "Helicopter capture request failed (no assets available).", 10)
+                trigger.action.outSoundForGroup(gr_id, "Radio squelch.ogg")
+            end
+        end
+
+        local function executeReinforcementHeloRequest(u, to_zone)
+            if not CommandHandler.isGrounded(unit, gr_id) then return end
+
+            local required_supplies = Config.operations.upgrade_required_supplies
+
+            local max_logistics_range_m = 150000
+            local logistics_candidates = {}
+            for _, log_zone in ipairs(zones) do
+                if log_zone.side == side and log_zone.zone_type == ZoneTypes.LOGISTICS then
+                    local dist = mist.utils.get2DDist(log_zone.zone.point, to_zone.zone.point)
+                    if dist <= max_logistics_range_m then
+                        table.insert(logistics_candidates, {zone = log_zone, dist = dist})
+                    end
+                end
+            end
+
+            table.sort(logistics_candidates, function(a, b)
+                return a.dist < b.dist
+            end)
+
+            local from_zone = nil
+            for _, candidate in ipairs(logistics_candidates) do
+                local log_zone = candidate.zone
+                if (log_zone.heli_avail or 0) > 0 then
+                    if checkSupplies(u, required_supplies, log_zone) then
+                        from_zone = log_zone
+                        break
+                    end
+                end
+            end
+
+            if not from_zone then
+                if #logistics_candidates == 0 then
+                    trigger.action.outTextForGroup(gr_id, "CMD-HQ - Negative, no logistics zones within 150 km of " .. to_zone.name .. ".", 10)
+                else
+                    trigger.action.outTextForGroup(gr_id, "CMD-HQ - Negative, no logistics zones within 150 km have available helicopters and supplies.", 10)
+                end
+                trigger.action.outSoundForGroup(gr_id, "Radio squelch.ogg")
+                return
+            end
+
+            if from_zone and TaskManager:initiateAITask(AITaskTypes.REINFORCEMENT_HELO, side, false, to_zone, from_zone, true) then
+                deductSupplies(u, required_supplies, from_zone)
+                trigger.action.outTextForCoalition(side, "Request accepted, Reinforcement helicopter dispatched to " .. to_zone.name .. ", " .. required_supplies .. " supplies used.", 10)
+                trigger.action.outSoundForCoalition(side, "Radio squelch.ogg")
+            else
+                trigger.action.outTextForGroup(gr_id, "Reinforcement helicopter request failed (no assets available).", 10)
+                trigger.action.outSoundForGroup(gr_id, "Radio squelch.ogg")
+            end
+        end
+
+        local function executeJTACRequest(u, to_zone)
+            if not CommandHandler.isGrounded(unit,gr_id) then return end
+            local comms = getSideCommsTowers()
+            if comms < Config.tasking_requirements.comms_zones_required_for_jtac then
+                trigger.action.outTextForGroup(gr_id, "CMD-HQ - Negative, JTAC tasking requires " .. comms .. "/"..Config.tasking_requirements.comms_zones_required_for_jtac.." active COMMS towers.", 10)
+                trigger.action.outSoundForGroup(gr_id, "Radio squelch.ogg")
+                return
+            end
+            local supply_zone = resolveAirbaseSupplyZone(to_zone, AITaskTypes.JTAC)
+            if not checkRankRequirement(u, AITaskTypes.JTAC) then return end
+            if not checkSupplies(u, Config.supplies.tasking_costs.JTAC, supply_zone) then return end
+            if TaskManager:initiateAITask(AITaskTypes.JTAC, side, false, to_zone, nil, true) then
+                deductSupplies(u, Config.supplies.tasking_costs.JTAC, supply_zone)
+                trigger.action.outTextForCoalition(side, "Request accepted, JTAC dispatched to " .. to_zone.name .. ", "..Config.supplies.tasking_costs.JTAC.." supplies used.", 10)
+                trigger.action.outSoundForCoalition(side, "Radio squelch.ogg")
+            else
+                trigger.action.outTextForGroup(gr_id, "JTAC request failed (No assets available).", 10)
+                trigger.action.outSoundForGroup(gr_id, "Radio squelch.ogg")
+            end
+        end
+
+        local function executeCAPRequest(u, to_zone)
+            if not CommandHandler.isGrounded(unit,gr_id) then return end
+            local comms = getSideCommsTowers()
+            if comms < Config.tasking_requirements.comms_zones_required_for_cap then
+                trigger.action.outTextForGroup(gr_id, "CMD-HQ - Negative, CAP tasking requires " .. comms .. "/"..Config.tasking_requirements.comms_zones_required_for_cap.." active COMMS towers.", 10)
+                trigger.action.outSoundForGroup(gr_id, "Radio squelch.ogg")
+                return
+            end
+            local supply_zone = resolveRequestingAirbaseZone(u, "CAP")
+            if not supply_zone then return end
+            if not checkRankRequirement(u, AITaskTypes.CAP) then return end
+            if not checkSupplies(u, Config.supplies.tasking_costs.CAP, supply_zone) then return end
+            if TaskManager:initiateAITask(AITaskTypes.CAP, side, false, to_zone, supply_zone, true) then
+                deductSupplies(u, Config.supplies.tasking_costs.CAP, supply_zone)
+                trigger.action.outTextForCoalition(side, "Request accepted, CAP dispatched to " .. to_zone.name .. ", "..Config.supplies.tasking_costs.CAP.." supplies used.", 10)
+                trigger.action.outSoundForCoalition(side, "Radio squelch.ogg")
+            else
+                trigger.action.outTextForGroup(gr_id, "CAP request failed (No assets available).", 10)
+                trigger.action.outSoundForGroup(gr_id, "Radio squelch.ogg")
+            end
+        end
+
+        local function executeStrikeRequest(u, to_zone)
+            if not CommandHandler.isGrounded(unit,gr_id) then return end
+            local comms = getSideCommsTowers()
+            if comms < Config.tasking_requirements.comms_zones_required_for_strike then
+                trigger.action.outTextForGroup(gr_id, "CMD-HQ - Negative, STRIKE tasking requires " .. comms .. "/"..Config.tasking_requirements.comms_zones_required_for_strike.." active COMMS towers.", 10)
+                trigger.action.outSoundForGroup(gr_id, "Radio squelch.ogg")
+                return
+            end
+            local supply_zone = resolveRequestingAirbaseZone(u, "STRIKE")
+            if not supply_zone then return end
+            if not checkRankRequirement(u, AITaskTypes.STRIKE) then return end
+            if not checkSupplies(u, Config.supplies.tasking_costs.STRIKE, supply_zone) then return end
+            if TaskManager:initiateAITask(AITaskTypes.STRIKE, side, false, to_zone, supply_zone, true) then
+                deductSupplies(u, Config.supplies.tasking_costs.STRIKE, supply_zone)
+                trigger.action.outTextForCoalition(side, "Request accepted, STRIKE dispatched to " .. to_zone.name .. ", "..Config.supplies.tasking_costs.STRIKE.." supplies used.", 10)
+                trigger.action.outSoundForCoalition(side, "Radio squelch.ogg")
+            else
+                trigger.action.outTextForGroup(gr_id, "STRIKE request failed (No assets available).", 10)
+                trigger.action.outSoundForGroup(gr_id, "Radio squelch.ogg")
+            end
+        end
+
+        ---@param additional_check_function function
+        ---@param execute_function function
+        local function buildZoneCommandList(additional_check_function, execute_function)
+            local discovered_zones = getDiscoveredZones()
+            local command_list = {}
+
+            for _, zone in ipairs(zones) do
+                if additional_check_function(zone, discovered_zones) then
+                    table.insert(command_list, {
                         name = zone.name,
-                        func = function (args)
-                            local u = args.u
-                            local to_zone = args.z
-    
-                            local u_xp = ExperienceManager:fetchUser(u)
-                            if not u_xp then
-                                trigger.action.outTextForGroup(gr_id,"Could not fetch user data",10)
-                                return
-                            end
-
-                            if u_xp and u_xp.xp < Config.reward_system.naval_stike_xp_required then
-                                trigger.action.outTextForGroup(gr_id,"Not authorized, required rank: "..ExperienceManager:getRankfromXP(Config.reward_system.naval_stike_xp_required),10)
-                                trigger.action.outSoundForGroup(gr_id, "Radio squelch.ogg")
-                                return
-                            end
-
-                            if not checkRankRequirement(u, AITaskTypes.CAS) then return end
-                            if not checkSupplies(u, Config.supplies.tasking_costs.NAVAL_STRIKE) then return end
-
-                            local ship_unit = Unit.getByName(attack_ship_name)
-                            if not (ship_unit and ship_unit.isExist and ship_unit:isExist()) then
-                                trigger.action.outTextForGroup(gr_id, "Negative, Naval capable asset unavailable.", 10)
-                                trigger.action.outSoundForGroup(gr_id, "Radio squelch.ogg")
-                            return
-                            end
-
-                            TaskManager:requestNavalStrike(to_zone,ship_unit)
+                        func = function(args)
+                            args.execute(args.u, args.z) -- this executes the function (ex executeCASRequest)
+                            CommandHandler.destroySelectMenu(args.gr_id) -- destroy the submenu after use
                         end,
-                        arg = {u = unit, z = zone}
+                        arg = {u = unit, z = zone, execute = execute_function, gr_id = gr_id}
                     })
                 end
             end
+            return command_list
         end
 
-        local awacs_airbase_list = {}
-        for _, zone in ipairs(zones) do
-            -- Find friendly airbases suitable for AWACS
-            if zone.side == side and zone.zone_type == ZoneTypes.AIRBASE
-            then
-                table.insert(awacs_airbase_list, {
-                    name = zone.name,
-                    func = function (args)
-                        local u = args.u
-                        local to_zone = args.z
-                        if side_comms_towers < Config.tasking_requirements.comms_zones_required_for_awacs then
-                            trigger.action.outTextForGroup(gr_id, "Negative, AWACS tasking requires " .. side_comms_towers .. "/"..Config.tasking_requirements.comms_zones_required_for_awacs.." active COMMS towers.", 10)
-                            trigger.action.outSoundForGroup(gr_id, "Radio squelch.ogg")
-                            return
-                        end
+        ---@param commands any[]
+        ---@param no_target_message string
+        local function createSelectAreaMenu(commands, no_target_message)
+            local previous_select_menu = CommandHandler.temp_select_menu[gr_id]
+            CommandHandler.destroySelectMenu(gr_id)
 
-                        if not checkRankRequirement(u, AITaskTypes.AWACS) then return end
-                        if not checkSupplies(u, Config.supplies.tasking_costs.AWACS) then return end
-
-                        if TaskManager:initiateAITask(AITaskTypes.AWACS, side, false, to_zone, nil, true) then
-                            deductSupplies(Config.supplies.tasking_costs.AWACS)
-                            trigger.action.outTextForCoalition(side, "Request accepted, AWACS dispatched to " .. to_zone.name .. ", "..Config.supplies.tasking_costs.AWACS.." supplies used.", 10)
-                            trigger.action.outSoundForCoalition(side, "Radio squelch.ogg")
-                        else
-                            trigger.action.outTextForGroup(gr_id, "AWACS request failed (No assets available).", 10)
-                            trigger.action.outSoundForGroup(gr_id, "Radio squelch.ogg")
-                        end
-                    end,
-                    arg = {u = unit, z = zone}
-                })
+            if #commands == 0 then
+                trigger.action.outTextForGroup(gr_id, no_target_message, 8)
+                trigger.action.outSoundForGroup(gr_id, "Radio squelch.ogg")
+                return
             end
-        end
 
-        local sead_target_list = {}
-        for _, zone in ipairs(zones) do
-            -- Find enemy zones suitable for SEAD
-            if zone.side == enemy_side and utils.tableContains(discovered_zones, zone.name)
-            and zone.zone_type == ZoneTypes.SAMSITE
-            then
-                table.insert(sead_target_list, {
-                    name = zone.name,
-                    func = function (args)
-                        local u = args.u
-                        local to_zone = args.z
-                        if side_comms_towers < Config.tasking_requirements.comms_zones_required_for_sead then
-                            trigger.action.outTextForGroup(gr_id, "Negative, SEAD tasking requires " .. side_comms_towers .. "/"..Config.tasking_requirements.comms_zones_required_for_sead.." active COMMS towers.", 10)
-                            trigger.action.outSoundForGroup(gr_id, "Radio squelch.ogg")
-                            return
-                        end
+            trigger.action.outTextForGroup(gr_id, "CMD-HQ - Select target area with the F10 Radio Menu", 8)
+            trigger.action.outSoundForGroup(gr_id, "Radio squelch.ogg")
 
-                        if not checkRankRequirement(u, AITaskTypes.SEAD) then return end
-                        if not checkSupplies(u, Config.supplies.tasking_costs.SEAD) then return end
+            local temp_submenu = missionCommands.addSubMenuForGroup(gr_id, "(#) Select Area")
+            CommandHandler.addToMenuTracking(gr_id, temp_submenu, "tasking_temp_zone")
 
-                        if TaskManager:initiateAITask(AITaskTypes.SEAD, side, false, to_zone, nil, true) then
-                            deductSupplies(Config.supplies.tasking_costs.SEAD)
-                            trigger.action.outTextForCoalition(side, "Request accepted, SEAD dispatched to " .. to_zone.name .. ", "..Config.supplies.tasking_costs.SEAD.." supplies used.", 10)
-                            trigger.action.outSoundForCoalition(side, "Radio squelch.ogg")
-                        else
-                            trigger.action.outTextForGroup(gr_id, "SEAD request failed (No assets available).", 10)
-                            trigger.action.outSoundForGroup(gr_id, "Radio squelch.ogg")
-                        end
-                    end,
-                    arg = {u = unit, z = zone}
-                })
+            local token = 1 -- this prevents a new select menu from being removed by an old timer.
+            if previous_select_menu and previous_select_menu.token then
+                token = previous_select_menu.token + 1
             end
+            CommandHandler.temp_select_menu[gr_id] = {
+                path = temp_submenu,
+                token = token,
+            }
+
+            CommandHandler.buildPagedMenuForGroup(gr_id, temp_submenu, commands, 1)
+            CommandHandler.scheduleTempRequestSubmenuCleanup(gr_id, token, 120)
         end
 
-        local capture_heli_list = {}
-        for _, zone in ipairs(zones) do
-            -- Find enemy zones suitable for HELI CAPTURE
-            if zone.side == coalition.side.NEUTRAL and utils.tableContains(discovered_zones, zone.name)
-            then
-                table.insert(capture_heli_list, {
-                    name = zone.name,
-                    func = function (args)
-                        local u = args.u
-                        local to_zone = args.z
-                        if not checkRankRequirement(u, AITaskTypes.CAPTURE_HELO) then return end
-                        if not checkSupplies(u, Config.supplies.tasking_costs.CAPTURE_HELO) then return end
-                        -- Finds nearest blue logistics zone to the target neutral zone
-                        local avail_logistics_zones = {}
-
-                        for _, log_zone in ipairs(zones) do
-                            if log_zone.side == side and log_zone.zone_type == ZoneTypes.LOGISTICS
-                            and log_zone.capture_heli_avail > 0 then
-                                table.insert(avail_logistics_zones, log_zone)
-                            end
-                        end
-
-                        -- Sort by distance to target zone
-                        table.sort(avail_logistics_zones, function(a, b)
-                            local dist_a = mist.utils.get2DDist(a.zone.point, to_zone.zone.point)
-                            local dist_b = mist.utils.get2DDist(b.zone.point, to_zone.zone.point)
-                            return dist_a < dist_b
-                        end)
-
-                        if #avail_logistics_zones > 0 then
-                            local from_zone = avail_logistics_zones[1]
-                            if TaskManager:initiateAITask(AITaskTypes.CAPTURE_HELO, side, false, to_zone, from_zone, true) then
-                                deductSupplies(Config.supplies.tasking_costs.CAPTURE_HELO)
-                                trigger.action.outTextForCoalition(side, "Request accepted, Helicopter capture dispatched to " .. to_zone.name .. ", " .. Config.supplies.tasking_costs.CAPTURE_HELO .. " supplies used.", 10)
-                                trigger.action.outSoundForCoalition(side, "Radio squelch.ogg")
-                            else
-                                trigger.action.outTextForGroup(gr_id, "Helicopter capture request failed (no assets available).", 10)
-                                trigger.action.outSoundForGroup(gr_id, "Radio squelch.ogg")
-                            end
-                        else
-                            trigger.action.outTextForGroup(gr_id, "Helicopter capture request failed (no assets available).", 10)
-                            trigger.action.outSoundForGroup(gr_id, "Radio squelch.ogg")
-                        end
-
-                    end,
-                    arg = {u = unit, z = zone}
-                })
-            end
-        end
-
-        local jtac_target_list = {}
-        for _, zone in ipairs(zones) do
-            -- Find enemy zones suitable for JTAC
-            if zone.side == enemy_side and utils.tableContains(discovered_zones, zone.name) then 
-                table.insert(jtac_target_list, {
-                    name = zone.name,
-                    func = function (args)
-                        local u = args.u
-                        local to_zone = args.z
-                        if side_comms_towers < Config.tasking_requirements.comms_zones_required_for_jtac then
-                            trigger.action.outTextForGroup(gr_id, "Negative, JTAC tasking requires " .. side_comms_towers .. "/"..Config.tasking_requirements.comms_zones_required_for_jtac.." active COMMS towers.", 10)
-                            trigger.action.outSoundForGroup(gr_id, "Radio squelch.ogg")
-                            return
-                        end
-
-                        if not checkRankRequirement(u, AITaskTypes.JTAC) then return end
-                        if not checkSupplies(u, Config.supplies.tasking_costs.JTAC) then return end
-
-
-
-                        if TaskManager:initiateAITask(AITaskTypes.JTAC, side, false, to_zone, nil, true) then
-                            deductSupplies(Config.supplies.tasking_costs.JTAC)
-                            trigger.action.outTextForCoalition(side, "Request accepted, JTAC dispatched to " .. to_zone.name .. ", "..Config.supplies.tasking_costs.JTAC.." supplies used.", 10)
-                            trigger.action.outSoundForCoalition(side, "Radio squelch.ogg")
-                        else
-                            trigger.action.outTextForGroup(gr_id, "JTAC request failed (No assets available).", 10)
-                            trigger.action.outSoundForGroup(gr_id, "Radio squelch.ogg")
-                        end
-                    end,
-                    arg = {u = unit, z = zone}
-                })
-            end
-        end
-
-        local cap_zone_list = {}
-        for _, zone in ipairs(zones) do
-            -- Find enemy zones suitable for CAP
-            if utils.tableContains(discovered_zones, zone.name) then
-                table.insert(cap_zone_list, {
-                    name = zone.name,
-                    func = function (args)
-                        local u = args.u
-                        local to_zone = args.z
-                        if side_comms_towers < Config.tasking_requirements.comms_zones_required_for_cap then
-                            trigger.action.outTextForGroup(gr_id, "Negative, CAP tasking requires " .. side_comms_towers .. "/"..Config.tasking_requirements.comms_zones_required_for_cap.." active COMMS towers.", 10)
-                            trigger.action.outSoundForGroup(gr_id, "Radio squelch.ogg")
-                            return
-                        end
-
-                        if not checkRankRequirement(u, AITaskTypes.CAP) then return end
-                        if not checkSupplies(u, Config.supplies.tasking_costs.CAP) then return end
-
-
-                        if TaskManager:initiateAITask(AITaskTypes.CAP, side, false, to_zone, nil, true) then
-                            deductSupplies(Config.supplies.tasking_costs.CAP)
-                            trigger.action.outTextForCoalition(side, "Request accepted, CAP dispatched to " .. to_zone.name .. ", "..Config.supplies.tasking_costs.CAP.." supplies used.", 10)
-                            trigger.action.outSoundForCoalition(side, "Radio squelch.ogg")
-                        else
-                            trigger.action.outTextForGroup(gr_id, "CAP request failed (No assets available).", 10)
-                            trigger.action.outSoundForGroup(gr_id, "Radio squelch.ogg")
-                        end
-                    end,
-                    arg = {u = unit, z = zone}
-                })
-            end
-        end
-        
-        local strike_target_list = {}
-        for _, zone in ipairs(zones) do
-            -- Find enemy zones suitable for STRIKE
-            if zone.side == enemy_side and utils.tableContains(discovered_zones, zone.name)
-            and (zone.zone_type == ZoneTypes.LOGISTICS or zone.zone_type == ZoneTypes.COMMS)
-            then
-                table.insert(strike_target_list, {
-                    name = zone.name,
-                    func = function (args)
-                        local u = args.u
-                        local to_zone = args.z
-                        if side_comms_towers < Config.tasking_requirements.comms_zones_required_for_strike then
-                            trigger.action.outTextForGroup(gr_id, "Negative, STRIKE tasking requires " .. side_comms_towers .. "/"..Config.tasking_requirements.comms_zones_required_for_strike.." active COMMS towers.", 10)
-                            trigger.action.outSoundForGroup(gr_id, "Radio squelch.ogg")
-                            return
-                        end
-
-                        if not checkRankRequirement(u, AITaskTypes.STRIKE) then return end
-                        if not checkSupplies(u, Config.supplies.tasking_costs.STRIKE) then return end
-
-                        if TaskManager:initiateAITask(AITaskTypes.STRIKE, side, false, to_zone, nil, true) then
-                            deductSupplies(Config.supplies.tasking_costs.STRIKE)
-                            trigger.action.outTextForCoalition(side, "Request accepted, STRIKE dispatched to " .. to_zone.name .. ", "..Config.supplies.tasking_costs.STRIKE.." supplies used.", 10)
-                            trigger.action.outSoundForCoalition(side, "Radio squelch.ogg")
-                        else
-                            trigger.action.outTextForGroup(gr_id, "STRIKE request failed (No assets available).", 10)
-                            trigger.action.outSoundForGroup(gr_id, "Radio squelch.ogg")
-                        end
-                    end,
-                    arg = {u = unit, z = zone}
-                })
-            end
-        end
-
-        if #jtac_target_list > 0 then
-            table.insert(main_tasking_list, {
+        local main_tasking_list = {
+            {
                 name = "Request JTAC",
-                submenu = jtac_target_list
-            })
-        else
-             table.insert(main_tasking_list, {
-                name = "Request JTAC (No Targets)",
-                func = function() end,
+                func = function()
+                    local commands = buildZoneCommandList(function(zone, discovered)
+                        return zone.side == enemy_side and utils.tableContains(discovered, zone.name)
+                    end, executeJTACRequest)
+                    createSelectAreaMenu(commands, "CMD-HQ Negative JTAC tasking. No confirmed hostile sectors. Continue recon and standby.")
+                end,
                 arg = nil
-            })
-        end
-
-        if #naval_strike_list > 0 then
-            table.insert(main_tasking_list, {
+            },
+            {
                 name = "Request Naval Strike",
-                submenu = naval_strike_list
-            })
-        else
-             table.insert(main_tasking_list, {
-                name = "Request Naval Strike (No Targets)",
-                func = function() end,
+                func = function()
+                    local commands = buildZoneCommandList(function(zone, discovered)
+                        if not (Scenario.carrier_setup.enabled and Scenario.carrier_setup.tomahawk_launcher_unit_name) then
+                            return false
+                        end
+                        return zone.side == enemy_side and utils.tableContains(discovered, zone.name)
+                    end, executeNavalStrikeRequest)
+                    createSelectAreaMenu(commands, "CMD-HQ Negative naval strike. No valid target areas currently designated.")
+                end,
                 arg = nil
-            })
-        end
-
-        if #capture_heli_list > 0 then
-            table.insert(main_tasking_list, {
-                name = "Request Helicopter Capture",
-                submenu = capture_heli_list
-            })
-        else
-             table.insert(main_tasking_list, {
-                name = "Request Helicopter Capture (Unavailable)",
-                func = function() end,
+            },
+            {
+                name = "Request Capture",
+                func = function()
+                    local commands = buildZoneCommandList(function(zone, discovered)
+                        return zone.side == coalition.side.NEUTRAL and utils.tableContains(discovered, zone.name)
+                    end, executeCaptureHeloRequest)
+                    createSelectAreaMenu(commands, "CMD-HQ Negative capture tasking. No neutral zones are currently identified.")
+                end,
                 arg = nil
-            })
-        end
-
-        if #cap_zone_list > 0 then
-            table.insert(main_tasking_list, {
+            },
+            {
+                name = "Request Reinforcement",
+                func = function()
+                    local commands = buildZoneCommandList(function(zone, discovered)
+                        return zone.side == side
+                            and zone.level and zone.level < 4
+                            and utils.tableContains(discovered, zone.name)
+                            and not EnrouteManager:findByToZone(zone, zone.side, {AITaskTypes.REINFORCEMENT_HELO})
+                    end, executeReinforcementHeloRequest)
+                    createSelectAreaMenu(commands, "CMD-HQ Negative. No eligible friendly sectors are currently identified.")
+                end,
+                arg = nil
+            },
+            {
                 name = "Request CAP",
-                submenu = cap_zone_list
-            })
-        else
-             table.insert(main_tasking_list, {
-                name = "Request CAP (No Targets)",
-                func = function() end,
+                func = function()
+                    local commands = buildZoneCommandList(function(zone, discovered)
+                        return utils.tableContains(discovered, zone.name)
+                    end, executeCAPRequest)
+                    createSelectAreaMenu(commands, "CMD-HQ Negative CAP assignment. No sectors available for patrol at this time.")
+                end,
                 arg = nil
-            })
-        end
-
-        -- Add the CAS category to the main list
-        if #cas_target_list > 0 then
-            table.insert(main_tasking_list, {
+            },
+            {
                 name = "Request CAS",
-                submenu = cas_target_list
-            })
-        else
-             table.insert(main_tasking_list, {
-                name = "Request CAS (No Targets)",
-                func = function() end,
+                func = function()
+                    local commands = buildZoneCommandList(function(zone, discovered)
+                        return zone.side == enemy_side and utils.tableContains(discovered, zone.name)
+                    end, executeCASRequest)
+                    createSelectAreaMenu(commands, "CMD-HQ Negative CAS tasking. No confirmed hostile zones available. Continue recon.")
+                end,
                 arg = nil
-            })
-        end
-
-        if #awacs_airbase_list > 0 then
-            table.insert(main_tasking_list, {
+            },
+            {
                 name = "Request AWACS",
-                submenu = awacs_airbase_list
-            })
-        else
-             table.insert(main_tasking_list, {
-                name = "Request AWACS (No Airbases)",
-                func = function() end,
+                func = function()
+                    local requesting_airbase = utils.fetchSuppliesZoneFromUnit(unit)
+                    if not requesting_airbase or requesting_airbase.zone_type ~= ZoneTypes.AIRBASE then
+                        trigger.action.outTextForGroup(gr_id, "CMD-HQ - Negative, AWACS can only be requested while at a friendly airbase.", 8)
+                        trigger.action.outSoundForGroup(gr_id, "Radio squelch.ogg")
+                        return
+                    end
+                    local commands = buildZoneCommandList(function(zone)
+                        return zone == requesting_airbase
+                    end, executeAWACSRequest)
+                    createSelectAreaMenu(commands, "CMD-HQ Negative AWACS launch. No friendly airbase is available for departure.")
+                end,
                 arg = nil
-            })
-        end
-
-        if #strike_target_list > 0 then
-            table.insert(main_tasking_list, {
+            },
+            {
+                name = "Request Tanker",
+                func = function()
+                    local requesting_airbase = utils.fetchSuppliesZoneFromUnit(unit)
+                    if not requesting_airbase or requesting_airbase.zone_type ~= ZoneTypes.AIRBASE then
+                        trigger.action.outTextForGroup(gr_id, "CMD-HQ - Negative, Tanker sectors can only be requested while at a friendly airbase.", 8)
+                        trigger.action.outSoundForGroup(gr_id, "Radio squelch.ogg")
+                        return
+                    end
+                    local commands = buildZoneCommandList(function(zone)
+                        return zone == requesting_airbase
+                    end, executeTankerRequest)
+                    createSelectAreaMenu(commands, "CMD-HQ Negative tanker launch. No friendly airbase is available for departure.")
+                end,
+                arg = nil
+            },
+            {
                 name = "Request Strike",
-                submenu = strike_target_list
-            })
-        else
-             table.insert(main_tasking_list, {
-                name = "Request Strike (No Targets)",
-                func = function() end,
+                func = function()
+                    local commands = buildZoneCommandList(function(zone, discovered)
+                        return zone.side == enemy_side and utils.tableContains(discovered, zone.name)
+                            and (zone.zone_type == ZoneTypes.LOGISTICS or zone.zone_type == ZoneTypes.COMMS)
+                    end, executeStrikeRequest)
+                    createSelectAreaMenu(commands, "CMD-HQ Negative strike package. No validated enemy infrastructure targets are available.")
+                end,
                 arg = nil
-            })
-        end
-
-        if #sead_target_list > 0 then
-            table.insert(main_tasking_list, {
+            },
+            {
                 name = "Request SEAD",
-                submenu = sead_target_list
-            })
-        else
-             table.insert(main_tasking_list, {
-                name = "Request SEAD (No Targets)",
-                func = function() end,
+                func = function()
+                    local commands = buildZoneCommandList(function(zone, discovered)
+                        return zone.side == enemy_side and utils.tableContains(discovered, zone.name)
+                            and zone.zone_type == ZoneTypes.SAMSITE
+                    end, executeSEADRequest)
+                    createSelectAreaMenu(commands, "CMD-HQ Negative SEAD tasking. No active enemy SAM sectors are currently identified.")
+                end,
                 arg = nil
-            })
-        end
+            },
+        }
 
-        -- Build the final paginated nested menu under the tasking_main_submenu
-        if #main_tasking_list > 0 then
-            CommandHandler.buildPagedMenuForGroup(gr_id, tasking_main_submenu, main_tasking_list, 1)
-        end
+        CommandHandler.buildPagedMenuForGroup(gr_id, tasking_main_submenu, main_tasking_list, 1)
+
     end
 
     ---@class CommandItemPagedMenu
@@ -1157,7 +1392,7 @@ do
                 local unit_coalition = u:getCoalition()
                 local found_zone = false
                 local altitude_m = u:getPoint().y
-                local base_range = 3000
+                local base_range = 8000
                 local max_recon_range = 30000
                 local dynamic_recon_range = math.min(base_range + altitude_m, max_recon_range)
 

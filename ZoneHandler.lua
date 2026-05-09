@@ -11,7 +11,7 @@ end
 ---@field name string
 ---@field side coalition.side|nil
 ---@field level number|nil
----@field sam_classification string|nil
+---@field sam_classification SAM_TYPES|nil
 ---@field zone ZoneObj
 ---@field zone_type ZoneTypes
 ---@field linked_groups string[]
@@ -19,8 +19,11 @@ end
 ---@field airbase_name string|nil
 ---@field comms_tower_intact boolean|nil
 ---@field linked_comms_tower string|nil
----@field cmdc_intact boolean|nil
 ---@field linked_farp string|nil
+---@field local_supplies number|nil
+---@field next_level_up_avail number|nil
+---@field runway_destroyed boolean|nil
+---@field runway_destroyed_until number|nil
 ZoneHandler = {}
 do
     function ZoneHandler:new(obj)
@@ -29,13 +32,10 @@ do
         obj.linked_groups = obj.linked_groups or {}
         obj.linked_statics = obj.linked_statics or {}
 
-        if not obj.zone then 
-            MissionLogger:error("ZoneHandler:new Could not find zone "..obj.name.." in mission triggers zones")
-            return 
-        end
+        if not obj.zone then return end
 
         if obj.zone_type == ZoneTypes.SAMSITE then
-            if not obj.sam_classification then 
+            if not obj.sam_classification then
                 MissionLogger:error("ZoneHandler:new Missing/Incorrect fields - SAMSITE zone "..obj.name)
                 return end
         end
@@ -45,15 +45,11 @@ do
                 obj.next_level_up_avail = timer.getTime()
             end
             obj.ammo_depot_intact = false
-            obj.capture_heli_avail = obj.capture_heli_avail or 0
+            obj.heli_avail = obj.heli_avail or obj.capture_heli_avail or 0
         end
 
         if obj.zone_type == ZoneTypes.STRONGPOINT then
             obj.attack_convoy = obj.attack_convoy or 0
-        end
-
-        if obj.zone_type == ZoneTypes.AIRBASE and obj.cmdc_intact == nil then
-            obj.cmdc_intact = true
         end
 
 
@@ -83,6 +79,8 @@ do
             if airbase then
                 airbase:autoCapture(false)
                 airbase:setCoalition(obj.side)
+                obj.runway_destroyed = obj.runway_destroyed or false
+                obj.runway_destroyed_until = obj.runway_destroyed_until or nil
             else
                 MissionLogger:error("ZoneHandler:new - AIRBASE zone "..obj.name.." could not find airbase "..obj.airbase_name)
             end
@@ -184,7 +182,7 @@ do
             text_display = text_display .. "\nAttack Convoys: " .. (self.attack_convoy or 0)
         elseif self.zone_type == ZoneTypes.LOGISTICS then
             text_display = text_display .. "\nLOGISTICS"
-            text_display = text_display .. "\nCapture Helicopters: " .. (self.capture_heli_avail or 0)
+            text_display = text_display .. "\nHelicopters: " .. (self.heli_avail or 0)
         elseif self.zone_type == ZoneTypes.FARP then
             text_display = text_display .. "\nFARP"
         elseif self.zone_type == ZoneTypes.SAMSITE then
@@ -282,6 +280,36 @@ do
 
     function ZoneHandler:isCircle()
         return self.zone.type == 0
+    end
+
+
+    ---@param side coalition.side
+    ---@param ignore_zone_types ZoneTypes[] Do not allow these zone types
+    ---@param zone_types_filter ZoneTypes[] Only allow these zones types
+    ---@param discovered boolean
+    ---@return ZoneHandler[]
+    function ZoneHandler:filterZonesByDistance(side,ignore_zone_types, zone_types_filter, discovered)
+        local sorted_zones = {}
+        local discovered_zones = {}
+        if side == coalition.side.BLUE then
+            discovered_zones = stats.blue_discovered_zones
+        else
+            discovered_zones = stats.red_discovered_zones
+        end
+
+        for _,zone in pairs(zones) do
+            if (#ignore_zone_types==0 or not utils.tableContains(ignore_zone_types,zone.zone_type))
+            and (#zone_types_filter==0 or utils.tableContains(zone_types_filter,zone.zone_type))
+            and zone.side == side
+            and zone.name ~= self.name
+            and (not discovered or utils.tableContains(discovered_zones,zone.name)) then
+                table.insert(sorted_zones,zone)
+            end
+        end
+        table.sort(sorted_zones, function(a,b)
+            return mist.utils.get2DDist(self.zone.point,a.zone.point) < mist.utils.get2DDist(self.zone.point,b.zone.point)
+        end)
+        return sorted_zones
     end
 
     ---@param side coalition.side
@@ -440,8 +468,12 @@ do
                 UnitHandler.clone(GroupData.LOGISTICS_SITES.BLUE[self.level].group_name, self,true)
                 WarehouseManager:handleIncomingSupplies(self.side,{WarehouseManager.StockTypes.LOGISTICS_CAPTURE})
             end
-            self.capture_heli_avail = 0
-
+            self.heli_avail = 0
+            -- Mark static as dead, this prevents the check function from flagging it as dead
+            self.linked_ammo_depot = nil
+            self.ammo_depot_intact = false
+            self.ammo_depot_last_destroyed = timer.getTime()
+            self.linked_statics = {}
         elseif self.zone_type == ZoneTypes.COMMS and self.side ~= coalition.side.NEUTRAL then
             if self.side == coalition.side.RED then
                 UnitHandler.clone(GroupData.COMMS_SITES.RED[self.level].group_name, self,true)
@@ -452,6 +484,11 @@ do
                 stats.red_comms_zones = stats.red_comms_zones -1
                 stats.blue_comms_zones = stats.blue_comms_zones +1
             end
+            -- Mark static as dead, this prevents the check function from flagging it as dead
+            self.linked_comms_tower = nil
+            self.comms_tower_intact = false
+            self.comms_tower_last_destroyed = timer.getTime()
+            self.linked_statics = {}
         elseif self.zone_type == ZoneTypes.EWSITE and self.side ~= coalition.side.NEUTRAL then
             if self.side == coalition.side.RED then
                 UnitHandler.clone(GroupData.EW_SITES.RED[self.level].group_name , self,true)
@@ -463,7 +500,11 @@ do
                 stats.blue_ew_zones = stats.blue_ew_zones +1
             end
         elseif self.zone_type == ZoneTypes.FARP and self.side ~= coalition.side.NEUTRAL then
-            -- first delete the invisiblefarp if exits
+            
+            self.linked_ammo_depot = nil
+            self.ammo_depot_intact = false
+            self.ammo_depot_last_destroyed = timer.getTime()
+            self.linked_statics = {}
             timer.scheduleFunction(function ()
                 UnitHandler.initFARP(self,false)
             end,{},timer.getTime()+5)
@@ -538,6 +579,13 @@ do
                     end
                 end
             end
+
+            -- Mark static as dead, this prevents the check function from flagging it as dead
+            self.linked_ammo_depot = nil
+            self.ammo_depot_intact = false
+            self.ammo_depot_last_destroyed = timer.getTime()
+            self.linked_statics = {}
+
             if red_airbase and self.airbase_name == red_airbase.airbase_name then
                 red_airbase.side = self.side
             elseif blue_airbase and self.airbase_name == blue_airbase.airbase_name then
@@ -582,15 +630,25 @@ do
                 elseif enroute.ai_task_type == AITaskTypes.JTAC then
                     if enroute.jtac then
                         timer.scheduleFunction(function ()
-                            enroute.jtac:destroy()
+                            enroute.jtac:destroy() -- this uses the custom destroy function that also removes commands
                         end, {}, timer.getTime() + math.random(5, 10))
                         EnrouteManager:remove(enroute.group_name)
+                    end
+                elseif enroute.ai_task_type == AITaskTypes.RESUPPLY_CARGO then
+                    local cargo_group = Group.getByName(enroute.group_name)
+                    if cargo_group and cargo_group:isExist() then
+                        timer.scheduleFunction(function ()
+                            cargo_group:destroy()
+                            trigger.action.outTextForCoalition(enroute.side,"SITREP: Resupply Aircraft inbound for "..enroute.to_zone.name .. " aborted!",10)
+                            trigger.action.outSoundForCoalition(enroute.side,"radio_beep3.ogg")
+                            EnrouteManager:remove(enroute.group_name)
+                        end, {}, timer.getTime() + math.random(5, 10))
                     end
                 end
 
             end
         end
-        
+
 
         -- Notify players
         if self.side == coalition.side.BLUE then
@@ -606,10 +664,14 @@ do
 
             -- Adds supplies on capture
             timer.scheduleFunction(function ()
-                local added_supplies = Config.supplies.supplies_looted_on_destroyed + math.random(-Config.supplies.supplies_looted_on_destroyed_variance,Config.supplies.supplies_looted_on_destroyed_variance)
-                stats.blue_supplies = stats.blue_supplies + added_supplies
-                trigger.action.outTextForCoalition(2,"Frontline forces looted " .. added_supplies .. " supplies from "..self.name, 10)
-                trigger.action.outSoundForCoalition(2, "radio_beep3.ogg")
+                if self.ammo_depot_intact then
+                    
+                    local added_supplies = Config.supplies.supplies_looted_on_destroyed + math.random(-Config.supplies.supplies_looted_on_destroyed_variance,Config.supplies.supplies_looted_on_destroyed_variance)
+                    local local_cap = Config.supplies.supplies_cap[self.level or 1] or 0
+                    self.local_supplies = math.min((self.local_supplies or 0) + added_supplies, local_cap)
+                    trigger.action.outTextForCoalition(2,"Frontline forces looted " .. added_supplies .. " supplies from "..self.name, 10)
+                    trigger.action.outSoundForCoalition(2, "radio_beep3.ogg")
+                end
             end,{},timer.getTime()+math.random(30,60))
 
         elseif self.side == coalition.side.RED then
@@ -619,10 +681,13 @@ do
             end
             -- Adds supplies on capture
             timer.scheduleFunction(function ()
+                if self.ammo_depot_intact then
                     local added_supplies = Config.supplies.supplies_looted_on_destroyed + math.random(-Config.supplies.supplies_looted_on_destroyed_variance,Config.supplies.supplies_looted_on_destroyed_variance)
-                stats.red_supplies = stats.red_supplies + added_supplies
-                trigger.action.outTextForCoalition(1,"Frontline forces looted " .. added_supplies .. " supplies from "..self.name, 10)
-                trigger.action.outSoundForCoalition(1, "radio_beep3.ogg")
+                    local local_cap = Config.supplies.supplies_cap[self.level or 1] or 0
+                    self.local_supplies = math.min((self.local_supplies or 0) + added_supplies, local_cap)
+                    trigger.action.outTextForCoalition(1,"Frontline forces looted " .. added_supplies .. " supplies from "..self.name, 10)
+                    trigger.action.outSoundForCoalition(1, "radio_beep3.ogg")
+                end
             end,{},timer.getTime()+math.random(30,60))
 
             trigger.action.outTextForCoalition(2,"SITEP: Allied forces lost control of " .. self.name .. ".", 15)
@@ -640,7 +705,7 @@ do
             self.last_capture_attempt = nil
             
             self.attack_convoy = 0
-            self.capture_heli_avail = 0
+            self.heli_avail = 0
             self:drawF10()
             self:updateDiscoveredZones()
             
@@ -648,7 +713,7 @@ do
 
         trigger.action.outSound("radio click.ogg")
         MissionLogger:info("Zone " .. self.zone.name .. " captured by " .. utils.coalitionToString(self.side))
-
+        
         -- Invalidate cached operation lists immediately after ownership changes.
         if TheatreCommander.blue_op_manager and TheatreCommander.blue_op_manager.forceRegenerateOperations then
             TheatreCommander.blue_op_manager:forceRegenerateOperations()
@@ -685,7 +750,22 @@ do
     end
 
     function ZoneHandler:hasCaptureHeliAvailable()
-        return self.capture_heli_avail > 0
+        return (self.heli_avail or 0) > 0
+    end
+
+    ---@return boolean
+    function ZoneHandler:isRunwayDisabled()
+        if self.zone_type ~= ZoneTypes.AIRBASE then return false end
+        if not self.runway_destroyed or not self.runway_destroyed_until then return false end
+        return self.runway_destroyed_until > timer.getTime()
+    end
+
+    ---@param duration number|nil
+    function ZoneHandler:markRunwayDisabled(duration)
+        if self.zone_type ~= ZoneTypes.AIRBASE then return end
+        local disable_time = duration or Config.operations.runway_destroyed_duration or 3600
+        self.runway_destroyed = true
+        self.runway_destroyed_until = timer.getTime() + disable_time
     end
 
     function ZoneHandler:checkIfEmpty()
@@ -769,8 +849,9 @@ do
         if math.random(1,100) > chance then return end
 
         if self.zone_type == ZoneTypes.LOGISTICS then
-            if self.capture_heli_avail < Config.tasking.max_capture_helicopters_per_logistics_zone then
-                self.capture_heli_avail = self.capture_heli_avail +1
+            self.heli_avail = self.heli_avail or 0
+            if self.heli_avail < Config.tasking.max_capture_helicopters_per_logistics_zone then
+                self.heli_avail = self.heli_avail + 1
             end
         elseif self.zone_type == ZoneTypes.STRONGPOINT then
             if self.attack_convoy < Config.tasking.max_attack_convoys_per_strongpoint_zone then
@@ -778,174 +859,6 @@ do
             end
         end
         self:drawF10()
-    end
-
-    ---@return boolean --true if zone was upgraded
-    function ZoneHandler:checkLogisticsZone()
-        if self.side == coalition.side.NEUTRAL then return false end
-        if self.zone_type ~= ZoneTypes.LOGISTICS then return false end
-
-        -- MissionLogger:info("Checking logistcs zone "..self.name)
-        local ammo_depot = nil
-        local is_alive = false
-        if not self.linked_ammo_depot then
-            self.ammo_depot_intact = false
-        else
-            ammo_depot = StaticObject.getByName(self.linked_ammo_depot)
-            is_alive = ammo_depot and ammo_depot:isExist() and ammo_depot:getLife() >= 1
-        end
-        
-
-        -- If the script thinks the depot is intact, but it's NOT alive, mark it as destroyed.
-        if self.ammo_depot_intact and not is_alive then
-            self.ammo_depot_intact = false
-            self.ammo_depot_last_destroyed = timer.getTime()
-
-            -- destroy if it exists
-            if ammo_depot and ammo_depot:isExist() then
-                ammo_depot:destroy()
-            end
-            utils.editAmmoDepotsCount(self.side, -1)
-            trigger.action.outTextForCoalition(self.side, "Sector ALERT: Secondary explosions confirmed at "..self.name..". The ammunition depot is a total loss",20)
-            trigger.action.outSoundForCoalition(self.side,"alert1.ogg")
-            timer.scheduleFunction(function ()
-                trigger.action.outSoundForCoalition(self.side,"alert1.ogg")
-            end,{},timer.getTime()+1)
-
-        end
-        if not self.ammo_depot_intact and not self.ammo_depot_last_destroyed then
-            -- depot was destroyed but time not recorded, record it now
-            self.ammo_depot_last_destroyed = timer.getTime()
-        end
-
-        -- checks if the ammo depot has not been destroyed, else respawn one in 
-        if self.ammo_depot_last_destroyed and not self.ammo_depot_intact
-        and self.ammo_depot_last_destroyed + Config.logistics_ammo_depot_respawn_time > timer.getTime() then
-            MissionLogger:info(self.name .." ammo depot pending respawn")
-            -- display the time remaining for spawn
-            local time_remaining = math.ceil((self.ammo_depot_last_destroyed + Config.logistics_ammo_depot_respawn_time - timer.getTime())/60)
-            local time_text = "Rebuild in T-"..time_remaining.." min"
-            self:drawF10(time_text)
-
-            return false
-        elseif not self.ammo_depot_intact and self.ammo_depot_last_destroyed
-        and self.ammo_depot_last_destroyed + Config.logistics_ammo_depot_respawn_time <= timer.getTime() then
-            MissionLogger:info(self.name .." ammo depot respawn")
-
-            
-            -- respawn the ammo depot --TO CHANGE
-            local country_name
-            if self.side == coalition.side.BLUE then country_name = country.id.CJTF_BLUE
-            else country_name = country.id.CJTF_RED end
-            
-            local pnt= mist.getRandomPointInZone(self.zone.name,40) or {x=self.zone.point.x-67, y=self.zone.point.z+42}
-
-            local ammo_depot_gr = mist.dynAddStatic({
-                type = ".Ammunition depot",
-                country = country_name,
-                category = "Warehouses",
-                x = pnt.x,
-                y = pnt.y})
-                if ammo_depot_gr then
-                    self.ammo_depot_intact = true
-                    self.linked_ammo_depot = ammo_depot_gr.name
-                    self.ammo_depot_last_destroyed = nil
-                    utils.editAmmoDepotsCount(self.side, 1)
-                    trigger.action.outSoundForCoalition(self.side,"chatter3.ogg")
-                    trigger.action.outTextForCoalition(self.side, "Logistics SITREP: Logistics zone "..self.name.." has reestablished its ammunition depot.",10)
-            self:drawF10()
-            else                                                        
-                MissionLogger:error("Could not spawn ammo depot for ".. self.name)
-            end
-        end
-
-        -- Ammo depot is intact
-        --First add supplies
-        local supply_count = 0
-        if self.side == coalition.side.BLUE then
-            supply_count = stats.blue_supplies
-        elseif self.side == coalition.side.RED then
-            supply_count = stats.red_supplies
-        end
-        
-
-        supply_count = math.min(math.min(supply_count + Config.supplies.supplies_income, utils.calculateSuppliesCAPforCoalition(self.side)), Config.supplies.absolute_max_supplies)
-        
-        -- Update the stats with the new supply count
-        if self.side == coalition.side.BLUE then
-            stats.blue_supplies = supply_count
-        elseif self.side == coalition.side.RED then
-            stats.red_supplies = supply_count
-        end
-        
-        local _,dist_to_enemy_zone = self:getClosestZone(utils.getEnemyCoalition(self.side))
-        if not dist_to_enemy_zone then return false end
-        if dist_to_enemy_zone and dist_to_enemy_zone > Scenario.logistics_setup.max_dist_to_frontline then return false end
-
-
-        if math.random(1,100) > Config.logistics_upgrade_chance then return false end
-
-        -- Prevents level ups of zones with players assigned AIRDROP operations
-        local airdop_restricted_zones = {}
-        ---@type Operation[]
-        local op_manager = TheatreCommander.blue_op_manager.active_operations
-
-        if op_manager then
-            for _, active_op in ipairs(op_manager) do
-                if active_op.type == OperationTypes.AIRDROP then
-                    table.insert(airdop_restricted_zones, active_op.target_zone_name)
-                end
-            end
-        end
-
-        -- levels up lowest level zones nearby
-        -- allow level ups only of ammo depot intact (not destroyed)
-        -- MissionLogger:info("Checking logistics zone "..self.name.." for level up")
-        if self.ammo_depot_intact and self.next_level_up_avail and timer.getTime() > self.next_level_up_avail then
-            -- level up nearest zone at lowest level
-            local lowest_level_zone_nearby = nil
-            if self.level < 4 then lowest_level_zone_nearby = self  --level up itself before others
-            else
-                local tried_zones = {}
-                local loop_prevention = 0
-                local level_zone, dist = self:getClosestZone(self.side,tried_zones)
-
-                while level_zone and dist < Scenario.logistics_setup.upgrade_range
-                and loop_prevention < 400 do
-
-                    if (not lowest_level_zone_nearby) or (level_zone.level < lowest_level_zone_nearby.level)
-                    and not utils.tableContains(airdop_restricted_zones, level_zone.name) then
-                        lowest_level_zone_nearby = level_zone
-                    end
-                    table.insert(tried_zones,level_zone.name)
-                    level_zone, dist = self:getClosestZone(self.side,tried_zones)
-                    loop_prevention = loop_prevention+1
-                end
-                if loop_prevention > 395 then
-                    MissionLogger:warn("Loop prevention prevented a crash")
-                end
-
-            end
-
-            if lowest_level_zone_nearby and lowest_level_zone_nearby.level < 4 then
-
-                
-                -- lowest nearby level zones has been found
-                lowest_level_zone_nearby.level = lowest_level_zone_nearby.level + 1
-                UnitHandler.updateZoneUnits(lowest_level_zone_nearby)
-                lowest_level_zone_nearby:drawF10()
-                self.next_level_up_avail = timer.getTime() + Config.logistics_level_up_interval
-                MissionLogger:info("Logistics zone "..self.name.." leveled up "..lowest_level_zone_nearby.name .. " to level "..lowest_level_zone_nearby.level.."/4")
-                trigger.action.outSoundForCoalition(self.side,"radio_beep3.ogg")
-                if self.name == lowest_level_zone_nearby.name then
-                    trigger.action.outTextForCoalition(self.side, self.name.." has reached operational tier "..lowest_level_zone_nearby.level.."/4",10)
-                else
-                    trigger.action.outTextForCoalition(self.side,self.name.." provided additional support for "..lowest_level_zone_nearby.name.."\nT: "..lowest_level_zone_nearby.level.."/4",10)
-                end
-                return true
-            end
-        end
-        return false
     end
 
     function ZoneHandler:checkCOMMSZone()
@@ -1034,87 +947,147 @@ do
                 MissionLogger:info("Comms tower respawn time is now "..Config.comms_tower_respawn_time)
            
                 trigger.action.outSoundForCoalition(self.side,"chatter3.ogg")
-                trigger.action.outTextForCoalition(self.side, "COMMS "..self.name.." has rebuilt its communications tower.",10)
+                trigger.action.outTextForCoalition(self.side, "SITREP: COMMS "..self.name.." has rebuilt its communications tower.",10)
             else
                 MissionLogger:error("Could not spawn comms tower for ".. self.name)
             end
         end
     end
 
-    function ZoneHandler:checkAirbaseZone()
-        if self.zone_type ~= ZoneTypes.AIRBASE then return end
+    function ZoneHandler:checkSUPPLIES()
         if self.side == coalition.side.NEUTRAL then return end
-        if not self.airbase_name then return end
+        if not (self.zone_type == ZoneTypes.AIRBASE or self.zone_type == ZoneTypes.FARP
+        or self.zone_type == ZoneTypes.LOGISTICS) then return end
 
-        local cmdc = nil
-        if self.linked_statics[1] then
-            cmdc = StaticObject.getByName(self.linked_statics[1])
+        self.local_supplies = self.local_supplies or 0
+
+        local zone_level = self.level or 1
+        local depot_cap = Config.supplies.supplies_cap[zone_level] or 0
+
+        ---@type StaticObject[]
+        local depots = {} -- Ammunition depots
+
+        for _, static_name in pairs(self.linked_statics) do
+            
+            local static = StaticObject.getByName(static_name)
+            if static and static:isExist() then
+                if static:getTypeName() == ".Ammunition depot" then
+                    table.insert(depots, static)
+                end
+            
+            else
+                -- Remove from tracking
+                for i = #self.linked_statics, 1, -1 do
+                    if self.linked_statics[i] == static_name then
+                        table.remove(self.linked_statics, i)
+                        break
+                    end
+                end
+                
+            end
+
         end
-        -- First, check the actual status of the depot
-        local is_alive = cmdc and cmdc:isExist() and cmdc:getLife() >= 1
 
-        if self.cmdc_intact == false and not self.cmdc_last_destroyed then
-            self.cmdc_last_destroyed = timer.getTime()
-        end
+        -- Alert players and remove supplies/ cancel production if statics dead
 
-        -- If the script thinks the depot is intact, but it's NOT alive, mark it as destroyed.
-        if self.linked_statics[1] and not is_alive then
-            self.cmdc_intact = false
-            self.cmdc_last_destroyed = timer.getTime()
-            self.linked_statics[1] = nil
-            utils.editCommandPostsCount(self.side, -1)
-            -- The coalition will loose 1/(# of cmd posts)of their supplies immediately
-            if self.side == coalition.side.BLUE then
-                local supply_loss = math.floor(stats.blue_supplies / math.max(1, stats.blue_command_posts))
-                stats.blue_supplies = math.max(0, stats.blue_supplies - supply_loss)
-                trigger.action.outTextForCoalition(self.side, "Sector ALERT: "..self.name.." command center has collapsed. Field reports indicate "..supply_loss.." supplies were lost in the blast and subsequent fires.",20)
+        if #depots==0 and self.ammo_depot_intact == true then
+            self.ammo_depot_intact = false
+            self.ammo_depot_last_destroyed = timer.getTime()
+
+            if self.local_supplies > 0 then
+
+                -- The loss of the Ammunition depots causes the loss of all local supplies
+                trigger.action.outTextForCoalition(self.side, "Sector ALERT: Secondary explosions confirmed at "..self.name..". Field reports indicate "..self.local_supplies.." supplies were lost in the blast and subsequent fires.",20)
                 trigger.action.outSoundForCoalition(self.side,"alert1.ogg")
                 timer.scheduleFunction(function ()
                     trigger.action.outSoundForCoalition(self.side,"alert1.ogg")
                 end,{},timer.getTime()+1)
+                self.local_supplies = 0
             end
+
         end
 
- 
-        if not is_alive and self.cmdc_last_destroyed
-        and self.cmdc_last_destroyed + Config.airbase_command_center_respawn_time > timer.getTime() then
-            
-            
-            MissionLogger:info(self.name .." command center pending respawn")
-            local time_remaining = math.ceil((self.cmdc_last_destroyed + (Config.airbase_command_center_respawn_time) - timer.getTime()) / 60)
+        local max_local_supplies = (#depots > 0 and self.ammo_depot_intact ~= false) and depot_cap or 0
+        self.local_supplies = math.min(self.local_supplies, max_local_supplies)
+
+        local depot_respawn_time = Config.logistics_ammo_depot_respawn_time or (65*60)
+
+        if self.ammo_depot_last_destroyed and not self.ammo_depot_intact
+        and self.ammo_depot_last_destroyed + depot_respawn_time > timer.getTime() then
+            -- Pending respawn
+
+            -- Display the time remaining for spawn
+            local time_remaining = math.ceil((self.ammo_depot_last_destroyed + depot_respawn_time - timer.getTime())/60)
             local time_text = "Rebuild in T-"..time_remaining.." min"
             self:drawF10(time_text)
-            return
-        elseif not is_alive and self.cmdc_last_destroyed
-        and self.cmdc_last_destroyed + Config.airbase_command_center_respawn_time <= timer.getTime() then
+            MissionLogger:info(self.name .." Ammunition depot pending respawn")
 
-            MissionLogger:info(self.name .." command center respawn")
+            return false
+        elseif not self.ammo_depot_intact and self.ammo_depot_last_destroyed
+        and self.ammo_depot_last_destroyed + depot_respawn_time <= timer.getTime() then
+            -- Ammunition Depot respawn
 
+            MissionLogger:info(self.name .." Ammunition depot respawn")
+
+            
+            -- respawn the ammo depot --TO CHANGE
             local country_name
             if self.side == coalition.side.BLUE then country_name = country.id.CJTF_BLUE
             else country_name = country.id.CJTF_RED end
             
-            local cmd_center_point = UnitHandler.findClearPoint(self,50,500)
+            local pnt = mist.getRandomPointInZone(self.zone.name,40) or {x=self.zone.point.x-67, y=self.zone.point.z+42}
 
-            local command_center = mist.dynAddStatic({
-                type = ".Command Center",
-                country = country_name, --81 = CJTF RED | 82= CJTF BLUE
-                category = "Fortifications",
-                x = cmd_center_point.x,
-                y = cmd_center_point.y
-            })
-
-            if command_center then
-                utils.editCommandPostsCount(self.side, 1)
-                table.insert(self.linked_statics, command_center.name)
-                self.cmdc_intact = true
-                self.cmdc_last_destroyed = nil
-                trigger.action.outSoundForCoalition(self.side,"radio_beep.ogg")
-                trigger.action.outTextForCoalition(self.side, self.name.." has rebuit its command center.",10)
-            else
-                MissionLogger:error("Could not spawn command center for ".. self.name)
+            local ammo_depot_gr = mist.dynAddStatic({
+                type = ".Ammunition depot",
+                country = country_name,
+                category = "Warehouses",
+                x = pnt.x,
+                y = pnt.y})
+                if ammo_depot_gr then
+                    self.ammo_depot_intact = true
+                    table.insert(self.linked_statics, ammo_depot_gr.name)
+                    self.ammo_depot_last_destroyed = nil
+                    utils.editAmmoDepotsCount(self.side, 1)
+                    trigger.action.outTextForCoalition(self.side, "SITREP: "..self.name.." supply storage and production depot has been rebuilt.",10)
+                    trigger.action.outSoundForCoalition(self.side,"chatter3.ogg")
+            self:drawF10()
             end
         end
+
+        if #depots >0 then
+            local production = Config.supplies.supplies_production[zone_level] or 0
+            local logistics_mult = Config.supplies.logistics_mult or 2
+            if self.zone_type == ZoneTypes.LOGISTICS then production = production * logistics_mult end
+
+            self.local_supplies = math.min(self.local_supplies + production,max_local_supplies)
+
+
+        end
+
+
+
+    end
+
+    function ZoneHandler:checkRunwayStatus()
+        if self.zone_type ~= ZoneTypes.AIRBASE then return true end
+        if not self.runway_destroyed or not self.runway_destroyed_until then return true end
+
+        local time_left = self.runway_destroyed_until - timer.getTime()
+        if time_left > 0 then
+            local minutes_left = math.ceil(time_left / 60)
+            self:drawF10("Runway INOP T-" .. minutes_left .. " min")
+            return false
+        end
+
+        self.runway_destroyed = false
+        self.runway_destroyed_until = nil
+        self:drawF10()
+
+        if self.side ~= coalition.side.NEUTRAL then
+            trigger.action.outTextForCoalition(self.side, "SITREP: " .. self.name .. " is operational.", 10)
+            trigger.action.outSoundForCoalition(self.side, "radio_beep3.ogg")
+        end
+        return true
     end
 
 end

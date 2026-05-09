@@ -18,10 +18,10 @@
 Config = {
     persistence = {
         enable =  true, -- enables or not persistence, has authority over everything below in this section
-        save_interval = 2*51, -- (seconds) interval at which the mission state is saved
+        save_interval = 4*51, -- (seconds) interval at which the mission state is saved
         -- You can use fixed values or multiplications like above
         -- 51 seconds is used to avoid multiples of 15 to reduce lag spikes
-        save_dir = "Missions/Saves/Georgia Liberation/", -- this is your saves directory in Saved Games
+        save_dir = "Missions/Saves/Crossfire Georgia Liberation V5/", -- this is your saves directory in Saved Games
         -- If you would like to create a new mission, simple change the last folder name
         save_file = "mission.json", -- this is the name of the mission file
         user_data_file = "user_data.json", -- this is the name of user data only file, note that this only saves user xp and rank
@@ -37,12 +37,44 @@ Config = {
         recon_distance_from_zone = 20000, -- (meters)
         cap_duration = 8*60, -- (seconds)
         cap_max_radius_from_zone = 28*1000, -- (meters)
-        max_distance_to_frontline_for_airdrops = 300*1000, -- (meters)
-        airdrop_min_crates_landed = 6, -- minimum number of crates that must land to consider the airdrop successful
+        max_distance_to_frontline_for_airdrops = 100*1000, -- (meters)
         csar_rescue_radius = 50, -- (meters) distance from downed pilot required to complete rescue
         intercept_required_kills = 2, -- number of aircraft/helicopters to destroy to complete INTERCEPT
         intercept_max_distance_to_enemy = 200*1000, -- (meters) max distance from friendly zone to enemy zone for INTERCEPT to be proposed
         attributes_for_SEAD_targeting = { 'SAM SR', 'SAM TR', 'IR Guided SAM', 'EWR' }, -- unit attributes that make them valid SEAD targets
+        runway_destroyed_duration = 60*60, -- (seconds) runtime-only runway disable duration
+        
+        reinforcement_max_range = 50*1000, -- (meters)
+        upgrade_required_supplies = 300, -- supplies required to upgrade a zone via AIRDROP / REINFORCEMENT (ex: 300 with 50/crate => 6 supply crates)
+
+        strategic_airlift = {
+            enabled = true,
+            boarded_object_height_agl = 0.5, -- (meters) packed object is considered boarded when above this AGL threshold
+            stage_hold_duration = 45, -- (seconds) hold near destination before completion
+            completion_supply_bonus = 900, -- supplies granted to the destination area when strategic airlift completes
+            completion_supply_bonus_variance = 150, -- random variance applied to the completion supply bonus
+
+            min_manifest_items = 3,
+            max_manifest_items = 6,
+            category_weights = {
+                troops = 35,
+                crates = 40,
+                vehicles = 25,
+            },
+            max_vehicle_crates_required = 3, -- avoids very heavy/slow manifests for this operation type
+
+
+
+            min_route_distance = 20*1000,
+            max_route_distance = 200*1000,
+
+            seconds_per_km = 65,
+            min_time = 20*60,
+            max_time = 90*60,
+            supplies_per_asset = 180,
+            base_xp = 1200,
+            xp_per_km = 2,
+        },
 
         operation_refresh_time = 30, --(seconds) this is to set a cooldown for generating operations
 
@@ -62,6 +94,21 @@ Config = {
             },
             [OperationTypes.AIRDROP] = {
                 "C-130J-30",
+            },
+            [OperationTypes.STRATEGIC_AIRLIFT] = {
+                "C-130J-30",
+            },
+            [OperationTypes.REINFORCEMENT] = {
+                "CH-47Fbl1",
+                "UH-1H",
+                "Mi-8MT",
+                "Mi-24P",
+                "SA342L",
+                "SA342M",
+                "SA342Mistral",
+                "SA342Minigun",
+                "UH-60L",
+                "AH-64D_BLK_II"
             },
             [OperationTypes.CAS] = {
                 "A-10C_2",
@@ -91,6 +138,14 @@ Config = {
                 "M-2000C",
                 "Su-25T",
                 "AH-64D_BLK_II",
+            },
+            [OperationTypes.RUNWAY_BOMBING] = {
+                "F-14A-135-GR",
+                "F-14B",
+                "M-2000C",
+                "F-15ESE",
+                "F-16C_50",
+                "FA-18C_hornet",
             },
             [OperationTypes.CAP] = {
                 "F-15C",
@@ -133,51 +188,66 @@ Config = {
 
     cooldown_before_capture_attempt = 10*60, -- (seconds)
     retry_capture_chance = 50, -- (%) Every minute, subject to various checks and conditions
-    
+    reinforcement_chance = 5, -- (%) for every minute
+
     std_resupply_time = 45*60, -- (seconds) periodic resupply aircraft time interval
     random_resupply_types = true , -- enables/disables random resupply types, if disabled only INITIAL resupplies will arrive
     -- INITIAL resupply is equivalent to what the warehouses were given at mission start
 
     supplies = {
-        initial_stock = 1000, -- starting supplies per coalition
+        initial_stock = 1000, -- starting supplies per zone (only for Airbases and FARPs)
         supplies_income = 20, -- supplies gained per minute from each alive ammo depot in logistics zones
         supplies_looted_on_destroyed = 500, -- supplies gained when capturing an enemy zone
         supplies_looted_on_destroyed_variance = 200, -- (+/-) supplies variance when capturing an enemy zone
-        supplies_cap_for_command_post = 5000, -- maximum supplies a command post can hold
         absolute_max_supplies = 40000, -- maximum supplies a coalition can hold no matter what
 
         resupply_costs = {
-            -- Warehouse aircraft resupply costs (balance: 1-2 aircraft per 5 minutes of income)
-            INITIAL = 8000,           -- Full initial warehouse stock restoration
+
+            INITIAL = 10000,           -- Full initial warehouse stock restoration
             FARP = 2500,              -- FARP complete resupply
             
-            AA_AIRCRAFT = 4000,       -- Air-to-air focused aircraft
-            AG_AIRCRAFT = 4500,       -- Air-to-ground focused aircraft
-            CARGO_AIRCRAFT = 3000,    -- Transport/utility aircraft
+            AA_AIRCRAFT = 3500,       -- Air-to-air focused aircraft
+            AG_AIRCRAFT = 3000,       -- Air-to-ground focused aircraft
+            CARGO_AIRCRAFT = 1500,    -- Transport/utility aircraft
             
-            -- Weapons resupply costs (balance: 2-4 loadouts per 5 minutes of income)
+
             AIR_AIR_LONG_RANGE = 2000,            -- AIM-120, AIM-54, etc.
-            AIR_AIR_SHORT_RANGE = 1500,           -- AIM-9, R-73, etc.
+            AIR_AIR_SHORT_RANGE = 1200,           -- AIM-9, R-73, etc.
             
-            AIR_GROUND_GUIDED_MISSILES = 3000,   -- AGM-65, Hellfire, etc.
-            AIR_GROUND_GUIDED_BOMBS = 1500,       -- GBU-12, GBU-38, etc.
-            AIR_GROUND_BOMBS = 900,              -- Mk-82, Mk-84, etc.
-            AIR_GROUND_ROCKETS = 500,            -- Hydra, S-8, etc.
+            AIR_GROUND_GUIDED_MISSILES = 1800,   -- AGM-65, Hellfire, etc.
+            AIR_GROUND_GUIDED_BOMBS = 1200,       -- GBU-12, GBU-38, etc.
+            AIR_GROUND_BOMBS = 800,              -- Mk-82, Mk-84, etc.
+            AIR_GROUND_ROCKETS = 400,            -- Hydra, S-8, etc.
             
-            ECM = 5000,                -- Jamming pods, countermeasures
-            TGP_MISC = 4000,           -- Targeting pods, misc equipment
+            ECM = 2500,                -- Jamming pods, countermeasures
+            TGP_MISC = 2000,           -- Targeting pods, misc equipment
+            SU25T_BLUFOR = 3000,        -- SU-25T BLUFOR stock package
         },
         tasking_costs = {
-            JTAC = 300,
+            JTAC = 250,
             CAS = 500,
-            SEAD = 500,
+            SEAD = 600,
             STRIKE = 500,
             CAP = 400,
-            AWACS = 400,
+            AWACS = 350,
+            TANKER = 400,
             RECON = 300,
             CAPTURE_HELO = 150,
-            NAVAL_STRIKE = 2500
-        }
+            NAVAL_STRIKE = 3500
+        },
+        supplies_production = {
+            [1] = 5,
+            [2] = 10,
+            [3] = 20,
+            [4] = 25
+        },
+        logistics_mult = 2,
+        supplies_cap = { -- per zone level
+            [1] = 1500,
+            [2] = 2500,
+            [3] = 3500,
+            [4] = 5000,
+        },
     },
 
     reward_system = {
@@ -191,6 +261,8 @@ Config = {
         xp_per_intel_report = 50,
         landing_time = 15, -- (seconds) the time the player has to stay on the ground to be rewarded
 
+        xp_lost_per_kill_fatricide = 1000,
+
         naval_stike_xp_required = 8000,
 
         -- Co-op reward bonuses
@@ -201,6 +273,7 @@ Config = {
             [AITaskTypes.RECON]          = 2000,
             [AITaskTypes.CAP]            = 5000,
             [AITaskTypes.CAS]            = 10000,  -- (Major milestone)
+            [AITaskTypes.TANKER]         = 12000,  -- Technical Sergeant
             [AITaskTypes.STRIKE]         = 15000,
             [AITaskTypes.SEAD]           = 20000,  -- ~25 hours
             [AITaskTypes.CAPTURE_HELO]   = 5000,
@@ -256,27 +329,27 @@ Config = {
         comms_zones_required_for_strike = 2,
         comms_zones_required_for_cap = 1,
         comms_zones_required_for_awacs = 2,
+        comms_zones_required_for_tanker = 2,
         comms_zones_required_for_recon = 1,
     },
-    comms_tower_respawn_time = 45*60, -- (seconds)
     
-    comms_tower_lost_penalty = 1.1, -- the respawn time is multiplied by this much when a comms tower is lost @depracted
-
     tasking = {
         enable = true, -- enables/disables AI tasking system, does not affect resupply and capture mechanics
-
+        
         BLUFOR_dispatcher_interval = 10*60+8, -- (seconds), avoid multiples of 15 to reduce lag spikes
-        REDFOR_dispatcher_interval = 6*60+8, -- (seconds), avoid multiples of 15 to reduce lag spikes
+        REDFOR_dispatcher_interval = 8*60+8, -- (seconds), avoid multiples of 15 to reduce lag spikes
         max_tasks_per_airbase = 4, -- maximum number of concurrent tasks per airbase
-
+        warehouse_aircraft_reserve = 2, -- minimum aircraft to leave in stock so AI does not empty the warehouse
+        
         max_jtac_per_airbase = 2,
         max_cas_per_airbase = 1,
         max_sead_per_airbase = 2,
         max_strike_per_airbase = 2,
         max_cap_per_airbase = 2,
         max_awacs_per_airbase = 1,
-        max_recon_per_airbase = 2,
-
+        max_tanker_per_airbase = 1,
+        max_recon_per_airbase = 1,
+        
         max_jtac_theatre = 4, -- per coalition, only for AI auto tasking
         max_cas_theatre = 4,-- per coalition, only for AI auto tasking
         max_sead_theatre = 4,-- per coalition , only for AI auto tasking
@@ -284,12 +357,13 @@ Config = {
         max_cap_theatre = 6,-- per coalition, only for AI auto tasking
         max_recon_theatre = 4,-- per coalition, only for AI auto tasking
         max_awacs_per_theatre = 2,-- per coalition, only for AI auto tasking
+        max_tanker_per_theatre = 2,-- per coalition
         max_attack_convoy_per_theatre = 3,-- per coalition, only for AI auto tasking
-
+        
         max_capture_helicopters_per_logistics_zone = 4,
         max_attack_convoys_per_strongpoint_zone = 2,
         max_awacs_theatre = 2,
-
+        
         range_for_recon_to_discover_zone = 15*1000, -- (meters)
         max_cas_range = 200*1000, -- (meters)
         max_strike_range = 200*1000, -- (meters)
@@ -297,19 +371,55 @@ Config = {
         min_cleareance_dist_for_awacs = 70*1000 -- (meters) from the nearest enemy zone
     },
 
+    tanker = {
+        spawn_delay_min = 12, -- (seconds)
+        spawn_delay_max = 12, -- (seconds)
+        minimum_enemy_distance = 10*1000, -- (meters) nearest enemy zone to source airbase
+        midpoint_ratio = 0.5, -- place tanker sector at this ratio from source toward nearest enemy zone
+        route_switch_distance = 3000, -- (meters) switch leg when this close to endpoint
+        leg_length = 100*1000, -- (meters) straight refuel leg length
+        sector_width = 40*1000, -- (meters) width of drawn sector corridor
+        rounded_corner_radius = 5000, -- (meters)
+        rounded_corner_segments = 5, -- number of segments per corner arc
+        edge_inset = 10*1000,
+
+
+        text_title = "Tanker Sector",
+        text_color = {56/255,56/255,56/255,1},
+        text_background = {156/255,156/255,156/255,0.6},
+        line_color = {156/255,156/255,156/255,0.9},
+
+        drogue = {
+            altitude_ft = 23000, --feet
+            speed = 232, -- m/s
+        },
+        boom = {
+            altitude_ft = 20000,
+            speed = 220, -- m/s
+        },
+        frequencies = {
+            min_MHz = 296,
+            max_MHz = 302
+        },
+        tacan = {
+            min_ch = 50,
+            max_ch = 80
+        } -- __X, the Y channel cannot be set via script (DCS Core issue)
+    },
+    
     ctld = {
         unpacked_asset_prefix = "unpacked_",
         packed_asset_prefix = "packed_",
         max_placed_assets = 300,  -- Global limit for all placed assets
         allowed_load_zones = {ZoneTypes.FARP, ZoneTypes.AIRBASE, ZoneTypes.LOGISTICS},
-        allow_load_anywhere = false,  -- If true, players can load/unload assets anywhere, ignoring allowed_load_zones
+        supply_crate_supplies = 75, -- supplies carried by a supply crate
         cargo_crate_template = "container_cargo",
         search_radius = 100,  -- (meters)
         random_crate_spacing = 6,  -- (meters)
         allow_unpacking_in_zones = true,
         allow_unloading_in_zones = true,
         enable_weighted_loading = false,
-
+        
         FARP_names = {
             "Elara",
             "Io",
@@ -338,11 +448,14 @@ Config = {
         naval_strike_salvo_size = 10,
     },
 
-    -- logistics_upgrade_range = 30000, -- (meters)
-    logistics_upgrade_chance = 15, -- (%) every minute the dice is rolled
+    logistics_upgrade_chance = 15, -- (%) every minute
     logistics_level_up_interval = 16*60, -- (seconds) minimum time between level ups
     logistics_ammo_depot_respawn_time = 45*60, -- (seconds) time it takes for an ammo depot to respawn after being destroyed
-    airbase_command_center_respawn_time = 15*60, -- (seconds) time it takes for a command center to respawn after being destroyed
+    logistics_auto_upgrade_required_supplies = 300, -- supplies required in a LOGISTICS zone stock to be eligible for auto upgrade
+    logistics_auto_upgrade_chance = 25, -- (%) evaluated at the 5-minute tick for eligible LOGISTICS zones
+    comms_tower_respawn_time = 55*60, -- (seconds)
+
+    comms_tower_lost_penalty = 1.1, -- the respawn time is multiplied by this much when a comms tower is lost @depracted
 
     -- Warehouse supply distribution percentages by airbase tier, make sure they add up to 1.0 exactly
     warehouse_supply_distribution = {
@@ -360,30 +473,47 @@ Config = {
         max_aircraft_per_text = 6, -- maximum number of aircraft displayed per message
     },
 
-    draw_color_palette = {
-        -- for rgb, divide values by 255 to get 0-1 range
-        red_palette = {
-            {0.7, 0, 0, 0.9},   -- Border color (r g b: values from 0 to 1, a: transparency from 0 to 1)
-            {0.7, 0, 0, 0.25},  -- Fill color
-            {0.5, 0.1, 0.1, 1},   -- Text color
-            {1, 0.5, 0.5, 0.3}    -- Text background
-        },
-        blue_palette = {
-            {0, 0.2, 0.8, 0.9},
-            {0, 0.2, 0.8, 0.25},
-            {0, 0.1, 0.5, 1},
-            {0.5, 0.8, 1, 0.3}
-        },
-        neutral_palette = {
-            {0.4, 0.4, 0.4, 0.8},
-            {0.4, 0.4, 0.4, 0.2},
-            {1, 1, 1, 1},
-            {0, 0, 0, 0.2}
-        }
+    ATIS_enabled = false, -- enables/disables the ATIS system
+    ATIS_frequencies = {
+        [Airbases.Caucasus.Vaziani] = 127.5*1e6, -- (Hertz)
+        [Airbases.Caucasus.Batumi] = 118.250*1e6, -- (Hertz)
+        [Airbases.Caucasus.Kutaisi] = 118.600*1e6, -- (Hertz)
+        [Airbases.Caucasus.Senaki_Kolkhi] = 119.100*1e6, -- (Hertz)
+        [Airbases.Caucasus.Kobuleti] = 119.450*1e6, -- (Hertz)
+        [Airbases.Caucasus.Sukhumi_Babushara] = 120.250*1e6, -- (Hertz)
+        [Airbases.Caucasus.Gudauta] = 120.750*1e6, -- (Hertz)
+
+        [Airbases.Syria.An_Nasiriyah] = 118.600*1e6, -- (Hertz)
+        [Airbases.Syria.Shayrat] = 127.5*1e6, -- (Hertz)
+        [Airbases.Syria.Rayak] = 119.450*1e6, -- (Hertz)
     },
 
+draw_color_palette = {
+
+    red_palette = {
+            {0.8, 0.1, 0.1, 0.9},  -- Border: Bright, distinct red for clear boundary definition
+            {0.8, 0.1, 0.1, 0.2},  -- Fill: Subtle red tint, slightly reduced opacity to preserve map detail
+            {1.0, 1.0, 1.0, 1.0},  -- Text: Pure white for maximum contrast and legibility
+            {0.4, 0.0, 0.0, 0.4}   -- Text background: Deep, moderately opaque red to ground the white text
+        },
+        blue_palette = {
+            {0.1, 0.3, 0.9, 0.9},  -- Border: Bright, distinct blue
+            {0.1, 0.3, 0.9, 0.2},  -- Fill: Subtle blue tint
+            {1.0, 1.0, 1.0, 1.0},  -- Text: Pure white
+            {0.0, 0.1, 0.4, 0.4}   -- Text background: Deep, moderately opaque blue
+        },
+        neutral_palette = {
+            {0.5, 0.5, 0.5, 0.9},  -- Border: Solid neutral grey
+            {0.5, 0.5, 0.5, 0.2},  -- Fill: Subtle grey tint
+            {1.0, 1.0, 1.0, 1.0},  -- Text: Pure white
+            {0.2, 0.2, 0.2, 0.6}   -- Text background: Dark grey to frame the text
+        },
+
+    frontline_color = {0.90, 0.90, 0.90, 0.85},
+    frontline_linestyle = 1
 }
 
+}
 -- Stats tracking table should not be edited unless comprehensively understood
 stats = {
     neutral_zones = 0,
@@ -400,12 +530,9 @@ stats = {
     blue_total_comms_zones = 0,
 
     blue_ammo_depots = 0,
-    blue_command_posts = 0,
     blue_comms_antennas = 0,
     blue_discovered_zones = {},
     blue_enroute_resupply = {},
-    blue_supplies = Config.supplies.initial_stock,
-
     red_sam_sites = 0,
     red_farp_zones = 0,
     red_logistics_zone = 0,
@@ -416,11 +543,9 @@ stats = {
     red_total_comms_zones = 0,
 
     red_ammo_depots = 0,
-    red_command_posts = 0,
     red_comms_antennas = 0,
     red_discovered_zones = {},
     red_enroute_resupply = {},
-    red_supplies = Config.supplies.initial_stock,
 }
 
 
@@ -435,7 +560,9 @@ GroupData = {
             capture_helicopter = "BLUE Capture Helo",
             attack_convoy = "BLUE Attack Convoy",
             jtac = "BLUE JTAC",
-            farp = "BLUE FARP VEHICLES"
+            farp = "BLUE FARP VEHICLES",
+            tanker_drogue = "BLUE DROGUE TANKER",
+            tanker_boom = "BLUE BOOM TANKER",
         },
     
         RED = {
@@ -443,6 +570,8 @@ GroupData = {
             capture_helicopter = "RED Capture Helo",
             attack_convoy = "RED Attack Convoy",
             farp = "RED FARP VEHICLES",
+            tanker_drogue = "RED DROGUE TANKER",
+            tanker_boom = "RED BOOM TANKER",
         }
     },
 
