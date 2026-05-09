@@ -18,10 +18,10 @@
 Config = {
     persistence = {
         enable =  true, -- enables or not persistence, has authority over everything below in this section
-        save_interval = 2*51, -- (seconds) interval at which the mission state is saved
+        save_interval = 4*51, -- (seconds) interval at which the mission state is saved
         -- You can use fixed values or multiplications like above
         -- 51 seconds is used to avoid multiples of 15 to reduce lag spikes
-        save_dir = "Missions/Saves/Crossfire Georgia Liberation/", -- this is your saves directory in Saved Games
+        save_dir = "Missions/Saves/Crossfire Georgia Liberation V5/", -- this is your saves directory in Saved Games
         -- If you would like to create a new mission, simple change the last folder name
         save_file = "mission.json", -- this is the name of the mission file
         user_data_file = "user_data.json", -- this is the name of user data only file, note that this only saves user xp and rank
@@ -68,19 +68,12 @@ Config = {
             min_route_distance = 20*1000,
             max_route_distance = 200*1000,
 
-            seconds_per_km = {
-                ["helicopter"] = 85,
-                ["fixed_wing"] = 65,
-            },
+            seconds_per_km = 65,
             min_time = 20*60,
             max_time = 90*60,
             supplies_per_asset = 180,
             base_xp = 1200,
             xp_per_km = 2,
-            xp_aircraft_category_multiplier = {
-                ["helicopter"] = 0.95,
-                ["fixed_wing"] = 1.15,
-            }
         },
 
         operation_refresh_time = 30, --(seconds) this is to set a cooldown for generating operations
@@ -186,7 +179,7 @@ Config = {
     jupiter_password = "", -- password required before the -, example password = 12 then the command is 12-discover
 
     allow_air_spawn = true, -- prevents or not air spawns for players
-    enable_slot_blocker = false, -- enables/disables the slot blocker system to prevent players spawning in enemy airbases
+    enable_slot_blocker = true, -- enables/disables the slot blocker system to prevent players spawning in enemy airbases
     enable_warehouse = true, -- this does not disable/enable the system, but stocks will be nearly unlimited if disabled
     allow_resupply = true, -- this will enable/disable resupply aircrafts, this will make the misison significantly harder
     enabled_su25t_blufor = true, -- adds the SU-25T to the blufor warehouse inventory
@@ -249,7 +242,7 @@ Config = {
             [4] = 25
         },
         logistics_mult = 2,
-        supplies_cap = { -- per ammo depot, per zone level
+        supplies_cap = { -- per zone level
             [1] = 1500,
             [2] = 2500,
             [3] = 3500,
@@ -440,31 +433,30 @@ Config = {
             "Iocaste"
         }
     },
-    
+
     capture_helicopter_max_range = 100*1000 , -- (meters)
-    
+
     max_ground_recon_range = 30000, -- (meters) the range at which enemy zones will be discovered from friendly zones
-    
+
     stuck_convoy_timeout = 8*60, -- (seconds) time without movement after which a convoy is considered stuck and will be removed
     attack_convoy_range = 30000, -- (meters)
-    
+
     jtac_smoke_stock = 8,
-    
+
     naval_ground_strike = {
         naval_strike_launch_interval = 10, -- (seconds)
         naval_strike_salvo_size = 10,
     },
-    
-    -- logistics_upgrade_range = 30000, -- (meters)
-    logistics_upgrade_chance = 15, -- (%) every minute the dice is rolled
+
+    logistics_upgrade_chance = 15, -- (%) every minute
     logistics_level_up_interval = 16*60, -- (seconds) minimum time between level ups
-    logistics_ammo_depot_respawn_time = 3*60, -- (seconds) time it takes for an ammo depot to respawn after being destroyed
+    logistics_ammo_depot_respawn_time = 45*60, -- (seconds) time it takes for an ammo depot to respawn after being destroyed
     logistics_auto_upgrade_required_supplies = 300, -- supplies required in a LOGISTICS zone stock to be eligible for auto upgrade
     logistics_auto_upgrade_chance = 25, -- (%) evaluated at the 5-minute tick for eligible LOGISTICS zones
     comms_tower_respawn_time = 45*60, -- (seconds)
-    
+
     comms_tower_lost_penalty = 1.1, -- the respawn time is multiplied by this much when a comms tower is lost @depracted
-    
+
     -- Warehouse supply distribution percentages by airbase tier, make sure they add up to 1.0 exactly
     warehouse_supply_distribution = {
         tier_1 = 0.15, -- % of supplies to tier 1 airbases
@@ -481,6 +473,7 @@ Config = {
         max_aircraft_per_text = 6, -- maximum number of aircraft displayed per message
     },
 
+    ATIS_enabled = false, -- enables/disables the ATIS system
     ATIS_frequencies = {
         [Airbases.Caucasus.Vaziani] = 127.5*1e6, -- (Hertz)
         [Airbases.Caucasus.Batumi] = 118.250*1e6, -- (Hertz)

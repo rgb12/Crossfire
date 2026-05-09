@@ -710,8 +710,7 @@ do
     function OperationManager:computeStrategicAirliftTimeLimit(load_zone, target_zone, aircraft_category)
         local cfg = Config.operations.strategic_airlift or {}
         local dist_m = mist.utils.get2DDist(load_zone.zone.point, target_zone.zone.point)
-        local speed_map = cfg.seconds_per_km or {}
-        local sec_per_km = speed_map[aircraft_category] or speed_map[UserAircraftCategories.FIXED_WING] or 65
+        local sec_per_km = cfg.seconds_per_km or 65
         local raw = math.floor((dist_m / 1000) * sec_per_km)
         local min_time = cfg.min_time or 0
         local max_time = cfg.max_time or raw
@@ -725,10 +724,8 @@ do
     function OperationManager:computeStrategicAirliftReward(load_zone, target_zone, aircraft_category)
         local base_xp = Config.operations.strategic_airlift.base_xp or 1200
         local xp_per_km = Config.operations.strategic_airlift.xp_per_km or 2
-        local aircraft_category_mult = 1
-        aircraft_category_mult = Config.operations.strategic_airlift.xp_aircraft_category_multiplier[aircraft_category]
         local dist_m = mist.utils.get2DDist(load_zone.zone.point, target_zone.zone.point)
-        local reward = (base_xp + math.floor((dist_m / 1000) * xp_per_km)) * aircraft_category_mult
+        local reward = (base_xp + math.floor((dist_m / 1000) * xp_per_km))
         return math.floor(reward)
     end
 
