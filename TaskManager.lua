@@ -9,7 +9,7 @@ do
     }
     ---@type number[]
     TaskManager.assignedFrequencies = {}
-    ---@type number[]
+    ---@type table<number, boolean>
     TaskManager.assignedTACANS = {}
 
     ---@param ai_task_type AITaskTypes
@@ -2076,6 +2076,7 @@ do
         if c>1000 then return min_ch end
         local ch = math.random(min_ch,max_ch)
         if not TaskManager.assignedTACANS[ch] then
+            TaskManager.assignedTACANS[ch] = true
             return ch
         end
         return TaskManager:createTACAN(min_ch,max_ch,c+1)
