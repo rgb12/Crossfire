@@ -1,8 +1,0 @@
-{
-    "Lua.diagnostics.globals": [
-        "lfs"
-    ],
-    "Lua.diagnostics.disable": [
-        "lowercase-global"
-    ]
-}
