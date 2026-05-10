@@ -1,4 +1,4 @@
----@diagnostic disable: lowercase-global
+---@diagnostic disable: lowercase-global, undefined-global
 
 --[[
     Persistence Manager
