@@ -434,7 +434,8 @@ do
                         if #zones_to_upgrade > 0 then
                             for _,zone_t_u in ipairs(zones_to_upgrade) do
                                 if zone_t_u.level < 4
-                                and not EnrouteManager:findByToZone(zone_t_u,zone.side,{AITaskTypes.REINFORCEMENT_HELO, AITaskTypes.CAPTURE_HELO}) then
+                                and not EnrouteManager:findByToZone(zone_t_u,zone.side,{AITaskTypes.REINFORCEMENT_HELO, AITaskTypes.CAPTURE_HELO})
+                                and not EnrouteManager:findByToZone(zone,zone.side, {AITaskTypes.REINFORCEMENT_HELO, AITaskTypes.CAPTURE_HELO}) then
                                     zone_to_upgrade = zone_t_u
                                     break
                                 end
