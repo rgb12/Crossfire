@@ -404,7 +404,7 @@ do
                     zone:checkSUPPLIES()
                     zone:checkCOMMSZone()
                     zone:checkRunwayStatus()
-                    zone:addAIAssets(10) -- Supply chance every minute
+                    zone:addAIAssets(5) -- Supply chance every minute
 
                     if not capture_helicopter_sent and zone.side ~=coalition.side.NEUTRAL
                     and zone:checkIfEmpty() then

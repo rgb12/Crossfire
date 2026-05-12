@@ -188,7 +188,7 @@ Config = {
 
     cooldown_before_capture_attempt = 10*60, -- (seconds)
     retry_capture_chance = 50, -- (%) Every minute, subject to various checks and conditions
-    reinforcement_chance = 5, -- (%) for every minute
+    reinforcement_chance = 3, -- (%) for every minute
 
     std_resupply_time = 45*60, -- (seconds) periodic resupply aircraft time interval
     random_resupply_types = true , -- enables/disables random resupply types, if disabled only INITIAL resupplies will arrive
@@ -448,7 +448,6 @@ Config = {
         naval_strike_salvo_size = 10,
     },
 
-    logistics_upgrade_chance = 15, -- (%) every minute
     logistics_level_up_interval = 16*60, -- (seconds) minimum time between level ups
     logistics_ammo_depot_respawn_time = 45*60, -- (seconds) time it takes for an ammo depot to respawn after being destroyed
     logistics_auto_upgrade_required_supplies = 300, -- supplies required in a LOGISTICS zone stock to be eligible for auto upgrade
