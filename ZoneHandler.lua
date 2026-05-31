@@ -24,6 +24,7 @@ end
 ---@field next_level_up_avail number|nil
 ---@field runway_destroyed boolean|nil
 ---@field runway_destroyed_until number|nil
+---@field lha_source boolean|nil
 ZoneHandler = {}
 do
     function ZoneHandler:new(obj)

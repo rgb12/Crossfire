@@ -22,24 +22,12 @@ do
         -- Capture Helicopter spawn
 
         timer.scheduleFunction(function ()
-            ---@type ZoneHandler[]
-            local zones_to_check = ZoneHandler.sortZonesByDistance(to_zone.zone.point)
+            local from_zone = utils.findClosestCaptureHeloSource(to_zone, side_sending_capture, Config.capture_helicopter_max_range)
+            if not from_zone then return end
 
-            for _, zone in ipairs(zones_to_check) do
-                if zone.side == side_sending_capture and zone.zone_type == ZoneTypes.LOGISTICS then
-                    local zones_distance = mist.utils.get2DDist(to_zone.zone.point,zone.zone.point)
-    
-                    if EnrouteManager:findByFromZone(zone,side_sending_capture,{AITaskTypes.CAPTURE_HELO}) then return end
-    
-                    -- checks if closest zone can deploy a heli
-                    if zone.heli_avail and zone.heli_avail > 0 and zones_distance <= Config.capture_helicopter_max_range then
-                        -- send heli
-                        TaskManager:initiateAITask(AITaskTypes.CAPTURE_HELO,side_sending_capture,true,to_zone,zone,false)
-                        return
-                    end
-                end
-    
-            end
+            if EnrouteManager:findByFromZone(from_zone, side_sending_capture, {AITaskTypes.CAPTURE_HELO}) then return end
+
+            TaskManager:initiateAITask(AITaskTypes.CAPTURE_HELO, side_sending_capture, true, to_zone, from_zone, false)
         end,nil,timer.getTime()+math.random(10,30))
         
     end
@@ -1247,6 +1235,33 @@ do
             if Scenario.carrier_setup.enabled
             and Scenario.carrier_setup.carrier_unit_name then
                 WarehouseManager:attributeAirbaseStock(Scenario.carrier_setup.carrier_unit_name, coalition.side.BLUE, {WarehouseManager.StockTypes.CARRIER_INITAL})
+                ---@type table
+                local carrier_setup = Scenario.carrier_setup
+                carrier_setup.name = carrier_setup.carrier_unit_name
+                carrier_setup.side = coalition.side.BLUE
+                carrier_setup.zone_type = ZoneTypes.LOGISTICS
+                carrier_setup.ammo_depot_intact = true
+                carrier_setup.heli_avail = carrier_setup.heli_avail or Config.tasking.max_capture_helicopters_per_logistics_zone
+                carrier_setup.local_supplies = carrier_setup.local_supplies or (Config.supplies and Config.supplies.initial_stock or 0)
+            end
+        end
+
+        if Scenario.lha_setup then
+            if Scenario.lha_setup.enabled
+            and Scenario.lha_setup.lha_unit_name then
+                ---@type LhaSetup
+                local lha_setup = Scenario.lha_setup
+                MissionLogger:info("Attempting LHA restock")
+                WarehouseManager:attributeAirbaseStock(Scenario.lha_setup.lha_unit_name, coalition.side.BLUE, {WarehouseManager.StockTypes.FARP})
+                WarehouseManager:attributeAirbaseStock(Scenario.lha_setup.lha_unit_name, coalition.side.BLUE, {WarehouseManager.StockTypes.FARP})
+                WarehouseManager:attributeAirbaseStock(Scenario.lha_setup.lha_unit_name, coalition.side.BLUE, {WarehouseManager.StockTypes.FARP})
+                
+                lha_setup.name = lha_setup.lha_unit_name
+                lha_setup.side = coalition.side.BLUE
+                lha_setup.zone_type = ZoneTypes.LOGISTICS
+                lha_setup.ammo_depot_intact = true
+                lha_setup.heli_avail = lha_setup.heli_avail or Config.tasking.max_capture_helicopters_per_logistics_zone
+                lha_setup.local_supplies = lha_setup.local_supplies or (Config.supplies and Config.supplies.initial_stock or 0)
             end
         end
         UnitHandler.carrierCheck()

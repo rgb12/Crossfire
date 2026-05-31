@@ -603,7 +603,9 @@ do
               
                 self:setATTACKCONVOYTask(convoy_sent.name,side,to_zone,from_zone)
                 from_zone.attack_convoy = from_zone.attack_convoy - 1
-                from_zone:drawF10()
+                if from_zone and type(from_zone.drawF10) == "function" then
+                    from_zone:drawF10()
+                end
                 return true
             end
         elseif ai_task_type == AITaskTypes.CAPTURE_HELO and to_zone and from_zone then
@@ -617,11 +619,14 @@ do
             end
 
             local template_name
-            if side == coalition.side.RED then
+            if from_zone and from_zone.lha_source and side == coalition.side.BLUE then
+                template_name = GroupData.COMMON_ASSETS.BLUE.LHA_capture_helicopter
+            elseif side == coalition.side.RED then
                 template_name = GroupData.COMMON_ASSETS.RED.capture_helicopter
             elseif side == coalition.side.BLUE then
                 template_name = GroupData.COMMON_ASSETS.BLUE.capture_helicopter
             end
+            if not template_name then return false end
 
             local helo_sent = mist.teleportToPoint({
                 groupName = template_name,
@@ -642,8 +647,12 @@ do
 
             self:setCAPTUREHELITask(helo_sent.name,side,to_zone,from_zone)
 
-            from_zone.heli_avail = (from_zone.heli_avail or 0) - 1
-            from_zone:drawF10()
+            if not (from_zone and from_zone.lha_source) then
+                from_zone.heli_avail = (from_zone.heli_avail or 0) - 1
+                if from_zone and type(from_zone.drawF10) == "function" then
+                    from_zone:drawF10()
+                end
+            end
             MissionLogger:info(utils.coalitionToString(side) .." heli from " ..from_zone.name .. " sent to capture zone: " .. to_zone.name)
             return true
         elseif ai_task_type == AITaskTypes.REINFORCEMENT_HELO and to_zone and from_zone then
@@ -690,8 +699,12 @@ do
 
             self:setCAPTUREHELITask(helo_sent.name, side, to_zone, from_zone)
 
-            from_zone.heli_avail = (from_zone.heli_avail or 0) - 1
-            from_zone:drawF10()
+            if not (from_zone and from_zone.lha_source) then
+                from_zone.heli_avail = (from_zone.heli_avail or 0) - 1
+                if from_zone and type(from_zone.drawF10) == "function" then
+                    from_zone:drawF10()
+                end
+            end
             MissionLogger:info(utils.coalitionToString(side) .." reinforcement heli from " .. from_zone.name .. " sent to " .. to_zone.name)
             return true
         end

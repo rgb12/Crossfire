@@ -8,6 +8,18 @@
 ---@field tomahawk_launcher_unit_name string|nil
 ---@field enabled boolean
 
+---@class LhaSetup
+---@field lha_unit_name string
+---@field enabled boolean
+---@field heli_avail number|nil
+---@field local_supplies number|nil
+---@field lha_source boolean|nil
+---@field name string|nil
+---@field side coalition.side|nil
+---@field zone_type ZoneTypes|nil
+---@field ammo_depot_intact boolean|nil
+---@field zone { point: vec3 }|nil
+
 ---@class Resupply
 ---@field blue_point vec3
 ---@field red_point vec3
@@ -19,6 +31,7 @@
 ---@field red_airbase ZoneHandler|nil
 ---@field blue_airbase ZoneHandler|nil
 ---@field carrier_setup CarrierSetup|nil
+---@field lha_setup LhaSetup|nil
 ---@field resupply Resupply
 ---@field zones ZoneHandler[]
 
@@ -44,6 +57,10 @@ Scenarios = {
             carrier_unit_name = "Carrier",
             enabled = true
         },
+        -- lha_setup = {
+        --     lha_unit_name = "LHA",
+        --     enabled = false
+        -- },
         
         -- MAIN RED AIRBASE
         red_airbase = ZoneHandler:new({
@@ -101,6 +118,10 @@ Scenarios = {
         carrier_setup = {
             carrier_unit_name = "Carrier",
             tomahawk_launcher_unit_name = "Naval Launcher",
+            enabled = true
+        },
+        lha_setup = {
+            lha_unit_name = "LHA",
             enabled = true
         },
         red_airbase = ZoneHandler:new({
@@ -173,6 +194,10 @@ Scenarios = {
             carrier_unit_name = "Carrier",
             tomahawk_launcher_unit_name = "Naval Launcher",
             enabled = true
+        },
+        lha_setup = {
+            lha_unit_name = "LHA",
+            enabled = false
         },
         blue_airbase = ZoneHandler:new({
             name = "SHAYRAT",

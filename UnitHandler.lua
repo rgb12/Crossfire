@@ -449,17 +449,27 @@ do
     function UnitHandler.carrierCheck()
         if not Scenario then return end
 
-        local carrier_data = Scenario.carrier_setup
-        if not carrier_data then return end
-        if not carrier_data.enabled then
-            local carrier_unit = Unit.getByName(carrier_data.carrier_unit_name)
-            if not carrier_unit or not carrier_unit:isExist() then return end
-            local carrier_group = carrier_unit:getGroup()
-            if carrier_group and carrier_group:isExist() then
-                MissionLogger:info("Destroying carrier as per scenario settings...")
-                carrier_group:destroy()
+        local function destroyShip(unit_name, label)
+            if not unit_name then return end
+
+            local ship_unit = Unit.getByName(unit_name)
+            if not ship_unit or not ship_unit:isExist() then return end
+
+            local ship_group = ship_unit:getGroup()
+            if ship_group and ship_group:isExist() then
+                MissionLogger:info("Destroying " .. label .. " as per scenario settings...")
+                ship_group:destroy()
             end
-            return
+        end
+
+        local carrier_data = Scenario.carrier_setup
+        if carrier_data and not carrier_data.enabled then
+            destroyShip(carrier_data.carrier_unit_name, "carrier")
+        end
+
+        local lha_data = Scenario.lha_setup
+        if lha_data and not lha_data.enabled then
+            destroyShip(lha_data.lha_unit_name, "LHA")
         end
     end
 

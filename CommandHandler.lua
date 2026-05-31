@@ -324,6 +324,11 @@ do
             end
 
             -- Helper function to build airbase submenu for a stock type
+            local function suppliesZoneHasAmmoDepot(supplies_zone)
+                if not supplies_zone then return false end
+                return supplies_zone.ammo_depot_intact == true
+            end
+
             local function buildAirbaseSubmenu(stock_types, cost, stock_name)
                 local airbase_list = {}
                 for _, ab_zone in ipairs(friendly_airbases) do
@@ -352,10 +357,10 @@ do
                                 return
                             end
 
-                            if supplies_zone.ammo_depot_intact ~= true then
-                                trigger.action.outTextForGroup(gr_id, "CMD-HQ - Negative, no operational Ammunition Depot in your current supply zone.", 8)
-                                trigger.action.outSoundForGroup(gr_id, "radio_beep3.ogg")
-                                return
+                            if not suppliesZoneHasAmmoDepot(supplies_zone) then
+                                trigger.action.outTextForGroup(gr_id, "CMD-HQ - Negative, no operational Ammunition Depot in your current supply zone.", 5)
+                                trigger.action.outSoundForGroup(gr_id, "Radio squelch.ogg")
+                                return false
                             end
 
                             local local_supplies = supplies_zone.local_supplies or 0
@@ -762,6 +767,11 @@ do
             return 0
         end
 
+        local function suppliesZoneHasAmmoDepot(supplies_zone)
+            if not supplies_zone then return false end
+            return supplies_zone.ammo_depot_intact == true
+        end
+
         ---@param requesting_unit Unit
         ---@param required_supplies number
         ---@param supplies_zone ZoneHandler|nil
@@ -785,11 +795,11 @@ do
                 return false
             end
 
-            if supplies_zone.ammo_depot_intact ~= true then
-                trigger.action.outTextForGroup(gr_id, "CMD-HQ - Negative, no operational Ammunition Depot in your current supply zone.", 5)
-                trigger.action.outSoundForGroup(gr_id, "Radio squelch.ogg")
-                return false
-            end
+                            if not suppliesZoneHasAmmoDepot(supplies_zone) then
+                                trigger.action.outTextForGroup(gr_id, "CMD-HQ - Negative, no operational Ammunition Depot in your current supply zone.", 8)
+                                trigger.action.outSoundForGroup(gr_id, "radio_beep3.ogg")
+                                return false
+                            end
 
             local local_supplies = supplies_zone.local_supplies or 0
             if local_supplies >= required_supplies then
@@ -1005,13 +1015,9 @@ do
             if not CommandHandler.isGrounded(unit,gr_id) then return end
             if not checkRankRequirement(u, AITaskTypes.CAPTURE_HELO) then return end
 
-            local from_zone = nil
-            for _, log_zone in ipairs(zones) do
-                if log_zone.side == side and log_zone.zone_type == ZoneTypes.LOGISTICS and (log_zone.heli_avail or 0) > 0 then
-                    from_zone = log_zone
-                    break
-                end
-            end
+            local from_zone = utils.findClosestCaptureHeloSource(to_zone, side, Config.capture_helicopter_max_range)
+
+            if not from_zone then return end
 
             if not checkSupplies(u, Config.supplies.tasking_costs.CAPTURE_HELO, from_zone) then return end
 

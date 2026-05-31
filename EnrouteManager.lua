@@ -180,19 +180,36 @@ do
         local landed_pos = group_pos or unit:getPoint()
 
         -- ABORTED HELI
-        if enroute_heli.aborted and landed_pos and enroute_heli.from_zone:isPointInsideZone(landed_pos) then
-            EnrouteManager:remove(group_name)
-            MissionLogger:info("Removed LANDED aborted heli from enroutes: " .. group_name)
-            timer.scheduleFunction(function ()
-                unit:getGroup():destroy()
-            end, {}, timer.getTime() + 10)
-
-            if enroute_heli.from_zone.heli_avail and enroute_heli.side == unit:getCoalition() then
-                MissionLogger:info("Adding back heli to zone: " .. enroute_heli.from_zone.name)
-                enroute_heli.from_zone.heli_avail = enroute_heli.from_zone.heli_avail + 1
-                enroute_heli.from_zone:drawF10()
+        if enroute_heli.aborted and landed_pos then
+            local landed_in_source = false
+            if enroute_heli.from_zone and type(enroute_heli.from_zone.isPointInsideZone) == "function" then
+                landed_in_source = enroute_heli.from_zone:isPointInsideZone(landed_pos)
+            elseif enroute_heli.from_zone and enroute_heli.from_zone.lha_source then
+                local lha_unit = Unit.getByName(enroute_heli.from_zone.name)
+                if lha_unit and lha_unit:isExist() then
+                    local lpt = lha_unit:getPoint()
+                    if lpt then
+                        local d = mist.utils.get2DDist(lpt, landed_pos)
+                        if d and d < 500 then landed_in_source = true end
+                    end
+                end
             end
-            return
+            if landed_in_source then
+                EnrouteManager:remove(group_name)
+                MissionLogger:info("Removed LANDED aborted heli from enroutes: " .. group_name)
+                timer.scheduleFunction(function ()
+                    unit:getGroup():destroy()
+                end, {}, timer.getTime() + 10)
+
+                if enroute_heli.from_zone.heli_avail and enroute_heli.side == unit:getCoalition() and not enroute_heli.from_zone.lha_source then
+                    MissionLogger:info("Adding back heli to zone: " .. enroute_heli.from_zone.name)
+                    enroute_heli.from_zone.heli_avail = enroute_heli.from_zone.heli_avail + 1
+                    if type(enroute_heli.from_zone.drawF10) == "function" then
+                        enroute_heli.from_zone:drawF10()
+                    end
+                end
+                return
+            end
         end
 
         if enroute_heli.ai_task_type == AITaskTypes.CAPTURE_HELO then

@@ -203,6 +203,17 @@ do
             end
         end
 
+        -- Save LHA warehouse
+        if Scenario.lha_setup and Scenario.lha_setup.enabled and Scenario.lha_setup.lha_unit_name then
+            local lha = Airbase.getByName(Scenario.lha_setup.lha_unit_name)
+            if lha then
+                local warehouse = lha:getWarehouse()
+                if warehouse then
+                    PersistenceManager.data.warehouses[Scenario.lha_setup.lha_unit_name] = warehouse:getInventory()
+                end
+            end
+        end
+
         -- Save constructed FARP warehouses and FARP registry
         PersistenceManager.data.ctld_farps = {}
         if ctld.FARPs then
@@ -602,6 +613,12 @@ do
         end
         zones = new_zones
         
+        if PersistenceManager.data.scenario.lha_setup and Scenario.lha_setup then
+            Scenario.lha_setup.heli_avail = PersistenceManager.data.scenario.lha_setup.heli_avail or Scenario.lha_setup.heli_avail
+            Scenario.lha_setup.local_supplies = PersistenceManager.data.scenario.lha_setup.local_supplies or Scenario.lha_setup.local_supplies
+            Scenario.lha_setup.ammo_depot_intact = PersistenceManager.data.scenario.lha_setup.ammo_depot_intact
+        end
+
         MissionLogger:info("Zone states and units restored.")
 
         -- 4. Pre-spawn CTLD FARP statics
