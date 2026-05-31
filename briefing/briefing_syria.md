@@ -1,12 +1,12 @@
 STRATEGIC OVERVIEW:
 
 
-The Caucasus region is in a state of open conflict. REDFOR launched coordinated and lethal attacks, leaving BLUFOR on the verge of retreat. Frontline is dyanamic, each coalition is seeking total dominance of the theatre.
+The Syrian region is in a state of open conflict. REDFOR launched coordinated and lethal attacks, leaving BLUFOR on the verge of retreat. Frontline is dyanamic, each coalition is seeking total dominance of the theatre.
 
 
 THEATRE CONDITIONS:
 
-Fog of War is active for each coalition and for all forces. Units will only see areas and units discovered by their own coalition's assets. The F10 map gives real-time information of the theatre, therefore requires active reconnaissance to populate.
+Fog of War is active for each coalition and for all forces. Units will only see areas and units discovered by their own coalition's assets. The F10 map gives real-time information of the theatre, and therefore requires active reconnaissance to populate.
 
 Supplies, weapons and aircraft and finite, for REDFOR and BLUFOR. All assets rely on supply deliveries (requested via F10 menu, or periodically). Losing supplies can severely affect the coalition.
 
@@ -29,9 +29,5 @@ Use resources wisely. Good hits and completed operations earn XP and supplies. U
 Good luck!
 
 FREQUENCIES:
-
-AN NASIRIYAH ATIS:  118.600 MHz
-SHAYRAT ATIS:       127.500 MHz
-RAYAK ATIS:         119.450 MHz
 
 CARRIER     TACAN 29X   ILCS 11
