@@ -1252,10 +1252,7 @@ do
                 ---@type LhaSetup
                 local lha_setup = Scenario.lha_setup
                 MissionLogger:info("Attempting LHA restock")
-                WarehouseManager:attributeAirbaseStock(Scenario.lha_setup.lha_unit_name, coalition.side.BLUE, {WarehouseManager.StockTypes.FARP})
-                WarehouseManager:attributeAirbaseStock(Scenario.lha_setup.lha_unit_name, coalition.side.BLUE, {WarehouseManager.StockTypes.FARP})
-                WarehouseManager:attributeAirbaseStock(Scenario.lha_setup.lha_unit_name, coalition.side.BLUE, {WarehouseManager.StockTypes.FARP})
-                
+                WarehouseManager:attributeAirbaseStock(Scenario.lha_setup.lha_unit_name, coalition.side.BLUE, {WarehouseManager.StockTypes.FARP,WarehouseManager.StockTypes.FARP,WarehouseManager.StockTypes.FARP})
                 lha_setup.name = lha_setup.lha_unit_name
                 lha_setup.side = coalition.side.BLUE
                 lha_setup.zone_type = ZoneTypes.LOGISTICS
