@@ -197,7 +197,7 @@ Scenarios = {
         },
         lha_setup = {
             lha_unit_name = "LHA",
-            enabled = false
+            enabled = true
         },
         blue_airbase = ZoneHandler:new({
             name = "SHAYRAT",
