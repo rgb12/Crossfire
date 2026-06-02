@@ -345,14 +345,14 @@ do
                             local ab = ZoneHandler.getFromName(target_zone.name)
                             if not ab then return end
                             if ab.side ~= side then
-                                trigger.action.outTextForGroup(gr_id,"CMD-HQ - Negative resupply response for " .. target_zone.name .. ": area lost. Stand by for next resupply or capture additional zones.",8)
+                                trigger.action.outTextForGroup(gr_id,"CMD-HQ -Negative resupply response for " .. target_zone.name .. ": area lost. Stand by for next resupply or capture additional zones.",8)
                                 trigger.action.outSoundForGroup(gr_id, "radio_beep3.ogg")
                                 return
                             end
 
                             local supplies_zone = utils.fetchSuppliesZoneFromUnit(u)
                             if not supplies_zone then
-                                trigger.action.outTextForGroup(gr_id,"CMD-HQ - CMD-HQ - Negative, action cannot be executed from your position.",8)
+                                trigger.action.outTextForGroup(gr_id,"CMD-HQ - Negative, action cannot be executed from your position.",8)
                                 trigger.action.outSoundForGroup(gr_id, "radio_beep3.ogg")
                                 return
                             end
@@ -365,7 +365,7 @@ do
 
                             local local_supplies = supplies_zone.local_supplies or 0
                             if local_supplies < cost then
-                                trigger.action.outTextForGroup(gr_id,"CMD-HQ - CMD-HQ - Negative resupply response for " .. target_zone.name .. ", not enough supplies    (" .. local_supplies .. "/" .. cost .. ")",8)
+                                trigger.action.outTextForGroup(gr_id,"CMD-HQ - Negative resupply response for " .. target_zone.name .. ", not enough supplies    (" .. local_supplies .. "/" .. cost .. ")",8)
                                 trigger.action.outSoundForGroup(gr_id, "radio_beep3.ogg")
                                 return
                             else
