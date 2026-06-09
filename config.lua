@@ -22,18 +22,18 @@ Config = {
         -- You can use fixed values or multiplications like above
         -- 51 seconds is used to avoid multiples of 15 to reduce lag spikes
 
-        save_dir = "Missions/Saves/Crossfire Georgia Liberation V5/", -- this is your Saves directory in Saved Games
+        -- save_dir = "Missions/Saves/Crossfire Georgia Liberation v5/", -- this is your Saves directory in Saved Games
+        save_dir = "Missions/Saves/Crossfire Syrian Resolve v5/",
         -- If you would like to create a new mission, simple change the last folder name
-        -- save_dir = "Missions/Saves/Crossfire Syrian Resolve V5/",
-        
+
         save_file = "mission.json", -- this is the name of the mission file
         user_data_file = "user_data.json", -- this is the name of user data only file, note that this only saves user xp and rank
 
         enable_ctld_persistence = true, -- enables/disables CTLD placed asset persistence
 
 
-        scenario_selected = "Georgia Liberation", -- select a scenario from the scenarios found below
-        -- scenario_selected = "Syrian Resolve", -- select a scenario from the scenarios found below
+        -- scenario_selected = "Georgia Liberation", -- select a scenario from the scenarios found below
+        scenario_selected = "Syrian Resolve", -- select a scenario from the scenarios found below
     },
     operations = {
         recon_duration = 120, -- (seconds)
