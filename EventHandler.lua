@@ -188,18 +188,19 @@ function ev:onEvent(event)
     end
 
     if event.id == world.event.S_EVENT_CRASH and event.initiator then
-
-        local enroute_crash = EnrouteManager:findByGroup(event.initiator:getGroup():getName())
-        if enroute_crash then
-            EnrouteManager:remove(enroute_crash.group_name)
-            MissionLogger:info("Removed CRASHED" ..enroute_crash.ai_task_type.." from enroutes: " .. enroute_crash.group_name)
-        
+        if event.initiator.getGroup then
+            local enroute_crash = EnrouteManager:findByGroup(event.initiator:getGroup():getName())
+            if enroute_crash then
+                EnrouteManager:remove(enroute_crash.group_name)
+                MissionLogger:info("Removed CRASHED" ..enroute_crash.ai_task_type.." from enroutes: " .. enroute_crash.group_name)
+            
+            end
         end
     end
 
     if event.id == world.event.S_EVENT_AI_ABORT_MISSION and event.initiator then
 
-        
+
         local unit = event.initiator
         if unit and unit.isExist and unit:isExist() and unit.getGroup then
             local group_name = unit:getGroup():getName()
@@ -298,7 +299,7 @@ function ev:onEvent(event)
             end
         end
 
-        if unit and Object.getCategory(unit) == Object.Category.STATIC then
+        if unit and unit.getName and Object.getCategory(unit) == Object.Category.STATIC then
             MissionLogger:info("Static unit destroyed: " .. unit:getName())
         end
     end

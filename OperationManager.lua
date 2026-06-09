@@ -243,7 +243,7 @@ do
             end
         elseif event.id == world.event.S_EVENT_KILL then
             -- Handle kill events for INTERCEPT operations
-            if event.initiator and event.target then
+            if event.initiator and event.target and event.initiator.getName then
                 for _, op in ipairs(self.active_operations) do
                     if op.type == OperationTypes.INTERCEPT and op.is_coop then
                         -- Check if killer is the leader or any co-op member
@@ -283,6 +283,7 @@ do
                 end
             end
         elseif event.id == world.event.S_EVENT_SHOT and event.weapon then
+            if not event.weapon.getDesc then return end
             local weapon_desc = event.weapon:getDesc()
             if not weapon_desc or not weapon_desc.category then return end
 
@@ -342,7 +343,7 @@ do
                 end
             end
         elseif event.id == world.event.S_EVENT_PLAYER_LEAVE_UNIT then
-            if event.initiator then
+            if event.initiator and event.initiator.getName then
                 local unit_name = event.initiator:getName()
                 local unit_id = event.initiator:getID()
                 
