@@ -566,6 +566,13 @@ GroupData = {
             farp = "BLUE FARP VEHICLES",
             tanker_drogue = "BLUE DROGUE TANKER",
             tanker_boom = "BLUE BOOM TANKER",
+
+            cas = "BLUE CAS",
+            sead = "BLUE SEAD",
+            strike = "BLUE STRIKE",
+            cap = "BLUE CAP",
+            awacs = "BLUE AWACS",
+            recon = "BLUE RECON",
         },
     
         RED = {
@@ -575,6 +582,12 @@ GroupData = {
             farp = "RED FARP VEHICLES",
             tanker_drogue = "RED DROGUE TANKER",
             tanker_boom = "RED BOOM TANKER",
+            cas = "RED CAS",
+            sead = "RED SEAD",
+            strike = "RED STRIKE",
+            cap = "RED CAP",
+            awacs = "RED AWACS",
+            recon = "RED RECON",
         }
     },
 

@@ -12,6 +12,78 @@ do
     ---@type table<number, boolean>
     TaskManager.assignedTACANS = {}
 
+    ---@param template_name string
+    ---@param airbase Airbase
+    ---@return table|boolean
+    function TaskManager:spawnAIFlightFromParking(template_name, airbase)
+        if not airbase then return false end
+
+        local group_data = mist.getGroupData(template_name)
+        if not group_data then
+            MissionLogger:info("[Spawn] ERROR: Template group '" .. template_name .. "' not found in mission.")
+            return false
+        end
+        -- Deep-copy so we never mutate the MIST database entry
+        group_data = mist.utils.deepCopy(group_data)
+
+        -- Clear late-activation / uncontrolled flags
+        group_data.lateActivation = false
+        group_data.uncontrolled   = false
+
+        -- Air-spawn groups have no route table; initialise safely
+        if not group_data.route        then group_data.route        = {} end
+        if not group_data.route.points then group_data.route.points = {} end
+
+        -- Replace first waypoint with a cold-start parking point at the target airbase
+        local base_pt = airbase:getPoint()
+        group_data.route.points[1] = {
+            alt                = 0,           -- ground level; DCS fills real terrain elevation
+            alt_type           = "BARO",
+            type               = "TakeOffParking",
+            action             = "From Parking Area",  -- cold & dark (engines OFF)
+            airdromeId         = airbase:getID(),
+            x                  = base_pt.x,
+            y                  = base_pt.z,   -- DCS world Z -> mission Y (2-D map)
+            speed              = 0,
+            formation_template = "",
+            properties         = {},
+            name               = "Spawn " .. airbase:getName(),
+        }
+
+        -- Unique names prevent collisions on repeat / simultaneous spawns
+        local stamp    = string.format("%d_%d", math.floor(timer.getTime()), math.random(100, 999))
+        group_data.name = template_name .. "_" .. stamp
+        for i, unit in ipairs(group_data.units) do
+            unit.name = group_data.name .. "_u" .. i
+        end
+
+        local new_group = mist.dynAdd(group_data)
+        if not new_group then
+            MissionLogger:info("[AI SPAWN] mist.dynAdd returned nil for '" .. template_name .. "' at " .. airbase:getName())
+            return false
+        end
+
+        -- Post-spawn sanity check: DCS schedules group creation for the next simulation frame,
+        -- so verify after 3 s that the group appeared.  A missing or empty group means the
+        -- airbase had no parking spot compatible with this aircraft type (e.g. AWACS at a
+        -- small airbase).
+        local spawned_name = new_group.name
+        local airbase_name = airbase:getName()
+        local side         = airbase:getCoalition()
+        timer.scheduleFunction(function()
+            local grp = Group.getByName(spawned_name)
+            if not grp or not grp:isExist() or grp:getSize() == 0 then
+                MissionLogger:info("[AI Spawn] '" .. spawned_name .. "' failed at " .. airbase_name
+                    .. " - no suitable parking spot (airbase may be too small for " .. template_name .. ").")
+                trigger.action.outTextForCoalition(side,
+                    "[AI Spawn] Spawn failed at " .. airbase_name .. ": no suitable parking for this aircraft type.", 8)
+                if grp then grp:destroy() end
+            end
+        end, {}, timer.getTime() + 3)
+
+        return new_group
+    end
+
     ---@param ai_task_type AITaskTypes
     ---@param side coalition.side
     ---@param prevent_duplicates boolean
@@ -31,6 +103,28 @@ do
             if user_requested then
                 trigger.action.outTextForCoalition(side,txt,5)
             end
+        end
+
+        ---@param ai_task_type AITaskTypes
+        ---@return string|nil
+        local function resolveGroupName(ai_task_type)
+            local side_assets = side == coalition.side.BLUE and GroupData.COMMON_ASSETS.BLUE or GroupData.COMMON_ASSETS.RED
+            if not side_assets then return nil end
+
+            if ai_task_type == AITaskTypes.CAS then
+                return side_assets.cas
+            elseif ai_task_type == AITaskTypes.CAP then
+                return side_assets.cap
+            elseif ai_task_type == AITaskTypes.SEAD then
+                return side_assets.sead
+            elseif ai_task_type == AITaskTypes.STRIKE then
+                return side_assets.strike
+            elseif ai_task_type == AITaskTypes.AWACS then
+                return side_assets.awacs
+            elseif ai_task_type == AITaskTypes.RECON then
+                return side_assets.recon
+            end
+            return nil
         end
 
         ---@param task_label string
@@ -63,8 +157,8 @@ do
         end
 
         if AITaskTypes.CAS == ai_task_type and to_zone then
-        
-            local source_airbase, template_gr_name = resolveSourceAirbase("CAS")
+
+            local source_airbase = resolveSourceAirbase("CAS")
             if not source_airbase then return false end
 
             if prevent_duplicates and EnrouteManager:findByToZone(to_zone,side,{AITaskTypes.CAS}) then
@@ -91,9 +185,14 @@ do
                 return false
             end
 
-            local new_group = mist.cloneGroup(template_gr_name,true)
+            local template_name = resolveGroupName(ai_task_type)
+            if not template_name then return false end
 
-            if not new_group then return false end
+            local new_group = self:spawnAIFlightFromParking(template_name, airbase)
+            if not new_group then
+                sendText("CAS failed to spawn (possibly airbase "..source_airbase.name.." parking too small).")
+                return false
+            end
             local ai_enroute_data = EnrouteManager:add({
                 to_zone = to_zone,
                 side=side,
@@ -114,16 +213,16 @@ do
             local enroutes_from_airbase = EnrouteManager:findByFromZone(from_zone,side)
             if enroutes_from_airbase and #enroutes_from_airbase >= Config.tasking.max_tasks_per_airbase then
                 if user_requested then
-                    txt="AWACS unavailable from "..from_zone.name..", airbase cannot handle more tasks at the moment."
+                    local txt="AWACS unavailable from "..from_zone.name..", airbase cannot handle more tasks at the moment."
                     trigger.action.outTextForCoalition(side,txt,5)
                 end
                 return false
             end
 
-            local in_stock, template_gr_name = WarehouseManager:checkAircraftInStock(from_zone.airbase_name,ai_task_type)
+            local in_stock, _ = WarehouseManager:checkAircraftInStock(from_zone.airbase_name,ai_task_type)
             if not in_stock then
                 if user_requested then
-                    txt="AWACS unavailable from "..from_zone.name..", check aircraft availability, warehouse stock and tasking limits."
+                    local txt="AWACS unavailable from "..from_zone.name..", check aircraft availability, warehouse stock and tasking limits."
                     trigger.action.outTextForCoalition(side,txt,5)
                 end
                 return false
@@ -131,16 +230,22 @@ do
 
             if prevent_duplicates and EnrouteManager:findByToZone(from_zone,side,{AITaskTypes.AWACS}) then
                 if user_requested then
-                    txt="AWACS already tasked for "..from_zone.name
+                    local txt="AWACS already tasked for "..from_zone.name
                     trigger.action.outTextForCoalition(side,txt,5)
                 end
                 return false
             end
 
 
+            local template_name = resolveGroupName(ai_task_type)
+            if not template_name then return false end
 
-            local new_group = mist.cloneGroup(template_gr_name,true)
-            if not new_group then return false end
+            local airbase = Airbase.getByName(from_zone.airbase_name)
+            local new_group = airbase and self:spawnAIFlightFromParking(template_name, airbase)
+            if not new_group then
+                sendText("CAS failed to spawn (possibly airbase "..from_zone.name.." parking too small).")
+                return false
+            end
 
             local ai_enroute_data = EnrouteManager:add({
                 to_zone = from_zone,
@@ -167,7 +272,7 @@ do
             local enroutes_from_airbase = EnrouteManager:findByFromZone(from_zone,side)
             if enroutes_from_airbase and #enroutes_from_airbase >= Config.tasking.max_tasks_per_airbase then
                 if user_requested then
-                    txt="TANKER unavailable from "..from_zone.name..", airbase cannot handle more tasks at the moment."
+                    local txt="TANKER unavailable from "..from_zone.name..", airbase cannot handle more tasks at the moment."
                     trigger.action.outTextForCoalition(side,txt,5)
                 end
                 return false
@@ -347,12 +452,12 @@ do
             return true
         elseif AITaskTypes.CAP == ai_task_type and to_zone then
 
-            local source_airbase, template_gr_name = resolveSourceAirbase("CAP")
+            local source_airbase, _ = resolveSourceAirbase("CAP")
             if not source_airbase then return false end
 
             if prevent_duplicates and EnrouteManager:findByToZone(to_zone,side,{AITaskTypes.CAP}) then
                 if user_requested then
-                    txt="CAP already tasked for "..to_zone.name
+                    local txt="CAP already tasked for "..to_zone.name
                     trigger.action.outTextForCoalition(side,txt,5)
                 end
                 return false
@@ -364,7 +469,7 @@ do
             local enroutes_from_airbase = EnrouteManager:findByFromZone(source_airbase,side)
             if enroutes_from_airbase and #enroutes_from_airbase >= Config.tasking.max_tasks_per_airbase then
                 if user_requested then
-                    txt="CAP unavailable from "..source_airbase.name..", airbase cannot handle more tasks at the moment."
+                    local txt="CAP unavailable from "..source_airbase.name..", airbase cannot handle more tasks at the moment."
                     trigger.action.outTextForCoalition(side,txt,5)
                 end
                 return false
@@ -373,8 +478,14 @@ do
             if airbase and not WarehouseManager:checkIfAIPayloadInStock(airbase,ai_task_type)
             then sendText("CAP required payload/armement not in warehouse.") return false end
 
-            local new_group = mist.cloneGroup(template_gr_name,true)
-            if not new_group then return false end
+            local template_name = resolveGroupName(ai_task_type)
+            if not template_name then return false end
+
+            local new_group = self:spawnAIFlightFromParking(template_name, airbase)
+            if not new_group then
+                sendText("CAS failed to spawn (possibly airbase "..source_airbase.name.." parking too small).")
+                return false
+            end
 
             local ai_enroute_data = EnrouteManager:add({
                 to_zone = to_zone,
@@ -388,12 +499,12 @@ do
 
         elseif AITaskTypes.SEAD == ai_task_type and to_zone then
 
-            local source_airbase, template_gr_name = resolveSourceAirbase("SEAD")
+            local source_airbase, _ = resolveSourceAirbase("SEAD")
             if not source_airbase then return false end
 
             if prevent_duplicates and EnrouteManager:findByToZone(to_zone,side,{AITaskTypes.SEAD}) then
                 if user_requested then
-                    txt="SEAD already tasked for "..to_zone.name
+                    local txt="SEAD already tasked for "..to_zone.name
                     trigger.action.outTextForCoalition(side,txt,5)
                 end
                 return false
@@ -406,7 +517,7 @@ do
             local enroutes_from_airbase = EnrouteManager:findByFromZone(source_airbase,side)
             if enroutes_from_airbase and #enroutes_from_airbase >= Config.tasking.max_tasks_per_airbase then
                 if user_requested then
-                    txt="SEAD unavailable from "..source_airbase.name..", airbase cannot handle more tasks at the moment."
+                    local txt="SEAD unavailable from "..source_airbase.name..", airbase cannot handle more tasks at the moment."
                     trigger.action.outTextForCoalition(side,txt,5)
                 end
                 return false
@@ -415,8 +526,15 @@ do
             if airbase and not WarehouseManager:checkIfAIPayloadInStock(airbase,ai_task_type)
             then sendText("SEAD required payload/armement not in warehouse.") return false end
 
-            local new_group = mist.cloneGroup(template_gr_name,true)
-            if not new_group then return false end
+            local template_name = resolveGroupName(ai_task_type)
+            if not template_name then return false end
+
+            local new_group = self:spawnAIFlightFromParking(template_name, airbase)
+            if not new_group then 
+                local txt="SEAD failed to spawn (possibly airbase "..source_airbase.name.." parking too small)."
+                trigger.action.outTextForCoalition(side,txt,5)
+                return false 
+            end
 
             local ai_enroute_data = EnrouteManager:add({
                 to_zone = to_zone,
@@ -429,12 +547,12 @@ do
             return true
         elseif AITaskTypes.STRIKE == ai_task_type and to_zone then
 
-            local source_airbase, template_gr_name = resolveSourceAirbase("STRIKE")
+            local source_airbase, _ = resolveSourceAirbase("STRIKE")
             if not source_airbase then return false end
 
             if prevent_duplicates and EnrouteManager:findByToZone(to_zone,side,{AITaskTypes.STRIKE}) then
                 if user_requested then
-                    txt="STRIKE already tasked for "..to_zone.name
+                    local txt="STRIKE already tasked for "..to_zone.name
                     trigger.action.outTextForCoalition(side,txt,5)
                 end
                 return false
@@ -447,7 +565,7 @@ do
             local enroutes_from_airbase = EnrouteManager:findByFromZone(source_airbase,side)
             if enroutes_from_airbase and #enroutes_from_airbase >= Config.tasking.max_tasks_per_airbase then
                 if user_requested then
-                    txt="STRIKE unavailable from "..source_airbase.name..", airbase cannot handle more tasks at the moment."
+                    local txt="STRIKE unavailable from "..source_airbase.name..", airbase cannot handle more tasks at the moment."
                     trigger.action.outTextForCoalition(side,txt,5)
                 end
                 return false
@@ -456,8 +574,15 @@ do
             if airbase and not WarehouseManager:checkIfAIPayloadInStock(airbase,ai_task_type)
             then sendText("STRIKE required payload/armement not in warehouse.") return false end
 
-            local new_group = mist.cloneGroup(template_gr_name,true)
-            if not new_group then return false end
+            local template_name = resolveGroupName(ai_task_type)
+            if not template_name then return false end
+
+            local new_group = self:spawnAIFlightFromParking(template_name, airbase)
+            if not new_group then 
+                local txt="STRIKE failed to spawn (possibly airbase "..source_airbase.name.." parking too small)."
+                trigger.action.outTextForCoalition(side,txt,5)
+                return false
+            end
 
             local ai_enroute_data = EnrouteManager:add({
                 to_zone = to_zone,
@@ -479,7 +604,7 @@ do
 
             if #statics_in_zone == 0 then
                 if user_requested then
-                    txt="STRIKE tasks can only be tasked to zones with structures/buildings."
+                    local txt="STRIKE tasks can only be tasked to zones with structures/buildings."
                     trigger.action.outTextForCoalition(side,txt,5)
                 end
                 return false
@@ -489,10 +614,10 @@ do
             self:setSTRIKETask(new_group.name,ai_enroute_data,strike_point)
             return true
         elseif AITaskTypes.RECON == ai_task_type and to_zone then
-            local closest_airbase, template_gr_name = self:findClosestAirbaseWithAircraftInStock(to_zone,side,ai_task_type,2,ai_task_type)
+            local closest_airbase, _ = self:findClosestAirbaseWithAircraftInStock(to_zone,side,ai_task_type,2,ai_task_type)
             if not closest_airbase then
                 if user_requested then
-                    txt="RECON unavailable for "..to_zone.name..", check aircraft availability, warehouse stock and tasking limits."
+                    local txt="RECON unavailable for "..to_zone.name..", check aircraft availability, warehouse stock and tasking limits."
                     trigger.action.outTextForCoalition(side,txt,5)
                 end
                 return false
@@ -500,7 +625,7 @@ do
 
             if prevent_duplicates and EnrouteManager:findByToZone(to_zone,side,{AITaskTypes.RECON}) then
                 if user_requested then
-                    txt="RECON already tasked for "..to_zone.name
+                    local txt="RECON already tasked for "..to_zone.name
                     trigger.action.outTextForCoalition(side,txt,5)
                 end
                 return false
@@ -513,7 +638,7 @@ do
             local enroutes_from_airbase = EnrouteManager:findByFromZone(closest_airbase,side)
             if enroutes_from_airbase and #enroutes_from_airbase >= Config.tasking.max_tasks_per_airbase then
                 if user_requested then
-                    txt="RECON unavailable from "..closest_airbase.name..", airbase cannot handle more tasks at the moment."
+                    local txt="RECON unavailable from "..closest_airbase.name..", airbase cannot handle more tasks at the moment."
                     trigger.action.outTextForCoalition(side,txt,5)
                 end
                 return false
@@ -522,8 +647,15 @@ do
             if airbase and not WarehouseManager:checkIfAIPayloadInStock(airbase,ai_task_type)
             then sendText("RECON required payload/armement not in warehouse.") return false end
 
-            local new_group = mist.cloneGroup(template_gr_name,true)
-            if not new_group then return false end
+            local template_name = resolveGroupName(ai_task_type)
+            if not template_name then return false end
+
+            local new_group = self:spawnAIFlightFromParking(template_name, airbase)
+            if not new_group then
+                local txt="RECON failed to spawn (possibly airbase "..closest_airbase.name.." parking too small)."
+                trigger.action.outTextForCoalition(side,txt,5)
+                return false 
+            end
 
             local ai_enroute_data = EnrouteManager:add({
                 to_zone = to_zone,
@@ -542,7 +674,7 @@ do
 
             if EnrouteManager:findByToZone(to_zone,side,{AITaskTypes.JTAC}) then
                 if user_requested then
-                    txt="JTAC already tasked for "..to_zone.name
+                    local txt="JTAC already tasked for "..to_zone.name
                     trigger.action.outTextForCoalition(side,txt,5)
                 end
                 return false
@@ -777,7 +909,7 @@ do
     ---@param aircraft_type string
     ---@param aircraft_amount number
     ---@param ai_task_type AITaskTypes
-    ---@return ZoneHandler|nil,string|nil
+    ---@return ZoneHandler|nil
     function TaskManager:findClosestAirbaseWithAircraftInStock(to_zone, side, aircraft_type, aircraft_amount, ai_task_type)
 
         -- Loop through all zones, check if in stock and then sort by distance
@@ -790,25 +922,19 @@ do
                     local airbase = Airbase.getByName(zone.airbase_name)
                     local warehouse = (airbase and airbase:getCoalition() == side) and airbase:getWarehouse() or nil
                     local aircraft_count = 0
-                    local group_name
 
-                    if warehouse
-                    and WarehouseManager.AirbaseGroupData[zone.airbase_name]
-                    and WarehouseManager.AirbaseGroupData[zone.airbase_name][side]
-                    and WarehouseManager.AirbaseGroupData[zone.airbase_name][side][aircraft_type]
-                    then
-                        local airbase_entry = WarehouseManager.AirbaseGroupData[zone.airbase_name][side][aircraft_type]
-                        aircraft_count = warehouse:getItemCount(airbase_entry.warehouse_name)
-                        group_name = airbase_entry.group_name
+                    if warehouse then
+                        local acft_type = WarehouseManager:getAircraftTypeForTask(side, ai_task_type)
+                        if acft_type then
+                            aircraft_count = warehouse:getItemCount(acft_type)
+                        end
                     end
 
                     local aircraft_reserve = WarehouseManager:getAircraftReserveThreshold()
                     if aircraft_count
-                    and math.max(aircraft_count - aircraft_reserve, 0) >= aircraft_amount
-                    and group_name then
+                    and math.max(aircraft_count - aircraft_reserve, 0) >= aircraft_amount then
                         table.insert(candidates,{
                             zone = zone,
-                            template_gr_name = group_name,
                             dist = mist.utils.get2DDist(to_zone.zone.point,zone.zone.point)
                         })
                     end
@@ -820,7 +946,7 @@ do
         end)
 
         if #candidates > 0 then
-            return candidates[1].zone, candidates[1].template_gr_name
+            return candidates[1].zone
         end
         return nil
     end

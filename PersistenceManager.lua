@@ -365,15 +365,10 @@ do
 
                         -- 1. Refund the Airframe
                         local side = enroute.side
-                        if WarehouseManager.AirbaseGroupData[enroute.from_zone.airbase_name]
-                        and WarehouseManager.AirbaseGroupData[enroute.from_zone.airbase_name][side]
-                        and WarehouseManager.AirbaseGroupData[enroute.from_zone.airbase_name][side][enroute.ai_task_type] then
-                            
-                            local acft_name = WarehouseManager.AirbaseGroupData[enroute.from_zone.airbase_name][side][enroute.ai_task_type].warehouse_name
-                            if acft_name then
-                                -- Add to "aircraft" category in save data
-                                wh_root["aircraft"][acft_name] = (wh_root["aircraft"][acft_name] or 0) + 1
-                            end
+                        local acft_name = WarehouseManager:getAircraftTypeForTask(side, enroute.ai_task_type)
+                        if acft_name then
+                            -- Add to "aircraft" category in save data
+                            wh_root["aircraft"][acft_name] = (wh_root["aircraft"][acft_name] or 0) + 1
                         end
 
                         -- 2. Refund the Payload
