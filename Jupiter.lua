@@ -406,8 +406,12 @@ function Jupiter:onEvent(event)
                 local stocktype_num = tonumber(param1) or 1
                 local closest_zone, dist = getClosestZone(vec3)
                 if closest_zone and dist <= 10000 and (closest_zone.zone_type == ZoneTypes.AIRBASE or closest_zone.zone_type == ZoneTypes.FARP) then
-                    WarehouseManager:attributeAirbaseStock(closest_zone.airbase_name,coalition.side.BLUE,
-                        {stocktype_num})
+
+                    if closest_zone.zone_type == ZoneTypes.FARP and closest_zone.linked_farp then
+                        WarehouseManager:attributeAirbaseStock(closest_zone.linked_farp,closest_zone.side,{stocktype_num})
+                    elseif closest_zone.zone_type == ZoneTypes.AIRBASE then
+                        WarehouseManager:attributeAirbaseStock(closest_zone.airbase_name,closest_zone.side,{stocktype_num})
+                    end
                     cmd_executed = true
                     trigger.action.outText("Jupiter: Resupply completed", 5)
                 else
