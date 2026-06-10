@@ -347,10 +347,7 @@ do
     ---@param restock boolean
     function UnitHandler.initFARP(zone,restock)
         if zone.zone_type ~= ZoneTypes.FARP then return end
-        if zone.side ~= coalition.side.BLUE then return end
-
-        if not zone.linked_farp then return end
-
+        if zone.side == coalition.side.NEUTRAL then return end
 
         local country_name_id
         if zone.side == coalition.side.BLUE then
@@ -360,15 +357,17 @@ do
             country_name_id = country.id.CJTF_RED
             stats.red_farp_zones = stats.red_farp_zones +1
         end
-        
 
-        -- Base coordinates for the zone center (where Invisible FARP is placed)
+        -- Base coordinates for the zone center (where Invisible FARP goes)
         local base_x = zone.zone.point.x
-        local base_y = zone.zone.point.z
+        local base_y = zone.zone.point.z -- DCS world Z coordinate is Lua's Y
 
         -- List of Statics to spawn with their estimated offsets (X, Y)
-        -- Invisible FARPs are placed inside the mission editor
         local farp_statics_to_spawn = {
+            -- Invisible FARP (Center Point)
+            { type = "Invisible FARP", category = "Heliports", shape_name = "invisiblefarp", offset_x = 0, offset_y = 0 },
+            -- { type = "FARP", category = "Heliports", shape_name = "FARPS", offset_x = 0, offset_y = 0 },
+
             -- Tents (clustered east of the pad)
             { type = "FARP Tent", category = "Fortifications", offset_x = 5, offset_y = 55 },
             { type = "FARP Tent", category = "Fortifications", offset_x = -15, offset_y = 55 },
@@ -377,11 +376,11 @@ do
             { type = "FARP Ammo Dump Coating", category = "Fortifications", offset_x = 30, offset_y = 5 },
             { type = "FARP Ammo Dump Coating", category = "Fortifications", offset_x = 30, offset_y = -5 },
 
+
             -- Fuel Depots (South of the pad)
             { type = "FARP Fuel Depot", category = "Fortifications", offset_x = 5, offset_y = -60 },
             { type = "FARP Fuel Depot", category = "Fortifications", offset_x = -5, offset_y = -60 },
         }
-
 
         -- Spawn the Statics
         for _, static_data in ipairs(farp_statics_to_spawn) do
@@ -390,21 +389,44 @@ do
                 y = base_y + static_data.offset_y
             }
 
-            local new_static = mist.dynAddStatic({
-                    type = static_data.type,
-                    shape_name = static_data.shape_name,
-                    country = country_name_id,
-                    category = static_data.category,
-                    x = static_point.x,
-                    y = static_point.y,
-                    heading = 0
-                })
+            -- some dcs quirks with invisible farps .. that makes it work
 
-            if new_static and new_static.name then
-                table.insert(zone.linked_statics, new_static.name)
+            if not (zone.side == coalition.side.RED and static_data.type == "Invisible FARP")
+            and not (zone.linked_farp and static_data.type == "Invisible FARP") then
+ 
+                if static_data.type ~= "Invisible FARP" then
+                    local new_static = mist.dynAddStatic({
+                            type = static_data.type,
+                            shape_name = static_data.shape_name,
+                            country = country_name_id,
+                            category = static_data.category,
+                            x = static_point.x,
+                            y = static_point.y,
+                            heading = 0
+                    })
+                    if new_static and new_static.name then
+                        table.insert(zone.linked_statics, new_static.name)
+                    end
+                else
+                    local new_static = coalition.addStaticObject(country_name_id, {
+                        ["category"] = static_data.category,
+                        ["shape_name"] = static_data.shape_name,
+                        ["type"] = static_data.type,
+                        ["unitId"] = mist.getNextUnitId(),
+                        ["x"] = static_point.x,
+                        ["y"] = static_point.y,
+                        ["name"] = "FARP " .. zone.name,
+                        ["heading"] = 0,
+                        ["dead"] = false,
+                        ["dynamicSpawn"] = true,
+                    })
+
+                    if new_static and new_static.getName then
+                        zone.linked_farp = new_static:getName()
+                    end
+                end
             end
         end
-
 
         -- Add to warehouse
         if zone.linked_farp and restock then
