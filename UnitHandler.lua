@@ -419,6 +419,7 @@ do
                         ["heading"] = 0,
                         ["dead"] = false,
                         ["dynamicSpawn"] = true,
+                        ["allowHotStart"] = true
                     })
 
                     if new_static and new_static.getName then
@@ -469,7 +470,6 @@ do
     end
 
     function UnitHandler.carrierCheck()
-        if not Scenario then return end
 
         local function destroyShip(unit_name, label)
             if not unit_name then return end
@@ -484,12 +484,12 @@ do
             end
         end
 
-        local carrier_data = Scenario.carrier_setup
+        local carrier_data = Config.carrier_setup
         if carrier_data and not carrier_data.enabled then
             destroyShip(carrier_data.carrier_unit_name, "carrier")
         end
 
-        local lha_data = Scenario.lha_setup
+        local lha_data = Config.lha_setup
         if lha_data and not lha_data.enabled then
             destroyShip(lha_data.lha_unit_name, "LHA")
         end

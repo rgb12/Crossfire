@@ -124,7 +124,7 @@ do
         if not PersistenceManager.enabled then return end
         PersistenceManager.data = {} -- Clear old data
 
-        PersistenceManager.data.scenario = Scenario
+        PersistenceManager.data.scenario = scenario
 
         PersistenceManager.data.stats = stats
 
@@ -391,9 +391,15 @@ do
         if not PersistenceManager.enabled then return end
         if not Config or not Config.persistence then return end
 
-        lfs.mkdir(lfs.writedir()..Config.persistence.save_dir)
-        PersistenceManager.mission_save_file_path = lfs.writedir()..Config.persistence.save_dir .. Config.persistence.save_file
-        PersistenceManager.user_data_file_path = lfs.writedir()..Config.persistence.save_dir .. Config.persistence.user_data_file
+        local theatre_name = PersistenceManager:fetchTheatre()
+
+        -- Missions/Saves/Crossfire [theatre_name] v[version]/
+        local dir = lfs.writedir()..Config.persistence.save_dir.."/Crossfire " .. theatre_name .. " v" .. Config._version.."/"
+        lfs.mkdir(dir)
+
+        PersistenceManager.mission_save_file_path = dir .. Config.persistence.save_file
+        PersistenceManager.user_data_file_path = dir .. Config.persistence.user_data_file
+        return true
     end
 
     --- Serializes self.data and writes it to the save file.
@@ -465,9 +471,6 @@ do
         end
         
         MissionLogger:info("Applying loaded mission state...")
-
-        -- 1. Restore Scenario
-        ---@type Scenario
 
         if not PersistenceManager.data.scenario
         or not PersistenceManager.data.scenario.name
@@ -810,6 +813,18 @@ function PersistenceManager:saveUserDataToFile()
                 file:close()
             end
         end
+    end
+
+    ---@return Theatres|nil
+    function PersistenceManager:fetchTheatre()
+        if env.mission and env.mission.theatre then
+            for _, theatre in pairs(Theatres) do
+                if theatre == env.mission.theatre then
+                    return theatre
+                end
+            end
+        end
+        return nil
     end
 
     ---@return boolean

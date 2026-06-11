@@ -618,8 +618,8 @@ do
 
                 if aircraft_on_carrier then
                     local carrier_unit = nil
-                    if Scenario and Scenario.carrier_setup and Scenario.carrier_setup.carrier_unit_name then
-                        carrier_unit = Unit.getByName(Scenario.carrier_setup.carrier_unit_name)
+                    if Config.carrier_setup and Config.carrier_setup.carrier_unit_name then
+                        carrier_unit = Unit.getByName(Config.carrier_setup.carrier_unit_name)
                     end
 
                     if carrier_unit and carrier_unit:isExist() then
@@ -897,8 +897,8 @@ do
 
         local function executeNavalStrikeRequest(u, to_zone)
             if not CommandHandler.isGrounded(unit,gr_id) then return end
-            local attack_ship_name = Scenario.carrier_setup.tomahawk_launcher_unit_name
-            if not (Scenario.carrier_setup.enabled and attack_ship_name) then
+            local attack_ship_name = Config.carrier_setup.tomahawk_launcher_unit_name
+            if not (Config.carrier_setup.enabled and attack_ship_name) then
                 trigger.action.outTextForGroup(gr_id, "CMD-HQ - Negative, Naval strike unavailable.", 10)
                 trigger.action.outSoundForGroup(gr_id, "Radio squelch.ogg")
                 return
@@ -1214,7 +1214,7 @@ do
                 name = "Request Naval Strike",
                 func = function()
                     local commands = buildZoneCommandList(function(zone, discovered)
-                        if not (Scenario.carrier_setup.enabled and Scenario.carrier_setup.tomahawk_launcher_unit_name) then
+                        if not (Config.carrier_setup.enabled and Config.carrier_setup.tomahawk_launcher_unit_name) then
                             return false
                         end
                         return zone.side == enemy_side and utils.tableContains(discovered, zone.name)

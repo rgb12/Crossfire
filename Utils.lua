@@ -290,28 +290,30 @@ function utils.findClosestCaptureHeloSource(to_zone, side, max_distance_m)
         end
     end
 
-    if Scenario and Scenario.lha_setup and Scenario.lha_setup.enabled and Scenario.lha_setup.lha_unit_name then
-        local lha_unit = Unit.getByName(Scenario.lha_setup.lha_unit_name)
+    if Config.lha_setup and Config.lha_setup.enabled and Config.lha_setup.lha_unit_name then
+        local lha_unit = Unit.getByName(Config.lha_setup.lha_unit_name)
         local lha_point = nil
         if lha_unit and lha_unit:isExist() then
             lha_point = lha_unit:getPoint()
         end
 
         if lha_point then
-            Scenario.lha_setup.name = Scenario.lha_setup.lha_unit_name
-            Scenario.lha_setup.side = side
-            Scenario.lha_setup.zone_type = ZoneTypes.LOGISTICS
-            Scenario.lha_setup.zone = Scenario.lha_setup.zone or {}
-            Scenario.lha_setup.zone.point = lha_point
-            Scenario.lha_setup.ammo_depot_intact = true
-            Scenario.lha_setup.heli_avail = Scenario.lha_setup.heli_avail or ((Config.tasking and Config.tasking.max_capture_helicopters_per_logistics_zone) or 0)
-            Scenario.lha_setup.local_supplies = Scenario.lha_setup.local_supplies or (Config.supplies and Config.supplies.initial_stock or 0)
-
             local distance = mist.utils.get2DDist(to_zone.zone.point, lha_point)
             if not max_distance_m or distance <= max_distance_m then
-                Scenario.lha_setup.lha_source = true
+                Config.lha_setup.lha_source = true
                 table.insert(candidates, {
-                    source = Scenario.lha_setup,
+                    source = {
+                        name = Config.lha_setup.name,
+                        side = side,
+                        zone_type = ZoneTypes.LOGISTICS,
+                        zone = {
+                            point = lha_point
+                        },
+                        ammo_depot_intact = true,
+                        heli_avail = 4, -- warehouse limitations will prevent when none are left
+                        local_supplies = 0,
+                        lha_source = true,
+                    },
                     distance = distance,
                 })
             end

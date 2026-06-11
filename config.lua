@@ -16,14 +16,15 @@
     It is recommended to use a code editor such as VSCode, Notepad++, Sublime Text, etc. to edit this file.
 ]]
 Config = {
+    _version = 6, -- do not change unless you know what you are doing
     persistence = {
-        enable =  true, -- enables or not persistence, has authority over everything below in this section
+        enable =  false, -- enables or not persistence, has authority over everything below in this section
         save_interval = 4*51, -- (seconds) interval at which the mission state is saved
         -- You can use fixed values or multiplications like above
         -- 51 seconds is used to avoid multiples of 15 to reduce lag spikes
 
-        -- save_dir = "Missions/Saves/Crossfire Georgia Liberation v5/", -- this is your Saves directory in Saved Games
-        save_dir = "Missions/Saves/Crossfire Syrian Resolve v5/",
+        save_dir = "Missions/Saves/", -- this is your Saves directory in Saved Games
+        -- save_dir = "Missions/Saves/Crossfire Syrian Resolve v5/",
         -- If you would like to create a new mission, simple change the last folder name
 
         save_file = "mission.json", -- this is the name of the mission file
@@ -31,9 +32,7 @@ Config = {
 
         enable_ctld_persistence = true, -- enables/disables CTLD placed asset persistence
 
-
-        -- scenario_selected = "Georgia Liberation", -- select a scenario from the scenarios found below
-        scenario_selected = "Syrian Resolve", -- select a scenario from the scenarios found below
+        -- scenario_selected is no longer used. Theatre is auto-detected from env.mission.theatre;
     },
     operations = {
         recon_duration = 120, -- (seconds)
@@ -317,11 +316,18 @@ Config = {
         zone_type_weights = {
             [ZoneTypes.STRONGPOINT] = 50,
             [ZoneTypes.LOGISTICS]   = 20,
+            [ZoneTypes.FARP]        = 5,
             [ZoneTypes.SAMSITE]     = 15,
             [ZoneTypes.COMMS]       = 10,
             [ZoneTypes.EWSITE]      = 5,
         },
         -- The script ensures all essential zone types are present, bypassing the above if needed
+        seed = 2025,          -- -1 = random each mission start, set a number for a reproducible layout (scenario selection, zone types and levels)
+        sam_classification_thresholds = {
+            short_range  = 15, -- (%) rolls below this : SHORT RANGE SAM
+            medium_range = 60, -- (%) rolls below this (and above short_range) : MEDIUM RANGE SAM
+            -- above medium_range threshold : LONG_RANGE SAM
+        },
 
     },
     tasking_requirements = {
@@ -488,6 +494,21 @@ Config = {
         [Airbases.Syria.An_Nasiriyah] = 118.600*1e6, -- (Hertz)
         [Airbases.Syria.Shayrat] = 127.5*1e6, -- (Hertz)
         [Airbases.Syria.Rayak] = 119.450*1e6, -- (Hertz)
+    },
+
+
+
+
+    -- Carrier and LHA are always enabled by default. They are global assets, not scenario-specific.
+    carrier_setup = {
+        carrier_unit_name = "Carrier",
+        tomahawk_launcher_unit_name = "Naval Launcher", -- set to nil if no Tomahawk launcher in the mission
+        enabled = true,
+    },
+
+    lha_setup = {
+        lha_unit_name = "LHA",
+        enabled = true,
     },
 
 draw_color_palette = {

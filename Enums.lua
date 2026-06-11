@@ -97,6 +97,12 @@ Airbases = {
     }
 }
 
+---@enum Theatres
+Theatres = {
+    CAUCASUS = "Caucasus",
+    SYRIA = "Syria"
+}
+
 ---@enum SAM_TYPES
 SAM_TYPES = {
     SHORT_RANGE = 1,
