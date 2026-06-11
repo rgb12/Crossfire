@@ -60,14 +60,20 @@ function Jupiter:onEvent(event)
             return
         end
 
-        -- 3. Parse command and arguments
-        -- e.g., "-explosion 300" becomes {"-explosion", "300"}
+        -- 3. Parse command and arguments.
+        -- Colon-delimited params are preferred, e.g. "-explosion:300" or "-setxpmult:2:5".
         local args = {}
-        for word in text:gmatch("%S+") do
-            table.insert(args, word)
+        if text:find(":") then
+            for part in text:gmatch("[^:]+") do
+                table.insert(args, part)
+            end
+        else
+            for word in text:gmatch("%S+") do
+                table.insert(args, word)
+            end
         end
-        
-        local command = args[1]:lower()
+
+        local command = args[1] and args[1]:lower() or nil
         local param1 = args[2]
         local param2 = args[3]
         
@@ -494,7 +500,7 @@ function Jupiter:onEvent(event)
             local multiplier = tonumber(param1)
             local time = tonumber(param2) or 5
             if not multiplier then
-                trigger.action.outText("Jupiter: Invalid multiplier. Usage: -setxpmult <number> <time>", 8)
+                trigger.action.outText("Jupiter: Invalid multiplier. Usage: -setxpmult:<number>:<time>", 8)
             else
                 ExperienceManager.xp_multiplier = math.max(multiplier,1)
                 timer.scheduleFunction(function ()
@@ -507,12 +513,12 @@ function Jupiter:onEvent(event)
         else
             trigger.action.outText("Jupiter: unknown command",5)
         end
-        -- 3. Cleanup: Remove the map marker if a command was recognized
-        timer.scheduleFunction(function()
-            if cmd_executed then
-                trigger.action.removeMark(markId)
-            end
-        end, {}, timer.getTime() + 2) -- slight delay to ensure command processes before removal
+
+
+        if cmd_executed then
+            trigger.action.removeMark(markId)
+        end
+
     end
 end
 
