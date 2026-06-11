@@ -124,6 +124,8 @@ do
         if not PersistenceManager.enabled then return end
         PersistenceManager.data = {} -- Clear old data
 
+        MissionLogger:info("Attempting save")
+        MissionLogger:info(scenario)
         PersistenceManager.data.scenario = scenario
 
         PersistenceManager.data.stats = stats
@@ -193,23 +195,23 @@ do
         end
 
         -- Save carrier warehouse
-        if Scenario.carrier_setup.enabled and Scenario.carrier_setup.carrier_unit_name then
-            local carrier = Airbase.getByName(Scenario.carrier_setup.carrier_unit_name)
+        if Config.carrier_setup.enabled and Config.carrier_setup.carrier_unit_name then
+            local carrier = Airbase.getByName(Config.carrier_setup.carrier_unit_name)
             if carrier then
                 local warehouse = carrier:getWarehouse()
                 if warehouse then
-                    PersistenceManager.data.warehouses[Scenario.carrier_setup.carrier_unit_name] = warehouse:getInventory()
+                    PersistenceManager.data.warehouses[Config.carrier_setup.carrier_unit_name] = warehouse:getInventory()
                 end
             end
         end
 
         -- Save LHA warehouse
-        if Scenario.lha_setup and Scenario.lha_setup.enabled and Scenario.lha_setup.lha_unit_name then
-            local lha = Airbase.getByName(Scenario.lha_setup.lha_unit_name)
+        if Config.lha_setup and Config.lha_setup.enabled and Config.lha_setup.lha_unit_name then
+            local lha = Airbase.getByName(Config.lha_setup.lha_unit_name)
             if lha then
                 local warehouse = lha:getWarehouse()
                 if warehouse then
-                    PersistenceManager.data.warehouses[Scenario.lha_setup.lha_unit_name] = warehouse:getInventory()
+                    PersistenceManager.data.warehouses[Config.lha_setup.lha_unit_name] = warehouse:getInventory()
                 end
             end
         end
@@ -462,55 +464,40 @@ do
     function PersistenceManager:restoreState()
         if not PersistenceManager.enabled then return false end
 
-        -- -- Load user data regardless of mission data existence
-        -- PersistenceManager:loadUserData()
 
         if not PersistenceManager.data or not PersistenceManager.data.zones then
-            MissionLogger:error("Restore failed: No data loaded.")
+            MissionLogger:error("PERSISTENCE RESTORE ERROR: No data loaded.")
             return false
         end
         
-        MissionLogger:info("Applying loaded mission state...")
+        MissionLogger:info("PERSISTENCE: Applying loaded mission state...")
 
         if not PersistenceManager.data.scenario
         or not PersistenceManager.data.scenario.name
         or not PersistenceManager.data.scenario.blue_airbase
         or not PersistenceManager.data.scenario.red_airbase then
-            MissionLogger:error("Restore failed: Save file is missing scenario metadata.")
+            MissionLogger:error("PERSISTENCE RESTORE ERROR: Save file is missing scenario metadata.")
             return false
         end
 
-        local saved_scenario_name = PersistenceManager.data.scenario.name
-        if saved_scenario_name ~= Config.persistence.scenario_selected then
-            MissionLogger:info("Restore failed: Saved scenario '" .. saved_scenario_name .. "' does not match selected scenario '" .. Config.persistence.scenario_selected .. "'.")
-            return false
-        end
+        scenario = PersistenceManager.data.scenario
 
-        local matched_scenario = nil
-        for _, scenario in pairs(Scenarios) do
-            if scenario.name == saved_scenario_name then
-                matched_scenario = scenario
-                break
+        ---@type ZoneHandler[]
+        local avail_zones = available_zones[PersistenceManager.data.scenario.theater]
+
+        for _, zone in pairs(avail_zones) do
+            if zone.name == PersistenceManager.data.scenario.blue_airbase then
+                blue_airbase = zone
+            elseif zone.name == PersistenceManager.data.scenario.red_airbase then
+                red_airbase = zone
             end
+            if blue_airbase and red_airbase then break end
         end
-
-        if not matched_scenario then
-            MissionLogger:error("Restore failed: Scenario '" .. saved_scenario_name .. "' was not found in Scenarios.")
-            return false
-        end
-
-        Scenario = matched_scenario
-        MissionLogger:info("Scenario restored: " .. Scenario.name)
-
-        local blue_airbase_candidate = ZoneHandler.getFromName(PersistenceManager.data.scenario.blue_airbase.name)
-        local red_airbase_candidate = ZoneHandler.getFromName(PersistenceManager.data.scenario.red_airbase.name)
         
-        if not (blue_airbase_candidate and red_airbase_candidate) then
-            MissionLogger:error("Restore failed: Could not find home airbases.")
+        if not (blue_airbase and red_airbase) then
+            MissionLogger:error("PERSISTENCE RESTORE ERROR: Could not find home airbases.")
             return false
         end
-        blue_airbase = blue_airbase_candidate
-        red_airbase = red_airbase_candidate
 
         -- 2. Restore Stats
         stats = PersistenceManager.data.stats
@@ -524,6 +511,13 @@ do
         local new_zones = {}
         for _, saved_zone in pairs(PersistenceManager.data.zones) do
             local zone = ZoneHandler.getFromName(saved_zone.name)
+            for _, avail_zone in pairs(avail_zones) do
+                if avail_zone.name == saved_zone.name then
+                    zone = avail_zone
+                    break
+                end
+            end
+
             if zone then -- Ensures not available zones get ignored
                 -- Restore identity & configuration
                 zone.side = saved_zone.side
@@ -610,12 +604,7 @@ do
             end
         end
         zones = new_zones
-        
-        if PersistenceManager.data.scenario.lha_setup and Scenario.lha_setup then
-            Scenario.lha_setup.heli_avail = PersistenceManager.data.scenario.lha_setup.heli_avail or Scenario.lha_setup.heli_avail
-            Scenario.lha_setup.local_supplies = PersistenceManager.data.scenario.lha_setup.local_supplies or Scenario.lha_setup.local_supplies
-            Scenario.lha_setup.ammo_depot_intact = PersistenceManager.data.scenario.lha_setup.ammo_depot_intact
-        end
+
 
         MissionLogger:info("Zone states and units restored.")
 

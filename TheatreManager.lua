@@ -999,6 +999,8 @@ do
         -- Pick a random scenario from the eligible list
         ---@type GeneratedScenario
         scenario = eligible_scenarios[rng_int(1, #eligible_scenarios)]
+
+        
         local theatre_config = scenario.map_setup
 
         MissionLogger:info("Selected scenario: " .. scenario.name)
@@ -1058,7 +1060,6 @@ do
             -- If zone is within airbase padding of either home airbase, include it unconditionally
             if dist_to_blue <= airbase_padding or dist_to_red <= airbase_padding then
                 table.insert(active_zones, zone)
-                MissionLogger:info(string.format("%s included (within airbase padding). Dist to BLUE: %.0f m, Dist to RED: %.0f m", zone.name, dist_to_blue, dist_to_red))
             else
                 -- Compute perpendicular distance to the line between airbases
                 local dx = red_x - blue_x

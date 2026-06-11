@@ -135,10 +135,6 @@ do
 
         obj.radius = zone_find.radius
 
-        if obj.radius < 1000 then
-            MissionLogger:warn(zone_name.." has a radius smaller than 1000 meters. This may cause issues.")
-        end
-
         -- Converts the mission's file Vec2 points into Vec3
         -- Vec2: {x,y}  --> Vec3: {x, land height at (x,y), y}
         -- Be careful DCS uses Z as Y axis in 3D space (vec3)
