@@ -196,6 +196,14 @@ function Jupiter:onEvent(event)
                     end
                 end
             end
+        elseif command == "-listtriggerzones" then
+            local zone_names = {}
+            for k, v in ipairs(env.mission.triggers.zones) do
+                table.insert(zone_names, v.name)
+            end
+            MissionLogger:info(zone_names)
+            trigger.action.outText(mist.utils.tableShow(zone_names),25)
+            cmd_executed = true
         elseif command == "-getwarehouse" then
             -- param1 = Airbases.Caucasus.Beslan
             if param1 then
