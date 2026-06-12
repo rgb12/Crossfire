@@ -232,12 +232,6 @@ function utils.editAmmoDepotsCount(coalition_side, delta)
     end
 end
 
-function utils.calculateSuppliesCAPforCoalition(coalition_side)
-    -- Legacy helper kept for backward compatibility with old call sites.
-    -- The supply model is now zone-local, so coalition-wide command-post caps are retired.
-    return Config.supplies.absolute_max_supplies or 0
-end
-
 
 ---@param point vec3
 ---@param coalition_side coalition.side|nil

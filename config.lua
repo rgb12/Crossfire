@@ -16,7 +16,10 @@
     It is recommended to use a code editor such as VSCode, Notepad++, Sublime Text, etc. to edit this file.
 ]]
 Config = {
-    _version = 6, -- mission version should not be edited unless comprehensively understood
+    _config_file_version = 1, -- config version should not be edited unless comprehensively understood
+    _scenario_file_version = 1, -- scenario file version should not be edited unless comprehensively understood
+    _mission_version = 6, -- mission version should not be edited unless comprehensively understood
+    _enable_config_override = false, -- development setting, set to false to prevent the mission from loading this config (will use default values instead), this is useful for testing changes without affecting the live config
     persistence = {
         enable =  true, -- enables or not persistence, has authority over everything below in this section
         save_interval = 4*51, -- (seconds) interval at which the mission state is saved
@@ -178,7 +181,7 @@ Config = {
         coop_max_members = 8, -- maximum number of players (including leader) in a co-op operation
     },
     jupiter_enabled = true, -- enables/disables the Jupiter command system
-    jupiter_password = "", -- password required before the -, example password = 12 then the command is 12-discover
+    jupiter_password = "", -- password required before the -, example password = "12" then the command is 12-discover
 
     allow_air_spawn = true, -- prevents or not air spawns for players
     enable_slot_blocker = true, -- enables/disables the slot blocker system to prevent players spawning in enemy airbases
@@ -201,7 +204,6 @@ Config = {
         supplies_income = 20, -- supplies gained per minute from each alive ammo depot in logistics zones
         supplies_looted_on_destroyed = 500, -- supplies gained when capturing an enemy zone
         supplies_looted_on_destroyed_variance = 200, -- (+/-) supplies variance when capturing an enemy zone
-        absolute_max_supplies = 40000, -- maximum supplies a coalition can hold no matter what
 
         resupply_costs = {
 

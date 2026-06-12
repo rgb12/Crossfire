@@ -162,17 +162,25 @@ do
 
     local function buildConfigExport()
         return {
-        version = Config._version,
+        _config_enabled = true,
+        _config_file_version = Config._config_file_version,
         Config = copyTable(Config),
         stats = copyTable(stats), GroupData = copyTable(GroupData) }
     end
 
     local function buildScenariosExport()
         return {
-            version = Config._version,
+            _config_enabled = true,
+            _scenario_file_version = Config._scenario_file_version,
             available_zones = copyTable(available_zones),
             scenarios = copyTable(scenarios),
         }
+    end
+
+    ---@param theatre_name string
+    ---@return string
+    function PersistenceManager:fetchDir(theatre_name)
+        return lfs.writedir() .. Config.persistence.save_dir .. "Crossfire " .. theatre_name .. " (v" .. Config._mission_version .. ")/"
     end
 
     function PersistenceManager:loadUserOverrides()
@@ -184,7 +192,7 @@ do
         -- if this is the first do not load the files, just create them with the default data
         local pass_overrides = false
 
-        local dir = lfs.writedir() .. Config.persistence.save_dir .. "Crossfire " .. theatre_name .. " v" .. Config._version .. "/"
+        local dir = PersistenceManager:fetchDir(theatre_name)
         lfs.mkdir(dir)
 
         local config_path = dir .. "config.json"
@@ -204,16 +212,17 @@ do
             return
         end
         local config_file = readJSONFile(config_path)
-        if config_file and config_file.version == Config._version then
+        if config_file and config_file._config_file_version == Config._config_file_version and config_file._config_enabled then
             Config = config_file.Config
             stats = config_file.stats
             GroupData = config_file.GroupData
             MissionLogger:info("Loaded user config override from " .. config_path)
-            MissionLogger:info(Config)
+        else
+            MissionLogger:info("No valid user config override found at " .. config_path .. ", check file version and enabled flag.")
         end
 
         local scenarios_file = readJSONFile(scenarios_path)
-        if scenarios_file and scenarios_file.version == Config._version then
+        if scenarios_file and scenarios_file._scenario_file_version == Config._scenario_file_version and scenarios_file._scenarios_enabled then
             available_zones = scenarios_file.available_zones
             scenarios = scenarios_file.scenarios
 
@@ -229,6 +238,8 @@ do
             end
 
             MissionLogger:info("Loaded user scenarios override from " .. scenarios_path)
+        else
+            MissionLogger:info("No valid user scenarios override found at " .. scenarios_path .. ", check file version and enabled flag.")
         end
     end
 
@@ -255,7 +266,6 @@ do
         PersistenceManager.data = {} -- Clear old data
 
         MissionLogger:info("Attempting save")
-        MissionLogger:info(scenario)
         PersistenceManager.data.scenario = scenario
 
         PersistenceManager.data.stats = stats
@@ -524,9 +534,10 @@ do
         if not Config or not Config.persistence then return end
 
         local theatre_name = PersistenceManager:fetchTheatre()
+        if not theatre_name then return end
 
         -- Missions/Saves/Crossfire [theatre_name] v[version]/
-        local dir = lfs.writedir()..Config.persistence.save_dir.."Crossfire " .. theatre_name .. " v" .. Config._version.."/"
+        local dir = PersistenceManager:fetchDir(theatre_name)
         lfs.mkdir(dir)
 
         PersistenceManager.mission_save_file_path = dir .. Config.persistence.save_file
