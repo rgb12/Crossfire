@@ -10,7 +10,7 @@ do
         clear_radius = clear_radius or 50
         local last
         for i = 1, max_tries do
-            local candidate = mist.getRandomPointInZone(zone.name)
+            local candidate = mist.getRandomPointInZone(zone.name,Config.spawn_inner_radius)
 
             if candidate and mist.isTerrainValid(candidate,{"LAND"}) then
                 last = candidate
@@ -320,7 +320,7 @@ do
 
         elseif zone.zone_type == ZoneTypes.COMMS then
             if zone.comms_tower_intact == false then return false end
-            local point = mist.getRandomPointInZone(zone.name) or {x=zone.zone.point.x+25,y=zone.zone.point.z-19}
+            local point = mist.getRandomPointInZone(zone.name,Config.spawn_inner_radius) or {x=zone.zone.point.x+25,y=zone.zone.point.z-19}
 
             local comms_tower = mist.dynAddStatic({
                 type = "Comms tower M",

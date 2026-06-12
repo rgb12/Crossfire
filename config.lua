@@ -459,6 +459,8 @@ Config = {
         naval_strike_salvo_size = 10,
     },
 
+    spawn_inner_radius = 100, --- (meters) minimum distance from zone center for spawned units and statics
+
     logistics_level_up_interval = 16*60, -- (seconds) minimum time between level ups
     logistics_ammo_depot_respawn_time = 45*60, -- (seconds) time it takes for an ammo depot to respawn after being destroyed
     logistics_auto_upgrade_required_supplies = 300, -- supplies required in a LOGISTICS zone stock to be eligible for auto upgrade
