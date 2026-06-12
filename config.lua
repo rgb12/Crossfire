@@ -399,7 +399,7 @@ Config = {
         text_title = "Tanker Sector",
         text_color = {56/255,56/255,56/255,1},
         text_background = {156/255,156/255,156/255,0.6},
-        line_color = {156/255,156/255,156/255,0.9},
+        line_color = {73/255,196/255,192/255,1},
 
         drogue = {
             altitude_ft = 23000, --feet
