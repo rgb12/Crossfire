@@ -96,20 +96,20 @@ do
                     end
                 end
                 timer.scheduleFunction(function()
-                    
+
                     local unit_check = Unit.getByName(unit_name)
                     if unit_check and unit_check:isExist() and unit_check:getLife() > 0 and unit_check.getCoalition then
                         local user = ExperienceManager:fetchUser(unit_check)
                         if not user then return end
 
                         MissionLogger:info("USER: "..player_name .. " landed, time airborne: "..airtime..",    mission XP: "..user.unclaimed_xp .. "     , airtime bonus XP: "..airtime_xp_bonus)
-                        
+
                         if user.unclaimed_xp>0 or airtime_xp_bonus>0 then
                             local u_id = unit_check:getID()
                             local claimed_xp = (user.unclaimed_xp+airtime_xp_bonus)*ExperienceManager.xp_multiplier
                             trigger.action.outTextForUnit(u_id, "Post-Flight Debrief: +".. claimed_xp .. " XP",10)
                             trigger.action.outSoundForUnit(u_id,"radio click.ogg")
-                            
+
                             ExperienceManager:addXP(user, claimed_xp) -- checks for rank up
                             user.unclaimed_xp = 0
                         end
@@ -117,6 +117,21 @@ do
                 end, {}, timer.getTime() + Config.reward_system.landing_time)
 
 
+            end
+        elseif event.id == world.event.S_EVENT_EJECTION then
+            local payout = Config.reward_system.eject_xp_payout or 0
+            if payout > 0 and event.initiator and event.initiator.getPlayerName and event.initiator:getPlayerName() then
+                local player_name = event.initiator:getPlayerName()
+                local player_coalition = event.initiator:getCoalition()
+                ExperienceManager.airbone_users[player_name] = nil -- no landing reward after eject
+                local user = ExperienceManager:fetchUser(event.initiator)
+                if user and user.unclaimed_xp > 0 then
+                    local awarded = math.floor(user.unclaimed_xp * payout * ExperienceManager.xp_multiplier)
+                    MissionLogger:info("USER: "..player_name.." ejected, awarding "..payout*100 .."% of unclaimed XP: "..awarded)
+                    trigger.action.outTextForCoalition(player_coalition, player_name .. " ejected! +" .. awarded .. " XP (" .. math.floor(payout*100) .. "% of XP)", 10)
+                    ExperienceManager:addXP(user, awarded)
+                    user.unclaimed_xp = 0
+                end
             end
         end
 

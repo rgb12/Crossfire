@@ -264,6 +264,7 @@ Config = {
         xp_per_ship_sunk = 300,
         xp_per_intel_report = 50,
         landing_time = 15, -- (seconds) the time the player has to stay on the ground to be rewarded
+        eject_xp_payout = 0.20, -- (fraction) portion of unclaimed XP awarded on ejection (0.20 = 20%), set to 0 to disable
 
         xp_lost_per_kill_fatricide = 1000,
 
