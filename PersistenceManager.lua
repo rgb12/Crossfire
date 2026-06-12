@@ -102,6 +102,136 @@ do
         return table.concat(output)
     end
 
+    local function copyTable(source_table)
+        local copied = {}
+        for key, value in pairs(source_table or {}) do
+            copied[key] = value
+        end
+        return copied
+    end
+
+    local function readJSONFile(file_path)
+
+        --[[
+         local file = io.open(PersistenceManager.mission_save_file_path, "r")
+        if file and JSON then
+            local file_data = file:read("*all")
+            ---@diagnostic disable-next-line: undefined-field
+            local data = JSON:decode(file_data)
+            file:close()
+
+            if data then
+                PersistenceManager.data = data
+                MissionLogger:info("Successfully loaded data from " .. PersistenceManager.mission_save_file_path)
+                return true
+            end
+        end]]
+
+        local file = io.open(file_path, "r")
+        if not (file and JSON) then
+            return nil
+        end
+
+        local file_data = file:read("*all")
+        file:close()
+
+        if not file_data or file_data == "" or not JSON then
+            return nil
+        end
+
+        return JSON:decode(file_data)
+    end
+
+    local function writeJSON(file_path, data_table)
+        if not JSON then return false end
+
+        local file_content = cleanJSON(JSON:encode(data_table))
+        if not file_content then
+            return false
+        end
+
+        local file = io.open(file_path, "w")
+        if not file then
+            return false
+        end
+
+        file:write(file_content)
+        file:close()
+        return true
+    end
+
+    local function buildConfigExport()
+        return {
+        version = Config._version,
+        Config = copyTable(Config),
+        stats = copyTable(stats), GroupData = copyTable(GroupData) }
+    end
+
+    local function buildScenariosExport()
+        return {
+            version = Config._version,
+            available_zones = copyTable(available_zones),
+            scenarios = copyTable(scenarios),
+        }
+    end
+
+    function PersistenceManager:loadUserOverrides()
+        if not lfs or not io or not Config or not Config.persistence then return end
+
+        local theatre_name = PersistenceManager:fetchTheatre()
+        if not theatre_name then return end
+
+        -- if this is the first do not load the files, just create them with the default data
+        local pass_overrides = false
+
+        local dir = lfs.writedir() .. Config.persistence.save_dir .. "Crossfire " .. theatre_name .. " v" .. Config._version .. "/"
+        lfs.mkdir(dir)
+
+        local config_path = dir .. "config.json"
+        if not lfs.attributes(config_path) then
+            writeJSON(config_path, buildConfigExport())
+            pass_overrides = true
+        end
+
+        local scenarios_path = dir .. "scenarios.json"
+        if not lfs.attributes(scenarios_path) then
+            writeJSON(scenarios_path, buildScenariosExport())
+            pass_overrides = true
+        end
+
+        if pass_overrides then
+            MissionLogger:info("No user override files found, created default files at " .. dir)
+            return
+        end
+        local config_file = readJSONFile(config_path)
+        if config_file and config_file.version == Config._version then
+            Config = config_file.Config
+            stats = config_file.stats
+            GroupData = config_file.GroupData
+            MissionLogger:info("Loaded user config override from " .. config_path)
+            MissionLogger:info(Config)
+        end
+
+        local scenarios_file = readJSONFile(scenarios_path)
+        if scenarios_file and scenarios_file.version == Config._version then
+            available_zones = scenarios_file.available_zones
+            scenarios = scenarios_file.scenarios
+
+            for _, stripped_zones in pairs(available_zones or {}) do
+                if type(stripped_zones) ~= "table" then return end
+
+                for _, zone in pairs(stripped_zones) do
+                    if type(zone) == "table" and zone.name and zone.zone then
+                        setmetatable(zone, ZoneHandler)
+                        ZoneHandler.__index = ZoneHandler
+                    end
+                end
+            end
+
+            MissionLogger:info("Loaded user scenarios override from " .. scenarios_path)
+        end
+    end
+
     function PersistenceManager:isEnabled()
         if not Config or not Config.persistence then return false end
 
@@ -396,7 +526,7 @@ do
         local theatre_name = PersistenceManager:fetchTheatre()
 
         -- Missions/Saves/Crossfire [theatre_name] v[version]/
-        local dir = lfs.writedir()..Config.persistence.save_dir.."/Crossfire " .. theatre_name .. " v" .. Config._version.."/"
+        local dir = lfs.writedir()..Config.persistence.save_dir.."Crossfire " .. theatre_name .. " v" .. Config._version.."/"
         lfs.mkdir(dir)
 
         PersistenceManager.mission_save_file_path = dir .. Config.persistence.save_file
@@ -414,18 +544,18 @@ do
         self:enroutesRefund()
 
         if not JSON then return end
-            ---@diagnostic disable-next-line: undefined-field
-            local file_content = cleanJSON(JSON:encode(PersistenceManager.data))
-            if file_content then
+        ---@diagnostic disable-next-line: undefined-field
+        local file_content = cleanJSON(JSON:encode(PersistenceManager.data))
+        if file_content then
 
-                local file= io.open(PersistenceManager.mission_save_file_path, "w")
-                if file then
-                    file:write(file_content)
-                    file:close()
-                    MissionLogger:info("Mission state saved to " .. PersistenceManager.mission_save_file_path)
-                end
-
+            local file= io.open(PersistenceManager.mission_save_file_path, "w")
+            if file then
+                file:write(file_content)
+                file:close()
+                MissionLogger:info("Mission state saved to " .. PersistenceManager.mission_save_file_path)
             end
+
+        end
 
     end
 

@@ -105,20 +105,20 @@ Theatres = {
 
 ---@enum SAM_TYPES
 SAM_TYPES = {
-    SHORT_RANGE = 1,
-    MEDIUM_RANGE = 2,
-    LONG_RANGE = 3
+    SHORT_RANGE = "SHORTRANGE",
+    MEDIUM_RANGE = "MEDIUMRANGE",
+    LONG_RANGE = "LONGRANGE"
 }
 
 ---@enum ZoneTypes
 ZoneTypes = {
-    AIRBASE = 1,
-    STRONGPOINT = 2,
-    FARP = 3,
-    SAMSITE = 4,
-    EWSITE = 5,
-    LOGISTICS = 6,
-    COMMS = 7,
+    AIRBASE = "AIRBASE",
+    STRONGPOINT = "STRONGPOINT",
+    FARP = "FARP",
+    SAMSITE = "SAMSITE",
+    EWSITE = "EWSITE",
+    LOGISTICS = "LOGISTICS",
+    COMMS = "COMMS",
 }
 
 -- Fill in isDefensiveOperation

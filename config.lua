@@ -16,9 +16,9 @@
     It is recommended to use a code editor such as VSCode, Notepad++, Sublime Text, etc. to edit this file.
 ]]
 Config = {
-    _version = 6, -- do not change unless you know what you are doing
+    _version = 6, -- mission version should not be edited unless comprehensively understood
     persistence = {
-        enable =  false, -- enables or not persistence, has authority over everything below in this section
+        enable =  true, -- enables or not persistence, has authority over everything below in this section
         save_interval = 4*51, -- (seconds) interval at which the mission state is saved
         -- You can use fixed values or multiplications like above
         -- 51 seconds is used to avoid multiples of 15 to reduce lag spikes

@@ -1399,6 +1399,8 @@ do
             return trigger.action.outText("CRITICAL MISSION ERROR: this terrain is not supported.", 60)
         end
 
+        PersistenceManager:loadUserOverrides()
+
         world.addEventHandler(ev)
         local persistence_enabled = PersistenceManager:isEnabled()
 
