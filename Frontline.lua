@@ -309,17 +309,27 @@ function Frontline.computeFrontline()
                     (x2 * x2 + y2 * y2) * (x1 - x3) +
                     (x3 * x3 + y3 * y3) * (x2 - x1)) / d
 
-        local circumcenter = {x = ux, y = uy}
-        local edge12 = distance2D(triangle[1], triangle[2])
-        local edge23 = distance2D(triangle[2], triangle[3])
-        local edge31 = distance2D(triangle[3], triangle[1])
-        local max_edge = math.max(edge12, edge23, edge31)
+        return {x = ux, y = uy}
+    end
 
-        if max_edge > 0 and distance2D(circumcenter, centroid) > max_edge * 4 then
-            return centroid
+    -- Returns the circumcenter of a triangle, clamped so it stays within
+    -- max_radius of the triangle centroid. Used to prevent far-circumcenter
+    -- artifacts from obtuse triangles while still drawing a frontline segment.
+    local function computeClampedCircumcenter(triangle, max_radius)
+        local centroid = {
+            x = (triangle[1].x + triangle[2].x + triangle[3].x) / 3,
+            y = (triangle[1].y + triangle[2].y + triangle[3].y) / 3
+        }
+        local cc = computeCircumcenter(triangle)
+        local dist = distance2D(cc, centroid)
+        if dist > max_radius then
+            local scale = max_radius / dist
+            return {
+                x = centroid.x + (cc.x - centroid.x) * scale,
+                y = centroid.y + (cc.y - centroid.y) * scale
+            }
         end
-
-        return circumcenter
+        return cc
     end
 
     local function addTriangleToEdgeMap(edge_triangle_map, edge, triangle_index)
@@ -438,8 +448,15 @@ function Frontline.computeFrontline()
     local edge_triangle_map = {}
     local frontline_bounds = computeFrontlineBounds(data_points)
 
+    -- Clamp radius: circumcenters further than this from their triangle centroid
+    -- are pulled back in. Sized to the data extent so isolated-zone maps don't
+    -- produce runaway rays while still letting the frontline span the whole map.
+    local dx = frontline_bounds.max_x - frontline_bounds.min_x
+    local dy = frontline_bounds.max_y - frontline_bounds.min_y
+    local clamp_radius = math.max(dx, dy) * 0.75
+
     for triangle_index, triangle in ipairs(delaunay_triangles) do
-        triangle_circumcenters[triangle_index] = computeCircumcenter(triangle)
+        triangle_circumcenters[triangle_index] = computeClampedCircumcenter(triangle, clamp_radius)
 
         local edges = triangleEdges(triangle)
         for _, edge in ipairs(edges) do
@@ -453,13 +470,43 @@ function Frontline.computeFrontline()
         local coalition1 = getPointCoalition(point1)
         local coalition2 = getPointCoalition(point2)
 
-        if coalition1 and coalition2 and coalition1 ~= coalition2 then
-            if #rec.triangles == 2 then
-                local center1 = triangle_circumcenters[rec.triangles[1]]
-                local center2 = triangle_circumcenters[rec.triangles[2]]
+        if not (coalition1 and coalition2 and coalition1 ~= coalition2) then
+            goto continue
+        end
 
-                if center1 and center2 and not samePoint(center1, center2) then
-                    local clipped1, clipped2 = clipSegmentToBounds(center1, center2, frontline_bounds)
+        if #rec.triangles == 2 then
+            local center1 = triangle_circumcenters[rec.triangles[1]]
+            local center2 = triangle_circumcenters[rec.triangles[2]]
+
+            if center1 and center2 and not samePoint(center1, center2) then
+                local clipped1, clipped2 = clipSegmentToBounds(center1, center2, frontline_bounds)
+                if clipped1 and clipped2 and not samePoint(clipped1, clipped2) then
+                    table.insert(frontline_segments, {clipped1, clipped2})
+                    table.insert(frontline_points, clipped1)
+                    table.insert(frontline_points, clipped2)
+                end
+            end
+        elseif #rec.triangles == 1 then
+            -- Hull edge: one open Voronoi ray. Extend from the single circumcenter
+            -- outward along the perpendicular bisector of the edge to the bounds.
+            local center = triangle_circumcenters[rec.triangles[1]]
+            if center then
+                local mid = {
+                    x = (point1.x + point2.x) / 2,
+                    y = (point1.y + point2.y) / 2
+                }
+                -- Direction away from circumcenter along the perpendicular
+                local ex = center.x - mid.x
+                local ey = center.y - mid.y
+                local elen = math.sqrt(ex * ex + ey * ey)
+                if elen > 1e-6 then
+                    -- Ray endpoint: push far enough to always reach the clip bounds
+                    local ray_len = math.max(dx, dy) * 2
+                    local ray_end = {
+                        x = mid.x - (ex / elen) * ray_len,
+                        y = mid.y - (ey / elen) * ray_len
+                    }
+                    local clipped1, clipped2 = clipSegmentToBounds(center, ray_end, frontline_bounds)
                     if clipped1 and clipped2 and not samePoint(clipped1, clipped2) then
                         table.insert(frontline_segments, {clipped1, clipped2})
                         table.insert(frontline_points, clipped1)
@@ -468,6 +515,8 @@ function Frontline.computeFrontline()
                 end
             end
         end
+
+        ::continue::
     end
 
     return {
