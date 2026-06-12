@@ -474,39 +474,52 @@ function Frontline.computeFrontline()
             goto continue
         end
 
+        -- The dual Delaunay edge midpoint is the real contact point between the
+        -- two opposing zones. A valid frontline segment hugs this point; segments
+        -- that wander far from it are artifacts of skinny/obtuse triangles around
+        -- isolated or coastal zones, so they get rejected below.
+        local edge_mid = {
+            x = (point1.x + point2.x) / 2,
+            y = (point1.y + point2.y) / 2
+        }
+        local mixed_edge_len = math.max(distance2D(point1, point2), 1)
+
         if #rec.triangles == 2 then
             local center1 = triangle_circumcenters[rec.triangles[1]]
             local center2 = triangle_circumcenters[rec.triangles[2]]
 
             if center1 and center2 and not samePoint(center1, center2) then
-                local clipped1, clipped2 = clipSegmentToBounds(center1, center2, frontline_bounds)
-                if clipped1 and clipped2 and not samePoint(clipped1, clipped2) then
-                    table.insert(frontline_segments, {clipped1, clipped2})
-                    table.insert(frontline_points, clipped1)
-                    table.insert(frontline_points, clipped2)
+                -- Reject Voronoi edges far longer than their dual Delaunay edge:
+                -- these come from near-collinear triangles and shoot across empty
+                -- terrain. Keeps the frontline pinned to the real zone contact.
+                local center_len = distance2D(center1, center2)
+                if center_len <= mixed_edge_len * 6 then
+                    local clipped1, clipped2 = clipSegmentToBounds(center1, center2, frontline_bounds)
+                    if clipped1 and clipped2 and not samePoint(clipped1, clipped2) then
+                        table.insert(frontline_segments, {clipped1, clipped2})
+                        table.insert(frontline_points, clipped1)
+                        table.insert(frontline_points, clipped2)
+                    end
                 end
             end
         elseif #rec.triangles == 1 then
-            -- Hull edge: one open Voronoi ray. Extend from the single circumcenter
-            -- outward along the perpendicular bisector of the edge to the bounds.
+            -- Hull edge: one open Voronoi ray. A full ray to the map bounds runs
+            -- off into empty space (e.g. the sea, off a coastal isolated zone),
+            -- which is the main visible artifact. Instead draw a short stub from
+            -- the circumcenter to the edge midpoint, capped to the local zone
+            -- spacing, so the frontline ends near the actual contact point.
             local center = triangle_circumcenters[rec.triangles[1]]
             if center then
-                local mid = {
-                    x = (point1.x + point2.x) / 2,
-                    y = (point1.y + point2.y) / 2
-                }
-                -- Direction away from circumcenter along the perpendicular
-                local ex = center.x - mid.x
-                local ey = center.y - mid.y
+                local ex = edge_mid.x - center.x
+                local ey = edge_mid.y - center.y
                 local elen = math.sqrt(ex * ex + ey * ey)
                 if elen > 1e-6 then
-                    -- Ray endpoint: push far enough to always reach the clip bounds
-                    local ray_len = math.max(dx, dy) * 2
-                    local ray_end = {
-                        x = mid.x - (ex / elen) * ray_len,
-                        y = mid.y - (ey / elen) * ray_len
+                    local stub_len = math.min(elen, mixed_edge_len)
+                    local stub_end = {
+                        x = center.x + (ex / elen) * stub_len,
+                        y = center.y + (ey / elen) * stub_len
                     }
-                    local clipped1, clipped2 = clipSegmentToBounds(center, ray_end, frontline_bounds)
+                    local clipped1, clipped2 = clipSegmentToBounds(center, stub_end, frontline_bounds)
                     if clipped1 and clipped2 and not samePoint(clipped1, clipped2) then
                         table.insert(frontline_segments, {clipped1, clipped2})
                         table.insert(frontline_points, clipped1)
