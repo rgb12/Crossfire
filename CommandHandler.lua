@@ -238,13 +238,13 @@ do
                 end
             end
 
-            -- Co-op Operations Menu
-            local coop_submenu = missionCommands.addSubMenuForGroup(group_id, "CO-OP Operations", missions_submenu)
+            -- Joint Operations Menu
+            local joint_op_submenu = missionCommands.addSubMenuForGroup(group_id, "Joint Operations", missions_submenu)
 
-            local join_coop_menu = missionCommands.addSubMenuForGroup(group_id, "Join CO-OP", coop_submenu)
+            local join_joint_op_menu = missionCommands.addSubMenuForGroup(group_id, "Join Joint Operation", joint_op_submenu)
             
             for i1 = 1, 9 do
-                local digit1 = missionCommands.addSubMenuForGroup(group_id, i1 .. ' _ _', join_coop_menu)
+                local digit1 = missionCommands.addSubMenuForGroup(group_id, i1 .. ' _ _', join_joint_op_menu)
                 for _, i2 in ipairs(digit_order) do
                     local digit2 = missionCommands.addSubMenuForGroup(group_id, i1 .. i2 .. ' _', digit1)
                     for _, i3 in ipairs(digit_order) do
@@ -253,24 +253,24 @@ do
                             function(code)
                                 local live_unit = getCurrentPlayerUnit()
                                 if live_unit and live_unit:getCoalition() == operation_manager.side then
-                                    operation_manager:joinCoopOperation(live_unit, code)
+                                    operation_manager:joinJointOperation(live_unit, code)
                                 end
                             end, join_code)
                     end
                 end
             end
 
-            missionCommands.addCommandForGroup(group_id, "Leave CO-OP", coop_submenu, function()
+            missionCommands.addCommandForGroup(group_id, "Leave Joint Operation", joint_op_submenu, function()
                 local live_unit = getCurrentPlayerUnit()
                 if live_unit then
-                    operation_manager:leaveCoopOperation(live_unit)
+                    operation_manager:leaveJointOperation(live_unit)
                 end
             end)
 
-            missionCommands.addCommandForGroup(group_id, "CO-OP Status", coop_submenu, function()
+            missionCommands.addCommandForGroup(group_id, "Joint Operation Status", joint_op_submenu, function()
                 local live_unit = getCurrentPlayerUnit()
                 if live_unit then
-                    operation_manager:showCoopOperationStatus(live_unit)
+                    operation_manager:showJointOperationStatus(live_unit)
                 end
             end)
         end

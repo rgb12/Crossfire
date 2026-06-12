@@ -177,8 +177,7 @@ Config = {
                 "Su-25T",
             }
         },
-        -- Co-op operation settings
-        coop_max_members = 8, -- maximum number of players (including leader) in a co-op operation
+        joint_op_max_members = 8, -- maximum number of players (including leader) in a joint operation
     },
     jupiter_enabled = true, -- enables/disables the Jupiter command system
     jupiter_password = "", -- password required before the -, example password = "12" then the command is 12-discover
@@ -270,8 +269,8 @@ Config = {
 
         naval_stike_xp_required = 8000,
 
-        -- Co-op reward bonuses
-        coop_xp_bonus = 0.25, -- (%) bonus to XP and tokens when playing co-op operations (multiplier applied to XP)
+        -- Joint operation reward bonuses
+        joint_op_xp_bonus = 0.25, -- (%) bonus to XP and tokens when playing joint operations (multiplier applied to XP)
 
         xp_required = {
             [AITaskTypes.JTAC]           = 0,
