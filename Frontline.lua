@@ -470,66 +470,83 @@ function Frontline.computeFrontline()
         local coalition1 = getPointCoalition(point1)
         local coalition2 = getPointCoalition(point2)
 
-        if not (coalition1 and coalition2 and coalition1 ~= coalition2) then
-            goto continue
-        end
-
-        -- The dual Delaunay edge midpoint is the real contact point between the
-        -- two opposing zones. A valid frontline segment hugs this point; segments
-        -- that wander far from it are artifacts of skinny/obtuse triangles around
-        -- isolated or coastal zones, so they get rejected below.
-        local edge_mid = {
-            x = (point1.x + point2.x) / 2,
-            y = (point1.y + point2.y) / 2
-        }
-        local mixed_edge_len = math.max(distance2D(point1, point2), 1)
-
-        if #rec.triangles == 2 then
-            local center1 = triangle_circumcenters[rec.triangles[1]]
-            local center2 = triangle_circumcenters[rec.triangles[2]]
-
-            if center1 and center2 and not samePoint(center1, center2) then
-                -- Reject Voronoi edges far longer than their dual Delaunay edge:
-                -- these come from near-collinear triangles and shoot across empty
-                -- terrain. Keeps the frontline pinned to the real zone contact.
-                local center_len = distance2D(center1, center2)
-                if center_len <= mixed_edge_len * 6 then
-                    local clipped1, clipped2 = clipSegmentToBounds(center1, center2, frontline_bounds)
-                    if clipped1 and clipped2 and not samePoint(clipped1, clipped2) then
-                        table.insert(frontline_segments, {clipped1, clipped2})
-                        table.insert(frontline_points, clipped1)
-                        table.insert(frontline_points, clipped2)
-                    end
-                end
-            end
-        elseif #rec.triangles == 1 then
-            -- Hull edge: one open Voronoi ray. A full ray to the map bounds runs
-            -- off into empty space (e.g. the sea, off a coastal isolated zone),
-            -- which is the main visible artifact. Instead draw a short stub from
-            -- the circumcenter to the edge midpoint, capped to the local zone
-            -- spacing, so the frontline ends near the actual contact point.
-            local center = triangle_circumcenters[rec.triangles[1]]
-            if center then
-                local ex = edge_mid.x - center.x
-                local ey = edge_mid.y - center.y
-                local elen = math.sqrt(ex * ex + ey * ey)
-                if elen > 1e-6 then
-                    local stub_len = math.min(elen, mixed_edge_len)
-                    local stub_end = {
-                        x = center.x + (ex / elen) * stub_len,
-                        y = center.y + (ey / elen) * stub_len
+        if (coalition1 and coalition2 and coalition1 ~= coalition2) then
+            -- The dual Delaunay edge midpoint is the real contact point between the
+            -- two opposing zones, and the Delaunay edge length sets the local zone
+            -- spacing. Every valid frontline segment straddles this midpoint and runs
+            -- perpendicular to the zone-to-zone line; anything else is a circumcenter
+            -- artifact from skinny/obtuse triangles around isolated or coastal zones.
+            local edge_mid = {
+                x = (point1.x + point2.x) / 2,
+                y = (point1.y + point2.y) / 2
+            }
+            local mixed_edge_len = math.max(distance2D(point1, point2), 1)
+    
+            -- Unit vector perpendicular to the opposing zone-to-zone line. The
+            -- frontline locally follows this direction (the perpendicular bisector).
+            local perp_x = -(point2.y - point1.y)
+            local perp_y =  (point2.x - point1.x)
+            local perp_len = math.sqrt(perp_x * perp_x + perp_y * perp_y)
+            if perp_len > 1e-6 then
+                perp_x = perp_x / perp_len
+                perp_y = perp_y / perp_len
+        
+                -- Clamp a circumcenter onto the contact bisector: project it onto the
+                -- perpendicular line through edge_mid and cap its distance from the
+                -- midpoint to the local zone spacing. This pins runaway circumcenters to
+                -- the real contact instead of letting them fling segments across the map,
+                -- while keeping interior segments connected (no length-ratio gaps).
+                local max_offset = mixed_edge_len
+                local function clampToBisector(center)
+                    local dxm = center.x - edge_mid.x
+                    local dym = center.y - edge_mid.y
+                    local t = dxm * perp_x + dym * perp_y
+                    if t > max_offset then t = max_offset
+                    elseif t < -max_offset then t = -max_offset end
+                    return {
+                        x = edge_mid.x + perp_x * t,
+                        y = edge_mid.y + perp_y * t
                     }
-                    local clipped1, clipped2 = clipSegmentToBounds(center, stub_end, frontline_bounds)
+                end
+        
+                if #rec.triangles == 2 then
+                    local center1 = triangle_circumcenters[rec.triangles[1]]
+                    local center2 = triangle_circumcenters[rec.triangles[2]]
+        
+                    if center1 and center2 then
+                        local c1 = clampToBisector(center1)
+                        local c2 = clampToBisector(center2)
+                        if not samePoint(c1, c2) then
+                            local clipped1, clipped2 = clipSegmentToBounds(c1, c2, frontline_bounds)
+                            if clipped1 and clipped2 and not samePoint(clipped1, clipped2) then
+                                table.insert(frontline_segments, {clipped1, clipped2})
+                                table.insert(frontline_points, clipped1)
+                                table.insert(frontline_points, clipped2)
+                            end
+                        end
+                    end
+                elseif #rec.triangles == 1 then
+                    -- Hull edge: only one open Voronoi ray, which previously shot off into
+                    -- empty terrain (the sea off a coastal zone) or stubbed inward in the
+                    -- wrong direction. Draw a short, symmetric perpendicular-bisector tick
+                    -- centered on the contact midpoint instead, so the frontline ends on
+                    -- the real zone contact and never points the wrong way.
+                    local tick = mixed_edge_len * 0.5
+                    local t1 = { x = edge_mid.x - perp_x * tick, y = edge_mid.y - perp_y * tick }
+                    local t2 = { x = edge_mid.x + perp_x * tick, y = edge_mid.y + perp_y * tick }
+                    local clipped1, clipped2 = clipSegmentToBounds(t1, t2, frontline_bounds)
                     if clipped1 and clipped2 and not samePoint(clipped1, clipped2) then
                         table.insert(frontline_segments, {clipped1, clipped2})
                         table.insert(frontline_points, clipped1)
                         table.insert(frontline_points, clipped2)
                     end
                 end
+                
             end
-        end
+            end
 
-        ::continue::
+
+
     end
 
     return {
