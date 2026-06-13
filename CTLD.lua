@@ -29,6 +29,7 @@ ctld.aircraft_limits = {
     {aircraft_type = "SA342M",     max_parts = 1,  max_troops = 4, weight_limit = 800},
     {aircraft_type = "SA342Mistral",max_parts = 1,  max_troops = 4, weight_limit = 800},
     {aircraft_type = "SA342Minigun",max_parts = 1,  max_troops = 4, weight_limit = 800},
+    {aircraft_type = "UH-60L",      max_parts = 2,  max_troops = 8, weight_limit = 2000},
 }
 
 ---@class Asset
