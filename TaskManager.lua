@@ -1428,9 +1428,16 @@ do
                 return false
             end
             local viable_ids ={}
+            local target_1_point
             for _,grp_name in ipairs(groups_to_attack) do
                 local grp = Group.getByName(grp_name)
                 if grp and grp:isExist() then
+                    if not target_1_point then
+                        local u = grp:getUnits()[1]
+                        if u and u:isExist() then
+                            target_1_point = u:getPoint()
+                        end
+                    end
                     table.insert(viable_ids,grp:getID())
                 end
             end
@@ -1453,6 +1460,14 @@ do
                 MissionLogger:error("CAS task failed: could not get group position.")
                 return false
             end
+
+            -- 2. Calculate the 75% distance Initial Point (IP)
+            local diff_x = target_1_point.x - startPos.x
+            local diff_z = target_1_point.z - startPos.z
+            local ip_pos = {
+                x = startPos.x + diff_x * 0.75,
+                y = startPos.z + diff_z * 0.75
+            }
 
             local tasks = {}
             for i, target_group_id in ipairs(viable_ids) do
@@ -1496,11 +1511,11 @@ do
                 alt_type = AI.Task.AltitudeType.RADIO
             })
 
-            -- Waypoint 2: CAS ATTACK (Fly to target zone and execute the attack)
+            -- WAYPOINT 2: Start attack at 75% of the way to the target, to not start directly above
             table.insert(missionTask.params.route.points, {
                 type = AI.Task.WaypointType.TURNING_POINT,
-                x = enroute_data.to_zone.zone.point.x,
-                y = enroute_data.to_zone.zone.point.z,
+                x = ip_pos.x,
+                y = ip_pos.y,
                 speed = 200, -- m/s (approx 400 kts)
                 action = AI.Task.TurnMethod.FLY_OVER_POINT,
                 alt = 4000, -- 13k ft
