@@ -7,6 +7,30 @@
 ---@field picture table
 EWRS = {}
 do
+    ---@class EWRSSavedSettings
+    ---@field enabled boolean whether the player had EWRS reports enabled
+    ---@field view_radius number last chosen detection radius in meters
+
+    ---@type table<string, EWRSSavedSettings>
+    EWRS.saved_settings = {}
+
+    --- Store a player's EWRS preference so it can be persisted and re-applied.
+    ---@param unit Unit
+    ---@param enabled boolean
+    ---@param view_radius number|nil
+    local function rememberSetting(unit, enabled, view_radius)
+        if not unit.getPlayerName then return end
+        local player_name = unit:getPlayerName()
+        if not player_name then return end
+
+        local setting = EWRS.saved_settings[player_name] or {}
+        setting.enabled = enabled
+        if view_radius then
+            setting.view_radius = view_radius
+        end
+        EWRS.saved_settings[player_name] = setting
+    end
+
     ---@param side coalition.side
     function EWRS:new(side)
         local obj = {}
@@ -38,6 +62,7 @@ do
             unit = unit,
             view_radius = view_radius
         }
+        rememberSetting(unit, true, view_radius)
         local u_id = unit:getGroup():getID()
         MissionLogger:info(unit:getID())
         trigger.action.outTextForGroup(unit:getGroup():getID(),"EWRS enabled, detection radius set to "..mist.utils.metersToNM(view_radius).." NM",5)
@@ -49,6 +74,7 @@ do
     ---@param unit Unit
     function EWRS:removeUser(name,unit)
         self.users[name] = nil
+        rememberSetting(unit, false)
         local gr_id = unit:getGroup():getID()
         trigger.action.outTextForGroup(gr_id,"EWRS reports hidden.",5)
         trigger.action.outSoundForGroup(gr_id,"radio_txrx.ogg")
@@ -255,6 +281,24 @@ do
             self:removeUser(unit:getName(), unit)
         end)
 
+    end
+
+    ---@param unit Unit
+    function EWRS:applySavedSetting(unit)
+        if not unit.getPlayerName then return end
+        local player_name = unit:getPlayerName()
+        if not player_name then return end
+
+        local setting = EWRS.saved_settings[player_name]
+        if setting and setting.enabled then
+            self:addUser(unit:getName(), unit, setting.view_radius or mist.utils.NMToMeters(40))
+        end
+    end
+
+    ---@param data table<string, EWRSSavedSettings>|nil
+    function EWRS:restoreSavedSettings(data)
+        if type(data) ~= "table" then return end
+        EWRS.saved_settings = data
     end
 
 end

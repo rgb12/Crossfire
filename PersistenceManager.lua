@@ -931,12 +931,28 @@ do
         return true
     end
 
-function PersistenceManager:saveUserDataToFile()
+    local function constructUserData()
+        local export = {}
+
+        for player_name, user_data in pairs(ExperienceManager.user_data or {}) do
+            export[player_name] = export[player_name] or {}
+            export[player_name].experience_manager_data = user_data
+        end
+
+        for player_name, settings in pairs(EWRS.saved_settings or {}) do
+            export[player_name] = export[player_name] or {}
+            export[player_name].saved_settings = settings
+        end
+
+        return export
+    end
+
+    function PersistenceManager:saveUserDataToFile()
         if not PersistenceManager.enabled then return end
         if not PersistenceManager.user_data_file_path then return end
         if not JSON then return end
 
-    local file_content = cleanJSON(JSON:encode(ExperienceManager.user_data))
+        local file_content = cleanJSON(JSON:encode(constructUserData()))
 
         if file_content then
             local file = io.open(PersistenceManager.user_data_file_path, "w")
@@ -976,7 +992,21 @@ function PersistenceManager:saveUserDataToFile()
             file:close()
 
             if data then
-                ExperienceManager:restoreUserData(data)
+                local experience_data = {}
+                local ewrs_settings = {}
+                for player_name, entry in pairs(data) do
+                    if type(entry) == "table" then
+                        if entry.experience_manager_data then
+                            experience_data[player_name] = entry.experience_manager_data
+                        end
+                        if entry.saved_settings then
+                            ewrs_settings[player_name] = entry.saved_settings
+                        end
+                    end
+                end
+
+                ExperienceManager:restoreUserData(experience_data)
+                EWRS:restoreSavedSettings(ewrs_settings)
                 return true
             end
         end

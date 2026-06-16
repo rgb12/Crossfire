@@ -248,14 +248,16 @@ do
         if not Config.reward_system.enable then return end
         if not data then return end
         -- Merge loaded data. We overwrite existing keys.
+        local count = 0
         for playerName, userData in pairs(data) do
             ExperienceManager.user_data[playerName] = userData
             ExperienceManager.user_data[playerName].unclaimed_xp = 0
             ExperienceManager.user_data[playerName].unclaimed_tokens = 0
             -- ID will be updated when player joins (addUser)
             ExperienceManager.user_data[playerName].id = nil
+            count = count + 1
         end
-        MissionLogger:info("User data restored for " .. #data .. " users.")
+        MissionLogger:info("User data restored for " .. count .. " users.")
     end
 
 end

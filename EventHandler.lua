@@ -150,6 +150,7 @@ function ev:onEvent(event)
 
                     local ew = EWRS_coalition[unit_coalition]
                     ew:addRadioMenuForUser(unit)
+                    ew:applySavedSetting(unit)
                 end
             end
 
