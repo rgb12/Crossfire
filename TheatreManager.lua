@@ -671,19 +671,27 @@ do
             end
         end
 
-        -- [Era] In a pre-airlift era (WW2) no cargo aircraft is flown; the
-        -- resupply effect is applied INSTANTLY at the destination airbase via
-        -- simulateResupply (which performs the stock attribution and messaging
-        -- without an aircraft). The repeat-tasking cadence is preserved.
+
         if not EraSystem.isAirResupplyEraCapable() then
+            local allowed_stock_types = mist.utils.deepCopy(stock_types)
+
+            if EraSystem.getActiveEra() == Eras.WW2 then
+                allowed_stock_types = {
+                    StockTypes.AA_AIRCRAFT,
+                    StockTypes.AG_AIRCRAFT,
+                    StockTypes.AIR_GROUND_BOMBS,
+                    StockTypes.AIR_GROUND_ROCKETS
+                }
+            end
+
             local airbase_pool = (side == coalition.side.BLUE) and blue_airbases or red_airbases
             destination_airbase = target_airbase or (airbase_pool[1] and airbase_pool[math.random(#airbase_pool)])
             if destination_airbase and destination_airbase.side == side and destination_airbase.airbase_name then
-                UnitHandler.simulateResupply(nil, destination_airbase.airbase_name, side, stock_types)
+                UnitHandler.simulateResupply(nil, destination_airbase.airbase_name, side, {allowed_stock_types[math.random(1, #allowed_stock_types)]})
             end
             if repeat_tasking then
                 timer.scheduleFunction(function ()
-                    TheatreCommander.sendWarehouseResupply(side, true)
+                    TheatreCommander.sendWarehouseResupply(side, true, {allowed_stock_types[math.random(1, #allowed_stock_types)]})
                 end, nil, timer.getTime() + Config.std_resupply_time)
             end
             return
