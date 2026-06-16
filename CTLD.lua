@@ -457,10 +457,10 @@ function ctld.load(part, unit)
         ab = Airbase.getByName(airbase.airbase_name)
         if ab then
             local warehouse = ab:getWarehouse()
-                local moab_count = warehouse:getItemCount(WarehouseManager.Flags.GBU_43)
+                local moab_count = warehouse:getItemCount(Stocks.Equipment.GBU_43)
                 if moab_count and moab_count > 0 then
                     in_stock = true
-                    warehouse:removeItem(WarehouseManager.Flags.GBU_43, 1)
+                    warehouse:removeItem(Stocks.Equipment.GBU_43, 1)
                 end
         end
         if not in_stock then
@@ -1283,7 +1283,7 @@ function ctld.buildFARP(unit, center_point,linked_zone)
 
     -- timer.scheduleFunction(function()
     --     WarehouseManager:clearWarehouse(farp_name)
-    --     WarehouseManager:attributeAirbaseStock(farp_name, unit:getCoalition(), {WarehouseManager.StockTypes.FARP})
+    --     WarehouseManager:attributeAirbaseStock(farp_name, unit:getCoalition(), {StockTypes.FARP})
     -- end, {}, timer.getTime() + 1)
 
     ---@type ConstructedFARP

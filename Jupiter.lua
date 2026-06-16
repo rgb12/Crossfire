@@ -111,8 +111,8 @@ function Jupiter:onEvent(event)
             end
         
         elseif command == "-restock" then
-            WarehouseManager:handleIncomingSupplies(coalition.side.BLUE, {WarehouseManager.StockTypes.INITIAL})
-            WarehouseManager:handleIncomingSupplies(coalition.side.RED, {WarehouseManager.StockTypes.INITIAL})
+            WarehouseManager:handleIncomingSupplies(coalition.side.BLUE, {StockTypes.INITIAL})
+            WarehouseManager:handleIncomingSupplies(coalition.side.RED, {StockTypes.INITIAL})
             cmd_executed = true
         elseif command == "-setlevel" then
             local level = tonumber(param1) or 1
@@ -430,7 +430,7 @@ function Jupiter:onEvent(event)
             cmd_executed = true
         elseif command == "-resupply" then
             if param1 == "help" then
-                trigger.action.outText(mist.utils.tableShow(WarehouseManager.StockTypes),25)
+                trigger.action.outText(mist.utils.tableShow(StockTypes),25)
                 cmd_executed = true
             else
                 local stocktype_num = tonumber(param1) or 1

@@ -1,342 +1,15 @@
 ---@class WarehouseManager
 WarehouseManager = {}
 do
-    
-    ---@enum WarehouseManager.Flags
-    WarehouseManager.Flags = {
-        
-    AIM_9L = "weapons.missiles.AIM-9L",
-    AIM_9M = "weapons.missiles.AIM_9",
-    AIM_9X = "weapons.missiles.AIM_9X",
-    AIM_120C = "weapons.missiles.AIM_120C",
-    AIM_120B = "weapons.missiles.AIM_120",
-    AIM_7P = "weapons.missiles.AIM-7P",
-    AIM_7F = "weapons.missiles.AIM-7F",
-    AIM_7M = "weapons.missiles.AIM_7",
-    AIM_7MH = "weapons.missiles.AIM-7MH",
-    AIM_54C_MK60 = "weapons.missiles.AIM_54C_Mk60",
-    AIM_54C_MK47 = "weapons.missiles.AIM_54C_Mk47",
-    MISTRAL = "weapons.missiles.Mistral",
-    MICA_RF = "weapons.missiles.MICA_R",
-    MICA_IR = "weapons.missiles.MICA_T",
-
-    AGM_65D = "weapons.missiles.AGM_65D",
-    AGM_65E = "weapons.missiles.AGM_65E",
-    AGM_65F = "weapons.missiles.AGM_65F",
-    AGM_88_HARM = "weapons.missiles.AGM_88",
-    AGM_154C_JSOW = "weapons.missiles.AGM_154",
-    AGM_154A_JSOW = "weapons.missiles.AGM_154A",
-    AGM_84H_SLAM_ER = "weapons.missiles.AGM_84H",
-    AGM_84D_HARPOON = "weapons.missiles.AGM_84D",
-    ADM_141_TALD = "weapons.missiles.ADM_141A",
-    AGM_114L = "weapons.missiles.AGM_114",
-    AGM_114K = "weapons.missiles.AGM_114K",
-
-    CBU_87 = "weapons.bombs.CBU_87",
-    CBU_97 = "weapons.bombs.CBU_97",
-    CBU_99 = "weapons.bombs.CBU_99",
-    CBU_105 = "weapons.bombs.CBU_105",
-    CBU_103 = "weapons.bombs.CBU_103",
-    
-    GBU_12 = "weapons.bombs.GBU_12",
-    GBU_16 = "weapons.bombs.GBU_16",
-    GBU_24 = "weapons.bombs.GBU_24",
-    GBU_10 = "weapons.bombs.GBU_10",
-    GBU_38 = "weapons.bombs.GBU_38", --JDAM 500 lbs
-    GBU_32_V_2B = "weapons.bombs.GBU_32_V_2B",
-    GBU_31_V_3B = "weapons.bombs.GBU_31_V_3B",
-    GBU_54_V_1B = "weapons.bombs.GBU_54_V_1B",
-    GBU_43 = "weapons.bombs.GBU_43",
-    
-    MK_82 = "weapons.bombs.Mk_82",
-    MK_83 = "weapons.bombs.Mk_83",
-    MK_84 = "weapons.bombs.Mk_84",
-    MK82_SNAKEEYE = "weapons.bombs.MK_82SNAKEYE",
-    MK_20_ROCKEYE = "weapons.bombs.ROCKEYE",
-    
-    LAU_88 = "weapons.adapters.lau-88",
-    AAQ_28_LITENING = "weapons.containers.AAQ-28_LITENING",
-    AN_AAQ_33_SNIPER = "weapons.containers.AN_AAQ_33",
-    AAQ_14_LANTIRN = "weapons.containers.F-15E_AAQ-14_LANTIRN",
-    AAQ_13_LANTIRN = "weapons.containers.F-15E_AAQ-13_LANTIRN",
-    F14_LANTIRN = "weapons.containers.{F14-LANTIRN-TP}",
-    AN_APG_78_APACHE_RADAR = "weapons.containers.ah-64d_radar",
-    AN_ASQ_228_ATFLIR = "weapons.containers.AN_ASQ_228",
-
-    HTS_POD = "weapons.containers.16c_hts_pod",
-    ALQ_184 = "weapons.containers.ALQ-184",
-    
-    HYDRA_70_M282_MPP_APKWS = "weapons.missiles.AGR_20_M282",
-    HYDRA_70_MK5_HEAT = "weapons.nurs.HYDRA_70_MK5",
-    HYDRA_70_M151_HE = "weapons.nurs.HYDRA_70_M151",
-    HYDRA_70_M257 = "weapons.nurs.HYDRA_70_M257",
-    HYDRA_70_M274 = "weapons.nurs.HYDRA_70_M274",
-    HYDRA_70_MK1 = "weapons.nurs.HYDRA_70_MK1",
-    ZUNI_127 = "weapons.nurs.Zuni_127",
-    SNEB_254_SM_RED = "weapons.nurs.SNEB_TYPE254_H1_RED", -- smoke red
-    SNEB_254_SM_GREEN = "weapons.nurs.SNEB_TYPE254_H1_GREEN", -- smoke green
-    SNEB_251_HE = "weapons.nurs.SNEB_TYPE251_H1",
-    SNEB_253_HEAT = "weapons.nurs.SNEB_TYPE253_H1",
-    SNEB_259_IL = "weapons.nurs.SNEB_TYPE259E_H1", -- Illuminating
-
-
-    SUPER_530D = "weapons.missiles.Matra Super 530D",
-    MAGIC_II = "weapons.missiles.MMagicII",
-    ECLAIR_M_60 = "weapons.containers.{EclairM_60}",
-    ECLAIR_M_51 = "weapons.containers.{EclairM_51}",
-    HOT3 = "weapons.missiles.HOT3_MBDA",
-    
-    GIAT_M621_SAPHEI = 'weapons.gunmounts.{GIAT_M621_SAPHEI}',
-    GIAT_M621_APHE = 'weapons.gunmounts.{GIAT_M621_APHE}',
-    GIAT_M621_HEAP = 'weapons.gunmounts.{GIAT_M621_HEAP}',
-    GIAT_M621_HE = 'weapons.gunmounts.{GIAT_M621_HE}',
-    GIAT_M621_AP = 'weapons.gunmounts.{GIAT_M621_AP}',
-    GIAT_M261 = 'weapons.gunmounts.GIAT_M261',
-    FN_HMP400_200 = 'weapons.gunmounts.{FN_HMP400_200}',
-    FN_HMP400 = 'weapons.gunmounts.{FN_HMP400}',
-    HMP400 = 'weapons.gunmounts.HMP400',
-
-    IR_DEFLECTOR = "weapons.containers.IRDeflector",
-    SAND_FILTER = "weapons.containers.FAS",
-
-    VIKHR_M = "weapons.missiles.Vikhr_M",
-    KAB_500KR = "weapons.bombs.KAB-500Kr",
-    R27ER = "weapons.missiles.P_27PE",
-    R27ET = "weapons.missiles.P_27TE",
-    R73_AA_11_ARCHER = "weapons.missiles.P_73",
-    S_8O0FP2_MPP = "weapons.nurs.C_8OFP2",
-    L081_FANTASMAGORIA = "weapons.containers.Fantasm",
-    R60M = "weapons.missiles.P_60",
-    KH_29T = "weapons.missiles.X_29T",
-    KH25ML = "weapons.missiles.X_25ML",
-    KH58U = "weapons.missiles.X_58",
-    L005_SORBSIYA_ECM_POD_LEFT = "weapons.containers.SORBCIJA_L",
-    L005_SORBSIYA_ECM_POD_RIGHT = "weapons.containers.SORBCIJA_R",
-
-    BETAB_500 = "weapons.bombs.BetAB_500",
-    BETAB_500SHP = "weapons.bombs.BetAB_500ShP",
-    S13_OF_122MM = "weapons.nurs.C_13",
-    S24B_240MM_UnGd_Rkt = "weapons.nurs.C_24",
-    S25_OFM_340MM = "weapons.nurs.C_25",
-    S25_O_420MM_FRAG = "weapons.nurs.S-25-O",
-    S5_OFM_340MM = "weapons.nurs.C_5",
-    S8_KOM_80MM_HEAT = "weapons.nurs.C_8",
-    S8_TsM_SM_ORANGE = "weapons.nurs.C_8CM",
-    S8_TsM_SM_BLUE = "weapons.nurs.C_8CM_BU",
-    S8_TsM_SM_GREEN = "weapons.nurs.C_8CM_GN",
-    S8_TsM_SM_RED = "weapons.nurs.C_8CM_RD",
-    S8_TsM_SM_VIOLET = "weapons.nurs.C_8CM_VT",
-    S8_TsM_SM_WHITE = "weapons.nurs.C_8CM_WH",
-    S8_TsM_SM_YELLOW = "weapons.nurs.C_8CM_YE",
-    S8_OM_FP2_MPP = "weapons.nurs.C_8OM",
-    S5_KP_57MM_HEAT_FRAG = "weapons.nurs.S_5KP",
-    S5_M_HE = "weapons.nurs.S_5M",
-    S24A = "weapons.nurs.S-24A",
-    S24B = "weapons.nurs.S-24B",
-    FAB_100 = "weapons.bombs.FAB_100",
-    FAB_100M = "weapons.bombs.FAB_100M",
-    FAB_100SV = "weapons.bombs.FAB_100SV",
-    FAB_250 = "weapons.bombs.FAB_250",
-    FAB_250_M62 = "weapons.bombs.FAB-250-M62",
-    FAB_500 = "weapons.bombs.FAB_500",
-    KH25MP_PRGS1VP = "weapons.missiles.Kh25MP_PRGS1VP",
-    MERCURY_LLTV_POD = "weapons.containers.KINGAL",
-    MPS_410 = "weapons.containers.MPS-410",
-    RBK_250 = "weapons.bombs.RBK_250",
-    RBK_250_275_AO_1SCH = "weapons.bombs.RBK_250_275_AO_1SCH",
-    RBK_500AO = "weapons.bombs.RBK_500AO",
-    RBK_500U = "weapons.bombs.RBK_500U",
-    S25L = "weapons.missiles.S_25L",
-    SAB_100MN = "weapons.bombs.SAB_100MN",
-    SAB_250_200 = "weapons.bombs.SAB_250_200",
-    X_25MP = "weapons.missiles.X_25MP",
-    X_29L = "weapons.missiles.X_29L",
-    KAB_500KR_NEW = "weapons.bombs.KAB_500Kr", -- (Note: 'KAB-500Kr' vs 'KAB_500Kr')
-    R_60 = "weapons.missiles.R-60",
-    RBK_500U_OAB_2_5RT = "weapons.bombs.RBK_500U_OAB_2_5RT",
-    }
-
-    ---@enum WarehouseManager.FuelTanks
-    WarehouseManager.FuelTanks = {
-        FPU_8A_330_GAL = "weapons.droptanks.FPU_8A",         -- FPU-8A fuel tank 330 gal for f18
-        RPL_552_1300L = "weapons.droptanks.M2KC_RPL_522",         -- RPL 522 1300L for M2000C
-        F15E_610_GAL = "weapons.droptanks.F-15E_Drop_Tank",
-        F14_DROPTANK = "weapons.droptanks.HB_F14_EXT_DROPTANK"
-        -- Fuel tanks are not currently being used in the warehouse system due to their nature and complicated way of adding them here
-    }
-    ---@enum WarehouseManager.AircraftFlags
-    WarehouseManager.AircraftFlags = {
-        SU25T = "Su-25T",
-        E3A = "E-3A",
-        MQ9_REAPER = "MQ-9 Reaper",
-        F15E_SE = "F-15ESE",
-        E2C_HAWKEYE = "E-2C",
-        RQ_1A_PREDATOR = "RQ-1A Predator",
-        KC130 = "KC130",
-        F16C_BL50 = "F-16C_50",
-        M2000C = "M-2000C",
-        FA18C_HORNET = "FA-18C_hornet",
-        F_14A_135_GR = "F-14A-135-GR",
-        F14B = "F-14B",
-        A10C_TANK_KILLER_II = "A-10C_2",
-        F15C = "F-15C",
-        C17A = "C-17A",
-        MiG23MLD = "MiG-23MLD",
-        SU30 = "Su-30",
-        SU27 = "Su-27",
-        SU24M = "Su-24M",
-        SU24MR = "Su-24MR",
-        SU34 = "Su-34",
-        SU33 = "Su-33",
-        MI8MT = "Mi-8MT",
-        TU_160 = "Tu-160",
-        TU_142 = "Tu-142",
-        MIG19P = "MiG-19P",
-        MIG25PD = "MiG-25PD",
-        MIG25RBT = "MiG-25RBT",
-        MIG29A = "MiG-29A",
-        MIG29G = "MiG-29G",
-        MIG31 = "MiG-31",
-        MIG21BIS = "MiG-21Bis",
-        MIG29S = "MiG-29S",
-        MIG29_FULCRUM = "MiG-29 Fulcrum",
-        TU_95MS = "Tu-95MS",
-        TU_22M3 = "Tu-22M3",
-        A50 = "A-50",
-        AH64D_BLKII = "AH-64D_BLK_II",
-        AH1W = "AH-1W",
-        B1B_LANCER = "B-1B",
-        C130J_30 = "C-130J-30",
-        IL78M = "IL-78M",
-        IL76MD = "IL-76MD",
-        KC135_MPRS = "KC135MPRS",
-        MIRAGE_2000_5 = "Mirage 2000-5",
-        S3_B_TANKER = "S-3B Tanker",
-        SA342Minigun = "SA342Minigun",
-        SA342L = "SA342L",
-        SA342Mistral = "SA342Mistral",
-        SA342M = "SA342M",
-        UH_1H = "UH-1H",
-        OH_58D = "OH-58D",
-        L39ZA = "L-39ZA",
-        I16 = "I-16",
-        SU17M4 = "Su-17M4",
-        MIRAGE_F1AD = "Mirage-F1AD",
-        FA18A = "F/A-18A",
-        F4E_45MC = "F-4E-45MC",
-        FA18C = "F/A-18C",
-        QF4E = "QF-4E",
-        MIRAGE_F1CR = "Mirage-F1CR",
-        AV8BNA = "AV8BNA",
-        MI24V = "Mi-24V",
-        F15E = "F-15E",
-        B52H = "B-52H",
-        F117A = "F-117A",
-        SH60B = "SH-60B",
-        P47D_30BL1 = "P-47D-30bl1",
-        TORNADO_IDS = "Tornado IDS",
-        A20G = "A-20G",
-        SH3W = "SH-3W",
-        KC135 = "KC-135",
-        C101EB = "C-101EB",
-        TORNADO_GR4 = "Tornado GR4",
-        MIRAGE_F1BD = "Mirage-F1BD",
-        MIRAGE_F1M_EE = "Mirage-F1M-EE",
-        CHRISTEN_EAGLE_II = "Christen Eagle II",
-        OH58D_R = "OH58D",
-        HAWK = "Hawk",
-        MIRAGE_F1EQ = "Mirage-F1EQ",
-        F16A = "F-16A",
-        A10A = "A-10A",
-        FW190D9 = "FW-190D9",
-        MIRAGE_F1M_CE = "Mirage-F1M-CE",
-        F5E = "F-5E",
-        KA27 = "Ka-27",
-        MIRAGE_F1AZ = "Mirage-F1AZ",
-        S3B = "S-3B",
-        H6J = "H-6J",
-        UH60A = "UH-60A",
-        MIRAGE_F1C = "Mirage-F1C",
-        MIRAGE_F1CE = "Mirage-F1CE",
-        MIG15BIS_FC = "MiG-15bis_FC",
-        MB339APAN = "MB-339APAN",
-        AN26B = "An-26B",
-        MI28N = "Mi-28N",
-        F14A_EARLY = "F-14A-135-GR-Early",
-        MIRAGE_F1DDA = "Mirage-F1DDA",
-        F5E_3_FC = "F-5E-3_FC",
-        MIRAGE_F1BE = "Mirage-F1BE",
-        SU25 = "Su-25",
-        KA50_III = "Ka-50_3",
-        MB339A = "MB-339A",
-        A6E = "A6E",
-        F86F_FC = "F-86F_FC",
-        MIRAGE_F1BQ = "Mirage-F1BQ",
-        FALCON_GYRO = "Falcon_Gyrocopter",
-        CH47D = "CH-47D",
-        AH64A = "AH-64A",
-        MIRAGE_F1B = "Mirage-F1B",
-        MIRAGE_F1CT = "Mirage-F1CT",
-        MIRAGE_F1EDA = "Mirage-F1EDA",
-        MIRAGE_F1ED = "Mirage-F1ED",
-        WINGLOONG_I = "WingLoong-I",
-        MIRAGE_F1CZ = "Mirage-F1CZ",
-        JF17 = "JF-17",
-        F5E_3 = "F-5E-3",
-        L39C = "L-39C",
-        MIRAGE_F1EH = "Mirage-F1EH",
-        MIRAGE_F1C_200 = "Mirage-F1C-200",
-        AN30M = "An-30M",
-        YAK52 = "Yak-52",
-        SU25TM = "Su-25TM",
-        MOSQUITO = "MosquitoFBMkVI",
-        CH53E = "CH-53E",
-        MIRAGE_F1CJ = "Mirage-F1CJ",
-        FW190A8 = "FW-190A8",
-        MIRAGE_F1CK = "Mirage-F1CK",
-        P47D_30 = "P-47D-30",
-        MIG27K = "MiG-27K",
-        A10C = "A-10C",
-        KA50 = "Ka-50",
-        MIG15BIS = "MiG-15bis",
-        P51D = "P-51D",
-        F4U1D = "F4U-1D",
-        MIRAGE_F1CH = "Mirage-F1CH",
-        F16C_BL52D = "F-16C bl.52d",
-        F4U1D_CW = "F4U-1D_CW",
-        MIRAGE_F1CG = "Mirage-F1CG",
-        C130 = "C-130",
-        F86F_SABRE = "F-86F Sabre",
-        J11A = "J-11A",
-        AJS37 = "AJS37",
-        F14A = "F-14A",
-        SPITFIRE_LF = "SpitfireLFMkIX",
-        KJ2000 = "KJ-2000",
-        CH47F_BL1 = "CH-47Fbl1",
-        MI24P = "Mi-24P",
-        YAK40 = "Yak-40",
-        P51D_30_NA = "P-51D-30-NA",
-        P47D_40 = "P-47D-40",
-        MIRAGE_F1EE = "Mirage-F1EE",
-        SPITFIRE_CW = "SpitfireLFMkIXCW",
-        F4E = "F-4E",
-        BF109K4 = "Bf-109K-4",
-        C101CC = "C-101CC",
-        TF51D = "TF-51D",
-        MI26 = "Mi-26",
-        AH64D = "AH-64D",
-        MIRAGE_F1JA = "Mirage-F1JA",
-    }
     -- Helpers to validate warehouse item support
     function WarehouseManager:isSupportedWeapon(item_name)
         if not item_name then return false end
-        return utils.tableContains(WarehouseManager.Flags, item_name)
-            or utils.tableContains(WarehouseManager.FuelTanks, item_name)
+        return utils.tableContains(Stocks.Equipment, item_name)
     end
 
     function WarehouseManager:isSupportedAircraft(item_name)
         if not item_name then return false end
-        return utils.tableContains(WarehouseManager.AircraftFlags, item_name)
+        return utils.tableContains(Stocks.Aircraft, item_name)
     end
    
 
@@ -351,10 +24,15 @@ do
             or  GroupData.COMMON_ASSETS.RED
         if not side_assets then return nil end
 
-        -- AITaskTypes values are uppercase (e.g. "CAS"); COMMON_ASSETS keys are lowercase (e.g. "cas")
-        local template_name = side_assets[string.lower(ai_task_type)]
-        if not template_name then return nil end
+        -- AITaskTypes values are uppercase (e.g. "CAS") COMMON_ASSETS keys are lowercase (e.g. "cas")
+        local template_task_type = side_assets[string.lower(ai_task_type)]
+        if not template_task_type then return nil end
 
+        -- Resolve to the per-era template (e.g. "BLUE WW2 CAS") when present so
+        -- the stock check reads the SAME aircraft type that TaskManager spawns.
+        local template_name = EraSystem.resolveTaskTemplateName(template_task_type)
+
+        if not template_name then return nil end
         local group = Group.getByName(template_name)
         if not group then return nil end
 
@@ -363,655 +41,639 @@ do
 
         return units[1]:getTypeName()
     end
+    --[[ ========================================================================
+        AIPayloads -- the Lua mirror of what each AI flight actually carries.
+        ------------------------------------------------------------------------
+        For every AI air template you place in the mission editor, declare here
+        the weapons that template is loaded with (the SAME stores you set on the
+        pylons in the ME). Before an AI task launches, checkIfAIPayloadInStock()
+        verifies the airbase warehouse holds enough of each declared store; if
+        not, the task is skipped. This keeps AI flights from spawning "for free"
+        once a warehouse runs dry, and lets warehouse stock actually limit sortie
+        generation.
+
+        ERA SUPPORT
+        -----------
+        The table is keyed [coalition][AITaskTypes]. To give a DIFFERENT loadout
+        to a per-era template (e.g. the "BLUE WW2 CAS" P-47 flight carries bombs
+        and rockets, not Mavericks + Litening), add an optional era sub-table:
+
+            [coalition.side.BLUE] = {
+                [AITaskTypes.CAS] = { ...modern default... },
+                [Eras.WW2] = {                      -- per-era overrides
+                    [AITaskTypes.CAS] = {
+                        [Stocks.Equipment.MK_82]    = 2 *2,
+                        [Stocks.Equipment.HVAR ...] = 8 *2,
+                    },
+                },
+            }
+
+        Resolution (getAIPayload below): for the ACTIVE era, an
+        [coalition][Eras.X][task] entry is used when present; otherwise it falls
+        back to the plain [coalition][task] entry. This mirrors how AI templates
+        resolve "BLUE WW2 CAS" -> "BLUE CAS" via EraSystem.resolveTaskTemplateName,
+        so the stock GATE and the spawned FLIGHT always agree.
+
+        The Eras.* keys are tables, so they never collide with AITaskTypes string
+        keys ("CAS", "CAP", ...) sitting alongside them in the same table.
+       ======================================================================== ]]
     WarehouseManager.AIPayloads = {
         [coalition.side.BLUE] = {
-            [AITaskTypes.CAS] = {
-                [WarehouseManager.Flags.LAU_88] = 2 *2, -- accounts for both aircrafts
-                [WarehouseManager.Flags.AGM_65D] = 4 *2,
-                [WarehouseManager.Flags.AAQ_28_LITENING] = 1 *2,
-                [WarehouseManager.Flags.AIM_9M] = 1 *2,
-                [WarehouseManager.Flags.HYDRA_70_M282_MPP_APKWS] = 7 *2
+            [Eras.MODERN] = {
+                [AITaskTypes.CAS] = {
+                    [Stocks.Equipment.LAU_88] = 2 *2, -- accounts for both aircrafts
+                    [Stocks.Equipment.AGM_65D] = 4 *2,
+                    [Stocks.Equipment.AAQ_28_LITENING] = 1 *2,
+                    [Stocks.Equipment.AIM_9M] = 1 *2,
+                    [Stocks.Equipment.HYDRA_70_M282_MPP_APKWS] = 7 *2
+                },
+                [AITaskTypes.CAP] = {
+                    [Stocks.Equipment.AIM_120C] = 4 *2,
+                    [Stocks.Equipment.AIM_9M] = 2 *2
+                },
+                [AITaskTypes.STRIKE] = {
+                    [Stocks.Equipment.AIM_120B] = 2 *2,
+                    [Stocks.Equipment.AIM_9X] = 2 *2,
+                    [Stocks.Equipment.GBU_31_V_3B] = 2 *2,
+                    [Stocks.Equipment.AAQ_28_LITENING] = 1 *2,
+                },
+                [AITaskTypes.SEAD] = {
+                    [Stocks.Equipment.AIM_120B] = 2 *2,
+                    [Stocks.Equipment.AIM_9X] = 2 *2,
+                    [Stocks.Equipment.AGM_88_HARM] = 2 *2,
+                    [Stocks.Equipment.HTS_POD] = 1 *2,
+                    [Stocks.Equipment.ALQ_184] = 1 *2,
+                },
+                [AITaskTypes.RECON] = {
+                    [Stocks.Equipment.AAQ_28_LITENING] = 1,
+                    [Stocks.Equipment.AIM_120C] = 2,
+                    [Stocks.Equipment.AIM_9X] = 2,
+                },
+                [AITaskTypes.AWACS] = {},
+                [AITaskTypes.JTAC] = {},
             },
-            [AITaskTypes.CAP] = {
-                [WarehouseManager.Flags.AIM_120C] = 4 *2,
-                [WarehouseManager.Flags.AIM_9M] = 2 *2
+            [Eras.LATECOLDWAR] = {
+                [AITaskTypes.CAP] = {
+                    [Stocks.Equipment.AIM_9L] = 4 *2,
+                    [Stocks.Equipment.AIM_7F] = 4 *2,
+                },
+                [AITaskTypes.CAS] = {
+                    [Stocks.Equipment.AGM_65D] = 4 *2,
+                    [Stocks.Equipment.MK_82] = 4 *2,
+                },
+                [AITaskTypes.STRIKE] = {
+                    [Stocks.Equipment.AIM_9L] = 2 *2,
+                    [Stocks.Equipment.GBU_16] = 2 *2,
+                },
+                [AITaskTypes.SEAD] = {
+                    [Stocks.Equipment.AGM_88_HARM] = 2 *2,
+                    [Stocks.Equipment.AIM_9L] = 2 *2,
+                },
+                [AITaskTypes.RECON] = {
+                    [Stocks.Equipment.R_550] = 2
+                },
+                [AITaskTypes.AWACS] = {},
             },
-            [AITaskTypes.STRIKE] = {
-                [WarehouseManager.Flags.AIM_120B] = 2 *2,
-                [WarehouseManager.Flags.AIM_9X] = 2 *2,
-                [WarehouseManager.Flags.GBU_31_V_3B] = 2 *2,
-                [WarehouseManager.Flags.AAQ_28_LITENING] = 1 *2,
+            [Eras.WW2] = {
+                [AITaskTypes.CAS] = {
+                    [Stocks.Equipment.AN_M57] = 1 *2,
+                    [Stocks.Equipment.HVAR]  = 10 *2,
+                },
+                [AITaskTypes.CAP] = {},
+                [AITaskTypes.STRIKE] = {
+                    [Stocks.Equipment.AN_M65] = 1 *2,
+                },
+                [AITaskTypes.RECON] = {},
             },
-            [AITaskTypes.SEAD] = {
-                [WarehouseManager.Flags.AIM_120B] = 2 *2,
-                [WarehouseManager.Flags.AIM_9X] = 2 *2,
-                [WarehouseManager.Flags.AGM_88_HARM] = 2 *2,
-                [WarehouseManager.Flags.HTS_POD] = 1 *2,
-                [WarehouseManager.Flags.ALQ_184] = 1 *2,
-            },
-            [AITaskTypes.RECON] = {
-                [WarehouseManager.Flags.AAQ_28_LITENING] = 1,
-                [WarehouseManager.Flags.AIM_120C] = 2,
-                [WarehouseManager.Flags.AIM_9X] = 2,
-            },
-            [AITaskTypes.AWACS] = {},
-            [AITaskTypes.JTAC] = {},
+            [Eras.EARLYCOLDWAR] = {
+                [AITaskTypes.CAS] = {
+                    [Stocks.Equipment.AGM_12A] = 2 *2,
+                    [Stocks.Equipment.MK_82] = 6 *2,
+                    
+                },
+                [AITaskTypes.CAP] = {
+                    [Stocks.Equipment.AIM_9B] = 2 *2
+                },
+                [AITaskTypes.STRIKE] = {
+                    [Stocks.Equipment.MK_83] = 4 *2
+
+                },
+                [AITaskTypes.RECON] = {},
+            }
         },
         [coalition.side.RED] = {
-            [AITaskTypes.CAS] = {
-                [WarehouseManager.Flags.R73_AA_11_ARCHER] = 2 *2,
-                [WarehouseManager.Flags.S_8O0FP2_MPP] = 2*20 *2,
-                [WarehouseManager.Flags.VIKHR_M] = 2*8 *2,
-                [WarehouseManager.Flags.KH_29T] = 2 *2,
+            [Eras.MODERN] = {
+                [AITaskTypes.CAS] = {
+                    [Stocks.Equipment.R73_AA_11_ARCHER] = 2 *2,
+                    [Stocks.Equipment.S_8O0FP2_MPP] = 2*20 *2,
+                    [Stocks.Equipment.VIKHR_M] = 2*8 *2,
+                    [Stocks.Equipment.KH_29T] = 2 *2,
+                },
+                [AITaskTypes.SEAD] = {
+                    [Stocks.Equipment.KH25ML] = 2 *2,
+                    [Stocks.Equipment.KH58U] = 2 *2,
+                    [Stocks.Equipment.L081_FANTASMAGORIA] = 1 *2,
+                },
+                [AITaskTypes.CAP] = {
+                    [Stocks.Equipment.R73_AA_11_ARCHER] = 2 *2,
+                    [Stocks.Equipment.R27ER] = 2 *2,
+                    [Stocks.Equipment.R27ET] = 2 *2,
+                    [Stocks.Equipment.L005_SORBSIYA_ECM_POD_LEFT] = 1 *2,
+                    [Stocks.Equipment.L005_SORBSIYA_ECM_POD_RIGHT] = 1 *2,
+
+                },
+                [AITaskTypes.STRIKE] = {
+                    [Stocks.Equipment.KAB_1500LG] = 2 *2,
+                    [Stocks.Equipment.R_60M] = 1 *2,
+                },
+                [AITaskTypes.RECON] = {},
+    
+                [AITaskTypes.AWACS] = {},
             },
-            [AITaskTypes.SEAD] = {
-                [WarehouseManager.Flags.KH25ML] = 2 *2,
-                [WarehouseManager.Flags.KH58U] = 2 *2,
-                [WarehouseManager.Flags.L081_FANTASMAGORIA] = 1 *2,
-                -- 2 * Kh-25ML AS 10 Karen 300 kg ASM Semi Act Laser
-                -- 2 * Kh-58U AS-11 Kilter ARM 
-                -- 1 * L-081 Fantasmagoria ELINT pod
+            [Eras.EARLYCOLDWAR] = {
+                [AITaskTypes.CAS] = {
+                    [Stocks.Equipment.OFAB_250_270] = 2 *2,
+                    [Stocks.Equipment.S_5M] = 16 *2,
+                },
+                [AITaskTypes.CAP] = {
+                    [Stocks.Equipment.R_3S] = 2 *2,
+                },
+                [AITaskTypes.STRIKE] = {
+                    [Stocks.Equipment.OFAB_250_270] = 2 *2
+                },
+                [AITaskTypes.RECON] = {},
             },
-            [AITaskTypes.CAP] = {
-                [WarehouseManager.Flags.R73_AA_11_ARCHER] = 2 *2,
-                [WarehouseManager.Flags.R27ER] = 2 *2,
-                [WarehouseManager.Flags.R27ET] = 2 *2,
-                [WarehouseManager.Flags.L005_SORBSIYA_ECM_POD_LEFT] = 1 *2,
-                [WarehouseManager.Flags.L005_SORBSIYA_ECM_POD_RIGHT] = 1 *2,
-                -- 2 * R-73 AA 11 Archer
-                -- 2 * R-27 ER
-                -- 2 * R-27 ET
-                -- 2 * L005 Sorbtsiya ECM pod
+            [Eras.LATECOLDWAR] = {
+                [AITaskTypes.CAS] = {
+                    [Stocks.Equipment.FAB_250_M62] = 2 *2,
+                    [Stocks.Equipment.VIKHR_M] = 16 *2,
+                    [Stocks.Equipment.S_8O0FP2_MPP] = 40 *2,
+                },
+                [AITaskTypes.CAP] = {
+                    [Stocks.Equipment.R73_AA_11_ARCHER] = 4 *2,
+                    [Stocks.Equipment.R_27R] = 2 *2,
+                },
+                [AITaskTypes.STRIKE] = {
+                    [Stocks.Equipment.BETAB_500] = 4 *2,
+                    [Stocks.Equipment.R73_AA_11_ARCHER] = 2 *2
+                },
+                [AITaskTypes.RECON] = {
+                    [Stocks.Equipment.R_60M] = 4,
+                },
+                [AITaskTypes.AWACS] = {},
+                [AITaskTypes.SEAD] = {
+                    [Stocks.Equipment.KH58U] = 2 *2,
+                    [Stocks.Equipment.R_60M] = 2 *2,
+                }
             },
+            [Eras.WW2] = {
+                [AITaskTypes.CAP] = {},
+                [AITaskTypes.RECON] = {},
+                [AITaskTypes.CAS] = {
+                    [Stocks.Equipment.R4M] = 26 *2
+                },
+                [AITaskTypes.STRIKE] = {
+                    [Stocks.Equipment.SC_500_J] = 1 *2
+                }
+            }
+
+            --[[ ----------------------------------------------------------------
+                PER-ERA RED PAYLOAD OVERRIDES (example -- copy into the live
+                table to use). Layout is [side][Eras.X][task]; it only applies
+                when that era is ACTIVE and the matching per-era ME template
+                (e.g. "RED EARLYCOLDWAR CAP") exists.
+            [Eras.EARLYCOLDWAR] = {
+                [AITaskTypes.CAP] = {              -- e.g. a MiG-21 flight
+                    [Stocks.Equipment.R_3S] = 2 *2,
+                },
+            },
+            ---------------------------------------------------------------- ]]
+        },
+
+        --[[ --------------------------------------------------------------------
+            PER-ERA BLUE PAYLOAD OVERRIDES (example -- copy into the live table
+            to use). Layout is [side][Eras.X][task]: a per-era entry wins for the
+            active era, otherwise the plain [side][task] payload above is used
+        (see WarehouseManager:getAIPayload). The amounts must match the
+            stores you loaded on those flights' pylons in the mission editor
+            ("*2" = a two-ship flight).
+
+        [Eras.WW2] = {
+            [AITaskTypes.CAS] = {                  -- e.g. a P-47 flight
+                [Stocks.Equipment.MK_82] = 2 *2,
+                [Stocks.Equipment.HVAR]  = 8 *2,
+            },
+            [AITaskTypes.CAP] = {},                -- guns only, no missiles
             [AITaskTypes.STRIKE] = {
-                [WarehouseManager.Flags.KAB_500KR] = 2 *2,
-                [WarehouseManager.Flags.KH_29T] = 2 *2,
-                [WarehouseManager.Flags.R60M] = 1 *2,
-                -- 2 * KAB-500Kr AS-5K 'KAB-500Kr' TV Guided Bomb
-                -- 2 * Kh-29T AS-14 Kedge
-                -- 1 * APU-60-1M with 1 * R-60M
+                [Stocks.Equipment.MK_82] = 2 *2,
             },
-            [AITaskTypes.RECON] = {},
-            
-            [AITaskTypes.AWACS] = {}
+        },
+        [Eras.EARLYCOLDWAR] = {
+            [AITaskTypes.CAP] = {                  -- e.g. an F-5E flight
+                [Stocks.Equipment.AIM_9P] = 2 *2,
+            },
+        },
+        -------------------------------------------------------------------- ]]
+    }
+
+    -- The set of weapon (non-aircraft) stock types
+    WarehouseManager.EquipmentNonAircraftStockTypes = {
+        StockTypes.AIR_AIR_LONG_RANGE,
+        StockTypes.AIR_AIR_SHORT_RANGE,
+        StockTypes.AIR_GROUND_GUIDED_MISSILES,
+        StockTypes.AIR_GROUND_GUIDED_BOMBS,
+        StockTypes.AIR_GROUND_BOMBS,
+        StockTypes.AIR_GROUND_ROCKETS,
+        StockTypes.ECM,
+        StockTypes.TGP,
+        StockTypes.MISC,
+        StockTypes.FARP_MISSILES,
+        StockTypes.FARP_AG_ROCKETS,
+        StockTypes.FARP_MISC,
+        StockTypes.FARP_GUNS,
+        StockTypes.FUEL_TANKS
+    }
+
+    -- Which weapon stock types a composite/bespoke package draws from. Keys and
+    -- values are BOTH StockTypes enum values (no strings). Single-stock-type
+    -- packages (e.g. AIR_GROUND_BOMBS) are not listed: they resolve implicitly
+    -- to themselves.
+    WarehouseManager.StockTypeContents = {
+        [StockTypes.INITIAL] = {
+            StockTypes.AIR_AIR_LONG_RANGE, StockTypes.AIR_AIR_SHORT_RANGE,
+            StockTypes.AIR_GROUND_GUIDED_MISSILES, StockTypes.AIR_GROUND_GUIDED_BOMBS,
+            StockTypes.AIR_GROUND_BOMBS, StockTypes.AIR_GROUND_ROCKETS,
+            StockTypes.ECM, StockTypes.TGP, StockTypes.MISC,
+            StockTypes.AG_AIRCRAFT, StockTypes.AA_AIRCRAFT, StockTypes.MULTIROLE_AIRCRAFT,
+            StockTypes.RECON_AIRCRAFT, StockTypes.CARGO_AIRCRAFT, StockTypes.LOGISTICS_HELICOPTER,
+        },
+        [StockTypes.CARRIER_INITAL] = {
+            StockTypes.AIR_AIR_LONG_RANGE, StockTypes.AIR_AIR_SHORT_RANGE,
+            StockTypes.AIR_GROUND_GUIDED_MISSILES, StockTypes.AIR_GROUND_GUIDED_BOMBS,
+            StockTypes.AIR_GROUND_BOMBS, StockTypes.AIR_GROUND_ROCKETS, StockTypes.TGP,
+            StockTypes.AG_AIRCRAFT, StockTypes.AA_AIRCRAFT, StockTypes.MULTIROLE_AIRCRAFT,
+            StockTypes.RECON_AIRCRAFT, StockTypes.CARGO_AIRCRAFT,
+        },
+        [StockTypes.LOGISTICS_CAPTURE] = {
+            StockTypes.AIR_AIR_LONG_RANGE, StockTypes.AIR_AIR_SHORT_RANGE,
+            StockTypes.AIR_GROUND_GUIDED_MISSILES, StockTypes.AIR_GROUND_GUIDED_BOMBS,
+            StockTypes.AIR_GROUND_BOMBS, StockTypes.AIR_GROUND_ROCKETS,
+            StockTypes.ECM, StockTypes.TGP, StockTypes.MISC,
+            StockTypes.AG_AIRCRAFT, StockTypes.AA_AIRCRAFT, StockTypes.MULTIROLE_AIRCRAFT,
+            StockTypes.RECON_AIRCRAFT, StockTypes.CARGO_AIRCRAFT,
+            StockTypes.ATTACK_HELICOPTER, StockTypes.LOGISTICS_HELICOPTER,
+        },
+        [StockTypes.FARP] = {
+            StockTypes.FARP_AG_ROCKETS, StockTypes.FARP_MISC, StockTypes.FARP_MISSILES, StockTypes.FARP_GUNS,
+            StockTypes.ATTACK_HELICOPTER, StockTypes.LOGISTICS_HELICOPTER,
+        },
+    }
+
+    -- The aircraft (role) stock types whose lists are built dynamically from
+    -- EraSystem.getEnabledAircraft() rather than read from a static table.
+    WarehouseManager.AircraftStockTypes = {
+        StockTypes.AG_AIRCRAFT,
+        StockTypes.AA_AIRCRAFT,
+        StockTypes.MULTIROLE_AIRCRAFT,
+        StockTypes.RECON_AIRCRAFT,
+        StockTypes.CARGO_AIRCRAFT,
+        StockTypes.ATTACK_HELICOPTER,
+        StockTypes.LOGISTICS_HELICOPTER,
+    }
+
+    -- Round half-up to an integer (Lua 5.1 has no integer division/round).
+    local function roundInt(x)
+        return math.floor(x + 0.5)
+    end
+
+    -- Which weapon stock types feed a given stock type. Composite/bespoke types
+    -- are listed in StockTypeContents; a single weapon stock type resolves to
+    -- itself; anything else (e.g. an aircraft stock type) yields none.
+    ---@param stock_type StockTypes
+    ---@return StockTypes[] list of weapon stock type enum values
+    local function weaponStockTypesFor(stock_type)
+        local composite = WarehouseManager.StockTypeContents[stock_type]
+        if composite then return composite end
+        if utils.tableContains(WarehouseManager.EquipmentNonAircraftStockTypes, stock_type) then
+            return { stock_type }
+        end
+        return {}
+    end
+
+
+    local UNTRACKABLE_WEAPON_PREFIXES = {
+    }
+    ---@param clsid string weapon clsid
+    ---@return boolean trackable whether the DCS warehouse API can hold/count it
+    local function isWarehouseTrackable(clsid)
+        if utils.tableContains(UNTRACKABLE_WEAPON_PREFIXES, clsid) then
+            return false
+        end
+        return true
+    end
+    WarehouseManager.isWarehouseTrackable = isWarehouseTrackable
+
+ 
+    ---@param dcs_type string
+    ---@return StockTypes role
+    function WarehouseManager:classifyAircraftRole(dcs_type)
+        -- Known explicit mapping (overrides attribute heuristics).
+        local cached_types = {
+            [Stocks.Aircraft.A10C]                 = StockTypes.AG_AIRCRAFT,
+            [Stocks.Aircraft.A10C_TANK_KILLER_II]  = StockTypes.AG_AIRCRAFT,
+            [Stocks.Aircraft.A10A]                 = StockTypes.AG_AIRCRAFT,
+            [Stocks.Aircraft.SU25]                 = StockTypes.AG_AIRCRAFT,
+            [Stocks.Aircraft.SU25T]                = StockTypes.AG_AIRCRAFT,
+            [Stocks.Aircraft.SU25TM]               = StockTypes.AG_AIRCRAFT,
+            [Stocks.Aircraft.SU24M]                = StockTypes.AG_AIRCRAFT,
+            [Stocks.Aircraft.SU34]                 = StockTypes.AG_AIRCRAFT,
+            [Stocks.Aircraft.SU17M4]               = StockTypes.AG_AIRCRAFT,
+            [Stocks.Aircraft.MIG27K]               = StockTypes.AG_AIRCRAFT,
+            [Stocks.Aircraft.AV8BNA]               = StockTypes.AG_AIRCRAFT,
+            [Stocks.Aircraft.A6E]                  = StockTypes.AG_AIRCRAFT,
+            [Stocks.Aircraft.A20G]                 = StockTypes.AG_AIRCRAFT,
+            [Stocks.Aircraft.AJS37]                = StockTypes.AG_AIRCRAFT,
+            [Stocks.Aircraft.S3B]                  = StockTypes.AG_AIRCRAFT,
+            [Stocks.Aircraft.L39ZA]                = StockTypes.AG_AIRCRAFT,
+            [Stocks.Aircraft.HAWK]                 = StockTypes.AG_AIRCRAFT,
+            [Stocks.Aircraft.MB339A]               = StockTypes.AG_AIRCRAFT,
+            [Stocks.Aircraft.MB339APAN]            = StockTypes.AG_AIRCRAFT,
+            [Stocks.Aircraft.C101EB]               = StockTypes.AG_AIRCRAFT,
+            [Stocks.Aircraft.C101CC]               = StockTypes.AG_AIRCRAFT,
+            [Stocks.Aircraft.TORNADO_IDS]          = StockTypes.AG_AIRCRAFT,
+            [Stocks.Aircraft.TORNADO_GR4]          = StockTypes.AG_AIRCRAFT,
+            [Stocks.Aircraft.MIRAGE_F1AD]          = StockTypes.AG_AIRCRAFT,
+            [Stocks.Aircraft.MIRAGE_F1AZ]          = StockTypes.AG_AIRCRAFT,
+            [Stocks.Aircraft.F117A]                = StockTypes.AG_AIRCRAFT,
+            [Stocks.Aircraft.MOSQUITO]             = StockTypes.AG_AIRCRAFT,
+            [Stocks.Aircraft.P47D_30]              = StockTypes.AG_AIRCRAFT,
+            [Stocks.Aircraft.P47D_30BL1]           = StockTypes.AG_AIRCRAFT,
+            [Stocks.Aircraft.P47D_40]              = StockTypes.AG_AIRCRAFT,
+
+            [Stocks.Aircraft.B1B_LANCER]           = StockTypes.AG_AIRCRAFT,
+            [Stocks.Aircraft.B52H]                 = StockTypes.AG_AIRCRAFT,
+            [Stocks.Aircraft.TU_160]               = StockTypes.AG_AIRCRAFT,
+            [Stocks.Aircraft.TU_95MS]              = StockTypes.AG_AIRCRAFT,
+            [Stocks.Aircraft.TU_22M3]              = StockTypes.AG_AIRCRAFT,
+            [Stocks.Aircraft.TU_142]               = StockTypes.AG_AIRCRAFT,
+            [Stocks.Aircraft.H6J]                  = StockTypes.AG_AIRCRAFT,
+
+            [Stocks.Aircraft.F15C]                 = StockTypes.AA_AIRCRAFT,
+            [Stocks.Aircraft.F14B]                 = StockTypes.AA_AIRCRAFT,
+            [Stocks.Aircraft.F_14A_135_GR]         = StockTypes.AA_AIRCRAFT,
+            [Stocks.Aircraft.F14A_EARLY]           = StockTypes.AA_AIRCRAFT,
+            [Stocks.Aircraft.F14A]                 = StockTypes.AA_AIRCRAFT,
+            [Stocks.Aircraft.MIG29A]               = StockTypes.AA_AIRCRAFT,
+            [Stocks.Aircraft.MIG29S]               = StockTypes.AA_AIRCRAFT,
+            [Stocks.Aircraft.MIG29G]               = StockTypes.AA_AIRCRAFT,
+            [Stocks.Aircraft.MIG29_FULCRUM]        = StockTypes.AA_AIRCRAFT,
+            [Stocks.Aircraft.MIG31]                = StockTypes.AA_AIRCRAFT,
+            [Stocks.Aircraft.MIG25PD]              = StockTypes.AA_AIRCRAFT,
+            [Stocks.Aircraft.MiG23MLD]             = StockTypes.AA_AIRCRAFT,
+            [Stocks.Aircraft.MIG21BIS]             = StockTypes.AA_AIRCRAFT,
+            [Stocks.Aircraft.MIG19P]               = StockTypes.AA_AIRCRAFT,
+            [Stocks.Aircraft.MIG15BIS]             = StockTypes.AA_AIRCRAFT,
+            [Stocks.Aircraft.MIG15BIS_FC]          = StockTypes.AA_AIRCRAFT,
+            [Stocks.Aircraft.SU27]                 = StockTypes.AA_AIRCRAFT,
+            [Stocks.Aircraft.SU33]                 = StockTypes.AA_AIRCRAFT,
+            [Stocks.Aircraft.J11A]                 = StockTypes.AA_AIRCRAFT,
+            [Stocks.Aircraft.F86F_SABRE]           = StockTypes.AA_AIRCRAFT,
+            [Stocks.Aircraft.F86F_FC]              = StockTypes.AA_AIRCRAFT,
+            [Stocks.Aircraft.F5E]                  = StockTypes.AA_AIRCRAFT,
+            [Stocks.Aircraft.F5E_3]                = StockTypes.AA_AIRCRAFT,
+            [Stocks.Aircraft.F5E_3_FC]             = StockTypes.AA_AIRCRAFT,
+            [Stocks.Aircraft.F16A]                 = StockTypes.AA_AIRCRAFT,
+            [Stocks.Aircraft.MIRAGE_F1C]           = StockTypes.AA_AIRCRAFT,
+            [Stocks.Aircraft.MIRAGE_F1CE]          = StockTypes.AA_AIRCRAFT,
+            [Stocks.Aircraft.MIRAGE_F1C_200]       = StockTypes.AA_AIRCRAFT,
+            [Stocks.Aircraft.MIRAGE_F1CG]          = StockTypes.AA_AIRCRAFT,
+            [Stocks.Aircraft.MIRAGE_F1CH]          = StockTypes.AA_AIRCRAFT,
+            [Stocks.Aircraft.MIRAGE_F1CJ]          = StockTypes.AA_AIRCRAFT,
+            [Stocks.Aircraft.MIRAGE_F1CK]          = StockTypes.AA_AIRCRAFT,
+            [Stocks.Aircraft.MIRAGE_F1CZ]          = StockTypes.AA_AIRCRAFT,
+            [Stocks.Aircraft.MIRAGE_F1EH]          = StockTypes.AA_AIRCRAFT,
+            [Stocks.Aircraft.MIRAGE_F1JA]          = StockTypes.AA_AIRCRAFT,
+            [Stocks.Aircraft.QF4E]                 = StockTypes.AA_AIRCRAFT,
+
+            [Stocks.Aircraft.BF109K4]              = StockTypes.AA_AIRCRAFT,
+            [Stocks.Aircraft.FW190A8]              = StockTypes.AA_AIRCRAFT,
+            [Stocks.Aircraft.FW190D9]              = StockTypes.AA_AIRCRAFT,
+            [Stocks.Aircraft.SPITFIRE_LF]          = StockTypes.AA_AIRCRAFT,
+            [Stocks.Aircraft.SPITFIRE_CW]          = StockTypes.AA_AIRCRAFT,
+            [Stocks.Aircraft.P51D]                 = StockTypes.AA_AIRCRAFT,
+            [Stocks.Aircraft.P51D_30_NA]           = StockTypes.AA_AIRCRAFT,
+            [Stocks.Aircraft.TF51D]                = StockTypes.AA_AIRCRAFT,
+            [Stocks.Aircraft.I16]                  = StockTypes.AA_AIRCRAFT,
+
+            [Stocks.Aircraft.F16C_BL50]            = StockTypes.MULTIROLE_AIRCRAFT,
+            [Stocks.Aircraft.F16C_BL52D]           = StockTypes.MULTIROLE_AIRCRAFT,
+            [Stocks.Aircraft.FA18C_HORNET]         = StockTypes.MULTIROLE_AIRCRAFT,
+            [Stocks.Aircraft.FA18C]                = StockTypes.MULTIROLE_AIRCRAFT,
+            [Stocks.Aircraft.FA18A]                = StockTypes.MULTIROLE_AIRCRAFT,
+            [Stocks.Aircraft.F15E_SE]              = StockTypes.MULTIROLE_AIRCRAFT,
+            [Stocks.Aircraft.F15E]                 = StockTypes.MULTIROLE_AIRCRAFT,
+            [Stocks.Aircraft.M2000C]               = StockTypes.MULTIROLE_AIRCRAFT,
+            [Stocks.Aircraft.MIRAGE_2000_5]        = StockTypes.MULTIROLE_AIRCRAFT,
+            [Stocks.Aircraft.SU30]                 = StockTypes.MULTIROLE_AIRCRAFT,
+            [Stocks.Aircraft.JF17]                 = StockTypes.MULTIROLE_AIRCRAFT,
+            [Stocks.Aircraft.F4E]                  = StockTypes.MULTIROLE_AIRCRAFT,
+            [Stocks.Aircraft.F4E_45MC]             = StockTypes.MULTIROLE_AIRCRAFT,
+            [Stocks.Aircraft.MIRAGE_F1CT]          = StockTypes.MULTIROLE_AIRCRAFT,
+            [Stocks.Aircraft.MIRAGE_F1EQ]          = StockTypes.MULTIROLE_AIRCRAFT,
+            [Stocks.Aircraft.MIRAGE_F1EE]          = StockTypes.MULTIROLE_AIRCRAFT,
+            [Stocks.Aircraft.MIRAGE_F1ED]          = StockTypes.MULTIROLE_AIRCRAFT,
+            [Stocks.Aircraft.MIRAGE_F1EDA]         = StockTypes.MULTIROLE_AIRCRAFT,
+            [Stocks.Aircraft.MIRAGE_F1M_CE]        = StockTypes.MULTIROLE_AIRCRAFT,
+            [Stocks.Aircraft.MIRAGE_F1M_EE]        = StockTypes.MULTIROLE_AIRCRAFT,
+            [Stocks.Aircraft.F4U1D]                = StockTypes.MULTIROLE_AIRCRAFT,
+            [Stocks.Aircraft.F4U1D_CW]             = StockTypes.MULTIROLE_AIRCRAFT,
+
+            [Stocks.Aircraft.SU24MR]               = StockTypes.RECON_AIRCRAFT,
+            [Stocks.Aircraft.MIG25RBT]             = StockTypes.RECON_AIRCRAFT,
+            [Stocks.Aircraft.MIRAGE_F1CR]          = StockTypes.RECON_AIRCRAFT,
+            [Stocks.Aircraft.RQ_1A_PREDATOR]       = StockTypes.RECON_AIRCRAFT,
+            [Stocks.Aircraft.MQ9_REAPER]           = StockTypes.RECON_AIRCRAFT,
+            [Stocks.Aircraft.WINGLOONG_I]          = StockTypes.RECON_AIRCRAFT,
+            [Stocks.Aircraft.E3A]                  = StockTypes.RECON_AIRCRAFT,
+            [Stocks.Aircraft.E2C_HAWKEYE]          = StockTypes.RECON_AIRCRAFT,
+            [Stocks.Aircraft.A50]                  = StockTypes.RECON_AIRCRAFT,
+            [Stocks.Aircraft.KJ2000]               = StockTypes.RECON_AIRCRAFT,
+            [Stocks.Aircraft.AN30M]                = StockTypes.RECON_AIRCRAFT,
+
+            [Stocks.Aircraft.C130J_30]             = StockTypes.CARGO_AIRCRAFT,
+            [Stocks.Aircraft.C130]                 = StockTypes.CARGO_AIRCRAFT,
+            [Stocks.Aircraft.C17A]                 = StockTypes.CARGO_AIRCRAFT,
+            [Stocks.Aircraft.IL76MD]               = StockTypes.CARGO_AIRCRAFT,
+            [Stocks.Aircraft.AN26B]                = StockTypes.CARGO_AIRCRAFT,
+            [Stocks.Aircraft.YAK40]                = StockTypes.CARGO_AIRCRAFT,
+            [Stocks.Aircraft.KC135]                = StockTypes.CARGO_AIRCRAFT,
+            [Stocks.Aircraft.KC135_MPRS]           = StockTypes.CARGO_AIRCRAFT,
+            [Stocks.Aircraft.KC130]                = StockTypes.CARGO_AIRCRAFT,
+            [Stocks.Aircraft.IL78M]                = StockTypes.CARGO_AIRCRAFT,
+            [Stocks.Aircraft.S3_B_TANKER]          = StockTypes.CARGO_AIRCRAFT,
+
+            [Stocks.Aircraft.UH_1H]                = StockTypes.LOGISTICS_HELICOPTER,
+            [Stocks.Aircraft.MI8MT]                = StockTypes.LOGISTICS_HELICOPTER,
+            [Stocks.Aircraft.MI24P]                = StockTypes.ATTACK_HELICOPTER,
+            [Stocks.Aircraft.CH47D]                = StockTypes.LOGISTICS_HELICOPTER,
+            [Stocks.Aircraft.CH47F_BL1]                = StockTypes.LOGISTICS_HELICOPTER,
+            [Stocks.Aircraft.SA342L]                = StockTypes.ATTACK_HELICOPTER,
+            [Stocks.Aircraft.SA342M]                = StockTypes.ATTACK_HELICOPTER,
+            [Stocks.Aircraft.SA342Minigun]                = StockTypes.ATTACK_HELICOPTER,
+            [Stocks.Aircraft.SA342Mistral]                = StockTypes.ATTACK_HELICOPTER,
+            [Stocks.Aircraft.OH58D_R]                = StockTypes.ATTACK_HELICOPTER,
+            [Stocks.Aircraft.OH_58D]                = StockTypes.ATTACK_HELICOPTER,
+            [Stocks.Aircraft.AH1W]                = StockTypes.ATTACK_HELICOPTER,
+            [Stocks.Aircraft.AH64D_BLKII]                = StockTypes.ATTACK_HELICOPTER,
+            [Stocks.Aircraft.AH64A]                = StockTypes.ATTACK_HELICOPTER,
+            [Stocks.Aircraft.AH64D]                = StockTypes.ATTACK_HELICOPTER,
+            [Stocks.Aircraft.UH_60L]                = StockTypes.LOGISTICS_HELICOPTER,
         }
-    }
+        if cached_types[dcs_type] then return cached_types[dcs_type] end
+
+        -- Unknown airframe: treat as multirole 
+        return StockTypes.MULTIROLE_AIRCRAFT
+    end
 
 
+    ---@param stock_type StockTypes
+    ---@param side coalition.side
+    ---@return table<string, integer>
+    function WarehouseManager:generateStock(stock_type, side)
+        local stock = {}
+        local _ = side  -- reserved (see note above)
 
-    ---@enum WarehouseManager.StockTypes
-    WarehouseManager.StockTypes = {
-        INITIAL = 1,
-        AIR_AIR_LONG_RANGE = 2,
-        AIR_AIR_SHORT_RANGE = 3,
-        AIR_GROUND_GUIDED_MISSILES = 4,
-        AIR_GROUND_GUIDED_BOMBS = 5,
-        AIR_GROUND_BOMBS = 6,
-        AIR_GROUND_ROCKETS = 7,
-        ECM = 8,
-        TGP = 9,
-        MISC = 10,
-        LOGISTICS_CAPTURE = 11,
-        AG_AIRCRAFT = 12,
-        MULTIROLE_AIRCRAFT = 13,
-        AA_AIRCRAFT = 14,
-        RECON_AIRCRAFT = 15,
-        CARGO_AIRCRAFT = 16,
-        SU25T_BLUFOR = 17,
-        FARP = 18,
-        CARRIER_INITAL = 19,
-    }
+        local contained_stock_types = weaponStockTypesFor(stock_type) -- INITIAL -> {AIR_AIR_LONG_RANGE, AIR_GROUND_BOMBS, ...}
+        if #contained_stock_types == 0 then return stock end
 
-    WarehouseManager.Stocks = {
-        [WarehouseManager.StockTypes.FARP] = {
-            [coalition.side.BLUE] = {
-                [WarehouseManager.AircraftFlags.SA342L] = 4,
-                [WarehouseManager.AircraftFlags.SA342M] = 4,
-                [WarehouseManager.AircraftFlags.UH_1H] = 4,
-                [WarehouseManager.AircraftFlags.OH_58D] = 2,
-                [WarehouseManager.AircraftFlags.OH58D_R] = 4,
-                [WarehouseManager.AircraftFlags.CH47D] = 4,
-                [WarehouseManager.AircraftFlags.AH64D_BLKII] = 4,
+        -- Set of weapon stock types this package accepts (fast membership test).
+        local contained_stock_types_lookup = {}
+        for _, st in ipairs(contained_stock_types) do contained_stock_types_lookup[st] = true end
 
-                [WarehouseManager.Flags.MISTRAL] = 8,
+        local default = Stocks.EquipmentDataDefault
+
+        for clsid, equipment_data in pairs(Stocks.EquipmentData) do
+
+            local equipment_stock_types = {}
+            if equipment_data.stock_type then equipment_stock_types = { equipment_data.stock_type } end
+            if equipment_data.stock_types then equipment_stock_types = equipment_data.stock_types end
 
 
-                [WarehouseManager.Flags.HOT3] = math.random(16,18),
-                [WarehouseManager.Flags.AGM_114K] = math.random(12,20),
-                [WarehouseManager.Flags.AGM_114L] = math.random(12,20),
+            local stock_type_matched
+            for _, data_stock_type in ipairs(equipment_stock_types) do
 
-                [WarehouseManager.Flags.HYDRA_70_M151_HE] = math.random(50,100),
-                [WarehouseManager.Flags.HYDRA_70_M257] = math.random(50,100),
-                [WarehouseManager.Flags.HYDRA_70_M274] = math.random(50,100),
-                [WarehouseManager.Flags.HYDRA_70_MK1] = math.random(50,100),
-                [WarehouseManager.Flags.HYDRA_70_MK5_HEAT] = math.random(50,100),
-                [WarehouseManager.Flags.ZUNI_127] = math.random(50,100),
-
-                [WarehouseManager.Flags.SNEB_254_SM_RED] = math.random(20,40),
-                [WarehouseManager.Flags.SNEB_254_SM_GREEN] = math.random(20,40),
-                [WarehouseManager.Flags.SNEB_251_HE] = math.random(50,100),
-                [WarehouseManager.Flags.SNEB_253_HEAT] = math.random(50,100),
-                [WarehouseManager.Flags.SNEB_259_IL] = math.random(20,40),
+                if contained_stock_types_lookup[data_stock_type] then
+                    stock_type_matched = data_stock_type
+                    break
+                end
+            end
 
 
-                [WarehouseManager.Flags.GIAT_M621_SAPHEI] = 5,-- not working
-                [WarehouseManager.Flags.GIAT_M621_APHE] = 5,-- not working
-                [WarehouseManager.Flags.GIAT_M621_HEAP] = 5,-- not working
-                [WarehouseManager.Flags.GIAT_M621_HE] = 5,-- not working
-                [WarehouseManager.Flags.GIAT_M621_AP] = 5,-- not working
-                [WarehouseManager.Flags.GIAT_M261] = 5,-- not working
-                [WarehouseManager.Flags.FN_HMP400_200] = 2,-- not working
-                [WarehouseManager.Flags.FN_HMP400] = 1,-- not working
-                [WarehouseManager.Flags.HMP400] = 2, -- not working
-
-                [WarehouseManager.Flags.SAND_FILTER] = 4,
-                [WarehouseManager.Flags.IR_DEFLECTOR] = 4,
-                [WarehouseManager.Flags.AN_APG_78_APACHE_RADAR] = 4,
-
-            },
-            [coalition.side.RED] = {}
-        },
-
-        [WarehouseManager.StockTypes.INITIAL] = {
-            [coalition.side.BLUE] = {
-                [WarehouseManager.Flags.AGM_65D] = math.random(8,12),
-                [WarehouseManager.Flags.AGM_65E] = math.random(8,10),
-                [WarehouseManager.Flags.AGM_65F] = math.random(6,8),
-                [WarehouseManager.Flags.AGM_88_HARM] = math.random(4,6),
-                [WarehouseManager.Flags.GBU_31_V_3B] = math.random(8,10),
-                [WarehouseManager.Flags.GBU_38] = math.random(8,12),
-                [WarehouseManager.Flags.GBU_12] = math.random(12,16),
-                [WarehouseManager.Flags.GBU_10] = math.random(4,6),
-                [WarehouseManager.Flags.GBU_16] = math.random(4,6),
-                [WarehouseManager.Flags.GBU_24] = math.random(4,6),
-                [WarehouseManager.Flags.GBU_32_V_2B] = math.random(6,10),
-                [WarehouseManager.Flags.GBU_54_V_1B] = math.random(12,18),
-                [WarehouseManager.Flags.GBU_43] = math.random(2,3),
-
-                [WarehouseManager.Flags.MK_82] = math.random(12,30),
-                [WarehouseManager.Flags.MK_83] = math.random(4,8),
-                [WarehouseManager.Flags.MK_84] = math.random(8,14),
-                [WarehouseManager.Flags.MK82_SNAKEEYE] = math.random(12,22),
-                [WarehouseManager.Flags.MK_20_ROCKEYE] = math.random(6,12),
-                [WarehouseManager.Flags.LAU_88] = math.random(8,12),
-                
-                [WarehouseManager.Flags.HYDRA_70_M282_MPP_APKWS] = math.random(120,130),
-                [WarehouseManager.Flags.HYDRA_70_M151_HE] = math.random(90,150),
-                [WarehouseManager.Flags.HYDRA_70_MK5_HEAT] = math.random(60,100),
-                [WarehouseManager.Flags.CBU_87] = math.random(6,12),
-                [WarehouseManager.Flags.CBU_97] = math.random(6,12),
-                [WarehouseManager.Flags.CBU_99] = math.random(4,8),
-                [WarehouseManager.Flags.CBU_105] = math.random(4,8),
-                [WarehouseManager.Flags.CBU_103] = math.random(4,8),
-
-                [WarehouseManager.Flags.AAQ_28_LITENING] = math.random(4,6),
-                [WarehouseManager.Flags.AN_AAQ_33_SNIPER] = math.random(4,5),
-                [WarehouseManager.Flags.AAQ_14_LANTIRN] = math.random(6,10),
-                [WarehouseManager.Flags.AAQ_13_LANTIRN] = math.random(6,10),
-                [WarehouseManager.Flags.AN_ASQ_228_ATFLIR] = math.random(4,6),
-                [WarehouseManager.Flags.F14_LANTIRN] = math.random(2,3),
-                [WarehouseManager.Flags.ECLAIR_M_60] = math.random(2,4),
-                [WarehouseManager.Flags.ECLAIR_M_51] = math.random(2,4),
-
-                [WarehouseManager.Flags.HTS_POD] = math.random(4,6),
-                [WarehouseManager.Flags.ALQ_184] = math.random(2,3),
-                [WarehouseManager.Flags.ADM_141_TALD] = math.random(12,20),
-                [WarehouseManager.Flags.AGM_154C_JSOW] = math.random(2,4),
-                [WarehouseManager.Flags.AGM_154A_JSOW] = math.random(4,6),
-                [WarehouseManager.Flags.AGM_84H_SLAM_ER] = math.random(2,4),
-                [WarehouseManager.Flags.AGM_84D_HARPOON] = math.random(2,4),
-
-                [WarehouseManager.Flags.AIM_120B] = math.random(16,20),
-                [WarehouseManager.Flags.AIM_120C] = math.random(32,40),
-                [WarehouseManager.Flags.AIM_9M] = math.random(20,28),
-                [WarehouseManager.Flags.AIM_9X] = math.random(8,14),
-                [WarehouseManager.Flags.AIM_9L] = math.random(8,14),
-                [WarehouseManager.Flags.AIM_7F] = math.random(14,18),
-                [WarehouseManager.Flags.AIM_7M] = math.random(14,18),
-                [WarehouseManager.Flags.AIM_7P] = math.random(14,18),
-                [WarehouseManager.Flags.AIM_7MH] = math.random(14,18),
-                [WarehouseManager.Flags.AIM_54C_MK47] = math.random(6,10),
-                [WarehouseManager.Flags.SUPER_530D] = math.random(8,14),
-                [WarehouseManager.Flags.MAGIC_II] = math.random(8,14),
-                [WarehouseManager.Flags.MICA_IR] = math.random(10,12),
-                [WarehouseManager.Flags.MICA_RF] = math.random(10,12),
-
-                [WarehouseManager.AircraftFlags.A10C_TANK_KILLER_II] = 8,
-                [WarehouseManager.AircraftFlags.E3A] = 2,
-                [WarehouseManager.AircraftFlags.F15E_SE] = 4,
-                [WarehouseManager.AircraftFlags.F16C_BL50] = 8,
-                [WarehouseManager.AircraftFlags.FA18C_HORNET] = 6,
-                [WarehouseManager.AircraftFlags.M2000C] = 4,
-                [WarehouseManager.AircraftFlags.MIRAGE_2000_5] = 4,
-                [WarehouseManager.AircraftFlags.F15C] = 4,
-                [WarehouseManager.AircraftFlags.F_14A_135_GR] = 4,
-                [WarehouseManager.AircraftFlags.RQ_1A_PREDATOR] = 3,
-                [WarehouseManager.AircraftFlags.C130J_30] = 6,
-
-            },
-            [coalition.side.RED] = {
-                [WarehouseManager.Flags.R73_AA_11_ARCHER] = math.random(80,90),
-                [WarehouseManager.Flags.S_8O0FP2_MPP] = math.random(400,600),
-                [WarehouseManager.Flags.VIKHR_M] = math.random(200,300),
-                [WarehouseManager.Flags.KH_29T] = math.random(20,35),
-                [WarehouseManager.Flags.KH25ML] = math.random(20,30),
-                [WarehouseManager.Flags.KH58U] = math.random(28,32),
-                [WarehouseManager.Flags.L081_FANTASMAGORIA] = math.random(4,6),
-                [WarehouseManager.Flags.R27ER] = math.random(42,68),
-                [WarehouseManager.Flags.R27ET] = math.random(28,32),
-                [WarehouseManager.Flags.L005_SORBSIYA_ECM_POD_LEFT] = math.random(3,5),
-                [WarehouseManager.Flags.L005_SORBSIYA_ECM_POD_RIGHT] = math.random(3,5),
-                [WarehouseManager.Flags.R_60] = math.random(20,30),
-                [WarehouseManager.Flags.RBK_250] = math.random(20,40),
-                [WarehouseManager.Flags.RBK_250_275_AO_1SCH] = math.random(20,40),
-                [WarehouseManager.Flags.RBK_500AO] = math.random(14,28),
-                [WarehouseManager.Flags.RBK_500U] = math.random(14,28),
-                [WarehouseManager.Flags.FAB_100] = math.random(60,120),
-                [WarehouseManager.Flags.FAB_250] = math.random(40,80),
-                [WarehouseManager.Flags.FAB_500] = math.random(20,40),
-                [WarehouseManager.Flags.X_25MP] = math.random(10,20),
-                [WarehouseManager.Flags.X_29L] = math.random(10,20),
-                [WarehouseManager.Flags.S13_OF_122MM] = math.random(40,80),
-                [WarehouseManager.Flags.S24A] = math.random(20,40),
-                [WarehouseManager.Flags.S24B] = math.random(20,40),
-                [WarehouseManager.Flags.S25_OFM_340MM] = math.random(10,20),
-                [WarehouseManager.Flags.S25_O_420MM_FRAG] = math.random(6,12),
-                [WarehouseManager.Flags.S5_M_HE] = math.random(60,120),
-                [WarehouseManager.Flags.S5_KP_57MM_HEAT_FRAG] = math.random(60,120),
-
-                [WarehouseManager.Flags.R60M] = math.random(20,30),
-                [WarehouseManager.Flags.KAB_500KR] = math.random(20,30),
-
-                [WarehouseManager.AircraftFlags.SU25T] = 8,
-                [WarehouseManager.AircraftFlags.SU27] = 8,
-                [WarehouseManager.AircraftFlags.SU24M] = 8,
-                [WarehouseManager.AircraftFlags.SU33] = 10,
-                [WarehouseManager.AircraftFlags.SU34] = 4,
-                [WarehouseManager.AircraftFlags.A50] = 2,
-                [WarehouseManager.AircraftFlags.SU24MR] = 8,
-
-            }
-                
-        },
-        [WarehouseManager.StockTypes.CARRIER_INITAL] = {
-            [coalition.side.BLUE] = {
-                [WarehouseManager.Flags.AIM_9X] = math.random(160,220),
-                [WarehouseManager.Flags.AIM_9M] = math.random(180,260),
-                [WarehouseManager.Flags.AIM_120C] = math.random(200,320),
-                [WarehouseManager.Flags.AIM_54C_MK47] = math.random(80,120),
-                [WarehouseManager.Flags.AIM_54C_MK60] = math.random(40,70),
-                [WarehouseManager.Flags.AIM_7F] = math.random(90,140),
-                [WarehouseManager.Flags.AIM_7M] = math.random(110,170),
-                [WarehouseManager.Flags.AIM_7P] = math.random(90,140),
-                [WarehouseManager.Flags.AIM_7MH] = math.random(70,110),
+            if stock_type_matched and isWarehouseTrackable(clsid) and EraSystem.isWeaponEnabled(clsid) then
+                local base_qty
+                if type(equipment_data.base_qty) == "number" then
+                    base_qty = equipment_data.base_qty or 0
+                elseif type(equipment_data.base_qty) == "table" then
+                    base_qty = equipment_data.base_qty[stock_type_matched] or 0
+                end
+                if not base_qty then base_qty = default.base_qty or 6 end
 
 
-                [WarehouseManager.Flags.GBU_12] = math.random(240,360),
-                [WarehouseManager.Flags.GBU_10] = math.random(60,100),
-                [WarehouseManager.Flags.GBU_16] = math.random(90,140),
-                [WarehouseManager.Flags.GBU_38] = math.random(200,320),
-                [WarehouseManager.Flags.GBU_31_V_3B] = math.random(90,140),
-                [WarehouseManager.Flags.AGM_154C_JSOW] = math.random(70,110),
+                local variance = default.variance or Stocks.STOCK_VARIANCE or 0.15
 
-                
-                [WarehouseManager.Flags.AGM_65F] = math.random(90,150),
-                [WarehouseManager.Flags.AGM_65E] = math.random(60,100),
-                [WarehouseManager.Flags.AGM_88_HARM] = math.random(60,100),
-                [WarehouseManager.Flags.AGM_84D_HARPOON] = math.random(24,40),
-                [WarehouseManager.Flags.AGM_84H_SLAM_ER] = math.random(16,30),
-                [WarehouseManager.Flags.ADM_141_TALD] = math.random(90,140),
+                -- variance in [1-variance, 1+variance]
+                local jitter = 1 + ((math.random() * 2 * variance) - variance)
 
-                [WarehouseManager.Flags.MK_82] = math.random(320,520),
-                [WarehouseManager.Flags.MK_83] = math.random(160,260),
-                [WarehouseManager.Flags.MK_84] = math.random(80,140),
-                [WarehouseManager.Flags.HYDRA_70_M151_HE] = math.random(900,1400),
-                [WarehouseManager.Flags.ZUNI_127] = math.random(220,360),
+                local amount = base_qty * jitter
+                amount = roundInt(amount)
+                if amount < 1 then amount = 1 end
+                stock[clsid] = amount
+            end
+        end
 
-                [WarehouseManager.Flags.F14_LANTIRN] = 16,
-                [WarehouseManager.Flags.AAQ_28_LITENING] = 18,
-                [WarehouseManager.Flags.AN_ASQ_228_ATFLIR] = 24,
+        return stock
+    end
 
-                [WarehouseManager.AircraftFlags.FA18C_HORNET] = 24,
-                [WarehouseManager.AircraftFlags.E2C_HAWKEYE] = 4,
-                [WarehouseManager.AircraftFlags.F_14A_135_GR] = 12,
-                [WarehouseManager.AircraftFlags.F14B] = 12,
-            },
-            [coalition.side.RED] = {}
-        },
 
-        [WarehouseManager.StockTypes.SU25T_BLUFOR] = {
-            [coalition.side.BLUE] = {
-                [WarehouseManager.AircraftFlags.SU25T] = 4,
-                [WarehouseManager.Flags.R73_AA_11_ARCHER] = math.random(15,30),
-                [WarehouseManager.Flags.S_8O0FP2_MPP] = math.random(100,400),
-                [WarehouseManager.Flags.VIKHR_M] = math.random(100,200),
-                [WarehouseManager.Flags.KH_29T] = math.random(15,35),
-                [WarehouseManager.Flags.BETAB_500] = math.random(10,20),
-                [WarehouseManager.Flags.BETAB_500SHP] = math.random(8,16),
-                [WarehouseManager.Flags.S13_OF_122MM] = math.random(20,30),
-                [WarehouseManager.Flags.S24B_240MM_UnGd_Rkt] = math.random(12,20),
-                [WarehouseManager.Flags.S25_OFM_340MM] = math.random(10,15),
-                [WarehouseManager.Flags.S25_O_420MM_FRAG] = math.random(6,12),
-                [WarehouseManager.Flags.S5_OFM_340MM] = math.random(40,60),
-                [WarehouseManager.Flags.S8_KOM_80MM_HEAT] = math.random(100,150),
-                [WarehouseManager.Flags.S8_TsM_SM_ORANGE] = math.random(30,60),
-                [WarehouseManager.Flags.S8_TsM_SM_BLUE] = math.random(30,60),
-                [WarehouseManager.Flags.S8_TsM_SM_GREEN] = math.random(30,60),
-                [WarehouseManager.Flags.S8_TsM_SM_RED] = math.random(30,60),
-                [WarehouseManager.Flags.S8_TsM_SM_VIOLET] = math.random(30,60),
-                [WarehouseManager.Flags.S8_TsM_SM_WHITE] = math.random(30,60),
-                [WarehouseManager.Flags.S8_TsM_SM_YELLOW] = math.random(30,60),
-                [WarehouseManager.Flags.S8_OM_FP2_MPP] = math.random(150,250),
-                [WarehouseManager.Flags.S5_KP_57MM_HEAT_FRAG] = math.random(40,60),
-                [WarehouseManager.Flags.S5_M_HE] = math.random(40,60),
-                [WarehouseManager.Flags.S24A] = math.random(12,20),
-                [WarehouseManager.Flags.S24B] = math.random(12,20),
-                [WarehouseManager.Flags.FAB_100] = math.random(20,40),
-                [WarehouseManager.Flags.FAB_100M] = math.random(20,40),
-                [WarehouseManager.Flags.FAB_100SV] = math.random(20,40),
-                [WarehouseManager.Flags.FAB_250] = math.random(16,32),
-                [WarehouseManager.Flags.FAB_250_M62] = math.random(16,32),
-                [WarehouseManager.Flags.FAB_500] = math.random(10,20),
-                [WarehouseManager.Flags.KH25MP_PRGS1VP] = math.random(6,10),
-                [WarehouseManager.Flags.MERCURY_LLTV_POD] = math.random(2,4),
-                [WarehouseManager.Flags.MPS_410] = math.random(2,4),
-                [WarehouseManager.Flags.RBK_250] = math.random(10,20),
-                [WarehouseManager.Flags.RBK_250_275_AO_1SCH] = math.random(10,20),
-                [WarehouseManager.Flags.RBK_500AO] = math.random(8,16),
-                [WarehouseManager.Flags.RBK_500U] = math.random(8,16),
-                [WarehouseManager.Flags.S25L] = math.random(4,8),
-                [WarehouseManager.Flags.SAB_100MN] = math.random(10,20),
-                [WarehouseManager.Flags.SAB_250_200] = math.random(8,16),
-                [WarehouseManager.Flags.X_25MP] = math.random(8,12),
-                [WarehouseManager.Flags.X_29L] = math.random(8,12),
-                [WarehouseManager.Flags.KAB_500KR_NEW] = math.random(8,14),
-                [WarehouseManager.Flags.R_60] = math.random(10,20),
-                [WarehouseManager.Flags.RBK_500U_OAB_2_5RT] = math.random(8,16),
-            },
-            [coalition.side.RED] = {}
-        },
-        [WarehouseManager.StockTypes.CARGO_AIRCRAFT] = {
-            [coalition.side.BLUE] = {
-                [WarehouseManager.AircraftFlags.C130J_30] = 4,
-            },
-            [coalition.side.RED] = {
-                [WarehouseManager.AircraftFlags.IL76MD] = 4,
-            }
-        },
+    ---@param stock_type StockTypes
+    ---@param side coalition.side
+    ---@return table<string, integer>
+    function WarehouseManager:generateAircraftStock(stock_type, side)
+        local stock = {}
+        local _ = side  -- reserved (see note above)
+        if not utils.tableContains(WarehouseManager.AircraftStockTypes, stock_type) then
+            return stock
+        end
 
-        [WarehouseManager.StockTypes.AIR_AIR_LONG_RANGE] = {
-            [coalition.side.BLUE] = {
-                [WarehouseManager.Flags.AIM_120B] = math.random(8,14),
-                [WarehouseManager.Flags.AIM_120C] = math.random(6,10),
-                [WarehouseManager.Flags.AIM_54C_MK47] = math.random(6,10),
-                [WarehouseManager.Flags.AIM_54C_MK60] = math.random(6,10),
-                [WarehouseManager.Flags.SUPER_530D] = math.random(8,14),
-                [WarehouseManager.Flags.AIM_7F] = math.random(6,10),
-                [WarehouseManager.Flags.AIM_7M] = math.random(6,10),
-                [WarehouseManager.Flags.AIM_7P] = math.random(6,10),
-                [WarehouseManager.Flags.AIM_7MH] = math.random(6,10),
-                [WarehouseManager.Flags.MICA_IR] = math.random(6,10),
-                [WarehouseManager.Flags.MICA_RF] = math.random(6,10),
-            },
-            [coalition.side.RED] = {
-                [WarehouseManager.Flags.R27ER] = math.random(20,30),
-                [WarehouseManager.Flags.R27ET] = math.random(12,20),
-            }
-        },
-        [WarehouseManager.StockTypes.AIR_AIR_SHORT_RANGE] = {
-            [coalition.side.BLUE] = {
-                [WarehouseManager.Flags.AIM_9M] = math.random(8,14),
-                [WarehouseManager.Flags.AIM_9X] = math.random(6,10),
-                [WarehouseManager.Flags.AIM_9L] = math.random(6,10),
-                [WarehouseManager.Flags.MAGIC_II] = math.random(8,14),
-            },
-            [coalition.side.RED] = {
-                [WarehouseManager.Flags.R73_AA_11_ARCHER] = math.random(40,60),
-                [WarehouseManager.Flags.R_60] = math.random(20,30),
-            }
-        },
-        [WarehouseManager.StockTypes.AIR_GROUND_BOMBS] = {
-            [coalition.side.BLUE] = {
-                [WarehouseManager.Flags.MK_82] = math.random(12,18),
-                [WarehouseManager.Flags.MK_83] = math.random(8,14),
-                [WarehouseManager.Flags.MK_84] = math.random(6,10),
-                [WarehouseManager.Flags.MK82_SNAKEEYE] = math.random(6,12),
-                [WarehouseManager.Flags.MK_20_ROCKEYE] = math.random(4,8),
-                [WarehouseManager.Flags.CBU_87] = math.random(4,8),
-                [WarehouseManager.Flags.CBU_97] = math.random(8,16),
-                [WarehouseManager.Flags.CBU_99] = math.random(4,8),
-                [WarehouseManager.Flags.CBU_105] = math.random(4,8),
-                [WarehouseManager.Flags.CBU_103] = math.random(4,8),
-                [WarehouseManager.Flags.GBU_54_V_1B] = math.random(10,16),
-                [WarehouseManager.Flags.GBU_43] = math.random(2,4),
-            },
-            [coalition.side.RED] = {
-                [WarehouseManager.Flags.KAB_500KR] = math.random(10,15),
-                [WarehouseManager.Flags.FAB_100] = math.random(20,30),
-                [WarehouseManager.Flags.FAB_250] = math.random(16,24),
-                [WarehouseManager.Flags.FAB_500] = math.random(10,15),
-                [WarehouseManager.Flags.RBK_250] = math.random(10,15),
-                [WarehouseManager.Flags.RBK_500AO] = math.random(8,12),
-                [WarehouseManager.Flags.RBK_500U] = math.random(8,12),
-            }
-        },
-        [WarehouseManager.StockTypes.AIR_GROUND_GUIDED_BOMBS] = {
-            [coalition.side.BLUE] = {
-                [WarehouseManager.Flags.GBU_38] = math.random(16,18),
-                [WarehouseManager.Flags.GBU_12] = math.random(20,35),
-                [WarehouseManager.Flags.GBU_31_V_3B] = math.random(6,10),
-                [WarehouseManager.Flags.GBU_10] = math.random(6,10),
-                [WarehouseManager.Flags.GBU_16] = math.random(6,10),
-                [WarehouseManager.Flags.GBU_24] = math.random(4,8),
-                [WarehouseManager.Flags.GBU_32_V_2B] = math.random(4,8),
-                [WarehouseManager.Flags.AGM_154C_JSOW] = math.random(4,8),
-                [WarehouseManager.Flags.AGM_154A_JSOW] = math.random(4,8),
-            },
-            [coalition.side.RED] = {
-                [WarehouseManager.Flags.KH_29T] = math.random(10,15),
-            }
-        },
-        [WarehouseManager.StockTypes.AIR_GROUND_GUIDED_MISSILES] = {
-            [coalition.side.BLUE] = {
-                [WarehouseManager.Flags.AGM_65D] = math.random(12,16),
-                [WarehouseManager.Flags.AGM_65E] = math.random(6,10),
-                [WarehouseManager.Flags.AGM_65F] = math.random(6,10),
-                [WarehouseManager.Flags.AGM_88_HARM] = math.random(6,10),
-                [WarehouseManager.Flags.AGM_84H_SLAM_ER] = math.random(2,6),
-                [WarehouseManager.Flags.AGM_84D_HARPOON] = math.random(2,6),
-                [WarehouseManager.Flags.ADM_141_TALD] = math.random(2,4),
-            },
-            [coalition.side.RED] = {
-                [WarehouseManager.Flags.KH25ML] = math.random(10,15),
-                [WarehouseManager.Flags.KH58U] = math.random(14,18),
-                [WarehouseManager.Flags.X_25MP] = math.random(8,12),
-                [WarehouseManager.Flags.X_29L] = math.random(8,12),
-                [WarehouseManager.Flags.S25L] = math.random(4,8),
-            }
-        },
-        [WarehouseManager.StockTypes.AIR_GROUND_ROCKETS] = {
-            [coalition.side.BLUE] = {
-                [WarehouseManager.Flags.HYDRA_70_M282_MPP_APKWS] = math.random(38,58),
-                [WarehouseManager.Flags.HYDRA_70_M151_HE] = math.random(60,100),
-                [WarehouseManager.Flags.HYDRA_70_MK5_HEAT] = math.random(60,100),
-            },
-            [coalition.side.RED] = {
-                [WarehouseManager.Flags.S_8O0FP2_MPP] = math.random(200,300),
-                [WarehouseManager.Flags.S8_OM_FP2_MPP] = math.random(150,250),
-                [WarehouseManager.Flags.VIKHR_M] = math.random(100,150),
-                [WarehouseManager.Flags.S13_OF_122MM] = math.random(20,30),
-                [WarehouseManager.Flags.S24A] = math.random(12,20),
-                [WarehouseManager.Flags.S24B] = math.random(12,20),
-                [WarehouseManager.Flags.S25_OFM_340MM] = math.random(10,15),
-                [WarehouseManager.Flags.S25_O_420MM_FRAG] = math.random(6,10),
-                [WarehouseManager.Flags.S5_M_HE] = math.random(40,60),
-                [WarehouseManager.Flags.S5_KP_57MM_HEAT_FRAG] = math.random(40,60),
-                [WarehouseManager.Flags.S8_TsM_SM_ORANGE] = math.random(30,60),
-                [WarehouseManager.Flags.S8_TsM_SM_BLUE] = math.random(30,60),
-                [WarehouseManager.Flags.S8_TsM_SM_GREEN] = math.random(30,60),
-                [WarehouseManager.Flags.S8_TsM_SM_RED] = math.random(30,60),
-                [WarehouseManager.Flags.S8_TsM_SM_VIOLET] = math.random(30,60),
-                [WarehouseManager.Flags.S8_TsM_SM_WHITE] = math.random(30,60),
-                [WarehouseManager.Flags.S8_TsM_SM_YELLOW] = math.random(30,60),
-            }
-        },
-        [WarehouseManager.StockTypes.ECM] = {
-            [coalition.side.BLUE] = {
-                [WarehouseManager.Flags.ALQ_184] = math.random(2,6),
-                [WarehouseManager.Flags.ECLAIR_M_60] = math.random(2,4),
-                [WarehouseManager.Flags.ECLAIR_M_51] = math.random(2,4),
-            },
-            [coalition.side.RED] = {
-                [WarehouseManager.Flags.L005_SORBSIYA_ECM_POD_LEFT] = 12,
-                [WarehouseManager.Flags.L005_SORBSIYA_ECM_POD_RIGHT] = 12,
-                [WarehouseManager.Flags.L081_FANTASMAGORIA] = math.random(2,4),
-                [WarehouseManager.Flags.MERCURY_LLTV_POD] = math.random(2,4),
-                [WarehouseManager.Flags.MPS_410] = math.random(2,4),
-            }
-        },
-        [WarehouseManager.StockTypes.TGP] = {
-            [coalition.side.BLUE] = {
-                [WarehouseManager.Flags.AAQ_28_LITENING] = math.random(5,8),
-                [WarehouseManager.Flags.AN_AAQ_33_SNIPER] = math.random(5,8),
-                [WarehouseManager.Flags.AAQ_14_LANTIRN] = math.random(5,8),
-                [WarehouseManager.Flags.AAQ_13_LANTIRN] = math.random(5,8),
-                [WarehouseManager.Flags.AN_ASQ_228_ATFLIR] = math.random(4,6),
-            },
-            [coalition.side.RED] = {
-                [WarehouseManager.Flags.MERCURY_LLTV_POD] = math.random(2,4),
-            }
+        -- A small per-role default quantity (how many airframes a base of that
+        -- role-type holds). Kept modest, matching the old hardcoded 2..8 range.
+        local role_qty = {
+            [StockTypes.AG_AIRCRAFT]          = {min=10, max=14},
+            [StockTypes.AA_AIRCRAFT]          = {min=10, max=14},
+            [StockTypes.MULTIROLE_AIRCRAFT]   = {min=10, max=14},
+            [StockTypes.RECON_AIRCRAFT]       = {min=4, max=6},
+            [StockTypes.CARGO_AIRCRAFT]       = {min=10, max=14},
+            [StockTypes.ATTACK_HELICOPTER]    = {min=8, max=10},
+            [StockTypes.LOGISTICS_HELICOPTER] = {min=10, max=12},
+        }
+        local qty = role_qty[stock_type] or {min=2, max=4}
 
-        },
-        [WarehouseManager.StockTypes.MISC] = {
-            [coalition.side.BLUE] = {
-                [WarehouseManager.Flags.HTS_POD] = math.random(4,6),
-                [WarehouseManager.Flags.ADM_141_TALD] = math.random(16,24),
-            },
-            [coalition.side.RED] = {
-                [WarehouseManager.Flags.L081_FANTASMAGORIA] = math.random(4,6),
-                [WarehouseManager.Flags.L005_SORBSIYA_ECM_POD_LEFT] = math.random(4,6),
-                [WarehouseManager.Flags.L005_SORBSIYA_ECM_POD_RIGHT] = math.random(4,6),
-            }
-        },
-        
-        [WarehouseManager.StockTypes.MULTIROLE_AIRCRAFT] = {
-            [coalition.side.BLUE] = {
-                [WarehouseManager.AircraftFlags.F16C_BL50] = 6,
-                [WarehouseManager.AircraftFlags.FA18C_HORNET] = 4,
-                [WarehouseManager.AircraftFlags.M2000C] = 2,
-                [WarehouseManager.AircraftFlags.F15E_SE] = 2,
-            },
-            [coalition.side.RED] = {
-                [WarehouseManager.AircraftFlags.MIG29S] = 6,
-                [WarehouseManager.AircraftFlags.SU27] = 4,
-                [WarehouseManager.AircraftFlags.SU30] = 2,
-                [WarehouseManager.AircraftFlags.SU25T] = 2,
-                [WarehouseManager.AircraftFlags.SU24MR] = 4,
-            }
-        },
-        [WarehouseManager.StockTypes.AA_AIRCRAFT] = {
-            [coalition.side.BLUE] = {
-                [WarehouseManager.AircraftFlags.F16C_BL50] = 6,
-                [WarehouseManager.AircraftFlags.FA18C_HORNET] = 4,
-                [WarehouseManager.AircraftFlags.M2000C] = 2,
-                [WarehouseManager.AircraftFlags.F15C] = 2,
-                [WarehouseManager.AircraftFlags.F_14A_135_GR] = 2,
-                [WarehouseManager.AircraftFlags.E3A] = 1,
-            },
-            [coalition.side.RED] = {
-                [WarehouseManager.AircraftFlags.MIG29S] = 6,
-                [WarehouseManager.AircraftFlags.SU27] = 4,
-                [WarehouseManager.AircraftFlags.MIG29A] = 2,
-                [WarehouseManager.AircraftFlags.MIG31] = 2,
-            }
-        },        
-        [WarehouseManager.StockTypes.AG_AIRCRAFT] = {
-            [coalition.side.BLUE] = {
-                [WarehouseManager.AircraftFlags.F16C_BL50] = 2,
-                [WarehouseManager.AircraftFlags.FA18C_HORNET] = 2,
-                [WarehouseManager.AircraftFlags.A10C_TANK_KILLER_II] = 4,
-                [WarehouseManager.AircraftFlags.F15E_SE] = 4,
-                [WarehouseManager.AircraftFlags.SU25T] = 4,
-            },
-            [coalition.side.RED] = {
-                [WarehouseManager.AircraftFlags.SU25T] = 4,
-                [WarehouseManager.AircraftFlags.SU24M] = 4,
-                [WarehouseManager.AircraftFlags.MIG29S] = 2,
-                [WarehouseManager.AircraftFlags.SU27] = 2,
-            }
-        },
-        
-        [WarehouseManager.StockTypes.LOGISTICS_CAPTURE] = {
-            [coalition.side.BLUE] = {
-                [WarehouseManager.Flags.AGM_65D] = math.random(12,20),
-                [WarehouseManager.Flags.AGM_65F] = math.random(8,14),
-                [WarehouseManager.Flags.AGM_88_HARM] = math.random(2,6),
-                [WarehouseManager.Flags.GBU_31_V_3B] = math.random(4,8),
-                [WarehouseManager.Flags.GBU_38] = math.random(15,20),
-                [WarehouseManager.Flags.GBU_12] = math.random(16,28),
-                [WarehouseManager.Flags.LAU_88] = math.random(4,10),
-                [WarehouseManager.Flags.ADM_141_TALD] = math.random(2,4),
-                
-                [WarehouseManager.Flags.HYDRA_70_M282_MPP_APKWS] = math.random(20,40),
-                [WarehouseManager.Flags.HYDRA_70_M151_HE] = math.random(20,40),
-                [WarehouseManager.Flags.HYDRA_70_MK5_HEAT] = math.random(20,40),
+        for aircraft_type in pairs(EraSystem.getEnabledAircraft()) do
+            if WarehouseManager:classifyAircraftRole(aircraft_type) == stock_type then
+                stock[aircraft_type] = math.random(qty.min,qty.max)
+            end
+        end
+        return stock
+    end
 
-                [WarehouseManager.Flags.AAQ_28_LITENING] = math.random(1,3),
-                [WarehouseManager.Flags.AN_AAQ_33_SNIPER] = 1,
-                [WarehouseManager.Flags.HTS_POD] = math.random(1,3),
-                [WarehouseManager.Flags.ALQ_184] = math.random(1,3),
-
-                [WarehouseManager.Flags.AIM_120B] = math.random(6,12),
-                [WarehouseManager.Flags.AIM_120C] = math.random(4,10),
-                [WarehouseManager.Flags.AIM_9M] = math.random(6,8),
-                [WarehouseManager.Flags.AIM_9X] = math.random(8,14),
-                [WarehouseManager.Flags.SUPER_530D] = math.random(2,4),
-                [WarehouseManager.Flags.MAGIC_II] = math.random(2,4),
-            },
-            [coalition.side.RED] = {
-                [WarehouseManager.Flags.R73_AA_11_ARCHER] = math.random(10,20),
-                [WarehouseManager.Flags.S_8O0FP2_MPP] = math.random(100,200),
-                [WarehouseManager.Flags.S8_OM_FP2_MPP] = math.random(80,160),
-                [WarehouseManager.Flags.VIKHR_M] = math.random(12,16),
-                [WarehouseManager.Flags.KH_29T] = math.random(6,10),
-                [WarehouseManager.Flags.KH25ML] = math.random(10,15),
-                [WarehouseManager.Flags.KH58U] = math.random(6,10),
-                [WarehouseManager.Flags.L081_FANTASMAGORIA] = math.random(2,4),
-                [WarehouseManager.Flags.R27ER] = math.random(6,10),
-                [WarehouseManager.Flags.R27ET] = math.random(4,10),
-                [WarehouseManager.Flags.S8_TsM_SM_ORANGE] = math.random(20,40),
-                [WarehouseManager.Flags.S8_TsM_SM_BLUE] = math.random(20,40),
-                [WarehouseManager.Flags.S8_TsM_SM_GREEN] = math.random(20,40),
-                [WarehouseManager.Flags.S8_TsM_SM_RED] = math.random(20,40),
-                [WarehouseManager.Flags.S8_TsM_SM_VIOLET] = math.random(20,40),
-                [WarehouseManager.Flags.S8_TsM_SM_WHITE] = math.random(20,40),
-                [WarehouseManager.Flags.S8_TsM_SM_YELLOW] = math.random(20,40),
-            }
-        },
-     
-    }
-
-   -- Compute a scaling factor based on estimated users.
-    -- Linear scaling:
-    -- users=1 -> 1.0, users=4 -> 4.0
+    -- Compute the player-count based stock scaling factor (AUTO SCALING).
+    --
+    -- The generated weapon amounts are for "one player's worth" of stock; this
+    -- multiplier grows them with the number of human players actually on the
+    -- server so a busy server keeps more and a quiet one keeps less. It is the
+    -- single knob the user toggles via Config.auto_scaling:
+    --   * enable        : when false, scale is fixed at 1 (single player's worth).
+    --   * min_users      : floor on the players counted (>= 1).
+    --   * max_users      : ceiling, so a full server cannot explode stock.
+    --   * users_per_unit : how many players map to one base unit of stock
+    --                      (1 = linear: 4 players -> 4x; 2 = 4 players -> 2x).
+    --
+    -- `users_estimate` may be passed to override the live player count (mainly
+    -- for tooling/tests); otherwise the live BLUE player count is used.
     ---@param users_estimate number|nil
+    ---@return number scale
     function WarehouseManager:getStockScale(users_estimate)
-        local baseline = 1
-        local users = users_estimate or 1
-
-        -- count active human players dynamically
-        local players = coalition.getPlayers(coalition.side.BLUE)
-        if players then
-        if #players > 0 then users = #players end
-        end
-        -- Ensure minimum scaling of 1.0 (at least 1 player's worth of equipment)
-        if users < 1 then users = 1 end
-        
-        local scale = users / baseline
-
+        -- Warehouse "disabled" means effectively infinite stock, regardless of
+        -- auto scaling.
         if not Config.enable_warehouse then
-            scale = 10000 -- effectively infinite stock if warehouse is disabled
+            return 10000
         end
+
+        local cfg = Config.auto_scaling or {}
+
+        -- Auto scaling off: every server keeps exactly one player's worth.
+        if cfg.enable == false then
+            return 1
+        end
+
+        local min_users      = cfg.min_users or 1
+        local max_users      = cfg.max_users or math.huge
+        local users_per_unit = cfg.users_per_unit or 1
+        if users_per_unit < 1 then users_per_unit = 1 end
+
+        -- Determine the player count: explicit estimate, else live BLUE players.
+        local users = users_estimate
+        if not users then
+            local players = coalition.getPlayers(coalition.side.BLUE)
+            users = (players and #players) or 0
+        end
+
+        -- Clamp to the configured [min_users, max_users] window.
+        if users < min_users then users = min_users end
+        if users > max_users then users = max_users end
+
+        local scale = users / users_per_unit
+        if scale < 1 then scale = 1 end  -- never below one player's worth
         return scale
     end
 
@@ -1034,10 +696,26 @@ do
         end
     end
 
+    -- Expand any composite stock types in the list to their individual sub-types.
+    local function expandStockTypes(stock_types)
+        local expanded = {}
+        for _, st in ipairs(stock_types) do
+            local composite = WarehouseManager.StockTypeContents[st]
+            if composite then
+                for _, sub_st in ipairs(composite) do
+                    table.insert(expanded, sub_st)
+                end
+            else
+                table.insert(expanded, st)
+            end
+        end
+        return expanded
+    end
+
 --- Warning: ensure the side is correctly set before execution
     ---@param airbase_name string
     ---@param side coalition.side
-    ---@param stock_types WarehouseManager.StockTypes[]
+    ---@param stock_types StockTypes[]
     function WarehouseManager:attributeAirbaseStock(airbase_name,side,stock_types)
 
         local airbase = Airbase.getByName(airbase_name)
@@ -1046,46 +724,37 @@ do
         local warehouse = airbase:getWarehouse()
         if not warehouse then MissionLogger:warn("No warehouse") return false end
 
+        stock_types = expandStockTypes(stock_types)
+
         local added_stuff_tbl = {}
         for i,stock_type in ipairs(stock_types) do
-            for stock_type_n,stock_c in pairs(WarehouseManager.Stocks) do
-                if stock_type_n == stock_type then
-                    if utils.tableContains({
-                        WarehouseManager.StockTypes.AG_AIRCRAFT,
-                        WarehouseManager.StockTypes.AA_AIRCRAFT,
-                        WarehouseManager.StockTypes.MULTIROLE_AIRCRAFT,
-                    }, stock_type) then
-                        -- Aircraft are added without user scaling
-                        local stock = stock_c[side]
-                        if stock then
-                            for id,amount in pairs(stock) do
-                                warehouse:addItem(id, amount)
-                                table.insert(added_stuff_tbl, {id, amount})
-                            end
-                        end
-                        break
-                    else
-                        local stock = stock_c[side]
-                        if stock then
-                            local user_scale = WarehouseManager:getStockScale()
-                            if side == coalition.side.RED and Config.red_stock_multiplier then
-                                user_scale = user_scale * Config.red_stock_multiplier
-                            end
-
-                            for id,amount in pairs(stock) do
-                                local scaled_amount = math.max(1, math.floor(amount * user_scale))
-                                warehouse:addItem(id, scaled_amount)
-                                table.insert(added_stuff_tbl, {id, scaled_amount})
-                            end
-                        end
-                        break
-                    end
+            if utils.tableContains(WarehouseManager.AircraftStockTypes, stock_type) then
+                -- Aircraft availability is derived from the enabled aircraft set
+                -- (era/config aware) and added WITHOUT user scaling, as before.
+                local stock = WarehouseManager:generateAircraftStock(stock_type, side)
+                for id,amount in pairs(stock) do
+                    warehouse:addItem(id, amount)
+                    table.insert(added_stuff_tbl, {id, amount})
                 end
-    
+            else
+                -- Weapon stock types are generated from the cost/usefulness
+                -- economy (only enabled weapons appear), then user-scaled.
+                local stock = WarehouseManager:generateStock(stock_type, side)
+                local user_scale = WarehouseManager:getStockScale()
+                if side == coalition.side.RED and Config.red_stock_multiplier then
+                    user_scale = user_scale * Config.red_stock_multiplier
+                end
+
+                for id,amount in pairs(stock) do
+                    local scaled_amount = math.max(1, math.floor(amount * user_scale))
+                    warehouse:addItem(id, scaled_amount)
+                    table.insert(added_stuff_tbl, {id, scaled_amount})
+                end
             end
         end
 
-        if utils.tableContains(stock_types, WarehouseManager.StockTypes.FARP) then
+
+        if utils.tableContains(stock_types, StockTypes.FARP) then
             -- add liquids
             local scale = WarehouseManager:getStockScale()
             if side == coalition.side.RED and Config.red_stock_multiplier then
@@ -1107,8 +776,10 @@ do
     end
 
     ---@param side coalition.side
-    ---@param stock_types WarehouseManager.StockTypes[]
+    ---@param stock_types StockTypes[]
     function WarehouseManager:handleIncomingSupplies(side,stock_types)
+
+        stock_types = expandStockTypes(stock_types)
 
         --[[
             tier = level
@@ -1202,33 +873,31 @@ do
             end
         end
 
-        MissionLogger:info("HandleIncomingSupplies: Distributing to L1: " .. count_l1 .. " bases, L2: " .. count_l2 .. " bases, L3: " .. count_l3 .. " bases, L4: " .. count_l4 .. " bases.")
+        MissionLogger:info("HandleIncomingSupplies: Distributing to T1: " .. count_l1 .. " bases, T2: " .. count_l2 .. " bases, T3: " .. count_l3 .. " bases, T4: " .. count_l4 .. " bases.")
 
-        -- 3. Get the full list of items to add (pre-multiplication)
+        -- 3. Get the full list of items to add (pre-multiplication). Generated
+        --    ONCE here per supply event so the per-tier amounts below are
+        --    derived from a single deterministic snapshot.
         local items_to_add = {}
         local aircraft_to_add = {}
         for _, stock_type in ipairs(stock_types) do
-            -- Find the correct stock definition
-            if WarehouseManager.Stocks[stock_type] and WarehouseManager.Stocks[stock_type][side] then
-                local stock = WarehouseManager.Stocks[stock_type][side]
-
-                if utils.tableContains({
-                    WarehouseManager.StockTypes.AG_AIRCRAFT,
-                    WarehouseManager.StockTypes.AA_AIRCRAFT,
-                    WarehouseManager.StockTypes.MULTIROLE_AIRCRAFT,
-                }, stock_type) then
-                    -- Aircraft are handled separately, user multiplier not applied
-                    for id, amount in pairs(stock) do
-                        aircraft_to_add[id] = (aircraft_to_add[id] or 0) + amount
-                    end
-                else
-                    for id, amount in pairs(stock) do
-                        -- Use a table to merge items if they appear in multiple stock_types
-                        items_to_add[id] = (items_to_add[id] or 0) + amount
-                    end
+            if utils.tableContains(WarehouseManager.AircraftStockTypes, stock_type) then
+                -- Aircraft are handled separately, user multiplier not applied.
+                local stock = WarehouseManager:generateAircraftStock(stock_type, side)
+                for id, amount in pairs(stock) do
+                    aircraft_to_add[id] = (aircraft_to_add[id] or 0) + amount
+                end
+            else
+                local stock = WarehouseManager:generateStock(stock_type, side)
+                for id, amount in pairs(stock) do
+                    -- Use a table to merge items if they appear in multiple stock_types
+                    items_to_add[id] = (items_to_add[id] or 0) + amount
                 end
             end
         end
+
+        MissionLogger:info("items to add")
+        MissionLogger:info(items_to_add)
 
         -- 4. Distribute items to warehouses with calculated amounts
 
@@ -1288,6 +957,9 @@ do
                 for id, base_amount in pairs(items_to_add) do
                     local final_amount = math.ceil(base_amount * mult_l4 * user_scale)
                     if final_amount > 0 then
+                        if id == "weapons.nurs.HYDRA_70_M151" then
+                            MissionLogger:info("ROCKETS TO BE ADDED "..final_amount)
+                        end
                         warehouse:addItem(id, final_amount)
                     end
                 end
@@ -1302,52 +974,89 @@ do
         MissionLogger:info("HandleIncomingSupplies: Supply distribution complete for " .. (utils.coalitionToString(side) or "Unknown Side"))
     end
 
+    --- Resolve the declared payload for a coalition + task, honouring per-era
+    --- overrides. For the ACTIVE era, an [coalition][Eras.X][task] entry wins;
+    --- otherwise we fall back to the plain [coalition][task] entry. Mirrors
+    --- EraSystem.resolveTaskTemplateName so the stock gate matches the flight
+    --- that TaskManager actually spawns.
+    ---@param airbase_coalition coalition.side
+    ---@param ai_task_type AITaskTypes
+    ---@return table|nil payload  { [weapon_clsid] = amount } or nil if none declared
+    function WarehouseManager:getAIPayload(airbase_coalition, ai_task_type)
+        local side_payloads = WarehouseManager.AIPayloads[airbase_coalition]
+        if not side_payloads then return nil end
+
+        local active_era = EraSystem and EraSystem.getActiveEra and EraSystem.getActiveEra()
+        if active_era then
+            local era_payloads = side_payloads[active_era]
+            if era_payloads and era_payloads[ai_task_type] then
+                return era_payloads[ai_task_type]
+            end
+        end
+
+        return nil
+    end
+
     ---@param airbase Airbase
     ---@param ai_task_type AITaskTypes
     ---@return boolean, string|nil
     function WarehouseManager:checkIfAIPayloadInStock(airbase, ai_task_type)
+        if Config.enable_ai_payload_checks == false then
+            MissionLogger:info("[PAYLOAD CHECK] AI payload checks disabled in config")
+            return true
+        end
         if not airbase or not airbase.getCoalition then 
             MissionLogger:info("[PAYLOAD CHECK] Airbase or coalition check failed")
             return false 
         end
         local airbase_coalition = airbase:getCoalition()
-        
+
         -- Check if payload definition exists for this coalition and task type
         if not WarehouseManager.AIPayloads[airbase_coalition] then
-            MissionLogger:error("[PAYLOAD CHECK] No payload definitions for coalition "..airbase_coalition)
+            MissionLogger:info("[PAYLOAD CHECK] No payload definitions for coalition "..airbase_coalition)
             return false
         end
-        
-        if not WarehouseManager.AIPayloads[airbase_coalition][ai_task_type] then
+
+        -- Resolve the active-era payload (falls back to the base task payload).
+        local payload = WarehouseManager:getAIPayload(airbase_coalition, ai_task_type)
+        if not payload then
             MissionLogger:info("[PAYLOAD CHECK] No payload definition for "..ai_task_type.." (coalition "..airbase_coalition..") - treating as NO PAYLOAD REQUIRED")
             return true  -- If no payload is defined, treat as "no requirements" = OK
         end
 
         local warehouse = airbase:getWarehouse()
-        if not warehouse then 
-            MissionLogger:error("[PAYLOAD CHECK] No warehouse for airbase")
-            return false 
+        if not warehouse then
+            MissionLogger:info("[PAYLOAD CHECK] No warehouse for airbase")
+            return false
         end
 
         -- Check if the payload table is empty (no requirements)
         local has_requirements = false
-        for _ in pairs(WarehouseManager.AIPayloads[airbase_coalition][ai_task_type]) do
+        for _ in pairs(payload) do
             has_requirements = true
             break
         end
-        
+
         if not has_requirements then
             MissionLogger:info("[PAYLOAD CHECK] Empty payload table for "..ai_task_type.." - treating as NO PAYLOAD REQUIRED")
             return true  -- Empty payload table = no requirements
         end
 
         -- Check each weapon requirement
-        for wpn_id,amount in pairs(WarehouseManager.AIPayloads[airbase_coalition][ai_task_type]) do
-            local current_count = warehouse:getItemCount(wpn_id)
-            local critical_amount = math.max(current_count-2,0)
-            if critical_amount < amount then
-                MissionLogger:info("[PAYLOAD CHECK] "..ai_task_type.." payload INSUFFICIENT: need "..amount.." of "..wpn_id..", have "..critical_amount)
-                return false
+        for wpn_id,amount in pairs(payload) do
+            -- Skip weapons the warehouse API cannot hold/count (unguided rockets,
+            -- gun shells, drop tanks, ...). getItemCount stays 0 for these forever,
+            -- so requiring them would block the task PERMANENTLY. They are not
+            -- warehouse-limited, so treat them as always available.
+            if isWarehouseTrackable(wpn_id) then
+                local current_count = warehouse:getItemCount(wpn_id)
+                local critical_amount = math.max(current_count-2,0)
+                if critical_amount < amount then
+                    MissionLogger:info("[PAYLOAD CHECK] "..ai_task_type.." payload INSUFFICIENT: need "..amount.." of "..wpn_id..", have "..critical_amount)
+                    return false
+                end
+            else
+                MissionLogger:info("[PAYLOAD CHECK] "..ai_task_type.." skipping untrackable weapon "..wpn_id.." (not warehouse-manageable)")
             end
         end
         

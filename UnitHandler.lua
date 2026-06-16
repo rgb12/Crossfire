@@ -189,104 +189,87 @@ do
 
     end
 
+    -- Set once the first time a composed group lands on the WRONG coalition
+    -- (the picked country is not registered on the zone's side in the .miz).
+    -- Used to throw the user-facing message box only a single time.
+    local side_mismatch_notified = false
+
+    -- Per-(zone_type, side) stat counter increment, identical to the legacy
+    -- initZoneUnits/capture behaviour. Called ONCE per zone when its primary
+    -- group(s) spawn successfully.
+    local function bumpZoneStat(zone, spawned_any)
+        if not spawned_any then return end
+        local red = (zone.side == coalition.side.RED)
+        local zt = zone.zone_type
+        if zt == ZoneTypes.STRONGPOINT then
+            if red then stats.red_strongpoints = stats.red_strongpoints + 1
+            else stats.blue_strongpoints = stats.blue_strongpoints + 1 end
+        elseif zt == ZoneTypes.LOGISTICS then
+            if red then stats.red_logistics_zone = stats.red_logistics_zone + 1
+            else stats.blue_logistics_zone = stats.blue_logistics_zone + 1 end
+        elseif zt == ZoneTypes.SAMSITE then
+            if red then stats.red_sam_sites = stats.red_sam_sites + 1
+            else stats.blue_sam_sites = stats.blue_sam_sites + 1 end
+        elseif zt == ZoneTypes.COMMS then
+            if red then stats.red_comms_zones = stats.red_comms_zones + 1
+            else stats.blue_comms_zones = stats.blue_comms_zones + 1 end
+        elseif zt == ZoneTypes.EWSITE then
+            if red then stats.red_ew_zones = stats.red_ew_zones + 1
+            else stats.blue_ew_zones = stats.blue_ew_zones + 1 end
+        elseif zt == ZoneTypes.AIRBASE then
+            if red then stats.red_airbases = stats.red_airbases + 1
+            else stats.blue_airbases = stats.blue_airbases + 1 end
+        elseif zt == ZoneTypes.FARP then
+            if red then stats.red_farp_zones = stats.red_farp_zones + 1
+            else stats.blue_farp_zones = stats.blue_farp_zones + 1 end
+        end
+    end
+
+    --- Spawn the dynamically-composed ground units for a zone.
+    --- Ground units are FULLY SCRIPTED: UnitComposer builds native group tables
+    --- and we spawn each via coalition.addGroup. Every live group name is
+    --- recorded in zone.linked_groups (capture / persistence / cleanup depend
+    --- on it). The same stats.* counters the legacy code maintained are kept.
     ---@param zone ZoneHandler
     function UnitHandler.initZoneUnits(zone)
+        if not zone or zone.side == coalition.side.NEUTRAL then return end
+        if zone.zone_type == nil then return end
 
-        if zone.zone_type == ZoneTypes.STRONGPOINT and zone.side ~= coalition.side.NEUTRAL then
-            -- spawn red or blue ground frontline units
-            if zone.side == coalition.side.RED then
+        local compositions = UnitComposer.compose(zone)
+        local spawned_any = false
 
-                UnitHandler.clone(GroupData.STRONGPOINT_SITES.RED[zone.level].group_name, zone,true) --TO CHANGE
-                stats.red_strongpoints = stats.red_strongpoints +1
-            elseif zone.side == coalition.side.BLUE then
-                UnitHandler.clone(GroupData.STRONGPOINT_SITES.BLUE[zone.level].group_name, zone,true)
-                stats.blue_strongpoints = stats.blue_strongpoints +1
+        for _, comp in ipairs(compositions) do
+            local gt = comp.group_table
+            if gt and gt.units and #gt.units > 0 then
+                local country_id = comp.country
+                local grp = coalition.addGroup(country_id, Group.Category.GROUND, gt)
+                if grp and grp:getUnit(1) then
+                    -- DCS binds a group to the coalition its country belongs to
+                    -- in the .miz, NOT to the side we intended. If the picked
+                    -- country is not registered on this zone's side, the group
+                    -- spawns on the wrong coalition. Detect it and notify ONCE.
+                    local actual_country = grp:getUnit(1):getCountry()
 
-            end
+                    if not utils.tableContains(Config.era_system.coalition_selector[zone.side], actual_country) then
 
-
-        elseif zone.zone_type == ZoneTypes.LOGISTICS and zone.side ~= coalition.side.NEUTRAL then
-            -- spawn red or blue ground logistics units
-            if zone.side == coalition.side.RED then
-                UnitHandler.clone(GroupData.LOGISTICS_SITES.RED[zone.level].group_name, zone,true)
-                stats.red_logistics_zone = stats.red_logistics_zone +1
-
-            elseif zone.side == coalition.side.BLUE then
-                UnitHandler.clone(GroupData.LOGISTICS_SITES.BLUE[zone.level].group_name, zone,true)
-                stats.blue_logistics_zone = stats.blue_logistics_zone +1
-            end
-
-
-        elseif zone.zone_type == ZoneTypes.SAMSITE and zone.side ~= coalition.side.NEUTRAL then
-            
-            local grp = nil
-            local sam_spawn_options = {}
-            for _, sam_obj in pairs(GroupData.SAM_SITES_NG) do
-                if zone.side == sam_obj.side and zone.sam_classification == sam_obj.sam_classification then
-                    table.insert(sam_spawn_options, sam_obj.group_name)
-                end
-            end
-            if #sam_spawn_options >0 then
-                local sam_choice_index = math.random(1,#sam_spawn_options)
-                grp = UnitHandler.clone(sam_spawn_options[sam_choice_index], zone, false)
-            end
-            if grp then
-                if zone.side == coalition.side.RED then
-                    stats.red_sam_sites = stats.red_sam_sites+1
-                else stats.blue_sam_sites = stats.blue_sam_sites+1 end
-            end
-
-        elseif zone.zone_type == ZoneTypes.COMMS and zone.side ~= coalition.side.NEUTRAL then
-            -- spawn red or blue ground logistics units
-            if zone.side == coalition.side.RED then
-
-                UnitHandler.clone(GroupData.COMMS_SITES.RED[zone.level].group_name, zone,true)
-                stats.red_comms_zones = stats.red_comms_zones +1
-            elseif zone.side == coalition.side.BLUE then
-                UnitHandler.clone(GroupData.COMMS_SITES.BLUE[zone.level].group_name, zone,true)
-                stats.blue_comms_zones = stats.blue_comms_zones +1
-            end
-
-
-        elseif zone.zone_type == ZoneTypes.EWSITE and zone.side ~= coalition.side.NEUTRAL then
-            -- spawn red or blue ground logistics units
-            if zone.side == coalition.side.RED then
-                UnitHandler.clone(GroupData.EW_SITES.RED[zone.level].group_name, zone,true)
-                stats.red_ew_zones = stats.red_ew_zones +1
-            elseif zone.side == coalition.side.BLUE then
-                UnitHandler.clone(GroupData.EW_SITES.BLUE[zone.level].group_name, zone,true)
-                stats.blue_ew_zones = stats.blue_ew_zones +1
-            end
-        
-        elseif zone.zone_type == ZoneTypes.AIRBASE and zone.side ~= coalition.side.NEUTRAL then
-            -- spawn red or blue ground logistics units
-            if zone.side == coalition.side.RED then
-                UnitHandler.clone(GroupData.AIRBASE_SITES.RED[zone.level].group_name, zone,true)
-                for _,sam in pairs(GroupData.AIRBASE_SAMS.RED) do
-                    if sam.tier == zone.level then
-                        UnitHandler.clone(sam.group_name, zone,true,300)
+                        MissionLogger:error("[UnitHandler] " .. tostring(gt.name).. " spawned on country " .. tostring(actual_country).. " but zone " .. tostring(zone.name) .. " is side "
+                            .. tostring(zone.side) .. " -- country " .. tostring(country_id)
+                            .. " is not registered on that side in the .miz.")
+                        if not side_mismatch_notified then
+                            side_mismatch_notified = true
+                            env.error("CONFIG ERROR: coalition_selector country ".. tostring(country.name[country_id]) .. " is not on the intended coalition in this mission. Ground units are spawning with the wrong country. Add that country to the correct coalition in the Mission Editor.", true)
+                        end
                     end
+                    table.insert(zone.linked_groups, gt.name)
+                    spawned_any = true
+                else
+                    MissionLogger:error("[UnitHandler] addGroup failed for "
+                        .. tostring(gt.name) .. " (" .. tostring(comp.country) .. ")")
                 end
-                stats.red_airbases = stats.red_airbases +1
-            elseif zone.side == coalition.side.BLUE then
-                UnitHandler.clone(GroupData.AIRBASE_SITES.BLUE[zone.level].group_name, zone,true)
-                for _,sam in pairs(GroupData.AIRBASE_SAMS.BLUE) do
-                    if sam.tier == zone.level then
-                        UnitHandler.clone(sam.group_name, zone,true,300)
-                    end
-                end
-                stats.blue_airbases = stats.blue_airbases +1
-            end
-        elseif zone.zone_type == ZoneTypes.FARP and zone.side ~= coalition.side.NEUTRAL then
-            -- spawn red or blue ground logistics units
-            if zone.side == coalition.side.RED then
-                UnitHandler.clone(GroupData.FARP_SUPPORT.RED[zone.level].group_name, zone,true,100,300)
-                stats.red_farp_zones = stats.red_farp_zones +1
-            elseif zone.side == coalition.side.BLUE then
-                UnitHandler.clone(GroupData.FARP_SUPPORT.BLUE[zone.level].group_name, zone,true,100,300)
-                stats.blue_farp_zones = stats.blue_farp_zones +1
             end
         end
+
+        bumpZoneStat(zone, spawned_any)
     end
 
     ---@param zone ZoneHandler
@@ -340,6 +323,158 @@ do
                 MissionLogger:error("Could not spawn comms tower for ".. zone.name)
             end
         end
+        return false
+    end
+
+    --- Build a set of every LATE-ACTIVATED group name present in the mission,
+    --- using ONLY native DCS data (env.mission) -- no mist. The template groups
+    --- the framework clones (GroupData.COMMON_ASSETS) are late-activated ME
+    --- groups; this walk lets us verify they exist BEFORE anything tries to clone
+    --- them (mist.teleportToPoint indexes nil and hard-errors when the group is
+    --- missing -- see the UnitHandler.initFARP crash).
+    ---@return table<string, boolean> set of late-activated group names -> true
+    local function getLateActivatedGroupNames()
+        local names = {}
+        local mission = env and env.mission
+        local coalitions = mission and mission.coalition
+        if not coalitions then return names end
+        for _, coal in pairs(coalitions) do
+            if type(coal) == "table" and coal.country then
+                for _, country in pairs(coal.country) do
+                    if type(country) == "table" then
+                        -- Group categories: plane, helicopter, vehicle, ship,
+                        -- static. Each holds a .group array of ME templates.
+                        for _, cat in pairs(country) do
+                            if type(cat) == "table" and cat.group then
+                                for _, group in pairs(cat.group) do
+                                    if type(group) == "table" and group.name
+                                       and group.lateActivation then
+                                        names[group.name] = true
+                                    end
+                                end
+                            end
+                        end
+                    end
+                end
+            end
+        end
+        return names
+    end
+
+    --- Logistics assets that are NOT flown in some eras (the capture/resupply
+    --- mechanics resolve INSTANTLY when no era-appropriate transport exists, e.g.
+    --- WW2). For those we must not validate a template that will never be cloned.
+    --- Maps the COMMON_ASSETS asset key -> a predicate that returns true when the
+    --- asset IS actually used for the active era.
+    local function isLogisticsAssetUsed(asset_key)
+        if asset_key == "capture_helicopter"
+        or asset_key == "reinforcement_helicopter"
+        or asset_key == "LHA_capture_helicopter" then
+            return EraSystem.isHelicopterEraCapable()
+        end
+        if asset_key == "resupply_aircraft" then
+            return EraSystem.isAirResupplyEraCapable()
+        end
+        return true
+    end
+
+    --- Collect the group name that EACH GroupData.COMMON_ASSETS asset will
+    --- actually clone for the ACTIVE era, paired with a human-readable path and a
+    --- flag for whether that name came from the active era's OWN entry or from a
+    --- fallback (MODERN / any other era).
+    ---
+    --- We validate the REAL spawn target: resolveTaskTemplateName returns exactly
+    --- the name the spawn path will clone (active era's own entry if present,
+    --- otherwise the MODERN/base fallback). This gives full crash protection. The
+    --- `own_entry` flag lets the reporter tailor the fix advice -- a missing OWN
+    --- entry means "build that ME group or remove the per-era entry to fall back";
+    --- a missing FALLBACK name means the base/MODERN group itself is wrong.
+    --- Logistics assets that resolve to an INSTANT mechanic in the active era are
+    --- skipped (they are never cloned -- see isLogisticsAssetUsed).
+    ---@return table[] list of { name=string, path=string, own_entry=boolean }
+    local function collectCommonAssetTemplateRefs()
+        local refs = {}
+        local assets = GroupData and GroupData.COMMON_ASSETS
+        if not assets then return refs end
+        for side_key, side_tbl in pairs(assets) do
+            if type(side_tbl) == "table" then
+                for asset_key, asset_val in pairs(side_tbl) do
+                    if isLogisticsAssetUsed(asset_key) then
+                        -- The actual spawn target (with fallback) ...
+                        local resolved = EraSystem.resolveTaskTemplateName(asset_val)
+                        -- ... and whether it is the active era's OWN entry.
+                        local strict = EraSystem.resolveTaskTemplateNameStrict(asset_val)
+                        if type(resolved) == "string" then
+                            refs[#refs + 1] = {
+                                name = resolved,
+                                path = "COMMON_ASSETS." .. tostring(side_key) .. "." .. tostring(asset_key),
+                                own_entry = (strict ~= nil),
+                            }
+                        end
+                    end
+                end
+            end
+        end
+        return refs
+    end
+
+    --- Preflight check, run ONCE at mission start (before any spawning), that
+    --- every late-activated template group referenced by GroupData.COMMON_ASSETS
+    --- actually exists in the mission. Missing groups are almost always a typo or
+    --- a forgotten/renamed ME group; each one is surfaced to the user with
+    --- env.error(..., true) (the second arg pops the in-game error box) so the
+    --- mistake is visible immediately instead of as a later mist index crash.
+    ---@return boolean ok true when every referenced group was found
+    function UnitHandler.validateGroupTemplates()
+        local present = getLateActivatedGroupNames()
+        local refs = collectCommonAssetTemplateRefs()
+
+        -- De-duplicate: the same group name may be referenced from several paths
+        -- (e.g. an era table whose entries all point at one base group). Report
+        -- each MISSING name once, listing every config path that needs it. Track
+        -- whether the name comes from the active era's OWN entry so the fix advice
+        -- can be tailored.
+        local missing_paths = {}   -- name -> { path, ... }
+        local missing_own = {}     -- name -> boolean (any ref was an own-entry)
+        local missing_order = {}   -- preserves first-seen order for stable output
+        for _, ref in ipairs(refs) do
+            if not present[ref.name] then
+                if not missing_paths[ref.name] then
+                    missing_paths[ref.name] = {}
+                    missing_order[#missing_order + 1] = ref.name
+                end
+                table.insert(missing_paths[ref.name], ref.path)
+                missing_own[ref.name] = missing_own[ref.name] or ref.own_entry
+            end
+        end
+
+        if #missing_order == 0 then
+            MissionLogger:info("Group template validation passed: all referenced late-activated groups exist.")
+            return true
+        end
+
+        for _, name in ipairs(missing_order) do
+            local paths = table.concat(missing_paths[name], ", ")
+            -- Tailor the fix advice: an OWN per-era entry that points at a missing
+            -- group is most often an era template you have not built yet -- the
+            -- user can either create it OR remove that era entry so the asset
+            -- falls back to the base/MODERN group. A missing fallback name means
+            -- the base/MODERN group itself is wrong.
+            local advice
+            if missing_own[name] then
+                advice = "Create that group in the mission editor (Late Activation, exact name), "
+                    .. "OR remove the per-era entry so it falls back to the base/MODERN group."
+            else
+                advice = "Check the mission editor for a missing/renamed/typo group name. "
+                    .. "It must match EXACTLY and be set to Late Activation."
+            end
+            env.error(string.format(
+                "CONFIG ERROR: late-activated group '%s' referenced by %s was not found in the mission. %s",
+                tostring(name), paths, advice), true)
+        end
+
+        MissionLogger:error(string.format(
+            "Group template validation FAILED: %d referenced group(s) missing from the mission.", #missing_order))
         return false
     end
 
@@ -433,7 +568,7 @@ do
         if zone.linked_farp and restock then
             timer.scheduleFunction(function()
                 WarehouseManager:clearWarehouse(zone.linked_farp)
-                WarehouseManager:attributeAirbaseStock(zone.linked_farp, zone.side, {WarehouseManager.StockTypes.FARP})
+                WarehouseManager:attributeAirbaseStock(zone.linked_farp, zone.side, {StockTypes.FARP})
             end, {}, timer.getTime()+1)
         end
 
@@ -452,6 +587,9 @@ do
         else
             group_template_name = GroupData.COMMON_ASSETS.BLUE.farp
         end
+        -- [Era] Resolve the per-era FARP support template (e.g. "BLUE WW2 FARP
+        -- VEHICLES") for the active era from its GroupData.COMMON_ASSETS table.
+        group_template_name = EraSystem.resolveTaskTemplateName(group_template_name)
 
         if group_template_name then
             local vehicles_gr = mist.teleportToPoint({
@@ -495,63 +633,54 @@ do
         end
     end
 
-    ---@param group_name string
+    ---@param group_name string|nil cargo group to despawn after the drop; nil for an instant (aircraft-less) resupply
     ---@param airbase_name string
     ---@param side coalition.side
-    ---@param stock_types WarehouseManager.StockTypes[] if none are provided, a random stock type will be chosen
+    ---@param stock_types StockTypes[]|nil if none are provided, a random stock type will be chosen
     function UnitHandler.simulateResupply(group_name,airbase_name, side, stock_types)
         local possible_stocks_rnd =
             {
                 {
                     out_text = "AA Aircraft, AA Long Range and AA Short Range missiles",
                     stocks = {
-                        WarehouseManager.StockTypes.AA_AIRCRAFT,
-                        WarehouseManager.StockTypes.AIR_AIR_LONG_RANGE,
-                        WarehouseManager.StockTypes.AIR_AIR_SHORT_RANGE,
+                        StockTypes.AA_AIRCRAFT,
+                        StockTypes.AIR_AIR_LONG_RANGE,
+                        StockTypes.AIR_AIR_SHORT_RANGE,
                     },
                 },
                 {
                     out_text = "AG and Cargo Aircraft",
                     stocks = {
-                        WarehouseManager.StockTypes.CARGO_AIRCRAFT,
-                        WarehouseManager.StockTypes.AG_AIRCRAFT,
+                        StockTypes.CARGO_AIRCRAFT,
+                        StockTypes.AG_AIRCRAFT,
                     },
                 },
                 {
                     out_text = "AG Missiles and Rockets",
                     stocks = {
-                        WarehouseManager.StockTypes.AIR_GROUND_GUIDED_MISSILES,
-                        WarehouseManager.StockTypes.AIR_GROUND_ROCKETS,
+                        StockTypes.AIR_GROUND_GUIDED_MISSILES,
+                        StockTypes.AIR_GROUND_ROCKETS,
                     },
                 },
                 {
                     out_text = "AG Unguided and Guided Bombs",
                     stocks = {
-                        WarehouseManager.StockTypes.AIR_GROUND_BOMBS,
-                        WarehouseManager.StockTypes.AIR_GROUND_GUIDED_BOMBS,
+                        StockTypes.AIR_GROUND_BOMBS,
+                        StockTypes.AIR_GROUND_GUIDED_BOMBS,
                     },
                 },
                 {
                     out_text = "ECM, TGPs and Misc Equipment",
                     stocks = {
-                        WarehouseManager.StockTypes.ECM,
-                        WarehouseManager.StockTypes.TGP,
-                        WarehouseManager.StockTypes.MISC,
+                        StockTypes.ECM,
+                        StockTypes.TGP,
+                        StockTypes.MISC,
                     },
                 },
             }
 
         if not stock_types then
             stock_types = stock_types or {}
-        end
-        if #stock_types==0 and Config.enabled_su25t_blufor and side==coalition.side.BLUE then
-            table.insert(possible_stocks_rnd,
-            {
-                out_text = "SU-25T BLUFOR Package (AA Aircraft, AG Missiles, Guided Bombs, ECM and TGPs)",
-                stocks = {
-                    WarehouseManager.StockTypes.SU25T_BLUFOR,
-                },
-            })
         end
 
         local stock_type_choice = possible_stocks_rnd[math.random(1,#possible_stocks_rnd)]
@@ -561,56 +690,59 @@ do
         if #stock_types == 0 and Config.random_resupply_types then
             chosen_stocks = stock_type_choice.stocks
             out_text = stock_type_choice.out_text
-        elseif #stock_types == 0 then
-            chosen_stocks = {WarehouseManager.StockTypes.INITIAL}
+        elseif #stock_types == 0 and not Config.random_resupply_types then
+            chosen_stocks = {StockTypes.INITIAL}
             out_text = "Initial Stock Package"
-        else 
+        else
             chosen_stocks = mist.utils.deepCopy(stock_types)
             local stock_descs = {
-                [WarehouseManager.StockTypes.AA_AIRCRAFT] = "AA Aircraft",
-                [WarehouseManager.StockTypes.AIR_AIR_LONG_RANGE] = "AA Long Range Missiles",
-                [WarehouseManager.StockTypes.AIR_AIR_SHORT_RANGE] = "AA Short Range Missiles",
-                [WarehouseManager.StockTypes.CARGO_AIRCRAFT] = "Cargo Aircraft",
-                [WarehouseManager.StockTypes.AG_AIRCRAFT] = "AG Aircraft",
-                [WarehouseManager.StockTypes.AIR_GROUND_GUIDED_MISSILES] = "AG Missiles",
-                [WarehouseManager.StockTypes.AIR_GROUND_ROCKETS] = "AG Rockets",
-                [WarehouseManager.StockTypes.AIR_GROUND_BOMBS] = "AG Unguided Bombs",
-                [WarehouseManager.StockTypes.AIR_GROUND_GUIDED_BOMBS] = "AG Guided Bombs",
-                [WarehouseManager.StockTypes.ECM] = "ECM Equipment",
-                [WarehouseManager.StockTypes.TGP] = "TGPs",
-                [WarehouseManager.StockTypes.MISC] = "Misc Equipment",
-                [WarehouseManager.StockTypes.SU25T_BLUFOR] = "SU-25T BLUFOR Package",
-                [WarehouseManager.StockTypes.INITIAL] = "Initial Stock Package",
+                [StockTypes.AA_AIRCRAFT] = "AA Aircraft",
+                [StockTypes.AIR_AIR_LONG_RANGE] = "AA Long Range Missiles",
+                [StockTypes.AIR_AIR_SHORT_RANGE] = "AA Short Range Missiles",
+                [StockTypes.CARGO_AIRCRAFT] = "Cargo Aircraft",
+                [StockTypes.AG_AIRCRAFT] = "AG Aircraft",
+                [StockTypes.AIR_GROUND_GUIDED_MISSILES] = "AG Missiles",
+                [StockTypes.AIR_GROUND_ROCKETS] = "AG Rockets",
+                [StockTypes.AIR_GROUND_BOMBS] = "AG Unguided Bombs",
+                [StockTypes.AIR_GROUND_GUIDED_BOMBS] = "AG Guided Bombs",
+                [StockTypes.ECM] = "ECM Equipment",
+                [StockTypes.TGP] = "TGPs",
+                [StockTypes.MISC] = "Misc Equipment",
+                [StockTypes.INITIAL] = "Initial Stock Package",
             }
             for _, stock in ipairs(chosen_stocks) do
                 if out_text ~= "" then out_text = out_text .. ", " end
                 out_text = out_text .. (stock_descs[stock] or "Unknown Stock Type")
             end
         end
+        if #chosen_stocks ~= 0 then
+            local prefix = (side == coalition.side.RED) and "RED" or "BLUE"
+            trigger.action.outTextForCoalition(side, "RESUPPLY Airdrop packaged secured at " .. airbase_name.."\nAssets received: " ..out_text, 10)
+            trigger.action.outSoundForCoalition(side, "supply_package_received.ogg")
 
-        local prefix = (side == coalition.side.RED) and "RED" or "BLUE"
-        trigger.action.outTextForCoalition(side, "RESUPPLY Airdrop packaged secured at " .. airbase_name.."\nAssets received: " ..out_text, 10)
-        trigger.action.outSoundForCoalition(side, "supply_package_received.ogg")
+            MissionLogger:info(prefix .. " Resupply airdrop delivered at " .. airbase_name)
 
-        MissionLogger:info(prefix .. " Resupply airdrop delivered at " .. airbase_name)
-
-        
-        if side == coalition.side.RED then
-            WarehouseManager:attributeAirbaseStock(airbase_name, coalition.side.RED, chosen_stocks or {WarehouseManager.StockTypes.INITIAL})
-        else
-            local stocks = chosen_stocks or {WarehouseManager.StockTypes.INITIAL}
-            WarehouseManager:attributeAirbaseStock(airbase_name, coalition.side.BLUE, stocks)
-        end
-
-        EnrouteManager:remove(group_name)
-
-        timer.scheduleFunction(function()
-            local g = Group.getByName(group_name)
-            if g and g:isExist() then
-                MissionLogger:info("Despawning resupply aircraft enroute.")
-                g:destroy()
+            
+            if side == coalition.side.RED then
+                WarehouseManager:attributeAirbaseStock(airbase_name, coalition.side.RED, chosen_stocks or {StockTypes.INITIAL})
+            else
+                local stocks = chosen_stocks or {StockTypes.INITIAL}
+                WarehouseManager:attributeAirbaseStock(airbase_name, coalition.side.BLUE, stocks)
             end
-        end, {}, timer.getTime() + 60)
+        end
+        -- group_name is nil for an instant (aircraft-less) resupply: nothing to
+        -- de-register or despawn in that case.
+        if group_name then
+            EnrouteManager:remove(group_name)
+
+            timer.scheduleFunction(function()
+                local g = Group.getByName(group_name)
+                if g and g:isExist() then
+                    MissionLogger:info("Despawning resupply aircraft enroute.")
+                    g:destroy()
+                end
+            end, {}, timer.getTime() + 60)
+        end
     end
 
 end

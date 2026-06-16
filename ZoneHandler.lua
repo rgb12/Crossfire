@@ -421,6 +421,11 @@ do
         if self.side == side then return end
         if MISSION_ENDED then return end
 
+        -- Remember who held the zone before this capture so the per-zone-type
+        -- stat counters can be decremented for the OLD side. The +1 for the new
+        -- side is applied by UnitHandler.updateZoneUnits -> initZoneUnits.
+        local previous_side = self.side
+
         if self.side == coalition.side.NEUTRAL then
             stats.neutral_zones = stats.neutral_zones - 1
         elseif self.side == coalition.side.RED then
@@ -442,62 +447,60 @@ do
             stats.neutral_zones = stats.neutral_zones + 1
         end
 
+        -- Ground units are now fully scripted (UnitComposer + coalition.addGroup).
+        -- For each capturable zone type we: decrement the OLD side's per-type
+        -- counter, keep the type-specific side effects (supplies/statics/FARP),
+        -- then call UnitHandler.updateZoneUnits(self) which destroys the old
+        -- groups and recomposes for the new side (applying the new-side +1).
         if self.zone_type == ZoneTypes.STRONGPOINT and self.side ~= coalition.side.NEUTRAL then
-            if self.side == coalition.side.RED then
-                UnitHandler.clone(GroupData.STRONGPOINT_SITES.RED[self.level].group_name, self,true) -- level 1
-                stats.red_strongpoints = stats.red_strongpoints +1
-                stats.blue_strongpoints = stats.blue_strongpoints -1
-
-            elseif self.side == coalition.side.BLUE then
-                UnitHandler.clone(GroupData.STRONGPOINT_SITES.BLUE[self.level].group_name, self,true)
-                stats.red_strongpoints = stats.red_strongpoints -1
-                stats.blue_strongpoints = stats.blue_strongpoints +1
+            if previous_side == coalition.side.RED then
+                stats.red_strongpoints = stats.red_strongpoints - 1
+            elseif previous_side == coalition.side.BLUE then
+                stats.blue_strongpoints = stats.blue_strongpoints - 1
             end
             self.attack_convoy = 0
+            UnitHandler.updateZoneUnits(self)
 
         elseif self.zone_type == ZoneTypes.LOGISTICS and self.side ~= coalition.side.NEUTRAL then
             --TO CHANGE add looting capture logic
-
-            if self.side == coalition.side.RED then
-                UnitHandler.clone(GroupData.LOGISTICS_SITES.RED[self.level].group_name, self,true)
-                WarehouseManager:handleIncomingSupplies(self.side,{WarehouseManager.StockTypes.LOGISTICS_CAPTURE})
-            elseif self.side == coalition.side.BLUE then
-                UnitHandler.clone(GroupData.LOGISTICS_SITES.BLUE[self.level].group_name, self,true)
-                WarehouseManager:handleIncomingSupplies(self.side,{WarehouseManager.StockTypes.LOGISTICS_CAPTURE})
+            if previous_side == coalition.side.RED then
+                stats.red_logistics_zone = stats.red_logistics_zone - 1
+            elseif previous_side == coalition.side.BLUE then
+                stats.blue_logistics_zone = stats.blue_logistics_zone - 1
             end
+            WarehouseManager:handleIncomingSupplies(self.side,{StockTypes.LOGISTICS_CAPTURE})
             self.heli_avail = 0
             -- Mark static as dead, this prevents the check function from flagging it as dead
             self.linked_ammo_depot = nil
             self.ammo_depot_intact = false
             self.ammo_depot_last_destroyed = timer.getTime()
             self.linked_statics = {}
+            UnitHandler.updateZoneUnits(self)
         elseif self.zone_type == ZoneTypes.COMMS and self.side ~= coalition.side.NEUTRAL then
-            if self.side == coalition.side.RED then
-                UnitHandler.clone(GroupData.COMMS_SITES.RED[self.level].group_name, self,true)
-                stats.red_comms_zones = stats.red_comms_zones +1
-                stats.blue_comms_zones = stats.blue_comms_zones -1
-            elseif self.side == coalition.side.BLUE then
-                UnitHandler.clone(GroupData.COMMS_SITES.BLUE[self.level].group_name, self,true)
-                stats.red_comms_zones = stats.red_comms_zones -1
-                stats.blue_comms_zones = stats.blue_comms_zones +1
+            if previous_side == coalition.side.RED then
+                stats.red_comms_zones = stats.red_comms_zones - 1
+            elseif previous_side == coalition.side.BLUE then
+                stats.blue_comms_zones = stats.blue_comms_zones - 1
             end
             -- Mark static as dead, this prevents the check function from flagging it as dead
             self.linked_comms_tower = nil
             self.comms_tower_intact = false
             self.comms_tower_last_destroyed = timer.getTime()
             self.linked_statics = {}
+            UnitHandler.updateZoneUnits(self)
         elseif self.zone_type == ZoneTypes.EWSITE and self.side ~= coalition.side.NEUTRAL then
-            if self.side == coalition.side.RED then
-                UnitHandler.clone(GroupData.EW_SITES.RED[self.level].group_name , self,true)
-                stats.red_ew_zones = stats.red_ew_zones +1
-                stats.blue_ew_zones = stats.blue_ew_zones -1
-            elseif self.side == coalition.side.BLUE then
-                UnitHandler.clone(GroupData.EW_SITES.BLUE[self.level].group_name , self,true)
-                stats.red_ew_zones = stats.red_ew_zones -1
-                stats.blue_ew_zones = stats.blue_ew_zones +1
+            if previous_side == coalition.side.RED then
+                stats.red_ew_zones = stats.red_ew_zones - 1
+            elseif previous_side == coalition.side.BLUE then
+                stats.blue_ew_zones = stats.blue_ew_zones - 1
             end
+            UnitHandler.updateZoneUnits(self)
         elseif self.zone_type == ZoneTypes.FARP and self.side ~= coalition.side.NEUTRAL then
-            
+            if previous_side == coalition.side.RED then
+                stats.red_farp_zones = stats.red_farp_zones - 1
+            elseif previous_side == coalition.side.BLUE then
+                stats.blue_farp_zones = stats.blue_farp_zones - 1
+            end
             self.linked_ammo_depot = nil
             self.ammo_depot_intact = false
             self.ammo_depot_last_destroyed = timer.getTime()
@@ -508,44 +511,14 @@ do
                 end
                 UnitHandler.initFARP(self,false)
             end,{},timer.getTime()+5)
-
-            if self.side == coalition.side.RED then
-                UnitHandler.clone(GroupData.FARP_SUPPORT.RED[self.level].group_name , self,true,100,300)
-                stats.red_farp_zones = stats.red_farp_zones+1
-                stats.blue_farp_zones = stats.blue_farp_zones-1
-            elseif self.side == coalition.side.BLUE then
-                UnitHandler.clone(GroupData.FARP_SUPPORT.BLUE[self.level].group_name , self,true,100,300)
-                stats.red_farp_zones = stats.red_farp_zones-1
-                stats.blue_farp_zones = stats.blue_farp_zones+1
-            end
+            UnitHandler.updateZoneUnits(self)
         elseif self.zone_type == ZoneTypes.SAMSITE and self.side ~= coalition.side.NEUTRAL then
-            local sam_spawned = nil
-            local sam_spawn_options = {}
-            for _, sam in pairs(GroupData.SAM_SITES_NG) do
-                if sam.side == self.side and sam.sam_classification == self.sam_classification then
-                    table.insert(sam_spawn_options, sam.group_name)
-                end
+            if previous_side == coalition.side.RED then
+                stats.red_sam_sites = stats.red_sam_sites - 1
+            elseif previous_side == coalition.side.BLUE then
+                stats.blue_sam_sites = stats.blue_sam_sites - 1
             end
-            if #sam_spawn_options > 0 then
-                local chosen_sam_grname = sam_spawn_options[math.random(1, #sam_spawn_options)]
-                sam_spawned = UnitHandler.clone(chosen_sam_grname , self, false)
-            end
-            if not sam_spawned then
-                MissionLogger:warn("No SAM options found for zone: " .. self.name .. " with classification: " ..tostring(self.sam_classification))
-                if self.side == coalition.side.BLUE then
-                    UnitHandler.clone("BLUE GRND TEST", self, false)
-                elseif self.side == coalition.side.RED then
-                    UnitHandler.clone("RED GRND TEST", self, false)
-                end
-            end
-
-            if self.side == coalition.side.RED then
-                stats.red_sam_sites = stats.red_sam_sites +1
-                stats.blue_sam_sites = stats.blue_sam_sites -1
-            elseif self.side == coalition.side.BLUE then
-                stats.red_sam_sites = stats.red_sam_sites -1
-                stats.blue_sam_sites = stats.blue_sam_sites +1
-            end
+            UnitHandler.updateZoneUnits(self)
 
         elseif self.zone_type == ZoneTypes.AIRBASE  then
             if self.airbase_name then
@@ -592,24 +565,14 @@ do
                 blue_airbase.side = self.side
             end
 
-            if self.side == coalition.side.RED then
-                UnitHandler.clone(GroupData.AIRBASE_SITES.RED[self.level].group_name , self,true)
-                for _,sam in pairs(GroupData.AIRBASE_SAMS.RED) do
-                    if sam.tier == self.level then
-                        UnitHandler.clone(sam.group_name , self,false)
-                    end
-                end
-                stats.red_airbases = stats.red_airbases +1
-                stats.blue_airbases = stats.blue_airbases -1
-            elseif self.side == coalition.side.BLUE then
-                UnitHandler.clone(GroupData.AIRBASE_SITES.BLUE[self.level].group_name , self,true)
-                for _,sam in pairs(GroupData.AIRBASE_SAMS.BLUE) do
-                    if sam.tier == self.level then
-                        UnitHandler.clone(sam.group_name , self,false)
-                    end
-                end
-                stats.red_airbases = stats.red_airbases -1
-                stats.blue_airbases = stats.blue_airbases +1
+            if previous_side == coalition.side.RED then
+                stats.red_airbases = stats.red_airbases - 1
+            elseif previous_side == coalition.side.BLUE then
+                stats.blue_airbases = stats.blue_airbases - 1
+            end
+            if self.side ~= coalition.side.NEUTRAL then
+                -- recompose ground defences + (for L3/L4) the Airbase SAMs group.
+                UnitHandler.updateZoneUnits(self)
             end
         end
 

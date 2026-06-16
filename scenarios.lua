@@ -78,7 +78,6 @@ available_zones = {
     ZoneHandler:new({name = "ECHO"}),
     ZoneHandler:new({name = "STRONGHOLD-CHARLIE"}),
     ZoneHandler:new({name = "FOXTROT"}),
-    ZoneHandler:new({name = "GOLD"}),
     ZoneHandler:new({name = "GOLF"}),
     ZoneHandler:new({name = "HOTEL"}),
     ZoneHandler:new({name = "INDIA"}),

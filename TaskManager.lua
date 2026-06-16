@@ -99,6 +99,15 @@ do
         3. Spawn the aircraft
         4. Assign AI Task
         ]]
+
+        if not EraSystem.isTaskTypeAllowed(ai_task_type) then
+            MissionLogger:info("[Era] Task '"..tostring(ai_task_type).."' is not available in the selected era(s); skipping.")
+            if user_requested then
+                trigger.action.outTextForCoalition(side, tostring(ai_task_type).." not available in this era", 10)
+            end
+            return false
+        end
+
         local function sendText(txt)
             if user_requested then
                 trigger.action.outTextForCoalition(side,txt,5)
@@ -107,24 +116,25 @@ do
 
         ---@param ai_task_type AITaskTypes
         ---@return string|nil
-        local function resolveGroupName(ai_task_type)
+        local function findGroupName(ai_task_type)
             local side_assets = side == coalition.side.BLUE and GroupData.COMMON_ASSETS.BLUE or GroupData.COMMON_ASSETS.RED
             if not side_assets then return nil end
 
+            local base_name = nil
             if ai_task_type == AITaskTypes.CAS then
-                return side_assets.cas
+                base_name = side_assets.cas
             elseif ai_task_type == AITaskTypes.CAP then
-                return side_assets.cap
+                base_name = side_assets.cap
             elseif ai_task_type == AITaskTypes.SEAD then
-                return side_assets.sead
+                base_name = side_assets.sead
             elseif ai_task_type == AITaskTypes.STRIKE then
-                return side_assets.strike
+                base_name = side_assets.strike
             elseif ai_task_type == AITaskTypes.AWACS then
-                return side_assets.awacs
+                base_name = side_assets.awacs
             elseif ai_task_type == AITaskTypes.RECON then
-                return side_assets.recon
+                base_name = side_assets.recon
             end
-            return nil
+            return EraSystem.resolveTaskTemplateName(base_name)
         end
 
         ---@param task_label string
@@ -132,12 +142,14 @@ do
         local function resolveSourceAirbase(task_label)
             if from_zone and from_zone.zone_type == ZoneTypes.AIRBASE then
                 if not self:isAirbaseRunwayOperational(from_zone) then
+                    MissionLogger:info("["..task_label.."] Runway inoperable at "..from_zone.name)
                     sendText(task_label.." unavailable from "..from_zone.name..", runway is inporable.")
                     return nil, nil
                 end
 
                 local in_stock, template_gr_name = WarehouseManager:checkAircraftInStock(from_zone.airbase_name, ai_task_type)
                 if not in_stock then
+                    MissionLogger:info("["..task_label.."] Required aircraft not in stock at "..from_zone.name)
                     sendText(task_label.." unavailable from "..from_zone.name..", check aircraft availability, warehouse stock and tasking limits.")
                     return nil, nil
                 end
@@ -150,6 +162,7 @@ do
 
             local closest_airbase, template_gr_name = self:findClosestAirbaseWithAircraftInStock(to_zone,side,ai_task_type,2,ai_task_type)
             if not closest_airbase then
+                MissionLogger:info("["..task_label.."] No airbase with required aircraft in stock and runway operable found for "..to_zone.name)
                 sendText(task_label.." unavailable for "..to_zone.name..", check aircraft availability, warehouse stock and tasking limits.")
                 return nil, nil
             end
@@ -159,12 +172,16 @@ do
         if AITaskTypes.CAS == ai_task_type and to_zone then
 
             local source_airbase = resolveSourceAirbase("CAS")
-            if not source_airbase then return false end
+            if not source_airbase then
+                MissionLogger:info("[CAS] Could not resolve airbase")
+                return false
+            end
 
             if prevent_duplicates and EnrouteManager:findByToZone(to_zone,side,{AITaskTypes.CAS}) then
                 if user_requested then
                     trigger.action.outTextForCoalition(side,"CAS already tasked for "..to_zone.name,5)
                 end
+                MissionLogger:info("[CAS] CAS already tasked for "..to_zone.name.." (side "..tostring(side)..")")
                 return false
             end
 
@@ -176,20 +193,23 @@ do
                 if user_requested then
                     trigger.action.outTextForCoalition(side,"CAS unavailable from "..source_airbase.name..", airbase cannot handle more tasks at the moment.",5)
                 end
+                MissionLogger:info("[CAS] CAS unavailable from "..source_airbase.name..", airbase cannot handle more tasks at the moment.")
                 return false
             end
 
             if airbase and not WarehouseManager:checkIfAIPayloadInStock(airbase,ai_task_type)
             then
+                MissionLogger:info("[CAS] Required payload/armament not in warehouse for CAS from "..source_airbase.name)
                 sendText("CAS required payload/armement not in warehouse.")
                 return false
             end
 
-            local template_name = resolveGroupName(ai_task_type)
+            local template_name = findGroupName(ai_task_type)
             if not template_name then return false end
 
             local new_group = self:spawnAIFlightFromParking(template_name, airbase)
             if not new_group then
+                MissionLogger:info("[CAS] Failed to spawn CAS flight from "..source_airbase.name.." (possibly airbase parking too small).")
                 sendText("CAS failed to spawn (possibly airbase "..source_airbase.name.." parking too small).")
                 return false
             end
@@ -207,42 +227,44 @@ do
 
             if not self:isAirbaseRunwayOperational(from_zone) then
                 sendText("AWACS unavailable from "..from_zone.name..", runway is inoperable.")
+                MissionLogger:info("[AWACS] Runway inoperable at "..from_zone.name)
                 return false
             end
 
             local enroutes_from_airbase = EnrouteManager:findByFromZone(from_zone,side)
             if enroutes_from_airbase and #enroutes_from_airbase >= Config.tasking.max_tasks_per_airbase then
                 if user_requested then
-                    local txt="AWACS unavailable from "..from_zone.name..", airbase cannot handle more tasks at the moment."
-                    trigger.action.outTextForCoalition(side,txt,5)
+                    trigger.action.outTextForCoalition(side,"AWACS unavailable from "..from_zone.name..", airbase cannot handle more tasks at the moment.",5)
                 end
+                MissionLogger:info("[AWACS] AWACS unavailable from "..from_zone.name..", airbase cannot handle more tasks at the moment.")
                 return false
             end
 
             local in_stock, _ = WarehouseManager:checkAircraftInStock(from_zone.airbase_name,ai_task_type)
             if not in_stock then
                 if user_requested then
-                    local txt="AWACS unavailable from "..from_zone.name..", check aircraft availability, warehouse stock and tasking limits."
-                    trigger.action.outTextForCoalition(side,txt,5)
+                    trigger.action.outTextForCoalition(side,"AWACS unavailable from "..from_zone.name..", check aircraft availability, warehouse stock and tasking limits.",5)
                 end
+                MissionLogger:info("[AWACS] Required aircraft not in stock at "..from_zone.name)
                 return false
             end
 
             if prevent_duplicates and EnrouteManager:findByToZone(from_zone,side,{AITaskTypes.AWACS}) then
                 if user_requested then
-                    local txt="AWACS already tasked for "..from_zone.name
-                    trigger.action.outTextForCoalition(side,txt,5)
+                    trigger.action.outTextForCoalition(side,"AWACS already tasked for "..from_zone.name,5)
                 end
+                MissionLogger:info("[AWACS] AWACS already tasked for "..from_zone.name)
                 return false
             end
 
 
-            local template_name = resolveGroupName(ai_task_type)
+            local template_name = findGroupName(ai_task_type)
             if not template_name then return false end
 
             local airbase = Airbase.getByName(from_zone.airbase_name)
             local new_group = airbase and self:spawnAIFlightFromParking(template_name, airbase)
             if not new_group then
+                MissionLogger:info("[AWACS] Failed to spawn AWACS flight from "..from_zone.name.." (possibly airbase parking too small).")
                 sendText("CAS failed to spawn (possibly airbase "..from_zone.name.." parking too small).")
                 return false
             end
@@ -260,12 +282,14 @@ do
 
             if not self:isAirbaseRunwayOperational(from_zone) then
                 sendText("TANKER unavailable from "..from_zone.name..", runway is inoperable.")
+                MissionLogger:info("[TANKER] Runway inoperable at "..from_zone.name)
                 return false
             end
 
             local max_tanker_theatre = Config.tasking.max_tanker_per_theatre or 2
             if self:countActiveTankerSectors(side) >= max_tanker_theatre then
                 sendText("TANKER unavailable, maximum active tanker sectors reached.")
+                MissionLogger:info("[TANKER] Maximum active tanker sectors reached.")
                 return false
             end
 
@@ -274,6 +298,7 @@ do
                 if user_requested then
                     local txt="TANKER unavailable from "..from_zone.name..", airbase cannot handle more tasks at the moment."
                     trigger.action.outTextForCoalition(side,txt,5)
+                    MissionLogger:info("[TANKER] Airbase cannot handle more tasks at the moment.")
                 end
                 return false
             end
@@ -281,6 +306,7 @@ do
             local tanker_from_airbase = self:countActiveTankerSectorsFromAirbase(from_zone, side)
             if tanker_from_airbase >=Config.tasking.max_tanker_per_airbase then
                 sendText("TANKER unavailable from "..from_zone.name..", max tanker sectors from this airbase reached.")
+                MissionLogger:info("[TANKER] Maximum tanker sectors from "..from_zone.name.." reached.")
                 return false
             end
 
@@ -288,12 +314,14 @@ do
             local nearest_enemy_zone, nearest_enemy_dist = from_zone:getClosestZone(enemy_side,nil,nil,false)
             if not nearest_enemy_zone or not nearest_enemy_dist or nearest_enemy_dist == math.huge then
                 sendText("TANKER unavailable, no enemy zone found for sector placement.")
+                MissionLogger:info("[TANKER] No enemy zone found for sector placement.")
                 return false
             end
 
             local min_enemy_distance = Config.tanker.minimum_enemy_distance
             if nearest_enemy_dist < min_enemy_distance then
                 sendText("TANKER unavailable, nearest enemy area is too close to "..from_zone.name.." (minimum "..math.floor(min_enemy_distance/1000).."km)")
+                MissionLogger:info("[TANKER] Nearest enemy area is too close for sector placement (distance: "..math.floor(nearest_enemy_dist/1000).."km).")
                 return false
             end
             MissionLogger:info("Attempting tanker spawn")
@@ -324,8 +352,15 @@ do
                 z = center_point.z + (leg_uz * half_leg)
             }
 
+
             local side_assets = side == coalition.side.BLUE and GroupData.COMMON_ASSETS.BLUE or GroupData.COMMON_ASSETS.RED
-            if not side_assets or not side_assets.tanker_boom or not side_assets.tanker_drogue then
+            -- [Era] The flying-boom tanker is restricted to Late Cold War+; in
+            -- earlier tanker eras (Early Cold War) the sector is drogue-only.
+            local boom_capable = EraSystem.isBoomTankerEraCapable()
+            -- Always need the drogue template; the boom template is only required
+            -- when the era can field a boom tanker.
+            if not side_assets or not side_assets.tanker_drogue
+               or (boom_capable and not side_assets.tanker_boom) then
                 sendText("TANKER unavailable, tanker template names are missing from GroupData.COMMON_ASSETS.")
                 return false
             end
@@ -343,6 +378,8 @@ do
                 center_point = center_point,
                 waypoint_1 = wp1,
                 waypoint_2 = wp2,
+                -- [Era] When false the sector is drogue-only (no flying boom).
+                boom_capable = boom_capable,
                 frequencies = {
                     [TankerRoles.BOOM] = self:createFrequency(225,398), -- in MHz
                     [TankerRoles.DROGUE] = self:createFrequency(225,398), -- in MHz
@@ -392,37 +429,46 @@ do
                     z = boom_lane_wp1.z
                 }
 
-                local boom_group = mist.teleportToPoint({
-                    groupName = side_assets.tanker_boom,
-                    point = boom_spawn,
-                    action = "clone",
-                    radius=0
-                })
+                -- [Era] Only spawn the boom tanker when the era can field one.
+                local boom_group = nil
+                if boom_capable then
+                    boom_group = mist.teleportToPoint({
+                        groupName = EraSystem.resolveTaskTemplateName(side_assets.tanker_boom),
+                        point = boom_spawn,
+                        action = "clone",
+                        radius=0
+                    })
+                end
                 local drogue_group = mist.teleportToPoint({
-                    groupName = side_assets.tanker_drogue,
+                    groupName = EraSystem.resolveTaskTemplateName(side_assets.tanker_drogue),
                     point = drogue_spawn,
                     action = "clone",
                     radius=0
                 })
 
-                if not boom_group or not drogue_group then
+                -- The drogue is always required; the boom only when era-capable.
+                if not drogue_group or (boom_capable and not boom_group) then
                     self:cleanupTankerSectorById(sector_id, true)
                     trigger.action.outTextForCoalition(side, "TANKER spawn failed, verify tanker template groups.", 10)
                     return
                 end
 
-                sector.boom_group_name = boom_group.name
+                if boom_group then
+                    sector.boom_group_name = boom_group.name
+                end
                 sector.drogue_group_name = drogue_group.name
 
-                EnrouteManager:add({
-                    to_zone = from_zone,
-                    side = side,
-                    from_zone = from_zone,
-                    group_name = boom_group.name,
-                    ai_task_type = AITaskTypes.TANKER,
-                    tanker_sector_id = sector_id,
-                    tanker_role = "boom",
-                })
+                if boom_group then
+                    EnrouteManager:add({
+                        to_zone = from_zone,
+                        side = side,
+                        from_zone = from_zone,
+                        group_name = boom_group.name,
+                        ai_task_type = AITaskTypes.TANKER,
+                        tanker_sector_id = sector_id,
+                        tanker_role = "boom",
+                    })
+                end
                 EnrouteManager:add({
                     to_zone = from_zone,
                     side = side,
@@ -434,9 +480,11 @@ do
                 })
 
                 self:drawTankerSector(sector)
-                
+
                 timer.scheduleFunction(function ()
-                    self:assignTankerLeg(sector, TankerRoles.BOOM)
+                    if boom_group then
+                        self:assignTankerLeg(sector, TankerRoles.BOOM)
+                    end
                     self:assignTankerLeg(sector, TankerRoles.DROGUE)
                 end,{}, timer.getTime()+12)
 
@@ -457,9 +505,9 @@ do
 
             if prevent_duplicates and EnrouteManager:findByToZone(to_zone,side,{AITaskTypes.CAP}) then
                 if user_requested then
-                    local txt="CAP already tasked for "..to_zone.name
-                    trigger.action.outTextForCoalition(side,txt,5)
+                    trigger.action.outTextForCoalition(side,"CAP already tasked for "..to_zone.name,5)
                 end
+                MissionLogger:info("[CAP] CAP already tasked for "..to_zone.name.." (side "..tostring(side)..")")
                 return false
             end
 
@@ -472,18 +520,19 @@ do
                     local txt="CAP unavailable from "..source_airbase.name..", airbase cannot handle more tasks at the moment."
                     trigger.action.outTextForCoalition(side,txt,5)
                 end
+                MissionLogger:info("[CAP] Airbase "..source_airbase.name.." cannot handle more tasks at the moment.")
                 return false
             end
 
             if airbase and not WarehouseManager:checkIfAIPayloadInStock(airbase,ai_task_type)
             then sendText("CAP required payload/armement not in warehouse.") return false end
 
-            local template_name = resolveGroupName(ai_task_type)
+            local template_name = findGroupName(ai_task_type)
             if not template_name then return false end
 
             local new_group = self:spawnAIFlightFromParking(template_name, airbase)
             if not new_group then
-                sendText("CAS failed to spawn (possibly airbase "..source_airbase.name.." parking too small).")
+                MissionLogger:info("[CAP] Failed to spawn CAP flight (possibly airbase "..source_airbase.name.." parking too small).")
                 return false
             end
 
@@ -504,9 +553,9 @@ do
 
             if prevent_duplicates and EnrouteManager:findByToZone(to_zone,side,{AITaskTypes.SEAD}) then
                 if user_requested then
-                    local txt="SEAD already tasked for "..to_zone.name
-                    trigger.action.outTextForCoalition(side,txt,5)
+                    trigger.action.outTextForCoalition(side,"SEAD already tasked for "..to_zone.name,5)
                 end
+                MissionLogger:info("[SEAD] SEAD already tasked for "..to_zone.name.." (side "..tostring(side)..")")
                 return false
             end
 
@@ -517,22 +566,21 @@ do
             local enroutes_from_airbase = EnrouteManager:findByFromZone(source_airbase,side)
             if enroutes_from_airbase and #enroutes_from_airbase >= Config.tasking.max_tasks_per_airbase then
                 if user_requested then
-                    local txt="SEAD unavailable from "..source_airbase.name..", airbase cannot handle more tasks at the moment."
-                    trigger.action.outTextForCoalition(side,txt,5)
+                    trigger.action.outTextForCoalition(side,"SEAD unavailable from "..source_airbase.name..", airbase cannot handle more tasks at the moment.",5)
                 end
+                MissionLogger:info("[SEAD] Airbase "..source_airbase.name.." cannot handle more tasks at the moment.")
                 return false
             end
 
             if airbase and not WarehouseManager:checkIfAIPayloadInStock(airbase,ai_task_type)
             then sendText("SEAD required payload/armement not in warehouse.") return false end
 
-            local template_name = resolveGroupName(ai_task_type)
+            local template_name = findGroupName(ai_task_type)
             if not template_name then return false end
 
             local new_group = self:spawnAIFlightFromParking(template_name, airbase)
             if not new_group then 
-                local txt="SEAD failed to spawn (possibly airbase "..source_airbase.name.." parking too small)."
-                trigger.action.outTextForCoalition(side,txt,5)
+                MissionLogger:info("[SEAD] Failed to spawn SEAD flight (possibly airbase "..source_airbase.name.." parking too small).")
                 return false 
             end
 
@@ -574,13 +622,12 @@ do
             if airbase and not WarehouseManager:checkIfAIPayloadInStock(airbase,ai_task_type)
             then sendText("STRIKE required payload/armement not in warehouse.") return false end
 
-            local template_name = resolveGroupName(ai_task_type)
+            local template_name = findGroupName(ai_task_type)
             if not template_name then return false end
 
             local new_group = self:spawnAIFlightFromParking(template_name, airbase)
             if not new_group then 
-                local txt="STRIKE failed to spawn (possibly airbase "..source_airbase.name.." parking too small)."
-                trigger.action.outTextForCoalition(side,txt,5)
+                MissionLogger:info("[STRIKE] Failed to spawn STRIKE flight (possibly airbase "..source_airbase.name.." parking too small).")
                 return false
             end
 
@@ -647,14 +694,13 @@ do
             if airbase and not WarehouseManager:checkIfAIPayloadInStock(airbase,ai_task_type)
             then sendText("RECON required payload/armement not in warehouse.") return false end
 
-            local template_name = resolveGroupName(ai_task_type)
+            local template_name = findGroupName(ai_task_type)
             if not template_name then return false end
 
             local new_group = self:spawnAIFlightFromParking(template_name, airbase)
             if not new_group then
-                local txt="RECON failed to spawn (possibly airbase "..closest_airbase.name.." parking too small)."
-                trigger.action.outTextForCoalition(side,txt,5)
-                return false 
+                MissionLogger:info("[RECON] Failed to spawn RECON flight (possibly airbase "..closest_airbase.name.." parking too small).")
+                return false
             end
 
             local ai_enroute_data = EnrouteManager:add({
@@ -688,7 +734,7 @@ do
             if not blue_airbase then return false end
 
             local new_group = mist.teleportToPoint({
-                groupName = GroupData.COMMON_ASSETS.BLUE.jtac,
+                groupName = EraSystem.resolveTaskTemplateName(GroupData.COMMON_ASSETS.BLUE.jtac),
                 point = spawn_point,
                 action = "clone"
             })
@@ -716,8 +762,11 @@ do
             elseif side == coalition.side.RED then
                 convoy_template_gr_name = GroupData.COMMON_ASSETS.RED.attack_convoy
                 enemy_side = coalition.side.BLUE
-                
+
             end
+            -- [Era] Resolve the per-era convoy template (e.g. "BLUE WW2 Attack
+            -- Convoy") for the active era from its GroupData.COMMON_ASSETS table.
+            convoy_template_gr_name = EraSystem.resolveTaskTemplateName(convoy_template_gr_name)
             to_zone, _ = from_zone:getClosestZone(enemy_side,nil,nil,true)
             if to_zone and to_zone.side == enemy_side
             and mist.utils.get2DDist(from_zone.zone.point, to_zone.zone.point) < Config.attack_convoy_range then
@@ -750,6 +799,22 @@ do
                 return false
             end
 
+            -- [Era] In a pre-helicopter era (WW2) no airframe is flown; the zone
+            -- is captured INSTANTLY instead, so the capture loop still works.
+            if not EraSystem.isHelicopterEraCapable() then
+                if to_zone.side ~= coalition.side.NEUTRAL then return false end
+                to_zone:capture(side)
+                if not (from_zone and from_zone.lha_source) then
+                    from_zone.heli_avail = (from_zone.heli_avail or 0) - 1
+                    if type(from_zone.drawF10) == "function" then from_zone:drawF10() end
+                end
+                if user_requested then
+                    trigger.action.outTextForCoalition(side, to_zone.name .. " captured (ground forces moved in).", 10)
+                end
+                MissionLogger:info(utils.coalitionToString(side) .." instant-captured zone (pre-helicopter era): " .. to_zone.name)
+                return true
+            end
+
             local template_name
             if from_zone and from_zone.lha_source and side == coalition.side.BLUE then
                 template_name = GroupData.COMMON_ASSETS.BLUE.LHA_capture_helicopter
@@ -758,6 +823,7 @@ do
             elseif side == coalition.side.BLUE then
                 template_name = GroupData.COMMON_ASSETS.BLUE.capture_helicopter
             end
+            template_name = EraSystem.resolveTaskTemplateName(template_name)
             if not template_name then return false end
 
             local helo_sent = mist.teleportToPoint({
@@ -797,12 +863,34 @@ do
                 return false
             end
 
+            -- [Era] In a pre-helicopter era (WW2) no airframe is flown; the
+            -- target zone is reinforced (tier bump) INSTANTLY, mirroring the
+            -- reinforcement-arrival effect in EnrouteManager.
+            if not EraSystem.isHelicopterEraCapable() then
+                if to_zone.side == side and (to_zone.level or 1) < 4 then
+                    to_zone.level = (to_zone.level or 1) + 1
+                    to_zone.next_level_up_avail = timer.getTime() + (Config.logistics_level_up_interval or (16 * 60))
+                    UnitHandler.updateZoneUnits(to_zone)
+                    to_zone:drawF10()
+                    trigger.action.outTextForCoalition(side,
+                        string.format("SITREP: %s has reached operational tier %d/4 ", to_zone.name, to_zone.level), 10)
+                    trigger.action.outSoundForCoalition(side, "radio_beep3.ogg")
+                end
+                if not (from_zone and from_zone.lha_source) then
+                    from_zone.heli_avail = (from_zone.heli_avail or 0) - 1
+                    if type(from_zone.drawF10) == "function" then from_zone:drawF10() end
+                end
+                MissionLogger:info(utils.coalitionToString(side) .." instant-reinforced zone (pre-helicopter era): " .. to_zone.name)
+                return true
+            end
+
             local template_name = nil
             if side == coalition.side.RED then
                 template_name = GroupData.COMMON_ASSETS.RED.reinforcement_helicopter or GroupData.COMMON_ASSETS.RED.capture_helicopter
             elseif side == coalition.side.BLUE then
                 template_name = GroupData.COMMON_ASSETS.BLUE.reinforcement_helicopter or GroupData.COMMON_ASSETS.BLUE.capture_helicopter
             end
+            template_name = EraSystem.resolveTaskTemplateName(template_name)
 
             if not template_name then
                 MissionLogger:info("Reinforcement Helo spawn failed: missing template name.")
@@ -1432,13 +1520,13 @@ do
             for _,grp_name in ipairs(groups_to_attack) do
                 local grp = Group.getByName(grp_name)
                 if grp and grp:isExist() then
+                    table.insert(viable_ids,grp:getID())
                     if not target_1_point then
                         local u = grp:getUnits()[1]
                         if u and u:isExist() then
                             target_1_point = u:getPoint()
                         end
                     end
-                    table.insert(viable_ids,grp:getID())
                 end
             end
             if #viable_ids==0 then
@@ -1491,7 +1579,6 @@ do
                 }
             }
      
-            -- 3. Build the full 'Mission' wrapper
             local missionTask = {
                 id = 'Mission',
                 params = {
@@ -1921,15 +2008,28 @@ do
             table.insert(sector.mark_ids.lines, mark_id)
         end
 
-        local text_display = string.format(
-            "%s #%d\nDROGUE: %s AM / %sX\nBOOM: %s AM / %sX",
-            Config.tanker.text_title or "Tanker Sector",
-            sector.serial or 1,
-            tostring(sector.frequencies[TankerRoles.DROGUE] or "U"), -- drogue freq
-            tostring(sector.tacan[TankerRoles.DROGUE] or "U"), -- drogue tacan
-            tostring(sector.frequencies[TankerRoles.BOOM] or "U"), -- boom freq
-            tostring(sector.tacan[TankerRoles.BOOM] or "U") -- boom tacan
-        )
+        -- [Era] Drogue-only sectors omit the BOOM line so players don't tune a
+        -- boom tanker that isn't on station.
+        local text_display
+        if sector.boom_capable == false then
+            text_display = string.format(
+                "%s #%d\nDROGUE: %s AM / %sX",
+                Config.tanker.text_title or "Tanker Sector",
+                sector.serial or 1,
+                tostring(sector.frequencies[TankerRoles.DROGUE] or "U"), -- drogue freq
+                tostring(sector.tacan[TankerRoles.DROGUE] or "U") -- drogue tacan
+            )
+        else
+            text_display = string.format(
+                "%s #%d\nDROGUE: %s AM / %sX\nBOOM: %s AM / %sX",
+                Config.tanker.text_title or "Tanker Sector",
+                sector.serial or 1,
+                tostring(sector.frequencies[TankerRoles.DROGUE] or "U"), -- drogue freq
+                tostring(sector.tacan[TankerRoles.DROGUE] or "U"), -- drogue tacan
+                tostring(sector.frequencies[TankerRoles.BOOM] or "U"), -- boom freq
+                tostring(sector.tacan[TankerRoles.BOOM] or "U") -- boom tacan
+            )
+        end
 
         sector.mark_ids.text = nextMarkId()
         trigger.action.textToAll(sector.side, sector.mark_ids.text, sector.center_point, text_color, text_bg, 13, true, text_display)
@@ -2136,10 +2236,18 @@ do
 
         for sector_id, sector in pairs(self.TankerSectors) do
             if sector and sector.active then
-                local boom_group = Group.getByName(sector.boom_group_name or "")
                 local drogue_group = Group.getByName(sector.drogue_group_name or "")
+                local drogue_ok = drogue_group and drogue_group:isExist()
 
-                if not (boom_group and boom_group:isExist() and drogue_group and drogue_group:isExist()) then
+                -- [Era] A drogue-only sector has no boom group; only require the
+                -- boom to exist when the sector is boom-capable.
+                local boom_ok = true
+                if sector.boom_capable ~= false then
+                    local boom_group = Group.getByName(sector.boom_group_name or "")
+                    boom_ok = boom_group and boom_group:isExist()
+                end
+
+                if not (drogue_ok and boom_ok) then
                     table.insert(sectors_to_cleanup, sector_id)
                 end
             else

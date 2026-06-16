@@ -115,8 +115,14 @@ do
         -- Each function returns TRUE if a task was successfully sent.
         local possible_tasks = {}
 
+        local function addTask(ai_task_type, task_func)
+            if EraSystem.isTaskTypeAllowed(ai_task_type) then -- for era compatibility
+                table.insert(possible_tasks, task_func)
+            end
+        end
+
         -- [TASK: RECON]
-        table.insert(possible_tasks, function()
+        addTask(AITaskTypes.RECON, function()
             local recon_enroute = EnrouteManager:findByTaskType(AITaskTypes.RECON, side)
             if recon_enroute and #recon_enroute >= Config.tasking.max_recon_theatre then
                 return false
@@ -149,7 +155,7 @@ do
         end)
 
         -- [TASK: AWACS]
-        table.insert(possible_tasks, function()
+        addTask(AITaskTypes.AWACS, function()
             local awacs_enroute = EnrouteManager:findByTaskType(AITaskTypes.AWACS, side)
             if awacs_enroute and #awacs_enroute >= 1 then
                 return false
@@ -158,14 +164,15 @@ do
                 return false
             end
             if closest_dist and closest_dist > Config.tasking.min_cleareance_dist_for_awacs then
-                MissionLogger:info("Initiating AWACS for " .. utils.coalitionToString(side))
+                MissionLogger:info("[AWACS] Attempting for " .. utils.coalitionToString(side))
                 return TaskManager:initiateAITask(AITaskTypes.AWACS, side, true, nil, home_base, false)
             end
             return false
         end)
 
         -- [TASK: CAS]
-        table.insert(possible_tasks, function()
+        addTask(AITaskTypes.CAS, function()
+            MissionLogger:info("[CAS] Checking CAS tasks")
             local cas_enroute = EnrouteManager:findByTaskType(AITaskTypes.CAS, side)
             if #cas_enroute >= Config.tasking.max_cas_theatre then
                 return false
@@ -191,17 +198,21 @@ do
             table.sort(potential_zones, function(a,b)
                 return a.distance < b.distance
             end)
-            if #potential_zones == 0 then return false end
+            if #potential_zones == 0 then
+                MissionLogger:info("[CAS]: No valid target zones.")
+                return false  
+                end
 
             for _,p in ipairs(potential_zones) do
+                MissionLogger:info("[CAS]: Attempting to initiate CAS task to " .. p.zone.name)
                 return TaskManager:initiateAITask(AITaskTypes.CAS, side, true, p.zone, nil, false)
             end
             return false
         end)
 
         -- [TASK: SEAD]
-        table.insert(possible_tasks, function()
-
+        addTask(AITaskTypes.SEAD, function()
+            MissionLogger:info("[SEAD] %s checking SEAD tasks.")
             local sead_enroute = EnrouteManager:findByTaskType(AITaskTypes.SEAD, side)
             if sead_enroute and #sead_enroute >= Config.tasking.max_sead_theatre then
                 return false
@@ -231,16 +242,20 @@ do
             table.sort(potential_zones, function(a,b)
                 return a.distance < b.distance
             end)
-            if #potential_zones == 0 then return false end
+            if #potential_zones == 0 then
+                MissionLogger:info("[SEAD]: No valid target zones.")
+                return false 
+            end
 
             for _,p in ipairs(potential_zones) do
+                MissionLogger:info("[SEAD]: Attempting to initiate SEAD task to " .. p.zone.name)
                 return TaskManager:initiateAITask(AITaskTypes.SEAD, side, true, p.zone, nil, false)
             end
             return false
         end)
 
         -- [TASK: CAP]
-        table.insert(possible_tasks, function()
+        addTask(AITaskTypes.CAP, function()
             local cap_enroute = EnrouteManager:findByTaskType(AITaskTypes.CAP, side)
             if cap_enroute and #cap_enroute >= Config.tasking.max_cap_theatre then
                 return false
@@ -270,13 +285,15 @@ do
             if #potential_zones == 0 then return false end
 
             for _,p in ipairs(potential_zones) do
+                MissionLogger:info(string.format("[CAP] %s: Attempting to initiate CAP task to %s",
+                        utils.coalitionToString(side), p.zone.name))
                 return TaskManager:initiateAITask(AITaskTypes.CAP, side, true, p.zone, nil, false)
             end
             return false
         end)
 
         -- [TASK: STRIKE]
-        table.insert(possible_tasks, function()
+        addTask(AITaskTypes.STRIKE, function()
             local strike_enroute = EnrouteManager:findByTaskType(AITaskTypes.STRIKE, side)
             MissionLogger:info(string.format("[STRIKE] %s checking STRIKE tasks. Current enroute: %d, max: %d",
                 utils.coalitionToString(side), strike_enroute and #strike_enroute or 0, Config.tasking.max_strike_theatre))
@@ -314,7 +331,11 @@ do
                 table.sort(potential_zones, function(a,b)
                     return a.distance < b.distance
                 end)
-                if #potential_zones == 0 then return false end
+                if #potential_zones == 0 then
+                    MissionLogger:info(string.format("[STRIKE] %s: No valid target zones.",
+                        utils.coalitionToString(side)))
+                    return false
+                end
 
                 for _,p in ipairs(potential_zones) do
                     MissionLogger:info(string.format("[STRIKE] %s: Attempting to initiate STRIKE task to %s",
@@ -336,12 +357,7 @@ do
         end)
 
 
-        -- Fisher-Yates shuffle to randomize the order of checks
-        for i = #possible_tasks, 2, -1 do
-            local j = math.random(i)
-            possible_tasks[i], possible_tasks[j] = possible_tasks[j], possible_tasks[i]
-        end
-
+        utils.shuffleTable(possible_tasks)
         -- Run through the shuffled list. As soon as one task spawns (returns true), stop.
         for _, task_func in ipairs(possible_tasks) do
             if task_func() then
@@ -638,7 +654,7 @@ do
 
     ---@param side coalition.side
     ---@param repeat_tasking boolean|nil
-    ---@param stock_types WarehouseManager.StockTypes[]|nil
+    ---@param stock_types StockTypes[]|nil
     ---@param target_airbase ZoneHandler|nil Optional target airbase zone, defaults to home airbase
     function TheatreCommander.sendWarehouseResupply(side, repeat_tasking, stock_types, target_airbase)
         local cargo_sent_table
@@ -655,6 +671,24 @@ do
             end
         end
 
+        -- [Era] In a pre-airlift era (WW2) no cargo aircraft is flown; the
+        -- resupply effect is applied INSTANTLY at the destination airbase via
+        -- simulateResupply (which performs the stock attribution and messaging
+        -- without an aircraft). The repeat-tasking cadence is preserved.
+        if not EraSystem.isAirResupplyEraCapable() then
+            local airbase_pool = (side == coalition.side.BLUE) and blue_airbases or red_airbases
+            destination_airbase = target_airbase or (airbase_pool[1] and airbase_pool[math.random(#airbase_pool)])
+            if destination_airbase and destination_airbase.side == side and destination_airbase.airbase_name then
+                UnitHandler.simulateResupply(nil, destination_airbase.airbase_name, side, stock_types)
+            end
+            if repeat_tasking then
+                timer.scheduleFunction(function ()
+                    TheatreCommander.sendWarehouseResupply(side, true)
+                end, nil, timer.getTime() + Config.std_resupply_time)
+            end
+            return
+        end
+
         if side == coalition.side.BLUE and scenario.resupply.blue_point then
             if #blue_airbases == 0 then return end
             destination_airbase = target_airbase or blue_airbases[math.random(#blue_airbases)]
@@ -663,7 +697,7 @@ do
                 return MissionLogger:warn("Invalid BLUE resupply destination airbase")
             end
             cargo_sent_table = mist.teleportToPoint({
-                groupName = GroupData.COMMON_ASSETS.BLUE.resupply_aircraft,
+                groupName = EraSystem.resolveTaskTemplateName(GroupData.COMMON_ASSETS.BLUE.resupply_aircraft),
                 point = scenario.resupply.blue_point,
                 action = "clone",
                 radius = 10000
@@ -679,7 +713,7 @@ do
                 return MissionLogger:warn("Invalid RED resupply destination airbase")
             end
             cargo_sent_table = mist.teleportToPoint({
-                groupName = GroupData.COMMON_ASSETS.RED.resupply_aircraft,
+                groupName = EraSystem.resolveTaskTemplateName(GroupData.COMMON_ASSETS.RED.resupply_aircraft),
                 point = scenario.resupply.red_point,
                 action = "clone",
                 radius = 10000
@@ -939,7 +973,7 @@ do
         end
     end
 
-    ---@return ZoneHandler|nil, ZoneHandler
+    ---@return ZoneHandler|nil, ZoneHandler|nil
     function TheatreCommander.establishTheatre()
         MissionLogger:info("Starting theatre establishment process...")
 
@@ -983,7 +1017,8 @@ do
 
         if #eligible_scenarios == 0 then
             trigger.action.outText("CRITICAL MISSION ERROR: No eligible scenarios found for theatre: " .. tostring(current_theatre), 30)
-            return MissionLogger:error("CRITICAL MISSION ERROR: No eligible scenarios found for theatre: " .. tostring(current_theatre))
+            env.error("CRITICAL MISSION ERROR: No eligible scenarios found for theatre: " .. tostring(current_theatre),true)
+            return 
         end
         
         
@@ -993,7 +1028,8 @@ do
         
         if not theatre_zones then
             trigger.action.outText("CRITICAL MISSION ERROR: No available zones defined for theatre: " .. tostring(current_theatre), 30)
-            return MissionLogger:error("CRITICAL MISSION ERROR: No available zones defined for theatre: " .. tostring(current_theatre))
+            env.error("CRITICAL MISSION ERROR: No available zones defined for theatre: " .. tostring(current_theatre),true)
+            return
         end
 
         -- Pick a random scenario from the eligible list
@@ -1028,11 +1064,11 @@ do
         red_airbase.level = 4
 
         if not (blue_airbase and red_airbase) then
-            trigger.action.outText("CRITICAL MISSION ERROR: blue_airbase and/or red_airbase not defined in config for theatre: " .. tostring(current_theatre), 30)
-            return MissionLogger:error("CRITICAL MISSION ERROR: Could not initialize blue_airbase or/and red_airbase")
+            trigger.action.outText("CRITICAL MISSION ERROR: blue_airbase and/or red_airbase not defined in config for theater: " .. tostring(current_theatre), 30)
+            env.error("CRITICAL MISSION ERROR: blue_airbase and/or red_airbase not defined in config for theater: " .. tostring(current_theatre),true)
+            return
         end
         MissionLogger:info("BLUE and RED AIRBASES identified: " .. blue_airbase.name .. " (BLUE), " .. red_airbase.name .. " (RED)")
-        MissionLogger:info("Calculating Active Zones via Bounding Box...")
 
         local blue_x = blue_airbase.zone.point.x
         local blue_z = blue_airbase.zone.point.z
@@ -1138,7 +1174,15 @@ do
         -- Assign zone types (Logistics & Randoms)
         local function assignTypesToPool(pool, home)
             if #pool == 0 then return end
-            
+
+            -- Per-era zone-type blacklist (see Config.era_system.disable_zone_types_for_era).
+            -- Disallowed zone types are never generated and fall back to STRONGPOINT.
+            local allow_sam_sites = EraSystem.isZoneTypeAllowed(ZoneTypes.SAMSITE)
+            local allow_ew_sites  = EraSystem.isZoneTypeAllowed(ZoneTypes.EWSITE)
+            local allow_farp      = EraSystem.isZoneTypeAllowed(ZoneTypes.FARP)
+            local allow_comms     = EraSystem.isZoneTypeAllowed(ZoneTypes.COMMS)
+            local allow_logistics = EraSystem.isZoneTypeAllowed(ZoneTypes.LOGISTICS)
+
             -- Find unassigned zones first to calculate budgets correctly
             ---@type ZoneHandler[]
             local unassigned = {}
@@ -1159,41 +1203,66 @@ do
             
             -- COMMS (guaranteed)
             if idx <= #unassigned then
-                unassigned[idx].zone_type = ZoneTypes.COMMS
+                if allow_comms then
+                    unassigned[idx].zone_type = ZoneTypes.COMMS
+                else
+                    unassigned[idx].zone_type = ZoneTypes.STRONGPOINT
+                    unassigned[idx].attack_convoy = rng_int(0,1)
+                end
                 idx = idx + 1
                 assigned_guaranteed = assigned_guaranteed + 1
             end
-            
+
             -- LOGISTICS (guaranteed)
             if idx <= #unassigned then
-                unassigned[idx].zone_type = ZoneTypes.LOGISTICS
-                unassigned[idx].next_level_up_avail = timer.getTime()
-                unassigned[idx].heli_avail = 4
+                if allow_logistics then
+                    unassigned[idx].zone_type = ZoneTypes.LOGISTICS
+                    unassigned[idx].next_level_up_avail = timer.getTime()
+                    unassigned[idx].heli_avail = 4
+                else
+                    unassigned[idx].zone_type = ZoneTypes.STRONGPOINT
+                    unassigned[idx].attack_convoy = rng_int(0,1)
+                end
                 idx = idx + 1
                 assigned_guaranteed = assigned_guaranteed + 1
             end
 
             -- FARP (guaranteed)
             if idx <= #unassigned then
-                unassigned[idx].zone_type = ZoneTypes.FARP
+                if allow_farp then
+                    unassigned[idx].zone_type = ZoneTypes.FARP
+                else
+                    unassigned[idx].zone_type = ZoneTypes.STRONGPOINT
+                    unassigned[idx].attack_convoy = rng_int(0,1)
+                end
                 idx = idx + 1
                 assigned_guaranteed = assigned_guaranteed + 1
             end
-            
+
             -- SAMSITE (guaranteed)
             if idx <= #unassigned then
-                unassigned[idx].zone_type = ZoneTypes.SAMSITE
-                local r = rng_int(1, 100)
-                if r < Config.theatre.sam_classification_thresholds.short_range then unassigned[idx].sam_classification = SAM_TYPES.SHORT_RANGE
-                elseif r < Config.theatre.sam_classification_thresholds.medium_range then unassigned[idx].sam_classification = SAM_TYPES.MEDIUM_RANGE
-                else unassigned[idx].sam_classification = SAM_TYPES.LONG_RANGE end
+                if allow_sam_sites then
+                    unassigned[idx].zone_type = ZoneTypes.SAMSITE
+                    local r = rng_int(1, 100)
+                    if r < Config.theatre.sam_classification_thresholds.short_range then unassigned[idx].sam_classification = SAM_TYPES.SHORT_RANGE
+                    elseif r < Config.theatre.sam_classification_thresholds.medium_range then unassigned[idx].sam_classification = SAM_TYPES.MEDIUM_RANGE
+                    else unassigned[idx].sam_classification = SAM_TYPES.LONG_RANGE end
+                else
+                    unassigned[idx].zone_type = ZoneTypes.STRONGPOINT
+                    unassigned[idx].attack_convoy = rng_int(0,1)
+                end
                 idx = idx + 1
                 assigned_guaranteed = assigned_guaranteed + 1
             end
-            
+
             -- EWSITE (guaranteed)
             if idx <= #unassigned then
-                unassigned[idx].zone_type = ZoneTypes.EWSITE
+                if allow_ew_sites then
+                    unassigned[idx].zone_type = ZoneTypes.EWSITE
+                else
+                    unassigned[idx].zone_type = ZoneTypes.STRONGPOINT
+                    unassigned[idx].attack_convoy = rng_int(0,1)
+                end
                 idx = idx + 1
                 assigned_guaranteed = assigned_guaranteed + 1
             end
@@ -1214,15 +1283,16 @@ do
                 local total_w = 0
                 for _, w in pairs(weights) do total_w = total_w + w end
                 
-                -- Calculate budgets for remaining zones only
-                local budget_logistics = math.ceil((weights[ZoneTypes.LOGISTICS]/total_w) * remaining_zones)
-                local budget_farp      = math.ceil((weights[ZoneTypes.FARP]/total_w) * remaining_zones)
-                local budget_sam       = math.ceil((weights[ZoneTypes.SAMSITE]/total_w) * remaining_zones)
-                local budget_comms     = math.ceil((weights[ZoneTypes.COMMS]/total_w) * remaining_zones)
-                local budget_ew        = math.ceil((weights[ZoneTypes.EWSITE]/total_w) * remaining_zones)
+                -- Calculate budgets for remaining zones only. Era-blacklisted zone
+                -- types get a zero budget so their share falls through to STRONGPOINT.
+                local budget_logistics = allow_logistics and math.ceil((weights[ZoneTypes.LOGISTICS]/total_w) * remaining_zones) or 0
+                local budget_farp      = allow_farp and math.ceil((weights[ZoneTypes.FARP]/total_w) * remaining_zones) or 0
+                local budget_sam       = allow_sam_sites and math.ceil((weights[ZoneTypes.SAMSITE]/total_w) * remaining_zones) or 0
+                local budget_comms     = allow_comms and math.ceil((weights[ZoneTypes.COMMS]/total_w) * remaining_zones) or 0
+                local budget_ew        = allow_ew_sites and math.ceil((weights[ZoneTypes.EWSITE]/total_w) * remaining_zones) or 0
                 
                 local pre_assigned_count = #pool - #unassigned
-                MissionLogger:info("Assigning Types for " .. utils.coalitionToString(home.side) .. " Pool. Total Zones: " .. #pool ..
+                MissionLogger:info("Assigning Types for " .. utils.coalitionToString(home.side) .. ". Total Zones: " .. #pool ..
                     " (Pre-assigned: " .. pre_assigned_count .. ", Guaranteed: " .. assigned_guaranteed .. ", Remaining: " .. remaining_zones .. ")" ..
                     " | Logistics: " .. budget_logistics .. ", FARP: " .. budget_farp .. ", SAM: " .. budget_sam .. ", COMMS: " .. budget_comms .. ", EW: " .. budget_ew)
 
@@ -1348,17 +1418,15 @@ do
         end
 
         -- Initial Warehouses
-        WarehouseManager:handleIncomingSupplies(blue_airbase.side, {WarehouseManager.StockTypes.INITIAL})
-        if Config.enabled_su25t_blufor then
-            WarehouseManager:handleIncomingSupplies(blue_airbase.side, {WarehouseManager.StockTypes.SU25T_BLUFOR})
-        end
-        WarehouseManager:handleIncomingSupplies(red_airbase.side, {WarehouseManager.StockTypes.INITIAL})
+        WarehouseManager:handleIncomingSupplies(blue_airbase.side, {StockTypes.INITIAL})
+
+        WarehouseManager:handleIncomingSupplies(red_airbase.side, {StockTypes.INITIAL})
 
         -- Carrier warehouse
         if Config.carrier_setup then
             if Config.carrier_setup.enabled
             and Config.carrier_setup.carrier_unit_name then
-                WarehouseManager:attributeAirbaseStock(Config.carrier_setup.carrier_unit_name, coalition.side.BLUE, {WarehouseManager.StockTypes.CARRIER_INITAL})
+                WarehouseManager:attributeAirbaseStock(Config.carrier_setup.carrier_unit_name, coalition.side.BLUE, {StockTypes.CARRIER_INITAL})
                 ---@type table
                 local carrier_setup = Config.carrier_setup
                 carrier_setup.name = carrier_setup.carrier_unit_name
@@ -1376,7 +1444,7 @@ do
                 ---@type LHASetup
                 local lha_setup = Config.lha_setup
                 MissionLogger:info("Attempting LHA restock")
-                WarehouseManager:attributeAirbaseStock(Config.lha_setup.lha_unit_name, coalition.side.BLUE, {WarehouseManager.StockTypes.FARP,WarehouseManager.StockTypes.FARP,WarehouseManager.StockTypes.FARP})
+                WarehouseManager:attributeAirbaseStock(Config.lha_setup.lha_unit_name, coalition.side.BLUE, {StockTypes.FARP,StockTypes.FARP,StockTypes.FARP})
                 lha_setup.name = lha_setup.lha_unit_name
                 lha_setup.side = coalition.side.BLUE
                 lha_setup.zone_type = ZoneTypes.LOGISTICS
@@ -1399,9 +1467,16 @@ do
             return trigger.action.outText("CRITICAL MISSION ERROR: this terrain is not supported.", 60)
         end
 
-        if Config._enable_config_override then
+        if Config._enable_external_config then
             PersistenceManager:loadUserOverrides()
         end
+
+        -- Preflight: verify every late-activated template group referenced by
+        -- GroupData.COMMON_ASSETS exists BEFORE any spawning/cloning happens.
+        -- Missing groups are reported to the user via env.error(..., true); the
+        -- mission still proceeds so unaffected systems run, but this turns the
+        -- later opaque mist.teleportToPoint crash into a clear CONFIG ERROR.
+        UnitHandler.validateGroupTemplates()
 
         world.addEventHandler(ev)
         local persistence_enabled = PersistenceManager:isEnabled()

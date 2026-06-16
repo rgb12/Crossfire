@@ -19,9 +19,9 @@ Config = {
     _config_file_version = 1, -- config version should not be edited unless comprehensively understood
     _scenario_file_version = 1, -- scenario file version should not be edited unless comprehensively understood
     _mission_version = 6, -- mission version should not be edited unless comprehensively understood
-    _enable_config_override = false, -- development setting, set to false to prevent the mission from loading this config (will use default values instead), this is useful for testing changes without affecting the live config
+    _enable_external_config = false, -- development setting, set to false to prevent the mission from loading this config (will use default values instead), this is useful for testing changes without affecting the live config
     persistence = {
-        enable =  true, -- enables or not persistence, has authority over everything below in this section
+        enable =  false, -- enables or not persistence, has authority over everything below in this section
         save_interval = 4*51, -- (seconds) interval at which the mission state is saved
         -- You can use fixed values or multiplications like above
         -- 51 seconds is used to avoid multiples of 15 to reduce lag spikes
@@ -36,6 +36,103 @@ Config = {
         enable_ctld_persistence = true, -- enables/disables CTLD placed asset persistence
 
         -- scenario_selected is no longer used. Theatre is auto-detected from env.mission.theatre;
+    },
+    aircraft_filter = {
+
+    },
+    era_system = {
+        -- This section controls the "era" of the mission: which time period(s) of aircraft and
+        -- equipment are available, which specific aircraft are enabled, which weapons are banned,
+        -- and how ground units are composed per coalition and per zone level.
+
+        eras_selected = { Eras.EARLYCOLDWAR }, -- array of Eras.* values. Determines which aircraft/equipment time periods are valid in this mission.
+        -- Multiple eras may be combined to mix time periods. For example, to allow both WW2 and Early Cold War assets:
+        -- eras_selected = { Eras.WW2, Eras.EARLYCOLDWAR },
+        -- Available values: Eras.WW2, Eras.EARLYCOLDWAR, Eras.LATECOLDWAR, Eras.MODERN
+
+        enabled_aircraft = {}, -- array of DCS aircraft type strings (the VALUES of Stocks.Aircraft, ex: "FA-18C_hornet").
+        -- This list determines which aircraft (and therefore which equipment/stocks) exist in the mission.
+        -- An EMPTY list {} means "all aircraft valid for the selected era(s) are enabled" (the sensible default).
+        -- To restrict to a specific set of aircraft, list them explicitly, for example:
+        -- enabled_aircraft = {
+        --     "FA-18C_hornet",
+        --     "F-15ESE",
+        --     "F-16C_50",
+        --     "A-10C_2",
+        -- },
+
+        restricted_weapons = {
+            "weapons.bombs.RN-24",
+            "weapons.bombs.RN-28"
+        }, -- array of weapon clsid strings (the VALUES of Stocks.Equipment, ex: "weapons.bombs.Mk_82").
+        -- Any weapon listed here is removed from ALL generated stocks regardless of era or aircraft.
+        -- Use this to ban specific munitions you do not want available in the mission. Default {} (nothing restricted).
+        -- restricted_weapons = {
+        --     "weapons.bombs.Mk_82",
+        --     "weapons.missiles.AIM-9L",
+        -- },
+
+        coalition_selector = {
+            -- Declares the country composition used when generating ground units for each coalition.
+            -- Keys are DCS coalition SIDE numbers: 2 = BLUE, 1 = RED (0 = NEUTRAL).
+            [coalition.side.BLUE] = { country.id["USA"], country.id["UK"], country.id["FRANCE"], country.id["GERMANY"], country.id["ITALY"] }, -- BLUE: NATO mix
+            [coalition.side.RED] = {country.id["RUSSIA"]},                                      -- RED: Russia only
+        },
+        -- Per-era zone-type blacklist. Any zone type listed under an era is NEVER
+        -- generated when that era is among eras_selected (the blacklist is a UNION
+        -- across the selected eras). Blacklisted zones fall back to STRONGPOINT.
+        -- Keys are Eras.* values; values are arrays of ZoneTypes.* to suppress.
+        -- WARNING: blacklisting a type can leave the theatre without it entirely;
+        -- AIRBASE is always generated and cannot be blacklisted.
+        -- Example: WW2 had no radar SAMs/EWR; Early Cold War had no modern SAMs:
+        disable_zone_types_for_era = {
+            [Eras.WW2]          = { ZoneTypes.SAMSITE, ZoneTypes.EWSITE, ZoneTypes.FARP},
+            [Eras.EARLYCOLDWAR] = { ZoneTypes.SAMSITE },
+        },
+
+        -- Per-era AI TASK blacklist. Any AITaskTypes.* listed under an era is
+        -- NEVER tasked (player request OR automatic scheduler) while that era is
+        -- selected. With multiple eras selected the result is a UNION: a task is
+        -- available if it is permitted (not blacklisted) in AT LEAST ONE selected
+        -- era. Keys are Eras.* values; values are arrays of AITaskTypes.* to ban.
+        -- An era with no entry (or an empty list) disables nothing extra.
+        --
+        -- IMPORTANT -- the logistics tasks (CAPTURE_HELO, REINFORCEMENT_HELO,
+        -- RESUPPLY_CARGO) are NOT controlled by this blacklist and CANNOT be
+        -- listed here (entries for them are ignored). They are the plumbing of the
+        -- zone capture & resupply game loop, so they must keep running in every
+        -- era -- blacklisting them would stall captures entirely. Instead of being
+        -- enabled/disabled, they change HOW they resolve per era:
+        --   * Modern / Late / Early Cold War (helicopter & airlift eras): a real
+        --     helicopter or cargo aircraft is flown to do the capture/resupply.
+        --   * WW2 (pre-helicopter / pre-airlift): no aircraft is spawned -- the
+        --     capture/reinforcement/resupply happens INSTANTLY instead.
+        -- So "capture is disabled in WW2" is not quite right: capture still
+        -- happens, it just resolves instantly with no helicopter. The flown-vs-
+        -- instant cutoff lives in code, not config: see
+        -- EraSystem.isHelicopterEraCapable / isAirResupplyEraCapable.
+        --
+        -- MODERN allows every (non-logistics) task by default; add an entry for it
+        -- only to restrict it.
+        --
+        -- The defaults below reproduce the historical era matrix:
+        --   WW2           : no TANKER, SEAD, AWACS, JTAC, INTERCEPT.
+        --   Early Cold War: adds TANKER (probe/drogue) but still no SEAD, AWACS,
+        --                   JTAC, INTERCEPT, ATTACK_CONVOY.
+        --   Late Cold War : adds SEAD, AWACS, JTAC; still no INTERCEPT or
+        --                   ATTACK_CONVOY.
+        --   Modern        : everything (no entry = no restrictions).
+
+        units_per_tier = {
+            -- Approximate number of ground units to spawn per zone, keyed by zone level (1..4).
+            -- Airbases are handled separately (see airbase_tier1_units below).
+            [1] = 2,   -- level 1: ~2 units (1 infantry + 1 truck); airbases override to ~5 (see airbase_tier1_units)
+            [2] = 6,   -- level 2: ~6 units
+            [3] = 10,  -- level 3: ~10 units
+            [4] = 15,  -- level 4: ~15 units
+        },
+        airbase_tier1_units = 5, -- number of ground units used for a level 1 airbase zone (overrides units_per_tier[1] for airbases)
+        composition_randomness = 0.2, -- fractional +/- variance applied to per-zone unit counts so groups are not identical every spawn (0.2 = +/-20%)
     },
     operations = {
         recon_duration = 120, -- (seconds)
@@ -189,6 +286,19 @@ Config = {
     enabled_su25t_blufor = true, -- adds the SU-25T to the blufor warehouse inventory
 
     red_stock_multiplier = 50, -- multiplier for redfor only warehouse stocks
+    enable_ai_payload_checks = true, -- enables/disables AI payload checks, this will prevent AI from spawning with no weapons
+    -- You must turn this off if you change AI aircraft loadouts. Alternatively, you can edit the loadouts in the WarehouseManager to match your custom loadouts.
+
+    -- Auto scaling of warehouse weapon stocks to the number of human players.
+    -- When enabled, generated weapon quantities are multiplied by the live
+    -- player count so a busy server keeps more stock and a quiet one keeps less.
+    -- When disabled, stocks are generated for a single player's worth (scale 1).
+    auto_scaling = {
+        enable = true,       -- on/off switch for player-count based stock scaling
+        min_users = 1,       -- never scale below this many players' worth of stock
+        max_users = 16,      -- cap the scaling so a full server cannot explode stock
+        users_per_unit = 1,  -- players represented by one "unit" of base stock (1 = linear per player)
+    },
 
     cooldown_before_capture_attempt = 10*60, -- (seconds)
     retry_capture_chance = 50, -- (%) Every minute, subject to various checks and conditions
@@ -211,8 +321,12 @@ Config = {
             
             AA_AIRCRAFT = 3500,       -- Air-to-air focused aircraft
             AG_AIRCRAFT = 3000,       -- Air-to-ground focused aircraft
+            MULTIROLE_AIRCRAFT = 3500,-- Multirole aircraft
+            RECON_AIRCRAFT = 2000,    -- Reconnaissance aircraft
             CARGO_AIRCRAFT = 1500,    -- Transport/utility aircraft
-            
+            ATTACK_HELICOPTER = 3000, -- Attack helicopters
+            LOGISTICS_HELICOPTER = 1500, -- Transport/logistics helicopters
+
 
             AIR_AIR_LONG_RANGE = 2000,            -- AIM-120, AIM-54, etc.
             AIR_AIR_SHORT_RANGE = 1200,           -- AIM-9, R-73, etc.
@@ -221,7 +335,9 @@ Config = {
             AIR_GROUND_GUIDED_BOMBS = 1200,       -- GBU-12, GBU-38, etc.
             AIR_GROUND_BOMBS = 800,              -- Mk-82, Mk-84, etc.
             AIR_GROUND_ROCKETS = 400,            -- Hydra, S-8, etc.
-            
+
+            FUEL_TANKS = 600,          -- External fuel/drop tanks
+
             ECM = 2500,                -- Jamming pods, countermeasures
             TGP_MISC = 2000,           -- Targeting pods, misc equipment
             SU25T_BLUFOR = 3000,        -- SU-25T BLUFOR stock package
@@ -469,7 +585,7 @@ Config = {
 
     comms_tower_lost_penalty = 1.1, -- the respawn time is multiplied by this much when a comms tower is lost @depracted
 
-    -- Warehouse supply distribution percentages by airbase tier, make sure they add up to 1.0 exactly
+    -- Warehouse supply distribution percentages by airbase tier, make sure they add up to 1.0 exactly, this runs rarely.
     warehouse_supply_distribution = {
         tier_1 = 0.15, -- % of supplies to tier 1 airbases
         tier_2 = 0.20, -- % of supplies to tier 2 airbases
@@ -579,408 +695,200 @@ stats = {
 
 
 -- This table allows you to link the in-mission groups to the script logic
--- Group names from the mission editor. They MUST BE EXACTLY THE SAME.
+-- Group names from the mission editor. 
+
+-- V6 change: every COMMON_ASSET below is keyed by ERA so the exact mission-editor
+-- group name for each era is spelled out explicitly. Create the ME group whose
+-- name matches the era you intend to run. The script picks the entry for the
+-- active era (Config.era_system.eras_selected[1]); if that era's entry is left
+-- empty it falls back to the MODERN entry, then to any entry that is filled, so
+-- you only NEED to author the eras you actually play.
+--
+-- Naming convention: "<SIDE> <ERA TOKEN> <TASK>", era tokens are
+-- WW2 / EARLYCOLDWAR / LATECOLDWAR / MODERN. Example: a BLUE WW2 CAP group must
+-- be named exactly "BLUE WW2 CAP". You may rename these to anything you like as
+-- long as the ME group name matches the string here.
 GroupData = {
     COMMON_ASSETS = {
         BLUE = {
-            resupply_aircraft = "C130",
-            capture_helicopter = "BLUE Capture Helo",
-            LHA_capture_helicopter = "LHA Capture Helicopter",
-            attack_convoy = "BLUE Attack Convoy",
-            jtac = "BLUE JTAC",
-            farp = "BLUE FARP VEHICLES",
-            tanker_drogue = "BLUE DROGUE TANKER",
-            tanker_boom = "BLUE BOOM TANKER",
+            resupply_aircraft = {
+                WW2          = "C130",          -- unused in WW2 (instant resupply), kept for symmetry
+                EARLYCOLDWAR = "C130 Early",
+                LATECOLDWAR  = "C130 Early",
+                MODERN       = "C130",
+            },
+            capture_helicopter = {
+                WW2          = "BLUE Capture Helo",      -- unused in WW2 (instant capture), kept for symmetry
+                EARLYCOLDWAR = "BLUE EARLYCOLDWAR Reinforcement Helicopter",
+                LATECOLDWAR  = "BLUE Capture Helo",
+                MODERN       = "BLUE Capture Helo",
+            },
+            reinforcement_helicopter = {
+                WW2          = "BLUE EARLYCOLDWAR Reinforcement Helicopter", -- blacklisted
+                EARLYCOLDWAR = "BLUE EARLYCOLDWAR Reinforcement Helicopter",
+                LATECOLDWAR  = "BLUE Reinforcement Helo",
+                MODERN       = "BLUE Reinforcement Helo",
+            },
+            LHA_capture_helicopter = {
+                WW2          = "LHA Capture Helicopter", -- blacklisted
+                EARLYCOLDWAR = "LHA Capture Helicopter",
+                LATECOLDWAR  = "LHA Capture Helicopter",
+                MODERN       = "LHA Capture Helicopter",
+            },
+            attack_convoy = {
+                WW2          = "BLUE WW2 Attack Convoy",
+                EARLYCOLDWAR = "BLUE EARLYCOLDWAR Attack Convoy",
+                LATECOLDWAR  = "BLUE LATECOLDWAR Attack Convoy",
+                MODERN       = "BLUE Attack Convoy",
+            },
+            jtac = {
+                WW2          = "BLUE LATECOLDWAR JTAC",
+                EARLYCOLDWAR = "BLUE LATECOLDWAR JTAC",
+                LATECOLDWAR  = "BLUE LATECOLDWAR JTAC",
+                MODERN       = "BLUE JTAC",
+            },
+            farp = {
+                WW2          = "BLUE FARP VEHICLES",
+                EARLYCOLDWAR = "BLUE FARP VEHICLES",
+                LATECOLDWAR  = "BLUE FARP VEHICLES",
+                MODERN       = "BLUE FARP VEHICLES",
+            },
+            tanker_drogue = {
+                WW2          = "BLUE DROGUE TANKER",
+                EARLYCOLDWAR = "BLUE DROGUE TANKER",
+                LATECOLDWAR  = "BLUE DROGUE TANKER",
+                MODERN       = "BLUE DROGUE TANKER",
+            },
+            tanker_boom = {
+                WW2          = "BLUE BOOM TANKER",
+                EARLYCOLDWAR = "BLUE BOOM TANKER",
+                LATECOLDWAR  = "BLUE BOOM TANKER",
+                MODERN       = "BLUE BOOM TANKER",
+            },
 
-            cas = "BLUE CAS",
-            sead = "BLUE SEAD",
-            strike = "BLUE STRIKE",
-            cap = "BLUE CAP",
-            awacs = "BLUE AWACS",
-            recon = "BLUE RECON",
+            cas = {
+                WW2          = "BLUE WW2 CAS",
+                EARLYCOLDWAR = "BLUE EARLYCOLDWAR CAS",
+                LATECOLDWAR  = "BLUE LATECOLDWAR CAS",
+                MODERN       = "BLUE CAS",
+            },
+            sead = {
+                WW2          = "BLUE LATECOLDWAR SEAD", -- blacklisted
+                EARLYCOLDWAR = "BLUE LATECOLDWAR SEAD", -- blacklisted
+                LATECOLDWAR  = "BLUE LATECOLDWAR SEAD",
+                MODERN       = "BLUE SEAD",
+            },
+            strike = {
+                WW2          = "BLUE WW2 STRIKE",
+                EARLYCOLDWAR = "BLUE EARLYCOLDWAR STRIKE",
+                LATECOLDWAR  = "BLUE LATECOLDWAR STRIKE",
+                MODERN       = "BLUE STRIKE",
+            },
+            cap = {
+                WW2          = "BLUE WW2 CAP",
+                EARLYCOLDWAR = "BLUE EARLYCOLDWAR CAP",
+                LATECOLDWAR  = "BLUE LATECOLDWAR CAP",
+                MODERN       = "BLUE CAP",
+            },
+            awacs = {
+                WW2          = "BLUE LATECOLDWAR AWACS", -- blacklisted
+                EARLYCOLDWAR = "BLUE LATECOLDWAR AWACS", -- blacklisted
+                LATECOLDWAR  = "BLUE LATECOLDWAR AWACS",
+                MODERN       = "BLUE AWACS",
+            },
+            recon = {
+                WW2          = "BLUE WW2 RECON",
+                EARLYCOLDWAR = "BLUE EARLYCOLDWAR RECON",
+                LATECOLDWAR  = "BLUE LATECOLDWAR RECON",
+                MODERN       = "BLUE RECON",
+            },
         },
-    
+
         RED = {
-            resupply_aircraft = "IL76",
-            capture_helicopter = "RED Capture Helo",
-            attack_convoy = "RED Attack Convoy",
-            farp = "RED FARP VEHICLES",
-            tanker_drogue = "RED DROGUE TANKER",
-            tanker_boom = "RED BOOM TANKER",
-            cas = "RED CAS",
-            sead = "RED SEAD",
-            strike = "RED STRIKE",
-            cap = "RED CAP",
-            awacs = "RED AWACS",
-            recon = "RED RECON",
+            resupply_aircraft = {
+                WW2          = "IL76",           -- unused in WW2 (instant resupply), kept for symmetry
+                EARLYCOLDWAR = "AN26B",
+                LATECOLDWAR  = "IL76",
+                MODERN       = "IL76",
+            },
+            capture_helicopter = {
+                WW2          = "RED Capture Helo",       -- unused in WW2 (instant capture), kept for symmetry
+                EARLYCOLDWAR = "RED Capture Helo",
+                LATECOLDWAR  = "RED Capture Helo",
+                MODERN       = "RED Capture Helo",
+            },
+            reinforcement_helicopter = {
+                WW2          = "RED Reinforcement Helo",
+                EARLYCOLDWAR = "RED Reinforcement Helo",
+                LATECOLDWAR  = "RED Reinforcement Helo",
+                MODERN       = "RED Reinforcement Helo",
+            },
+            attack_convoy = {
+                WW2          = "RED WW2 Attack Convoy",
+                EARLYCOLDWAR = "RED EARLYCOLDWAR Attack Convoy",
+                LATECOLDWAR  = "RED LATECOLDWAR Attack Convoy",
+                MODERN       = "RED Attack Convoy",
+            },
+            jtac = {
+                WW2          = "RED JTAC",
+                EARLYCOLDWAR = "RED JTAC",
+                LATECOLDWAR  = "RED JTAC",
+                MODERN       = "RED JTAC",
+            },
+            farp = {
+                WW2          = "RED FARP VEHICLES",
+                EARLYCOLDWAR = "RED FARP VEHICLES",
+                LATECOLDWAR  = "RED FARP VEHICLES",
+                MODERN       = "RED FARP VEHICLES",
+            },
+            tanker_drogue = {
+                WW2          = "RED DROGUE TANKER",
+                EARLYCOLDWAR = "RED DROGUE TANKER",
+                LATECOLDWAR  = "RED DROGUE TANKER",
+                MODERN       = "RED DROGUE TANKER",
+            },
+            tanker_boom = {
+                WW2          = "RED BOOM TANKER",
+                EARLYCOLDWAR = "RED BOOM TANKER",
+                LATECOLDWAR  = "RED BOOM TANKER",
+                MODERN       = "RED BOOM TANKER",
+            },
+            cas = {
+                WW2          = "RED WW2 CAS",
+                EARLYCOLDWAR = "RED EARLYCOLDWAR CAS",
+                LATECOLDWAR  = "RED LATECOLDWAR CAS",
+                MODERN       = "RED CAS",
+            },
+            sead = {
+                WW2          = "RED LATECOLDWAR SEAD", -- blacklisted
+                EARLYCOLDWAR = "RED LATECOLDWAR SEAD", -- blacklisted
+                LATECOLDWAR  = "RED LATECOLDWAR SEAD",
+                MODERN       = "RED SEAD",
+            },
+            strike = {
+                WW2          = "RED WW2 STRIKE",
+                EARLYCOLDWAR = "RED EARLYCOLDWAR STRIKE",
+                LATECOLDWAR  = "RED LATECOLDWAR STRIKE",
+                MODERN       = "RED STRIKE",
+            },
+            cap = {
+                WW2          = "RED WW2 CAP",
+                EARLYCOLDWAR = "RED EARLYCOLDWAR CAP",
+                LATECOLDWAR  = "RED LATECOLDWAR CAP",
+                MODERN       = "RED CAP",
+            },
+            awacs = {
+                WW2          = "RED AWACS", -- blacklisted
+                EARLYCOLDWAR = "RED AWACS", -- blacklisted
+                LATECOLDWAR  = "RED AWACS",
+                MODERN       = "RED AWACS",
+            },
+            recon = {
+                WW2          = "RED WW2 RECON",
+                EARLYCOLDWAR = "RED EARLYCOLDWAR RECON",
+                LATECOLDWAR  = "RED LATECOLDWAR RECON",
+                MODERN       = "RED RECON",
+            },
         }
     },
-
-    STRONGPOINT_SITES = {
-        BLUE = {
-            [1] = {
-                level = 1,
-                side = coalition.side.BLUE,
-                group_name = "BLUE STRONGPOINT TIER 1"
-            },
-            [2] = {
-                level = 2,
-                side = coalition.side.BLUE,
-                group_name = "BLUE STRONGPOINT TIER 2"
-            },
-            [3] = {
-                level = 3,
-                side = coalition.side.BLUE,
-                group_name = "BLUE STRONGPOINT TIER 3"
-            },
-            [4] = {
-                level = 4,
-                side = coalition.side.BLUE,
-                group_name = "BLUE STRONGPOINT TIER 4"
-            }
-        },
-        RED = {
-            [1] = {
-                level = 1,
-                side = coalition.side.RED,
-                group_name = "RED STRONGPOINT TIER 1"
-            },
-            [2] = {
-                level = 2,
-                side = coalition.side.RED,
-                group_name = "RED STRONGPOINT TIER 2"
-            },
-            [3] = {
-                level = 3,
-                side = coalition.side.RED,
-                group_name = "RED STRONGPOINT TIER 3"
-            },
-            [4] = {
-                level = 4,
-                side = coalition.side.RED,
-                group_name = "RED STRONGPOINT TIER 4"
-            }
-        }
-    },
-
-    --[[
-        SAM Classifications:
-            SAM_TYPES.SHORT_RANGE
-            SAM_TYPES.MEDIUM_RANGE
-            SAM_TYPES.LONG_RANGE
-    ]]
-    SAM_SITES_NG = {
-        {
-            group_name= "RED SA5",
-            side = coalition.side.RED,
-            sam_classification = SAM_TYPES.LONG_RANGE,
-        },
-        {
-            group_name = "RED SA10",
-            side = coalition.side.RED,
-            sam_classification = SAM_TYPES.LONG_RANGE,
-        },
-        {
-            group_name = "RED SA11",
-            side = coalition.side.RED,
-            sam_classification = SAM_TYPES.LONG_RANGE,
-        },
-        {
-            group_name= "RED SA2",
-            side = coalition.side.RED,
-            sam_classification = SAM_TYPES.MEDIUM_RANGE,
-        },
-        {
-            group_name= "RED SA6",
-            side = coalition.side.RED,
-            sam_classification = SAM_TYPES.MEDIUM_RANGE,
-        },
-        {
-            group_name = "RED SA3",
-            side = coalition.side.RED,
-            sam_classification = SAM_TYPES.SHORT_RANGE,
-        },
-        {
-            group_name = "BLUE PATRIOT",
-            side = coalition.side.BLUE,
-            sam_classification = SAM_TYPES.LONG_RANGE,
-        },
-        {
-            group_name = "BLUE HAWK",
-            side = coalition.side.BLUE,
-            sam_classification = SAM_TYPES.MEDIUM_RANGE,
-        },
-        {
-            group_name = "BLUE IRIS-T",
-            side = coalition.side.BLUE,
-            sam_classification = SAM_TYPES.MEDIUM_RANGE,
-        },
-        {
-            group_name = "BLUE NASAMS",
-            side = coalition.side.BLUE,
-            sam_classification = SAM_TYPES.SHORT_RANGE,
-        }
-
-
-
-    },
-
-    AIRBASE_SAMS = {
-        BLUE = {
-            {
-                tier = 3,
-                group_name = "BLUE AIRBASE SAM TIER 3"
-            },
-            {
-                tier = 4,
-                group_name = "BLUE AIRBASE SAM TIER 4"
-            }
-        },
-        RED = {
-            {
-                tier = 3,
-                group_name = "RED AIRBASE SAM TIER 3"
-            },
-            {
-                tier = 4,
-                group_name = "RED AIRBASE SAM TIER 4"
-            }
-        }
-    },
-
-    AIRBASE_SITES = {
-        BLUE = {
-            [1] = {
-                level = 1,
-                side = coalition.side.BLUE,
-                group_name = "BLUE AIRBASE TIER 1"
-            },
-            [2] = {
-                level = 2,
-                side = coalition.side.BLUE,
-                group_name = "BLUE AIRBASE TIER 2"
-            },
-            [3] = {
-                level = 3,
-                side = coalition.side.BLUE,
-                group_name = "BLUE AIRBASE TIER 3"
-            },
-            [4] = {
-                level = 4,
-                side = coalition.side.BLUE,
-                group_name = "BLUE AIRBASE TIER 4"
-            }
-        },
-        RED = {
-            [1] = {
-                level = 1,
-                side = coalition.side.RED,
-                group_name = "RED AIRBASE TIER 1"
-            },
-            [2] = {
-                level = 2,
-                side = coalition.side.RED,
-                group_name = "RED AIRBASE TIER 2"
-            },
-            [3] = {
-                level = 3,
-                side = coalition.side.RED,
-                group_name = "RED AIRBASE TIER 3"
-            },
-            [4] = {
-                level = 4,
-                side = coalition.side.RED,
-                group_name = "RED AIRBASE TIER 4"
-            }
-        }
-    },
-
-    LOGISTICS_SITES = {
-        BLUE = {
-            [1] = {
-                level = 1,
-                side = coalition.side.BLUE,
-                group_name = "BLUE LOGISTICS TIER 1"
-            },
-            [2] = {
-                level = 2,
-                side = coalition.side.BLUE,
-                group_name = "BLUE LOGISTICS TIER 2"
-            },
-            [3] = {
-                level = 3,
-                side = coalition.side.BLUE,
-                group_name = "BLUE LOGISTICS TIER 3"
-            },
-            [4] = {
-                level = 4,
-                side = coalition.side.BLUE,
-                group_name = "BLUE LOGISTICS TIER 4"
-            }
-        },
-        RED = {
-            [1] = {
-                level = 1,
-                side = coalition.side.RED,
-                group_name = "RED LOGISTICS TIER 1"
-            },
-            [2] = {
-                level = 2,
-                side = coalition.side.RED,
-                group_name = "RED LOGISTICS TIER 2"
-            },
-            [3] = {
-                level = 3,
-                side = coalition.side.RED,
-                group_name = "RED LOGISTICS TIER 3"
-            },
-            [4] = {
-                level = 4,
-                side = coalition.side.RED,
-                group_name = "RED LOGISTICS TIER 4"
-            }
-        }
-    },
-
-    COMMS_SITES = {
-        BLUE = {
-            [1] = {
-                level = 1,
-                side = coalition.side.BLUE,
-                group_name = "BLUE COMMS TIER 1"
-            },
-            [2] = {
-                level = 2,
-                side = coalition.side.BLUE,
-                group_name = "BLUE COMMS TIER 2"
-            },
-            [3] = {
-                level = 3,
-                side = coalition.side.BLUE,
-                group_name = "BLUE COMMS TIER 3"
-            },
-            [4] = {
-                level = 4,
-                side = coalition.side.BLUE,
-                group_name = "BLUE COMMS TIER 4"
-            }
-        },
-        RED = {
-            [1] = {
-                level = 1,
-                side = coalition.side.RED,
-                group_name = "RED COMMS TIER 1"
-            },
-            [2] = {
-                level = 2,
-                side = coalition.side.RED,
-                group_name = "RED COMMS TIER 2"
-            },
-            [3] = {
-                level = 3,
-                side = coalition.side.RED,
-                group_name = "RED COMMS TIER 3"
-            },
-            [4] = {
-                level = 4,
-                side = coalition.side.RED,
-                group_name = "RED COMMS TIER 4"
-            }
-        }
-    },
-
-    EW_SITES = {
-        BLUE = {
-            [1] = {
-                level = 1,
-                side = coalition.side.BLUE,
-                group_name = "BLUE EWR TIER 1"
-            },
-            [2] = {
-                level = 2,
-                side = coalition.side.BLUE,
-                group_name = "BLUE EWR TIER 2"
-            },
-            [3] = {
-                level = 3,
-                side = coalition.side.BLUE,
-                group_name = "BLUE EWR TIER 3"
-            },
-            [4] = {
-                level = 4,
-                side = coalition.side.BLUE,
-                group_name = "BLUE EWR TIER 4"
-            }
-        },
-        RED = {
-            [1] = {
-                level = 1,
-                side = coalition.side.RED,
-                group_name = "RED EWR TIER 1"
-            },
-            [2] = {
-                level = 2,
-                side = coalition.side.RED,
-                group_name = "RED EWR TIER 2"
-            },
-            [3] = {
-                level = 3,
-                side = coalition.side.RED,
-                group_name = "RED EWR TIER 3"
-            },
-            [4] = {
-                level = 4,
-                side = coalition.side.RED,
-                group_name = "RED EWR TIER 4"
-            }
-        }
-    },
-    
-    FARP_SUPPORT = {
-        BLUE = {
-            [1] = {
-                level = 1,
-                side = coalition.side.BLUE,
-                group_name = "BLUE FARP SUPPORT TIER 1"
-            },
-            [2] = {
-                level = 2,
-                side = coalition.side.BLUE,
-                group_name = "BLUE FARP SUPPORT TIER 2"
-            },
-            [3] = {
-                level = 3,
-                side = coalition.side.BLUE,
-                group_name = "BLUE FARP SUPPORT TIER 3"
-            },
-            [4] = {
-                level = 4,
-                side = coalition.side.BLUE,
-                group_name = "BLUE FARP SUPPORT TIER 4"
-            }
-        },
-        RED = {
-            [1] = {
-                level = 1,
-                side = coalition.side.RED,
-                group_name = "RED FARP SUPPORT TIER 1"
-            },
-            [2] = {
-                level = 2,
-                side = coalition.side.RED,
-                group_name = "RED FARP SUPPORT TIER 2"
-            },
-            [3] = {
-                level = 3,
-                side = coalition.side.RED,
-                group_name = "RED FARP SUPPORT TIER 3"
-            },
-            [4] = {
-                level = 4,
-                side = coalition.side.RED,
-                group_name = "RED FARP SUPPORT TIER 4"
-            }
-        }
-    }
-
 }

@@ -388,7 +388,7 @@ do
             
             
             -- AA Aircraft
-            local aa_aircraft_airbases = buildAirbaseSubmenu({WarehouseManager.StockTypes.AA_AIRCRAFT}, Config.supplies.resupply_costs.AA_AIRCRAFT, "AA Aircraft")
+            local aa_aircraft_airbases = buildAirbaseSubmenu({StockTypes.AA_AIRCRAFT}, Config.supplies.resupply_costs.AA_AIRCRAFT, "AA Aircraft")
             if #aa_aircraft_airbases > 0 then
                 table.insert(resupply_stock_list, {
                     name = "AA Aircraft - " .. Config.supplies.resupply_costs.AA_AIRCRAFT .. " supplies",
@@ -397,7 +397,7 @@ do
             end
             
             -- AG Aircraft
-            local ag_aircraft_airbases = buildAirbaseSubmenu({WarehouseManager.StockTypes.AG_AIRCRAFT}, Config.supplies.resupply_costs.AG_AIRCRAFT, "AG Aircraft")
+            local ag_aircraft_airbases = buildAirbaseSubmenu({StockTypes.AG_AIRCRAFT}, Config.supplies.resupply_costs.AG_AIRCRAFT, "AG Aircraft")
             if #ag_aircraft_airbases > 0 then
                 table.insert(resupply_stock_list, {
                     name = "AG Aircraft - " .. Config.supplies.resupply_costs.AG_AIRCRAFT .. " supplies",
@@ -424,16 +424,20 @@ do
             end
 
             -- Cargo Aircraft
-            local cargo_aircraft_airbases = buildAirbaseSubmenu({WarehouseManager.StockTypes.CARGO_AIRCRAFT}, Config.supplies.resupply_costs.CARGO_AIRCRAFT, "Cargo Aircraft")
+            local cargo_aircraft_airbases = buildAirbaseSubmenu({StockTypes.CARGO_AIRCRAFT}, Config.supplies.resupply_costs.CARGO_AIRCRAFT, "Cargo Aircraft")
             if #cargo_aircraft_airbases > 0 then
                 table.insert(resupply_stock_list, {
                     name = "Cargo Aircraft - " .. Config.supplies.resupply_costs.CARGO_AIRCRAFT .. " supplies",
                     submenu = cargo_aircraft_airbases
                 })
             end
-            
+
+            -- Attack & Logistics helicopters are intentionally NOT offered here; they
+            -- are resupplied immediately through the FARP Resupply menu (part of the
+            -- StockTypes.FARP package), since helos operate from FARPs, not airbases.
+
             -- Long Range AA
-            local aa_lr_airbases = buildAirbaseSubmenu({WarehouseManager.StockTypes.AIR_AIR_LONG_RANGE}, Config.supplies.resupply_costs.AIR_AIR_LONG_RANGE, "Long Range AA")
+            local aa_lr_airbases = buildAirbaseSubmenu({StockTypes.AIR_AIR_LONG_RANGE}, Config.supplies.resupply_costs.AIR_AIR_LONG_RANGE, "Long Range AA")
             if #aa_lr_airbases > 0 then
                 table.insert(resupply_stock_list, {
                     name = "Long Range AA - " .. Config.supplies.resupply_costs.AIR_AIR_LONG_RANGE .. " supplies",
@@ -442,7 +446,7 @@ do
             end
             
             -- Short Range AA
-            local aa_sr_airbases = buildAirbaseSubmenu({WarehouseManager.StockTypes.AIR_AIR_SHORT_RANGE}, Config.supplies.resupply_costs.AIR_AIR_SHORT_RANGE, "Short Range AA")
+            local aa_sr_airbases = buildAirbaseSubmenu({StockTypes.AIR_AIR_SHORT_RANGE}, Config.supplies.resupply_costs.AIR_AIR_SHORT_RANGE, "Short Range AA")
             if #aa_sr_airbases > 0 then
                 table.insert(resupply_stock_list, {
                     name = "Short Range AA - " .. Config.supplies.resupply_costs.AIR_AIR_SHORT_RANGE .. " supplies",
@@ -451,7 +455,7 @@ do
             end
             
             -- AG Bombs
-            local ag_bombs_airbases = buildAirbaseSubmenu({WarehouseManager.StockTypes.AIR_GROUND_BOMBS}, Config.supplies.resupply_costs.AIR_GROUND_BOMBS, "AG Bombs")
+            local ag_bombs_airbases = buildAirbaseSubmenu({StockTypes.AIR_GROUND_BOMBS}, Config.supplies.resupply_costs.AIR_GROUND_BOMBS, "AG Bombs")
             if #ag_bombs_airbases > 0 then
                 table.insert(resupply_stock_list, {
                     name = "AG Bombs - " .. Config.supplies.resupply_costs.AIR_GROUND_BOMBS .. " supplies",
@@ -460,7 +464,7 @@ do
             end
             
             -- AG Rockets
-            local ag_rockets_airbases = buildAirbaseSubmenu({WarehouseManager.StockTypes.AIR_GROUND_ROCKETS}, Config.supplies.resupply_costs.AIR_GROUND_ROCKETS, "AG Rockets")
+            local ag_rockets_airbases = buildAirbaseSubmenu({StockTypes.AIR_GROUND_ROCKETS}, Config.supplies.resupply_costs.AIR_GROUND_ROCKETS, "AG Rockets")
             if #ag_rockets_airbases > 0 then
                 table.insert(resupply_stock_list, {
                     name = "AG Rockets - " .. Config.supplies.resupply_costs.AIR_GROUND_ROCKETS .. " supplies",
@@ -468,8 +472,17 @@ do
                 })
             end
             
+            -- Fuel Tanks
+            local fuel_tanks_airbases = buildAirbaseSubmenu({StockTypes.FUEL_TANKS}, Config.supplies.resupply_costs.FUEL_TANKS, "Fuel Tanks")
+            if #fuel_tanks_airbases > 0 then
+                table.insert(resupply_stock_list, {
+                    name = "Fuel Tanks - " .. Config.supplies.resupply_costs.FUEL_TANKS .. " supplies",
+                    submenu = fuel_tanks_airbases
+                })
+            end
+
             -- AG Guided Bombs
-            local ag_guided_bombs_airbases = buildAirbaseSubmenu({WarehouseManager.StockTypes.AIR_GROUND_GUIDED_BOMBS}, Config.supplies.resupply_costs.AIR_GROUND_GUIDED_BOMBS, "AG Guided Bombs")
+            local ag_guided_bombs_airbases = buildAirbaseSubmenu({StockTypes.AIR_GROUND_GUIDED_BOMBS}, Config.supplies.resupply_costs.AIR_GROUND_GUIDED_BOMBS, "AG Guided Bombs")
             if #ag_guided_bombs_airbases > 0 then
                 table.insert(resupply_stock_list, {
                     name = "AG Guided Bombs - " .. Config.supplies.resupply_costs.AIR_GROUND_GUIDED_BOMBS .. " supplies",
@@ -478,7 +491,7 @@ do
             end
             
             -- AG Missiles
-            local ag_missiles_airbases = buildAirbaseSubmenu({WarehouseManager.StockTypes.AIR_GROUND_GUIDED_MISSILES}, Config.supplies.resupply_costs.AIR_GROUND_GUIDED_MISSILES, "AG Missiles")
+            local ag_missiles_airbases = buildAirbaseSubmenu({StockTypes.AIR_GROUND_GUIDED_MISSILES}, Config.supplies.resupply_costs.AIR_GROUND_GUIDED_MISSILES, "AG Missiles")
             if #ag_missiles_airbases > 0 then
                 table.insert(resupply_stock_list, {
                     name = "AG Missiles - " .. Config.supplies.resupply_costs.AIR_GROUND_GUIDED_MISSILES .. " supplies",
@@ -487,7 +500,7 @@ do
             end
             
             -- ECM
-            local ecm_airbases = buildAirbaseSubmenu({WarehouseManager.StockTypes.ECM}, Config.supplies.resupply_costs.ECM, "ECM")
+            local ecm_airbases = buildAirbaseSubmenu({StockTypes.ECM}, Config.supplies.resupply_costs.ECM, "ECM")
             if #ecm_airbases > 0 then
                 table.insert(resupply_stock_list, {
                     name = "ECM - " .. Config.supplies.resupply_costs.ECM .. " supplies",
@@ -496,7 +509,7 @@ do
             end
             
             -- TGP, Misc
-            local tgp_misc_airbases = buildAirbaseSubmenu({WarehouseManager.StockTypes.TGP, WarehouseManager.StockTypes.MISC}, Config.supplies.resupply_costs.TGP_MISC, "TGP/Misc")
+            local tgp_misc_airbases = buildAirbaseSubmenu({StockTypes.TGP, StockTypes.MISC}, Config.supplies.resupply_costs.TGP_MISC, "TGP/Misc")
             if #tgp_misc_airbases > 0 then
                 table.insert(resupply_stock_list, {
                     name = "TGP, Misc - " .. Config.supplies.resupply_costs.TGP_MISC .. " supplies",
@@ -505,23 +518,12 @@ do
             end
             
             -- Initial Stock
-            local initial_airbases = buildAirbaseSubmenu({WarehouseManager.StockTypes.INITIAL}, Config.supplies.resupply_costs.INITIAL, "Initial Stock")
+            local initial_airbases = buildAirbaseSubmenu({StockTypes.INITIAL}, Config.supplies.resupply_costs.INITIAL, "Initial Stock")
             if #initial_airbases > 0 then
                 table.insert(resupply_stock_list, {
                     name = "Initial Stock - " .. Config.supplies.resupply_costs.INITIAL .. " supplies",
                     submenu = initial_airbases
                 })
-            end
-
-            -- SU-25T BLUFOR Package
-            if side == coalition.side.BLUE and Config.enabled_su25t_blufor then
-                local su25t_airbases = buildAirbaseSubmenu({WarehouseManager.StockTypes.SU25T_BLUFOR}, Config.supplies.resupply_costs.SU25T_BLUFOR, "SU-25T BLUFOR")
-                if #su25t_airbases > 0 then
-                    table.insert(resupply_stock_list, {
-                        name = "SU-25T BLUFOR - " .. Config.supplies.resupply_costs.SU25T_BLUFOR .. " supplies",
-                        submenu = su25t_airbases
-                    })
-                end
             end
             
             if #resupply_stock_list > 0 then
@@ -559,7 +561,7 @@ do
                             else
                                 supplies_zone.local_supplies = math.max(local_supplies - Config.supplies.resupply_costs.FARP,0)
                             end
-                            WarehouseManager:attributeAirbaseStock(farp,coal, {WarehouseManager.StockTypes.FARP})
+                            WarehouseManager:attributeAirbaseStock(farp,coal, {StockTypes.FARP})
                             trigger.action.outTextForCoalition(coal, "FARP " .. name .. " has been resupplied.", 10)
                             trigger.action.outSoundForCoalition(coal,"radio_txrx.ogg")
                         end,
@@ -592,7 +594,7 @@ do
                             else
                                 supplies_zone.local_supplies = math.max(local_supplies - Config.supplies.resupply_costs.FARP,0)
                             end
-                            WarehouseManager:attributeAirbaseStock(farp_name,coal, {WarehouseManager.StockTypes.FARP})
+                            WarehouseManager:attributeAirbaseStock(farp_name,coal, {StockTypes.FARP})
                             trigger.action.outTextForCoalition(coal,name .. " has been resupplied.", 10)
                             trigger.action.outSoundForCoalition(coal,"radio_txrx.ogg")
                         end,
@@ -1220,6 +1222,7 @@ do
         local main_tasking_list = {
             {
                 name = "Request JTAC",
+                task_type = AITaskTypes.JTAC,
                 func = function()
                     local commands = buildZoneCommandList(function(zone, discovered)
                         return zone.side == enemy_side and utils.tableContains(discovered, zone.name)
@@ -1266,6 +1269,7 @@ do
             },
             {
                 name = "Request CAP",
+                task_type = AITaskTypes.CAP,
                 func = function()
                     local commands = buildZoneCommandList(function(zone, discovered)
                         return utils.tableContains(discovered, zone.name)
@@ -1276,6 +1280,7 @@ do
             },
             {
                 name = "Request CAS",
+                task_type = AITaskTypes.CAS,
                 func = function()
                     local commands = buildZoneCommandList(function(zone, discovered)
                         return zone.side == enemy_side and utils.tableContains(discovered, zone.name)
@@ -1286,6 +1291,7 @@ do
             },
             {
                 name = "Request AWACS",
+                task_type = AITaskTypes.AWACS,
                 func = function()
                     local requesting_airbase = utils.fetchSuppliesZoneFromUnit(unit)
                     if not requesting_airbase or requesting_airbase.zone_type ~= ZoneTypes.AIRBASE then
@@ -1302,6 +1308,7 @@ do
             },
             {
                 name = "Request Tanker",
+                task_type = AITaskTypes.TANKER,
                 func = function()
                     local requesting_airbase = utils.fetchSuppliesZoneFromUnit(unit)
                     if not requesting_airbase or requesting_airbase.zone_type ~= ZoneTypes.AIRBASE then
@@ -1318,6 +1325,7 @@ do
             },
             {
                 name = "Request Strike",
+                task_type = AITaskTypes.STRIKE,
                 func = function()
                     local commands = buildZoneCommandList(function(zone, discovered)
                         return zone.side == enemy_side and utils.tableContains(discovered, zone.name)
@@ -1329,6 +1337,7 @@ do
             },
             {
                 name = "Request SEAD",
+                task_type = AITaskTypes.SEAD,
                 func = function()
                     local commands = buildZoneCommandList(function(zone, discovered)
                         return zone.side == enemy_side and utils.tableContains(discovered, zone.name)
@@ -1340,7 +1349,18 @@ do
             },
         }
 
-        CommandHandler.buildPagedMenuForGroup(gr_id, tasking_main_submenu, main_tasking_list, 1)
+        -- [Era] Hide tasking entries that are not available in the selected
+        -- era(s). Entries with no task_type (e.g. Naval Strike, Capture,
+        -- Reinforcement) are era-neutral and always shown; the spawn-side guard
+        -- in TaskManager remains as a backstop.
+        local era_tasking_list = {}
+        for _, item in ipairs(main_tasking_list) do
+            if not item.task_type or EraSystem.isTaskTypeAllowed(item.task_type) then
+                table.insert(era_tasking_list, item)
+            end
+        end
+
+        CommandHandler.buildPagedMenuForGroup(gr_id, tasking_main_submenu, era_tasking_list, 1)
 
     end
 

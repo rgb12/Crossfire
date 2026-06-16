@@ -139,6 +139,14 @@ AITaskTypes = {
     RECON = "RECON"
 }
 
+---@enum Eras
+Eras = {
+    WW2 = "WW2",
+    EARLYCOLDWAR = "Early Cold War",
+    LATECOLDWAR = "Late Cold War",
+    MODERN = "Modern"
+}
+
 --- Ensure that isOffensiveOperation and isDefensiveOperation in operation manager are complete
 ---@enum OperationTypes
 OperationTypes = {
@@ -187,6 +195,36 @@ CargoCrates = {
     LargeContainer = "iso_container",
     SmallContainer = "iso_container_small",
     SUPPLY_CRATE = "cds_crate"
+}
+
+---@enum StockTypes
+StockTypes = {
+    INITIAL = 1,
+    AIR_AIR_LONG_RANGE = 2,
+    AIR_AIR_SHORT_RANGE = 3,
+    AIR_GROUND_GUIDED_MISSILES = 4,
+    AIR_GROUND_GUIDED_BOMBS = 5,
+    AIR_GROUND_BOMBS = 6,
+    AIR_GROUND_ROCKETS = 7,
+    ECM = 8,
+    TGP = 9,
+    MISC = 10,
+    LOGISTICS_CAPTURE = 11,
+    AG_AIRCRAFT = 12,
+    MULTIROLE_AIRCRAFT = 13,
+    AA_AIRCRAFT = 14,
+    RECON_AIRCRAFT = 15,
+    CARGO_AIRCRAFT = 16,
+    SU25T_BLUFOR = 17,
+    FARP = 18,
+    CARRIER_INITAL = 19,
+    ATTACK_HELICOPTER = 20,
+    LOGISTICS_HELICOPTER = 21,
+    FARP_MISSILES = 22,
+    FARP_AG_ROCKETS = 23,
+    FARP_MISC = 24,
+    FARP_GUNS = 25,
+    FUEL_TANKS = 26
 }
 
 MissionLogger = mist.Logger:new("MissionLogger", 3)
