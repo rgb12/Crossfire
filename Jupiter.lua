@@ -219,7 +219,7 @@ function Jupiter:onEvent(event)
             TheatreCommander:tick_10m()
             cmd_executed = true
         elseif command == "-eras" then
-            trigger.action.outText("Jupiter: Current Era: "..mist.utils.tableShow(Config.era_system.eras_selected), 5)
+            trigger.action.outText("Jupiter: selected eras are "..mist.utils.tableShow(Config.era_system.eras_selected), 5)
             cmd_executed = true
         elseif command == "-listtriggerzones" then
             local zone_names = {}
