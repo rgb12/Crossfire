@@ -47,19 +47,8 @@ function ev:onEvent(event)
                                             --MissionLogger:info(warehouse:getInventory())
                                             local acft_count = (warehouse:getItemCount(acft_name) or 0)+1
                                             --MissionLogger:info(acft_count)
-                                            
                                             if acft_count >= 1 then -- the airplane gets used before this script is executed, this is a must
                                                 can_spawn = true
-                                                
-                                                -- Due to the size of the C130, ALL airbases do not have spawn slots as "takeoff from ramp" but "takeoff from ground".
-                                                -- The workaround is to spawn them as taking off from ground, but the script has to check for this case specifically
-                                                --https://github.com/rgb12/Crossfire/issues/49
-
-                                                if acft_name == WarehouseManager.AircraftFlags.C130J_30 or
-                                                zone.zone_type == ZoneTypes.FARP then
-                                                    warehouse:removeItem(acft_name,1)
-                                                end
-
                                             else
                                                 MissionLogger:info(string.format(
                                                     "Slot blocked:  %s at %s (stock=%d)",
@@ -70,9 +59,6 @@ function ev:onEvent(event)
 
                                                 can_spawn = false
                                                 warehouse:addItem(acft_name,1)
-                                                if acft_name == WarehouseManager.AircraftFlags.C130J_30 then
-                                                    trigger.action.outTextForUnit(unit:getID(), "C130J-30 user; If you tried spawning right after mission start, please wait a moment and try again.",30)
-                                                end
                                             end
                                         end
                                     end
