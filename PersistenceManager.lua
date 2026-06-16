@@ -266,6 +266,8 @@ do
         PersistenceManager.data = {} -- Clear old data
 
         MissionLogger:info("Attempting save")
+
+        PersistenceManager.data.eras = mist.utils.deepCopy(Config.era_system.eras_selected)
         PersistenceManager.data.scenario = scenario
 
         PersistenceManager.data.stats = stats
@@ -620,6 +622,20 @@ do
         or not PersistenceManager.data.scenario.blue_airbase
         or not PersistenceManager.data.scenario.red_airbase then
             MissionLogger:error("PERSISTENCE RESTORE ERROR: Save file is missing scenario metadata.")
+            return false
+        end
+
+        local eras_math = false
+        for _, era in pairs(PersistenceManager.data.eras or {}) do
+            if not utils.tableContains(Config.era_system.eras_selected, era) then
+                eras_math = false
+                break
+            end
+            eras_math = true
+        end
+
+        if not eras_math then
+            env.error("PERSISTENCE RESTORE ERROR: Incompatible eras in save and config file.",true)
             return false
         end
 
