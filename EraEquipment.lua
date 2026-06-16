@@ -3034,7 +3034,6 @@ Stocks.GroundUnits = {
     TANK_CHALLENGER = { type = "Challenger2", role = "TANK", countries = { 4, 80 }, era_min = Eras.MODERN, era_max = Eras.MODERN },
     TANK_LECLERC = { type = "Leclerc", role = "TANK", countries = { 5, 80 }, era_min = Eras.MODERN, era_max = Eras.MODERN },
     TANK_SHERMAN = { type = "M4_Sherman", role = "TANK", countries = {2,80}, era_min = Eras.WW2,era_max = Eras.EARLYCOLDWAR},
-    TANK_PANZER =  { type = "Pz_V_Panther_G", role = "TANK", countries = {6,80}, era_min = Eras.WW2,era_max = Eras.EARLYCOLDWAR},
     
     -- ===================== IFV =====================
     IFV_BMP1   = { type = "BMP-1",  role = "IFV", countries = { 0, 17, 81 }, era_min = Eras.EARLYCOLDWAR, era_max = Eras.EARLYCOLDWAR },
@@ -3074,7 +3073,6 @@ Stocks.GroundUnits = {
     TRUCK_HEMTT   = { type = "Hummer",     role = "TRUCK", countries = { 2, 80 }, era_min = Eras.LATECOLDWAR, era_max = Eras.MODERN },
     TRUCK_BEDFORD = { type = "Bedford_MWD", role = "TRUCK", countries = { 2, 80 }, era_min = Eras.WW2, era_max = Eras.WW2 },
     TRUCK_OPEL_BLITZ = { type = "Blitz_36-6700A", role = "TRUCK", countries = { 6, 80 }, era_min = Eras.WW2, era_max = Eras.WW2 },
-    
     -- ===================== SUPPLY TRUCKS (resupply ring) =====================
     -- These carry the in-editor resupply ring; placed ~100 m from a SAM site.
     SUPPLY_URAL375D = { type = "Ural-375 PBU", role = "SUPPLY_TRUCK", countries = { 0, 17, 81 }, era_min = Eras.EARLYCOLDWAR, era_max = Eras.MODERN },
