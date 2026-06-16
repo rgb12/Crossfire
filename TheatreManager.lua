@@ -1479,13 +1479,10 @@ do
             PersistenceManager:loadUserOverrides()
         end
 
-        -- Preflight: verify every late-activated template group referenced by
-        -- GroupData.COMMON_ASSETS exists BEFORE any spawning/cloning happens.
-        -- Missing groups are reported to the user via env.error(..., true); the
-        -- mission still proceeds so unaffected systems run, but this turns the
-        -- later opaque mist.teleportToPoint crash into a clear CONFIG ERROR.
         UnitHandler.validateGroupTemplates()
 
+        UnitHandler.checkCarrierEra()
+        UnitHandler.checkLHAEra()
         world.addEventHandler(ev)
         local persistence_enabled = PersistenceManager:isEnabled()
 

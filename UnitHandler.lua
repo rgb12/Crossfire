@@ -771,6 +771,55 @@ function UnitHandler.checkIfZoneHasUnitWithAttributes(zone, attributes)
     return false
 end
 
+function UnitHandler.checkCarrierEra()
+    local is_allowed = false
+    if Config.carrier_setup and Config.carrier_setup.enabled then
+        for _, era in pairs(Config.era_system.eras_selected) do
+            if utils.tableContains(Config.era_system.carrier_eras_allowed, era) then
+                is_allowed = true
+                break
+            end
+        end
+        if not is_allowed then
+            MissionLogger:info("CARRIER NOT ALLOWED")
+            local carrier = Unit.getByName(Config.carrier_setup.carrier_unit_name)
+            if carrier and carrier.isExist and carrier:isExist() then
+                local group = carrier:getGroup()
+                if group and group:isExist() then
+                    group:destroy()
+                else
+                    carrier:destroy()
+                end
+                Config.carrier_setup.enabled = false
+            end
+        end
+    end
+end
+function UnitHandler.checkLHAEra()
+    local is_allowed = false
+    if Config.lha_setup and Config.lha_setup.enabled then
+        for _, era in pairs(Config.era_system.eras_selected) do
+            if utils.tableContains(Config.era_system.lha_eras_allowed, era) then
+                is_allowed = true
+                break
+            end
+        end
+        if not is_allowed then
+            local lha = Unit.getByName(Config.lha_setup.lha_unit_name)
+            if lha and lha.isExist and lha:isExist() then
+                local group = lha:getGroup()
+                if group and group:isExist() then
+                    group:destroy()
+                else
+                    lha:destroy()
+                end
+                Config.lha_setup.enabled = false
+            end
+        end
+    end
+end
+
+
 ---@param zone ZoneHandler
 ---@return Object[]
 function UnitHandler.findObjectsInZone(zone)

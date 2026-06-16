@@ -71,6 +71,8 @@ Config = {
         --     "weapons.bombs.Mk_82",
         --     "weapons.missiles.AIM-9L",
         -- },
+        carrier_eras_allowed = { Eras.LATECOLDWAR, Eras.MODERN},
+        lha_eras_allowed = { Eras.LATECOLDWAR, Eras.MODERN},
 
         coalition_selector = {
             -- Declares the country composition used when generating ground units for each coalition.
