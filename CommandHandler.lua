@@ -405,6 +405,24 @@ do
                 })
             end
             
+            -- Multirole Aircraft
+            local multirole_aircraft_airbases = buildAirbaseSubmenu({StockTypes.MULTIROLE_AIRCRAFT}, Config.supplies.resupply_costs.MULTIROLE_AIRCRAFT, "Multirole Aircraft")
+            if #multirole_aircraft_airbases > 0 then
+                table.insert(resupply_stock_list, {
+                    name = "Multirole Aircraft - " .. Config.supplies.resupply_costs.MULTIROLE_AIRCRAFT .. " supplies",
+                    submenu = multirole_aircraft_airbases
+                })
+            end
+
+            -- Recon Aircraft
+            local recon_aircraft_airbases = buildAirbaseSubmenu({StockTypes.RECON_AIRCRAFT}, Config.supplies.resupply_costs.RECON_AIRCRAFT, "Recon Aircraft")
+            if #recon_aircraft_airbases > 0 then
+                table.insert(resupply_stock_list, {
+                    name = "Recon Aircraft - " .. Config.supplies.resupply_costs.RECON_AIRCRAFT .. " supplies",
+                    submenu = recon_aircraft_airbases
+                })
+            end
+
             -- Cargo Aircraft
             local cargo_aircraft_airbases = buildAirbaseSubmenu({WarehouseManager.StockTypes.CARGO_AIRCRAFT}, Config.supplies.resupply_costs.CARGO_AIRCRAFT, "Cargo Aircraft")
             if #cargo_aircraft_airbases > 0 then
