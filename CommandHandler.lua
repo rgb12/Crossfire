@@ -602,8 +602,8 @@ do
                 end
             end
 
-            local farp_resupply_menu = missionCommands.addSubMenuForGroup(gr_id,"FARP Resupply", logistics_main_submenu)
             if #farps_resupply_list > 0 then
+                local farp_resupply_menu = missionCommands.addSubMenuForGroup(gr_id,"FARP Resupply", logistics_main_submenu)
                 CommandHandler.buildPagedMenuForGroup(gr_id, farp_resupply_menu, farps_resupply_list, 1)
             else
                 missionCommands.addCommandForGroup(gr_id, "No FARPs Available", logistics_main_submenu, function() end, nil)
@@ -1227,7 +1227,7 @@ do
                     local commands = buildZoneCommandList(function(zone, discovered)
                         return zone.side == enemy_side and utils.tableContains(discovered, zone.name)
                     end, executeJTACRequest)
-                    createSelectAreaMenu(commands, "CMD-HQ Negative JTAC tasking. No confirmed hostile sectors. Continue recon and standby.")
+                    createSelectAreaMenu(commands, "CMDHQ - No confirmed hostile sectors. Continue recon and standby.")
                 end,
                 arg = nil
             },
@@ -1240,7 +1240,7 @@ do
                         end
                         return zone.side == enemy_side and utils.tableContains(discovered, zone.name)
                     end, executeNavalStrikeRequest)
-                    createSelectAreaMenu(commands, "CMD-HQ Negative naval strike. No valid target areas currently designated.")
+                    createSelectAreaMenu(commands, "CMDHQ - No launch asset available.")
                 end,
                 arg = nil
             },
@@ -1250,7 +1250,7 @@ do
                     local commands = buildZoneCommandList(function(zone, discovered)
                         return zone.side == coalition.side.NEUTRAL and utils.tableContains(discovered, zone.name)
                     end, executeCaptureHeloRequest)
-                    createSelectAreaMenu(commands, "CMD-HQ Negative capture tasking. No neutral zones are currently identified.")
+                    createSelectAreaMenu(commands, "CMDHQ - No neutral zones are currently identified.")
                 end,
                 arg = nil
             },
@@ -1263,7 +1263,7 @@ do
                             and utils.tableContains(discovered, zone.name)
                             and not EnrouteManager:findByToZone(zone, zone.side, {AITaskTypes.REINFORCEMENT_HELO})
                     end, executeReinforcementHeloRequest)
-                    createSelectAreaMenu(commands, "CMD-HQ Negative. No eligible friendly sectors are currently identified.")
+                    createSelectAreaMenu(commands, "CMDHQ - No eligible friendly sectors are currently identified.")
                 end,
                 arg = nil
             },
@@ -1274,7 +1274,7 @@ do
                     local commands = buildZoneCommandList(function(zone, discovered)
                         return utils.tableContains(discovered, zone.name)
                     end, executeCAPRequest)
-                    createSelectAreaMenu(commands, "CMD-HQ Negative CAP assignment. No sectors available for patrol at this time.")
+                    createSelectAreaMenu(commands, "CMDHQ - No sectors available for patrol at this time.")
                 end,
                 arg = nil
             },
@@ -1285,7 +1285,7 @@ do
                     local commands = buildZoneCommandList(function(zone, discovered)
                         return zone.side == enemy_side and utils.tableContains(discovered, zone.name)
                     end, executeCASRequest)
-                    createSelectAreaMenu(commands, "CMD-HQ Negative CAS tasking. No confirmed hostile zones available. Continue recon.")
+                    createSelectAreaMenu(commands, "CMDHQ - No confirmed hostile zones available. Continue recon.")
                 end,
                 arg = nil
             },
@@ -1302,7 +1302,7 @@ do
                     local commands = buildZoneCommandList(function(zone)
                         return zone == requesting_airbase
                     end, executeAWACSRequest)
-                    createSelectAreaMenu(commands, "CMD-HQ Negative AWACS launch. No friendly airbase is available for departure.")
+                    createSelectAreaMenu(commands, "CMDHQ - No friendly airbase is available for departure.")
                 end,
                 arg = nil
             },
@@ -1312,14 +1312,14 @@ do
                 func = function()
                     local requesting_airbase = utils.fetchSuppliesZoneFromUnit(unit)
                     if not requesting_airbase or requesting_airbase.zone_type ~= ZoneTypes.AIRBASE then
-                        trigger.action.outTextForGroup(gr_id, "CMD-HQ - Negative, Tanker sectors can only be requested while at a friendly airbase.", 8)
+                        trigger.action.outTextForGroup(gr_id, "CMDHQ - Tanker sectors can only be requested while at a friendly airbase.", 8)
                         trigger.action.outSoundForGroup(gr_id, "Radio squelch.ogg")
                         return
                     end
                     local commands = buildZoneCommandList(function(zone)
                         return zone == requesting_airbase
                     end, executeTankerRequest)
-                    createSelectAreaMenu(commands, "CMD-HQ Negative tanker launch. No friendly airbase is available for departure.")
+                    createSelectAreaMenu(commands, "CMDHQ - No friendly airbase is available for departure.")
                 end,
                 arg = nil
             },
@@ -1331,7 +1331,7 @@ do
                         return zone.side == enemy_side and utils.tableContains(discovered, zone.name)
                             and (zone.zone_type == ZoneTypes.LOGISTICS or zone.zone_type == ZoneTypes.COMMS)
                     end, executeStrikeRequest)
-                    createSelectAreaMenu(commands, "CMD-HQ Negative strike package. No validated enemy infrastructure targets are available.")
+                    createSelectAreaMenu(commands, "CMDHQ - No validated enemy infrastructure targets are available.")
                 end,
                 arg = nil
             },
@@ -1343,16 +1343,12 @@ do
                         return zone.side == enemy_side and utils.tableContains(discovered, zone.name)
                             and zone.zone_type == ZoneTypes.SAMSITE
                     end, executeSEADRequest)
-                    createSelectAreaMenu(commands, "CMD-HQ Negative SEAD tasking. No active enemy SAM sectors are currently identified.")
+                    createSelectAreaMenu(commands, "CMDHQ - No active enemy SAM sectors are currently identified.")
                 end,
                 arg = nil
             },
         }
 
-        -- [Era] Hide tasking entries that are not available in the selected
-        -- era(s). Entries with no task_type (e.g. Naval Strike, Capture,
-        -- Reinforcement) are era-neutral and always shown; the spawn-side guard
-        -- in TaskManager remains as a backstop.
         local era_tasking_list = {}
         for _, item in ipairs(main_tasking_list) do
             if not item.task_type or EraSystem.isTaskTypeAllowed(item.task_type) then
