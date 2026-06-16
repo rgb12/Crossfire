@@ -3310,7 +3310,7 @@ EraSystem = {} do
     ---@return Eras
     function EraSystem.getActiveEra()
         local selected = EraSystem.getSelectedEras()
-        return selected[1] or Eras.MODERN
+        return selected[#selected] or Eras.MODERN
     end
 
     ---@return number rank
