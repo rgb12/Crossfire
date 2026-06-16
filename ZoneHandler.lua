@@ -503,6 +503,9 @@ do
             self.ammo_depot_last_destroyed = timer.getTime()
             self.linked_statics = {}
             timer.scheduleFunction(function ()
+                if self.linked_farp then
+                    WarehouseManager:clearWarehouse(self.linked_farp)
+                end
                 UnitHandler.initFARP(self,false)
             end,{},timer.getTime()+5)
 
