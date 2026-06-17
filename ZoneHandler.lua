@@ -904,10 +904,6 @@ do
                 -- Every level reduces the respawn time by 10%
                 local level_modifier = 1 - ((self.level -1) * 0.1)
                 Config.comms_tower_respawn_time = math.floor(Config.comms_tower_respawn_time * level_modifier)
-
-                -- Increase future respawn times
-                --Config.comms_tower_respawn_time = math.floor(Config.comms_tower_respawn_time * Config.comms_tower_lost_penalty)
-                MissionLogger:info("Comms tower respawn time is now "..Config.comms_tower_respawn_time)
            
                 trigger.action.outSoundForCoalition(self.side,"chatter3.ogg")
                 trigger.action.outTextForCoalition(self.side, "SITREP: COMMS "..self.name.." has rebuilt its communications tower.",10)

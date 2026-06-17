@@ -626,20 +626,6 @@ do
         return stock
     end
 
-    -- Compute the player-count based stock scaling factor (AUTO SCALING).
-    --
-    -- The generated weapon amounts are for "one player's worth" of stock; this
-    -- multiplier grows them with the number of human players actually on the
-    -- server so a busy server keeps more and a quiet one keeps less. It is the
-    -- single knob the user toggles via Config.auto_scaling:
-    --   * enable        : when false, scale is fixed at 1 (single player's worth).
-    --   * min_users      : floor on the players counted (>= 1).
-    --   * max_users      : ceiling, so a full server cannot explode stock.
-    --   * users_per_unit : how many players map to one base unit of stock
-    --                      (1 = linear: 4 players -> 4x; 2 = 4 players -> 2x).
-    --
-    -- `users_estimate` may be passed to override the live player count (mainly
-    -- for tooling/tests); otherwise the live BLUE player count is used.
     ---@param users_estimate number|nil
     ---@return number scale
     function WarehouseManager:getStockScale(users_estimate)
@@ -651,7 +637,6 @@ do
 
         local cfg = Config.auto_scaling or {}
 
-        -- Auto scaling off: every server keeps exactly one player's worth.
         if cfg.enable == false then
             return 1
         end
@@ -668,12 +653,11 @@ do
             users = (players and #players) or 0
         end
 
-        -- Clamp to the configured [min_users, max_users] window.
         if users < min_users then users = min_users end
         if users > max_users then users = max_users end
 
         local scale = users / users_per_unit
-        if scale < 1 then scale = 1 end  -- never below one player's worth
+        if scale < 1 then scale = 1 end
         return scale
     end
 
