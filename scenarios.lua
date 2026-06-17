@@ -332,8 +332,9 @@ scenarios = {
             red_distribution = 0.80,
         },
         resupply = {
-            blue_point = { x = 00029810,  y = 6096, z = 00156947 }, --Metric: X-00290627 Z+00784451
-            red_point  = { x = -00248765, y = 6096, z = 00134754 }, -- Metric: X-00180435 Z+00351346
+            blue_point = { x = -00282727,  y = 6096, z = 00813147 }, --Metric: X-00282727 Z+00813147
+            red_point  = { x = -00097695, y = 6096, z = 00346531 }, --Metric: X-00097695 Z+00346531
+
         },
         name        = "Sochi Liberation",
         description = "Liberate Sochi and invading forces.",
