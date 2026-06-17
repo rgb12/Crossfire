@@ -613,12 +613,12 @@ do
             -- Restock Aircraft
             local restock_submenu = missionCommands.addSubMenuForGroup(gr_id, "Restock Aircraft", logistics_main_submenu)
             missionCommands.addCommandForGroup(gr_id, "Confirm (destroy)", restock_submenu, function(gr_name)
-                if not CommandHandler.isGrounded(unit,gr_id) then return end
                 local restock_gr = Group.getByName(gr_name)
                 if not (restock_gr and restock_gr:isExist()) then return end
-
+                
                 local restock_unit = restock_gr:getUnit(1)
                 if not (restock_unit and restock_unit:isExist()) then return end
+                if not CommandHandler.isGrounded(restock_unit,gr_id) then return end
 
                 local point = restock_unit:getPoint()
 
@@ -669,18 +669,12 @@ do
                             MissionLogger:info("Executing restock for group")
                             restock_gr:destroy()
                         end
-                        if restock_unit and restock_unit:isExist() then
-                            MissionLogger:info("Executing restock for unit")
-                            restock_unit:destroy()
-                            return
-                        else
-                            MissionLogger:info("Completed restock")
-                            return
-                        end
+                        MissionLogger:info("Completed restock")
                     end
 
                     -- Add the aircraft back to the warehouse
                     if on_carrier then
+                        MissionLogger:info("Attempting restock on carrier")
                         return restock_acft()
                     else
                         MissionLogger:info("Attempting restock on land")
