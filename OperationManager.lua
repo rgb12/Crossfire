@@ -2041,6 +2041,17 @@ do
             return false
         end
 
+    ---@param zone_name string
+    function OperationManager:hasActiveReconOnZone(zone_name)
+        for _, op in ipairs(self.active_operations) do
+            if op.target_zone_name == zone_name
+            and (op.type == OperationTypes.RECON or op.type == OperationTypes.DEEP_RECON) then
+                return true
+            end
+        end
+        return false
+    end
+
     ---@param unit Unit
     ---@param code any
     function OperationManager:initiateOperation(unit, code)

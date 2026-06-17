@@ -607,8 +607,14 @@ do
 
                     local recon_gr = Group.getByName(enroute.group_name)
                     if recon_gr and recon_gr:isExist() then
+
+                        local side_op_manager = (enroute.side == coalition.side.BLUE)
+                            and TheatreCommander.blue_op_manager or TheatreCommander.red_op_manager
+                        local player_recon_active = side_op_manager
+                            and side_op_manager:hasActiveReconOnZone(enroute.to_zone.name)
+
                         local pos = mist.getLeadPos(recon_gr)
-                        if pos and mist.utils.get2DDist(pos, enroute.to_zone.zone.point) <= Config.tasking.range_for_recon_to_discover_zone then
+                        if not player_recon_active and pos and mist.utils.get2DDist(pos, enroute.to_zone.zone.point) <= Config.tasking.range_for_recon_to_discover_zone then
                             -- Zone is discovered
                             local first_time_discovered = false
                             if enroute.side == coalition.side.BLUE and not utils.tableContains(stats.blue_discovered_zones, enroute.to_zone.name) then
