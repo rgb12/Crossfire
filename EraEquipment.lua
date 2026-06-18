@@ -3042,7 +3042,7 @@ Stocks.GroundUnits = {
     IFV_BMD1   = { type = "BMD-1",  role = "IFV", countries = { 0, 81 }, era_min = Eras.LATECOLDWAR, era_max = Eras.LATECOLDWAR },
     IFV_M2A2   = { type = "M-2 Bradley", role = "IFV", countries = { 2, 80 }, era_min = Eras.LATECOLDWAR, era_max = Eras.LATECOLDWAR },
     IFV_MARDER = { type = "Marder", role = "IFV", countries = { 6, 80 }, era_min = Eras.LATECOLDWAR, era_max = Eras.LATECOLDWAR },
-    IFV_WARRIOR = { type = "Warrior", role = "IFV", countries = { 4, 80 }, era_min = Eras.LATECOLDWAR, era_max = Eras.LATECOLDWAR },
+    IFV_WARRIOR = { type = "MCV-80", role = "IFV", countries = { 4, 80 }, era_min = Eras.LATECOLDWAR, era_max = Eras.LATECOLDWAR },
     IFV_LAV25  = { type = "LAV-25", role = "IFV", countries = { 2, 80 }, era_min = Eras.LATECOLDWAR, era_max = Eras.LATECOLDWAR },
 
     -- ===================== APC =====================
