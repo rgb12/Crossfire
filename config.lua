@@ -1051,7 +1051,7 @@ GroupData = {
                 WW2          = "BLUE WW2 Attack Convoy",
                 EARLYCOLDWAR = "BLUE EARLYCOLDWAR Attack Convoy",
                 LATECOLDWAR  = "BLUE LATECOLDWAR Attack Convoy",
-                MODERN       = "BLUE Attack Convoy",
+                MODERN       = "BLUE MODERN Attack Convoy",
             },
             capture_convoy = {
                 WW2          = "BLUE Capture Convoy",
@@ -1142,7 +1142,7 @@ GroupData = {
                 WW2          = "RED WW2 Attack Convoy",
                 EARLYCOLDWAR = "RED EARLYCOLDWAR Attack Convoy",
                 LATECOLDWAR  = "RED LATECOLDWAR Attack Convoy",
-                MODERN       = "RED Attack Convoy",
+                MODERN       = "RED MODERN Attack Convoy",
             },
             capture_convoy = {
                 WW2          = "RED Capture Convoy",
