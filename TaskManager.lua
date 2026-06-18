@@ -753,20 +753,20 @@ do
             -- Ground convoy
             
             
-            local convoy_template_gr_name
+            local convoy_template_gr_name_side
             local enemy_side
             
             if side == coalition.side.BLUE then
-                convoy_template_gr_name = GroupData.COMMON_ASSETS.BLUE.attack_convoy
+                convoy_template_gr_name_side = GroupData.COMMON_ASSETS.BLUE.attack_convoy
                 enemy_side = coalition.side.RED
             elseif side == coalition.side.RED then
-                convoy_template_gr_name = GroupData.COMMON_ASSETS.RED.attack_convoy
+                convoy_template_gr_name_side = GroupData.COMMON_ASSETS.RED.attack_convoy
                 enemy_side = coalition.side.BLUE
 
             end
-            -- [Era] Resolve the per-era convoy template (e.g. "BLUE WW2 Attack
-            -- Convoy") for the active era from its GroupData.COMMON_ASSETS table.
-            convoy_template_gr_name = EraSystem.resolveTaskTemplateName(convoy_template_gr_name)
+            local convoy_template_gr_name = EraSystem.resolveTaskTemplateName(convoy_template_gr_name_side)
+            if not convoy_template_gr_name then return false end
+
             to_zone, _ = from_zone:getClosestZone(enemy_side,nil,nil,true)
             if to_zone and to_zone.side == enemy_side
             and mist.utils.get2DDist(from_zone.zone.point, to_zone.zone.point) < Config.attack_convoy_range then
@@ -789,6 +789,31 @@ do
                 end
                 return true
             end
+        elseif AITaskTypes.CAPTURE_CONVOY == ai_task_type and to_zone and from_zone then
+            if to_zone.side ~= coalition.side.NEUTRAL then return false end
+
+            if prevent_duplicates and EnrouteManager:findByToZone(to_zone, nil, {ai_task_type}) then
+                sendText("Capture convoy already enroute to " .. to_zone.name)
+                return false
+            end
+
+            local convoy_template_gr_name_side
+            if side == coalition.side.BLUE then
+                convoy_template_gr_name_side = GroupData.COMMON_ASSETS.BLUE.capture_convoy
+            elseif side == coalition.side.RED then
+                convoy_template_gr_name_side = GroupData.COMMON_ASSETS.RED.capture_convoy
+            end
+            local convoy_template_gr_name = EraSystem.resolveTaskTemplateName(convoy_template_gr_name_side)
+            if not convoy_template_gr_name then return false end
+
+            local convoy_sent = mist.cloneInZone(convoy_template_gr_name, from_zone.zone.name)
+            if not convoy_sent then MissionLogger:info("Capture Convoy spawn failed, no convoy sent") return false end
+
+            self:setCAPTURECONVOYTask(convoy_sent.name, side, to_zone, from_zone)
+            from_zone.attack_convoy = (from_zone.attack_convoy or 0) - 1
+            if type(from_zone.drawF10) == "function" then from_zone:drawF10() end
+            MissionLogger:info(utils.coalitionToString(side) .. " capture convoy from " .. from_zone.name .. " sent to capture zone: " .. to_zone.name)
+            return true
         elseif ai_task_type == AITaskTypes.CAPTURE_HELO and to_zone and from_zone then
 
             if prevent_duplicates and EnrouteManager:findByToZone(to_zone, side, {AITaskTypes.CAPTURE_HELO}) then
@@ -1335,6 +1360,39 @@ do
             end,{},timer.getTime()+120)
 
         
+        end,{},timer.getTime()+5)
+    end
+
+    ---@param convoy_gr_name string
+    ---@param side number
+    ---@param to_zone ZoneHandler
+    ---@param from_zone ZoneHandler
+    function TaskManager:setCAPTURECONVOYTask(convoy_gr_name, side, to_zone, from_zone)
+        timer.scheduleFunction(function ()
+            local convoy_gr = Group.getByName(convoy_gr_name)
+            if not convoy_gr or not convoy_gr:isExist() then MissionLogger:info("Capture Convoy spawn failed, no convoy sent") return end
+
+            self:ConvoyToPoint(convoy_gr, to_zone.zone.point)
+
+            EnrouteManager:add({
+                group_name = convoy_gr_name,
+                to_zone = to_zone,
+                from_zone = from_zone,
+                side = side,
+                ai_task_type = AITaskTypes.CAPTURE_CONVOY,
+            })
+
+            --- [ if convoy is not moving after 2 mins, refund the slot and remove it ]
+            timer.scheduleFunction(function ()
+                if not convoy_gr or not convoy_gr:isExist() then return end
+                if not UnitHandler.checkConvoyMoving(convoy_gr) then
+                    MissionLogger:info("Capture Convoy:" .. convoy_gr_name .. " not moving")
+                    convoy_gr:destroy()
+                    from_zone.attack_convoy = (from_zone.attack_convoy or 0) + 1
+                    from_zone:drawF10()
+                    EnrouteManager:remove(convoy_gr_name)
+                end
+            end,{},timer.getTime()+120)
         end,{},timer.getTime()+5)
     end
 

@@ -690,7 +690,9 @@ Config = {
         max_tanker_per_theatre = 2,
         -- (int) per coalition, only for AI auto tasking
         max_attack_convoy_per_theatre = 3,
-        
+        -- (int) per coalition, WW2-only ground capture convoys (replaces capture helos)
+        max_capture_convoy_per_theatre = 3,
+
         -- (int)
         max_capture_helicopters_per_logistics_zone = 4,
         -- (int)
@@ -826,6 +828,8 @@ Config = {
     stuck_convoy_timeout = 8*60,
     -- (int) (meters)
     attack_convoy_range = 30000,
+    -- (int) (meters) max distance a strongpoint will send a capture convoy to a neutral zone
+    capture_convoy_range = 100000,
 
     -- (int)
     jtac_smoke_stock = 8,
@@ -1049,6 +1053,9 @@ GroupData = {
                 LATECOLDWAR  = "BLUE LATECOLDWAR Attack Convoy",
                 MODERN       = "BLUE Attack Convoy",
             },
+            capture_convoy = {
+                WW2          = "BLUE Capture Convoy",
+            },
             jtac = {
                 WW2          = "BLUE LATECOLDWAR JTAC",
                 EARLYCOLDWAR = "BLUE LATECOLDWAR JTAC",
@@ -1136,6 +1143,9 @@ GroupData = {
                 EARLYCOLDWAR = "RED EARLYCOLDWAR Attack Convoy",
                 LATECOLDWAR  = "RED LATECOLDWAR Attack Convoy",
                 MODERN       = "RED Attack Convoy",
+            },
+            capture_convoy = {
+                WW2          = "RED Capture Convoy",
             },
             jtac = {
                 WW2          = "RED JTAC",

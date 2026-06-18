@@ -176,7 +176,7 @@ do
         -- 2. Build Display Text
         if self.zone_type == ZoneTypes.STRONGPOINT then
             text_display = text_display .. "\nSTRONGPOINT"
-            text_display = text_display .. "\nAttack Convoys: " .. (self.attack_convoy or 0)
+            text_display = text_display .. "\nConvoys: " .. (self.attack_convoy or 0)
         elseif self.zone_type == ZoneTypes.LOGISTICS then
             text_display = text_display .. "\nLOGISTICS"
             text_display = text_display .. "\nHelicopters: " .. (self.heli_avail or 0)
@@ -447,11 +447,6 @@ do
             stats.neutral_zones = stats.neutral_zones + 1
         end
 
-        -- Ground units are now fully scripted (UnitComposer + coalition.addGroup).
-        -- For each capturable zone type we: decrement the OLD side's per-type
-        -- counter, keep the type-specific side effects (supplies/statics/FARP),
-        -- then call UnitHandler.updateZoneUnits(self) which destroys the old
-        -- groups and recomposes for the new side (applying the new-side +1).
         if self.zone_type == ZoneTypes.STRONGPOINT and self.side ~= coalition.side.NEUTRAL then
             if previous_side == coalition.side.RED then
                 stats.red_strongpoints = stats.red_strongpoints - 1
@@ -819,6 +814,13 @@ do
         elseif self.zone_type == ZoneTypes.STRONGPOINT then
             if self.attack_convoy < Config.tasking.max_attack_convoys_per_strongpoint_zone then
                 self.attack_convoy = self.attack_convoy +1
+            end
+            -- WW2: strongpoints also stock ground capture convoys (no capture helos exist)
+            if not EraSystem.isHelicopterEraCapable() then
+                self.attack_convoy = self.attack_convoy or 0
+                if self.attack_convoy < Config.tasking.max_attack_convoys_per_strongpoint_zone then
+                    self.attack_convoy = self.attack_convoy + 1
+                end
             end
         end
         self:drawF10()

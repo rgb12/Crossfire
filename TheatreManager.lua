@@ -14,6 +14,8 @@ do
     function TheatreCommander.sendCapture(to_zone, side_sending_capture)
         if side_sending_capture == coalition.side.NEUTRAL then return end
 
+        if not EraSystem.isHelicopterEraCapable() then return end
+
         -- Prevent multiple helis being sent to the same target from different source zones
         if EnrouteManager:findByToZone(to_zone, side_sending_capture, {AITaskTypes.CAPTURE_HELO}) then
             return
@@ -373,6 +375,9 @@ do
     function TheatreCommander.sendPotentialCapture(zone)
         if zone.side ~= coalition.side.NEUTRAL then return false end
 
+        -- WW2 has no capture helos; captures are handled by ground convoys
+        if not EraSystem.isHelicopterEraCapable() then return false end
+
         local now = timer.getTime()
         if not zone.last_capture_attempt then zone.last_capture_attempt = timer.getTime() end
 
@@ -420,6 +425,23 @@ do
                     and not EnrouteManager:findByToZone(zone,zone.side,{AITaskTypes.ATTACK_CONVOY})
                     then
                         TaskManager:initiateAITask(AITaskTypes.ATTACK_CONVOY,zone.side,true,nil,zone,false)
+                    end
+
+                    -- WW2 ground capture convoy: strongpoints send a convoy to the
+                    -- nearest neutral zone in range to capture it (replaces capture helos).
+                    if not EraSystem.isHelicopterEraCapable()
+                    and math.random(1,100) <= Config.retry_capture_chance
+                    and zone.zone_type == ZoneTypes.STRONGPOINT and zone.side ~= coalition.side.NEUTRAL
+                    and zone.capture_convoy and zone.capture_convoy > 0
+                    and #EnrouteManager:findByTaskType(AITaskTypes.CAPTURE_CONVOY, zone.side) < Config.tasking.max_capture_convoy_per_theatre
+                    and not EnrouteManager:findByFromZone(zone, zone.side, {AITaskTypes.CAPTURE_CONVOY})
+                    then
+                        local target_zone, target_dist = zone:getClosestZone(coalition.side.NEUTRAL, nil, nil, true)
+                        if target_zone and target_dist <= Config.capture_convoy_range
+                        and not EnrouteManager:findByToZone(target_zone, nil, {AITaskTypes.CAPTURE_CONVOY, AITaskTypes.CAPTURE_HELO})
+                        then
+                            TaskManager:initiateAITask(AITaskTypes.CAPTURE_CONVOY, zone.side, true, target_zone, zone, false)
+                        end
                     end
 
                     -- this spawns a reinforcement helicopter
@@ -602,6 +624,46 @@ do
                             if convoy_group and convoy_group:isExist() then convoy_group:destroy() end
                         end
 
+                    end
+                elseif enroute.ai_task_type == AITaskTypes.CAPTURE_CONVOY then
+                    local convoy_group = Group.getByName(enroute.group_name)
+
+                    if not convoy_group or not convoy_group:isExist() then
+                        -- Convoy destroyed enroute
+                        trigger.action.outTextForCoalition(enroute.side, "Capture convoy sent to " .. enroute.to_zone.zone.name .. " has been destroyed", 10)
+                        EnrouteManager.enroutes[i] = nil
+                    else
+                        local zone_coal_check = ZoneHandler.getFromName(enroute.to_zone.name)
+                        if not zone_coal_check or zone_coal_check.side ~= coalition.side.NEUTRAL then
+                            -- Target no longer neutral (captured/lost by someone else): stand down
+                            MissionLogger:info("Capture convoy target no longer neutral, removing: " .. enroute.group_name)
+                            EnrouteManager.enroutes[i] = nil
+                            timer.scheduleFunction(function ()
+                                if convoy_group and convoy_group:isExist() then convoy_group:destroy() end
+                            end, {}, timer.getTime() + math.random(5, 10))
+                        else
+                            local convoy_pos = mist.getLeadPos(convoy_group)
+                            if convoy_pos and enroute.to_zone:isPointInsideZone(convoy_pos) then
+                                -- Arrived inside the neutral zone: capture it
+                                MissionLogger:info(utils.coalitionToString(enroute.side) .. " capture convoy captured zone: " .. enroute.to_zone.zone.name)
+                                enroute.to_zone:capture(enroute.side)
+                                EnrouteManager.enroutes[i] = nil
+                                timer.scheduleFunction(function ()
+                                    if convoy_group and convoy_group:isExist() then convoy_group:destroy() end
+                                end, {}, timer.getTime() + math.random(10, 20))
+                            elseif not UnitHandler.checkConvoyMoving(convoy_group) then
+                                -- Stuck enroute: time it out (mirrors attack convoy)
+                                if not enroute.stuck_since then
+                                    enroute.stuck_since = timer.getTime()
+                                elseif (timer.getTime() - enroute.stuck_since) > Config.stuck_convoy_timeout then
+                                    trigger.action.outTextForCoalition(enroute.side, "Capture convoy to " .. enroute.to_zone.zone.name .. " got stuck en route and was removed.", 10)
+                                    convoy_group:destroy()
+                                    EnrouteManager.enroutes[i] = nil
+                                end
+                            else
+                                enroute.stuck_since = nil
+                            end
+                        end
                     end
                 elseif enroute.ai_task_type == AITaskTypes.RECON then
 
