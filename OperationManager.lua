@@ -1741,8 +1741,8 @@ do
         -- Filter operations based on aircraft_filter configuration
         for _, op in ipairs(self.available_operations) do
             local is_allowed = true
-            
-            -- Check if there's a filter for this operation type
+
+            -- Check if there's a filter for this operation type, if not allow it
             if Config.operations.aircraft_filter and Config.operations.aircraft_filter[op.type] then
                 -- Filter exists for this operation type, check if unit type is in the list
                 is_allowed = false
@@ -1754,7 +1754,7 @@ do
                 end
             end
             -- If no filter exists for this operation type, all aircraft are allowed (is_allowed remains true)
-            
+
             if is_allowed then
                 table.insert(unit_supported_operations, op)
             end
