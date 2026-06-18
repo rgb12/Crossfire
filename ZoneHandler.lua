@@ -696,6 +696,35 @@ do
 
     end
 
+    ---@return volume|nil
+    function ZoneHandler:calcVolume()
+        local vol
+        if self:isCircle() then
+        -- sphere around circle zone
+        vol = {
+            id = world.VolumeType.SPHERE,
+            params = { point = self.zone.point, radius = self.zone.radius }
+        }
+        elseif self:isQuad() then
+            -- bounding box around quad vertices
+            local minX, maxX = math.huge, -math.huge
+            local minZ, maxZ = math.huge, -math.huge
+            for _, v in ipairs(self.zone.vertices) do
+                if v.x < minX then minX = v.x end
+                if v.x > maxX then maxX = v.x end
+                if v.z < minZ then minZ = v.z end
+                if v.z > maxZ then maxZ = v.z end
+            end
+            vol = {
+                id = world.VolumeType.BOX,
+                params = {
+                    min = { x = minX, y = -1000, z = minZ },
+                    max = { x = maxX, y = 99999, z = maxZ }
+                }
+            }
+        end
+        return vol
+    end
     ---@param zone_name string
     ---@return ZoneHandler|nil
     function ZoneHandler.getFromName(zone_name)

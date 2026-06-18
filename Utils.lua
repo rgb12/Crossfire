@@ -56,32 +56,7 @@ function utils.getUnitsInZoneObj(zone, coalition_filter)
     if not zone or not zone.zone then return {} end
 
     local units_in_zone = {}
-    local vol
-
-    if zone:isCircle() then
-        -- sphere around circle zone
-        vol = {
-            id = world.VolumeType.SPHERE,
-            params = { point = zone.zone.point, radius = zone.zone.radius }
-        }
-    elseif zone:isQuad() then
-        -- bounding box around quad vertices
-        local minX, maxX = math.huge, -math.huge
-        local minZ, maxZ = math.huge, -math.huge
-        for _, v in ipairs(zone.zone.vertices) do
-            if v.x < minX then minX = v.x end
-            if v.x > maxX then maxX = v.x end
-            if v.z < minZ then minZ = v.z end
-            if v.z > maxZ then maxZ = v.z end
-        end
-        vol = {
-            id = world.VolumeType.BOX,
-            params = {
-                min = { x = minX, y = -1000, z = minZ },
-                max = { x = maxX, y = 99999, z = maxZ }
-            }
-        }
-    end
+    local vol = zone:calcVolume()
 
     if not vol then
         MissionLogger:info("Unknown volume")
@@ -116,31 +91,8 @@ function utils.getStaticsInZoneObj(zone)
     if not zone or not zone.zone then return {} end
 
     local statics_in_zone = {}
-    local vol
 
-    if zone:isCircle() then
-        vol = {
-            id = world.VolumeType.SPHERE,
-            params = { point = zone.zone.point, radius = zone.zone.radius }
-        }
-    elseif zone:isQuad() then
-        local minX, maxX = math.huge, -math.huge
-        local minZ, maxZ = math.huge, -math.huge
-        for _, v in ipairs(zone.zone.vertices) do
-            if v.x < minX then minX = v.x end
-            if v.x > maxX then maxX = v.x end
-            if v.z < minZ then minZ = v.z end
-            if v.z > maxZ then maxZ = v.z end
-        end
-        vol = {
-            id = world.VolumeType.BOX,
-            params = {
-                min = { x = minX, y = -500, z = minZ },
-                max = { x = maxX, y = 9999, z = maxZ }
-            }
-        }
-    end
-
+    local vol = zone:calcVolume()
     if not vol then return {} end
 
     world.searchObjects(Object.Category.STATIC, vol, function(obj)
