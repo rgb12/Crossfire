@@ -830,6 +830,9 @@ Config = {
     attack_convoy_range = 30000,
     -- (int) (meters) max distance a strongpoint will send a capture convoy to a neutral zone
     capture_convoy_range = 100000,
+    -- (int) The amount of convoys given to every STRONGPOINT when starting the mission
+    base_convoy_count = 2,
+
 
     -- (int)
     jtac_smoke_stock = 8,

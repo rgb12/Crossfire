@@ -1283,7 +1283,7 @@ do
                     unassigned[idx].zone_type = ZoneTypes.COMMS
                 else
                     unassigned[idx].zone_type = ZoneTypes.STRONGPOINT
-                    unassigned[idx].attack_convoy = rng_int(0,1)
+                    unassigned[idx].attack_convoy = Config.base_convoy_count
                 end
                 idx = idx + 1
                 assigned_guaranteed = assigned_guaranteed + 1
@@ -1297,7 +1297,7 @@ do
                     unassigned[idx].heli_avail = 4
                 else
                     unassigned[idx].zone_type = ZoneTypes.STRONGPOINT
-                    unassigned[idx].attack_convoy = rng_int(0,1)
+                    unassigned[idx].attack_convoy = Config.base_convoy_count
                 end
                 idx = idx + 1
                 assigned_guaranteed = assigned_guaranteed + 1
@@ -1309,7 +1309,7 @@ do
                     unassigned[idx].zone_type = ZoneTypes.FARP
                 else
                     unassigned[idx].zone_type = ZoneTypes.STRONGPOINT
-                    unassigned[idx].attack_convoy = rng_int(0,1)
+                    unassigned[idx].attack_convoy = Config.base_convoy_count
                 end
                 idx = idx + 1
                 assigned_guaranteed = assigned_guaranteed + 1
@@ -1325,7 +1325,7 @@ do
                     else unassigned[idx].sam_classification = SAM_TYPES.LONG_RANGE end
                 else
                     unassigned[idx].zone_type = ZoneTypes.STRONGPOINT
-                    unassigned[idx].attack_convoy = rng_int(0,1)
+                    unassigned[idx].attack_convoy = Config.base_convoy_count
                 end
                 idx = idx + 1
                 assigned_guaranteed = assigned_guaranteed + 1
@@ -1337,7 +1337,7 @@ do
                     unassigned[idx].zone_type = ZoneTypes.EWSITE
                 else
                     unassigned[idx].zone_type = ZoneTypes.STRONGPOINT
-                    unassigned[idx].attack_convoy = rng_int(0,1)
+                    unassigned[idx].attack_convoy = Config.base_convoy_count
                 end
                 idx = idx + 1
                 assigned_guaranteed = assigned_guaranteed + 1
@@ -1346,7 +1346,7 @@ do
             -- STRONGPOINT (guaranteed)
             if idx <= #unassigned then
                 unassigned[idx].zone_type = ZoneTypes.STRONGPOINT
-                unassigned[idx].attack_convoy = rng_int(0,1)
+                unassigned[idx].attack_convoy = Config.base_convoy_count
                 idx = idx + 1
                 assigned_guaranteed = assigned_guaranteed + 1
             end
