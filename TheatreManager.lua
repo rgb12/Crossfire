@@ -432,7 +432,7 @@ do
                     if not EraSystem.isHelicopterEraCapable()
                     and math.random(1,100) <= Config.retry_capture_chance
                     and zone.zone_type == ZoneTypes.STRONGPOINT and zone.side ~= coalition.side.NEUTRAL
-                    and zone.capture_convoy and zone.capture_convoy > 0
+                    and zone.attack_convoy and zone.attack_convoy > 0
                     and #EnrouteManager:findByTaskType(AITaskTypes.CAPTURE_CONVOY, zone.side) < Config.tasking.max_capture_convoy_per_theatre
                     and not EnrouteManager:findByFromZone(zone, zone.side, {AITaskTypes.CAPTURE_CONVOY})
                     then
