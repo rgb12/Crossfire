@@ -179,26 +179,40 @@ UnitComposer = {} do
         }
     end
 
+    ---@param side number coalition.side of the zone the SAM belongs to
+    ---@param origin vec2
+    ---@return number|nil heading_radians
+    local function enemyFacingHeading(side, origin)
+        local enemy_airbase = (side == coalition.side.RED) and blue_airbase or red_airbase
+        if not enemy_airbase or not enemy_airbase.zone or not enemy_airbase.zone.point then return nil end
+
+        ---@diagnostic disable-next-line: deprecated
+        return math.atan2(enemy_airbase.zone.point.z - origin.y, enemy_airbase.zone.point.x - origin.x)
+    end
 
     ---@param entry table Stocks.GroundUnits.* with role SAM_*
     ---@param origin vec2
+    ---@param facing number|nil heading (radians) for search/track radars; random when nil
     ---@return table[] unit_specs
-    local function buildSAMUnitSpecs(entry, origin)
+    local function buildSAMUnitSpecs(entry, origin, facing)
 
         local specs = {}
         local idx = 0
-        local function add(unit_type)
+        local function add(unit_type, heading)
             if not unit_type then return end
             idx = idx + 1
             local x, y = scatterPos(origin, specs, nil, 10)
-            specs[#specs + 1] = { type = unit_type, x = x, y = y, heading = math.random() * 2 * math.pi }
+            local h = heading or (math.random() * 2 * math.pi)
+            specs[#specs + 1] = { type = unit_type, x = x, y = y, heading = h }
         end
 
         local parts = entry.sam_parts
         if parts then
-            add(parts.search_radar)
+            -- search & track radars face the enemy threat axis everything else
+            -- keeps a random heading.
+            add(parts.search_radar, facing)
             add(parts.acquisition_radar)
-            add(parts.track_radar)
+            add(parts.track_radar, facing)
             add(parts.optical)
             add(parts.command)
             add(parts.control)
@@ -345,7 +359,8 @@ UnitComposer = {} do
         if zt == ZoneTypes.SAMSITE then
             local entry, country = pickSamSystem(zone.sam_classification, country_pool)
             if entry and country then
-                local specs = buildSAMUnitSpecs(entry, origin)
+                local facing = enemyFacingHeading(zone.side, origin)
+                local specs = buildSAMUnitSpecs(entry, origin, facing)
                 local group_table = buildGroupTable(name_prefix .. " SAM", specs)
                 if group_table then
                     out[#out + 1] = { country = country, role = "primary", group_table = group_table }
@@ -424,7 +439,8 @@ UnitComposer = {} do
             local entry, country = pickSamSystem(SAM_TYPES.MEDIUM_RANGE, country_pool, { SAM_MR = true })
 
             if entry and country then
-                local specs = buildSAMUnitSpecs(entry, sam_origin)
+                local facing = enemyFacingHeading(zone.side, sam_origin)
+                local specs = buildSAMUnitSpecs(entry, sam_origin, facing)
                 local group_table = buildGroupTable(name_prefix .. " AIRBASE SAM", specs)
 
                 if group_table then
