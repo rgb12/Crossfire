@@ -228,8 +228,6 @@ Stocks.AircraftEras = {
         Stocks.Aircraft.F14A,
         Stocks.Aircraft.F14B,
         Stocks.Aircraft.F15C,
-        Stocks.Aircraft.FA18A,
-        Stocks.Aircraft.F16A,
         Stocks.Aircraft.A10A,
         Stocks.Aircraft.A6E,
         Stocks.Aircraft.AJS37,
