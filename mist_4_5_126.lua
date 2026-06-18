@@ -1653,9 +1653,10 @@ do -- the main scope
 		log:info("initializing databases")
 		initDBs()
 
-		-- add event handler for group spawns
-		mist.addEventHandler(groupSpawned)
-		mist.addEventHandler(addDeadObject)
+		if not mist.disableDBLoop then
+			mist.addEventHandler(groupSpawned)
+			mist.addEventHandler(addDeadObject)
+		end
         
         log:warn('Init time: $1', timer.getTime())
 
@@ -1663,9 +1664,13 @@ do -- the main scope
 		mist.main()
 		--log:msg('MIST version $1.$2.$3 loaded', mist.majorVersion, mist.minorVersion, mist.build)
         
-        mist.scheduleFunction(verifyDB, {}, timer.getTime() + 1)
+        if not mist.disableDBLoop then
+            mist.scheduleFunction(verifyDB, {}, timer.getTime() + 1)
+        end
 		return
 	end
+
+	mist.disableDBLoop = true
 
 	--- The main function.
 	-- Run 100 times per second.
@@ -1673,39 +1678,41 @@ do -- the main scope
 	function mist.main()
 		timer.scheduleFunction(mist.main, {}, timer.getTime() + 0.01)	--reschedule first in case of Lua error
 
-		updateTenthSecond = updateTenthSecond + 1
-		if updateTenthSecond == 20 then
-			updateTenthSecond = 0
+		if not mist.disableDBLoop then
+			updateTenthSecond = updateTenthSecond + 1
+			if updateTenthSecond == 20 then
+				updateTenthSecond = 0
 
-			checkSpawnedEventsNew()
-			
-			if not coroutines.updateDBTables then
-				coroutines.updateDBTables = coroutine.create(updateDBTables)
+				checkSpawnedEventsNew()
+
+				if not coroutines.updateDBTables then
+					coroutines.updateDBTables = coroutine.create(updateDBTables)
+				end
+
+				coroutine.resume(coroutines.updateDBTables)
+
+				if coroutine.status(coroutines.updateDBTables) == 'dead' then
+					coroutines.updateDBTables = nil
+				end
 			end
 
-			coroutine.resume(coroutines.updateDBTables)
+			--updating alive units
+			updateAliveUnitsCounter = updateAliveUnitsCounter + 1
+			if updateAliveUnitsCounter == 5 then
+				updateAliveUnitsCounter = 0
 
-			if coroutine.status(coroutines.updateDBTables) == 'dead' then
-				coroutines.updateDBTables = nil
+				if not coroutines.updateAliveUnits then
+					coroutines.updateAliveUnits = coroutine.create(updateAliveUnits)
+				end
+
+				coroutine.resume(coroutines.updateAliveUnits)
+
+				if coroutine.status(coroutines.updateAliveUnits) == 'dead' then
+					coroutines.updateAliveUnits = nil
+				end
 			end
 		end
 
-		--updating alive units
-		updateAliveUnitsCounter = updateAliveUnitsCounter + 1
-		if updateAliveUnitsCounter == 5 then
-			updateAliveUnitsCounter = 0
-
-			if not coroutines.updateAliveUnits then
-				coroutines.updateAliveUnits = coroutine.create(updateAliveUnits)
-			end
-
-			coroutine.resume(coroutines.updateAliveUnits)
-
-			if coroutine.status(coroutines.updateAliveUnits) == 'dead' then
-				coroutines.updateAliveUnits = nil
-			end
-		end
-        
 		doScheduledFunctions()
 	end -- end of mist.main
 
