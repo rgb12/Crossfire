@@ -2878,15 +2878,7 @@ Stocks.AircraftLoads = {
     }
 }
 
---[[ ============================================================================
-    Stocks.GroundUnits  --  dynamic ground-unit database
-    ----------------------------------------------------------------------------
-    The "data" half of the dynamic ground-unit system. Each entry describes ONE
-    DCS ground unit type, what role it plays in a composition, which countries
-    operate it (for coalition_selector matching), and the era window in which it
-    is appropriate. SAM roles additionally carry a sam_classification (matching
-    SAM_TYPES.*) and, when a working site needs several different unit types
-    (search radar + track radar + launchers), a sam_parts table.
+--[[ 
 
     All `type` strings are the EXACT DCS type strings from the units datamine
     (https://github.com/Quaggles/dcs-lua-datamine "Cars" category + SAM parts).
@@ -2898,7 +2890,6 @@ Stocks.AircraftLoads = {
         "TRUCK" "SUPPLY_TRUCK" "INFANTRY" "EWR"        -- soft / support / radar
         "RADAR" "LAUNCHER" "COMMAND"                   -- SAM sub-components
 
-    SAM role taxonomy used by the composer:
         SAM_IR : IR / electro-optical point defence (SA-19 Tunguska, etc.)
         SAM_EM : short-range radar point defence    (SA-15 Tor, SA-8 Osa)
         SAM_SR : short-range battery                 (SA-3, Rapier, IRIS-T SLS)
@@ -2911,7 +2902,7 @@ Stocks.AircraftLoads = {
     era_min / era_max use the Eras.* enum; an entry is valid for a selected era
     E when era_min <= E <= era_max (compared via the shared era rank order
     WW2 < EARLYCOLDWAR < LATECOLDWAR < MODERN).
-   ============================================================================ ]]
+ ]]
 Stocks.GroundUnits = {
 
     -- ===================== INFANTRY =====================
@@ -3027,7 +3018,7 @@ Stocks.GroundUnits = {
     TANK_T80U  = { type = "T-80UD", role = "TANK", countries = { 0, 81 }, era_min = Eras.LATECOLDWAR, era_max = Eras.MODERN },
     TANK_T90   = { type = "T-90",   role = "TANK", countries = { 0, 81 }, era_min = Eras.MODERN, era_max = Eras.MODERN },
     TANK_M60   = { type = "M-60",   role = "TANK", countries = { 2, 20, 80 }, era_min = Eras.EARLYCOLDWAR, era_max = Eras.LATECOLDWAR },
-    TANK_M1A2  = { type = "M-1 Abrams", role = "TANK", countries = { 2, 80 }, era_min = Eras.LATECOLDWAR, era_max = Eras.MODERN },
+    -- TANK_M1A2  = { type = "M-1 Abrams", role = "TANK", countries = { 2, 80 }, era_min = Eras.LATECOLDWAR, era_max = Eras.MODERN },
     --TANK_LEOPARD2 = { type = "Leopard-2A5", role = "TANK", countries = { 6, 80 }, era_min = Eras.LATECOLDWAR, era_max = Eras.MODERN },
     TANK_CHALLENGER = { type = "Challenger2", role = "TANK", countries = { 4, 80 }, era_min = Eras.MODERN, era_max = Eras.MODERN },
     TANK_LECLERC = { type = "Leclerc", role = "TANK", countries = { 5, 80 }, era_min = Eras.MODERN, era_max = Eras.MODERN },

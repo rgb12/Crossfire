@@ -62,7 +62,7 @@ Config = {
         -- "Early Cold War" 1947-1969
         -- "Late Cold War" 1969-1989
         -- "Modern" 1989-
-        eras_selected = { Eras.EARLYCOLDWAR , Eras.MODERN},
+        eras_selected = { Eras.LATECOLDWAR},
 
         -- (table<...>) When this is empty, the script considers all modules flyable.
         -- To restrict to a specific set of aircraft, list them
@@ -889,7 +889,7 @@ Config = {
         -- (table<number>)
         text_background = {156/255,156/255,156/255,0.6},
         -- (table<number>)
-        line_color = {73/255,196/255,192/255,1},
+        line_color = {156/255,156/255,156/255,1},
 
         -- (table)
         drogue = {
