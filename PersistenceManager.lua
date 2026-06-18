@@ -636,6 +636,7 @@ do
 
         if not eras_math then
             env.error("PERSISTENCE RESTORE ERROR: Incompatible eras in save and config file.",true)
+            PersistenceManager.enabled = false
             return false
         end
 
