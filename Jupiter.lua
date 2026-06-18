@@ -82,7 +82,7 @@ function Jupiter:onEvent(event)
         if command == "-explosion" then
             local power = tonumber(param1) or 100 -- Default 100kg HE
             trigger.action.explosion(vec3, power)
-            trigger.action.outText(string.format("Jupiter: Boom! Power: %d", power), 5)
+            trigger.action.outText("Jupiter: Boom!", 5)
             cmd_executed = true
 
         elseif command == "-smoke" then
