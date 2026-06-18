@@ -263,6 +263,7 @@ Stocks.AircraftEras = {
         Stocks.Aircraft.MIRAGE_F1EQ,
         Stocks.Aircraft.MIRAGE_F1JA,
         Stocks.Aircraft.MIRAGE_F1C_200,
+        Stocks.Aircraft.SU25T,
         Stocks.Aircraft.SU27,
         Stocks.Aircraft.SU24M,
         Stocks.Aircraft.SU24MR,
@@ -502,7 +503,6 @@ Stocks.Equipment = {
     SNEB_251_HE = "weapons.nurs.SNEB_TYPE251_H1",
     SNEB_253_HEAT = "weapons.nurs.SNEB_TYPE253_H1",
     SNEB_259_IL = "weapons.nurs.SNEB_TYPE259E_H1", -- Illuminating
-
 
     SUPER_530D = "weapons.missiles.Matra Super 530D",
     MAGIC_II = "weapons.missiles.MMagicII",
@@ -1222,7 +1222,7 @@ Stocks.Equipment = {
     AN_M65 = "weapons.bombs.AN_M65",
     AN_M66 = "weapons.bombs.AN_M66",
     BAP_100_DASH = "weapons.bombs.BAP-100",
-    BAP_100 = "weapons.bombs.BAP_100",
+    BAP_100 = "weapons.bombs.BAP_100", -- M2000C
     GENERIC_CRATE_20000LB = "weapons.bombs.Generic Crate [20000lb]",
     BAT_120 = "weapons.bombs.BAT-120",
     BDU_33 = "weapons.bombs.BDU_33",
@@ -1645,6 +1645,8 @@ Stocks.EquipmentData = {
         [Stocks.Equipment.SD_10                      ] = { stock_type = StockTypes.AIR_AIR_LONG_RANGE, base_qty = 12, eras = { Eras.MODERN } },
         [Stocks.Equipment.SUPER_530D                 ] = { stock_type = StockTypes.AIR_AIR_LONG_RANGE, base_qty = 12, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
         [Stocks.Equipment.SUPER_530F                 ] = { stock_type = StockTypes.AIR_AIR_LONG_RANGE, base_qty = 12, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
+        [Stocks.Equipment.R_40R                      ] = { stock_type = StockTypes.AIR_AIR_LONG_RANGE, base_qty = 16, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
+        [Stocks.Equipment.R_40T                      ] = { stock_type = StockTypes.AIR_AIR_LONG_RANGE, base_qty = 16, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
 
       -- AIR AIR SHORT RANGE
         [Stocks.Equipment.AIM_9J                     ] = { stock_type = StockTypes.AIR_AIR_SHORT_RANGE, base_qty = 18, eras = { Eras.EARLYCOLDWAR, Eras.LATECOLDWAR } },
@@ -2558,6 +2560,9 @@ Stocks.AircraftLoads = {
         Stocks.Equipment.M2KC_RPL_522,
         Stocks.Equipment.M2KC_02_RPL541,
         Stocks.Equipment.M2KC_08_RPL541,
+        Stocks.Equipment.BLG66_BELOUGA,
+        Stocks.Equipment.BAP_100,
+        Stocks.Equipment.HYDRA_70_MK5_HEAT
     },
     [Stocks.Aircraft.MIRAGE_2000_5] = {
         Stocks.Equipment.MICA_RF,
@@ -3018,7 +3023,7 @@ Stocks.GroundUnits = {
     TANK_T80U  = { type = "T-80UD", role = "TANK", countries = { 0, 81 }, era_min = Eras.LATECOLDWAR, era_max = Eras.MODERN },
     TANK_T90   = { type = "T-90",   role = "TANK", countries = { 0, 81 }, era_min = Eras.MODERN, era_max = Eras.MODERN },
     TANK_M60   = { type = "M-60",   role = "TANK", countries = { 2, 20, 80 }, era_min = Eras.EARLYCOLDWAR, era_max = Eras.LATECOLDWAR },
-    -- TANK_M1A2  = { type = "M-1 Abrams", role = "TANK", countries = { 2, 80 }, era_min = Eras.LATECOLDWAR, era_max = Eras.MODERN },
+    TANK_M1A2  = { type = "M-1 Abrams", role = "TANK", countries = { 2, 80 }, era_min = Eras.LATECOLDWAR, era_max = Eras.MODERN },
     --TANK_LEOPARD2 = { type = "Leopard-2A5", role = "TANK", countries = { 6, 80 }, era_min = Eras.LATECOLDWAR, era_max = Eras.MODERN },
     TANK_CHALLENGER = { type = "Challenger2", role = "TANK", countries = { 4, 80 }, era_min = Eras.MODERN, era_max = Eras.MODERN },
     TANK_LECLERC = { type = "Leclerc", role = "TANK", countries = { 5, 80 }, era_min = Eras.MODERN, era_max = Eras.MODERN },
