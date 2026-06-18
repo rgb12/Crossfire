@@ -247,9 +247,9 @@ function ev:onEvent(event)
 
         elseif desc.category == Unit.Category.AIRPLANE then
             local enroute_task = EnrouteManager:findByGroup(group_name)
-            if enroute_task then
+            if enroute_task and enroute_task.ai_task_type == AITaskTypes.RESUPPLY_CARGO then
                 local landed_gr_name = enroute_task.group_name
- 
+
                 timer.scheduleFunction(function ()
                     EnrouteManager:remove(group_name)
                     MissionLogger:info("destroying landed cargo")
