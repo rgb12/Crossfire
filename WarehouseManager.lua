@@ -880,9 +880,6 @@ do
             end
         end
 
-        MissionLogger:info("items to add")
-        MissionLogger:info(items_to_add)
-
         -- 4. Distribute items to warehouses with calculated amounts
 
         local user_scale = WarehouseManager:getStockScale()
