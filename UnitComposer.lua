@@ -212,12 +212,16 @@ UnitComposer = {} do
         return specs
     end
 
-    --- Choose a SAM "system" entry for a zone's classification + country pool.
+    local SAM_FALLBACK_ORDER = {
+        SAM_TYPES.LONG_RANGE, SAM_TYPES.MEDIUM_RANGE, SAM_TYPES.SHORT_RANGE,
+    }
+
+    --- Find a SAM "system" entry for one exact classification + country pool.
     ---@param classification string SAM_TYPES.*
     ---@param pool string[]
     ---@param restrict_roles table|nil set of acceptable roles, e.g. { SAM_MR=true }
     ---@return table|nil entry, string|nil country
-    local function pickSamSystem(classification, pool, restrict_roles)
+    local function pickSamSystemForClass(classification, pool, restrict_roles)
         -- try countries in random order so a mix doesn't always pick the first.
         local order = {}
         for i = 1, #pool do order[i] = pool[i] end
@@ -243,6 +247,32 @@ UnitComposer = {} do
             if #filtered > 0 then
                 return filtered[math.random(1, #filtered)], country
             end
+        end
+        return nil, nil
+    end
+
+    ---@param classification SAM_TYPES
+    ---@param pool string[]
+    ---@param restrict_roles table|nil set of acceptable roles, e.g. { SAM_MR=true }
+    ---@return table|nil entry, string|nil country
+    local function pickSamSystem(classification, pool, restrict_roles)
+        local entry, country = pickSamSystemForClass(classification, pool, restrict_roles)
+        if entry or restrict_roles then
+            return entry, country
+        end
+
+        -- requested tier unavailable: try progressively lower tiers below it.
+        local seen_requested = false
+        for _, class in ipairs(SAM_FALLBACK_ORDER) do
+            if seen_requested and class ~= classification then
+                entry, country = pickSamSystemForClass(class, pool, restrict_roles)
+                if entry then
+                    MissionLogger:info("[UnitComposer] No " .. tostring(classification)
+                        .. " SAM available; fell back to " .. tostring(class))
+                    return entry, country
+                end
+            end
+            if class == classification then seen_requested = true end
         end
         return nil, nil
     end
