@@ -72,23 +72,23 @@ UnitComposer = {} do
         return count
     end
 
-    --------------------------------------------------------------------------
-    -- Slot filling
-    --------------------------------------------------------------------------
-    --- Pick a database entry for a slot: try each acceptable role, gathering all
-    --- era+country-valid candidates, and choose one at random. Returns nil if
-    --- nothing is available (the slot is then OMITTED).
-    ---@param slot table recipe slot { roles = {...} }
-    ---@param country string
-    ---@return table|nil entry
-    local function pickEntryForSlot(slot, country)
+    ---@param pool string[]
+    ---@return table|nil entry, string|nil country
+    local function pickEntryForSlot(slot, pool)
         local candidates = {}
+        local cand_country = {}
         for _, role in ipairs(slot.roles) do
-            local matches = EraSystem.getGroundUnits({ role = role, country = country })
-            for _, e in ipairs(matches) do candidates[#candidates + 1] = e end
+            for _, country in ipairs(pool) do
+                local matches = EraSystem.getGroundUnits({ role = role, country = country })
+                for _, e in ipairs(matches) do
+                    candidates[#candidates + 1] = e
+                    cand_country[#cand_country + 1] = country
+                end
+            end
         end
         if #candidates == 0 then return nil end
-        return candidates[math.random(1, #candidates)]
+        local i = math.random(1, #candidates)
+        return candidates[i], cand_country[i]
     end
 
     --- Build a weighted, round-robin pick order from a recipe.
@@ -310,10 +310,9 @@ UnitComposer = {} do
             if slot_i > #expanded then slot_i = 1 end
 
             local slot = expanded[slot_i]
-            local country = pool[math.random(1, #pool)]
-            local entry = pickEntryForSlot(slot, country)
+            local entry, country = pickEntryForSlot(slot, pool)
 
-            if entry then
+            if entry and country then
                 placed = placed + 1
                 specs_by_country[country] = specs_by_country[country] or {}
                 local list = specs_by_country[country]
