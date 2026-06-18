@@ -607,15 +607,22 @@ do
             end
         end
 
+        -- Remove junk
+        if self.side ~= coalition.side.NEUTRAL then
+            local vol = self:calcVolume()
+            if vol then
+                world.removeJunk(vol)
+            end
+        end
 
         -- Notify players
         if self.side == coalition.side.BLUE then
-            
+
             --Add discovered zone to blue players
             if not utils.tableContains(stats.blue_discovered_zones, self.name) then
                 table.insert(stats.blue_discovered_zones, self.name)
             end
-            
+
             trigger.action.outTextForCoalition(1,"SITEP: Allied forces lost control of " .. self.name .. ".", 15)
 
             trigger.action.outTextForCoalition(2,"SITREP: Allied forces have occupied " .. self.name .. ".", 15)
@@ -623,7 +630,7 @@ do
             -- Adds supplies on capture
             timer.scheduleFunction(function ()
                 if self.ammo_depot_intact then
-                    
+
                     local added_supplies = Config.supplies.supplies_looted_on_destroyed + math.random(-Config.supplies.supplies_looted_on_destroyed_variance,Config.supplies.supplies_looted_on_destroyed_variance)
                     local local_cap = Config.supplies.supplies_cap[self.level or 1] or 0
                     self.local_supplies = math.min((self.local_supplies or 0) + added_supplies, local_cap)
