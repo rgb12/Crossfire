@@ -98,7 +98,6 @@ do
                     [Stocks.Equipment.AAQ_28_LITENING] = 1 *2,
                 },
                 [AITaskTypes.SEAD] = {
-                    [Stocks.Equipment.AIM_120B] = 2 *2,
                     [Stocks.Equipment.AIM_9X] = 2 *2,
                     [Stocks.Equipment.AGM_88_HARM] = 2 *2,
                     [Stocks.Equipment.HTS_POD] = 1 *2,
@@ -129,9 +128,7 @@ do
                     [Stocks.Equipment.AGM_88_HARM] = 2 *2,
                     [Stocks.Equipment.AIM_9L] = 2 *2,
                 },
-                [AITaskTypes.RECON] = {
-                    [Stocks.Equipment.R_550] = 2
-                },
+                [AITaskTypes.RECON] = {},
                 [AITaskTypes.AWACS] = {},
             },
             [Eras.WW2] = {
@@ -210,16 +207,14 @@ do
                     [Stocks.Equipment.S_8O0FP2_MPP] = 40 *2,
                 },
                 [AITaskTypes.CAP] = {
-                    [Stocks.Equipment.R73_AA_11_ARCHER] = 4 *2,
-                    [Stocks.Equipment.R_27R] = 2 *2,
+                    [Stocks.Equipment.R_40R] = 2 *2,
+                    [Stocks.Equipment.R_40T] = 2 *2,
                 },
                 [AITaskTypes.STRIKE] = {
                     [Stocks.Equipment.BETAB_500] = 4 *2,
                     [Stocks.Equipment.R73_AA_11_ARCHER] = 2 *2
                 },
-                [AITaskTypes.RECON] = {
-                    [Stocks.Equipment.R_60M] = 4,
-                },
+                [AITaskTypes.RECON] = {},
                 [AITaskTypes.AWACS] = {},
                 [AITaskTypes.SEAD] = {
                     [Stocks.Equipment.KH58U] = 2 *2,
