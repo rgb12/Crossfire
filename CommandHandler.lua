@@ -140,7 +140,7 @@ do
         end
 
         if unit:inAir() then
-            local message = "CMD-HQ - Negative, unavailable while airborne."
+            local message = "Unavailable while airborne."
             if gr_id then
                 trigger.action.outTextForGroup(gr_id, message, 8)
                 trigger.action.outSoundForGroup(gr_id, "Radio squelch.ogg")
@@ -353,27 +353,27 @@ do
                             local ab = ZoneHandler.getFromName(target_zone.name)
                             if not ab then return end
                             if ab.side ~= side then
-                                trigger.action.outTextForGroup(gr_id,"CMD-HQ -Negative resupply response for " .. target_zone.name .. ": area lost. Stand by for next resupply or capture additional zones.",8)
+                                trigger.action.outTextForGroup(gr_id,"Unavailable, " .. target_zone.name .. " area lost. Stand by for next resupply or capture additional zones.",8)
                                 trigger.action.outSoundForGroup(gr_id, "radio_beep3.ogg")
                                 return
                             end
 
                             local supplies_zone = utils.fetchSuppliesZoneFromUnit(u)
                             if not supplies_zone then
-                                trigger.action.outTextForGroup(gr_id,"CMD-HQ - Negative, action cannot be executed from your position.",8)
+                                trigger.action.outTextForGroup(gr_id,"Action cannot be executed from your position.",8)
                                 trigger.action.outSoundForGroup(gr_id, "radio_beep3.ogg")
                                 return
                             end
 
                             if not suppliesZoneHasAmmoDepot(supplies_zone) then
-                                trigger.action.outTextForGroup(gr_id, "CMD-HQ - Negative, no operational Ammunition Depot in your current supply zone.", 5)
+                                trigger.action.outTextForGroup(gr_id, "Unavailable, no operational Ammunition Depot in your current supply zone.", 5)
                                 trigger.action.outSoundForGroup(gr_id, "Radio squelch.ogg")
                                 return false
                             end
 
                             local local_supplies = supplies_zone.local_supplies or 0
                             if local_supplies < cost then
-                                trigger.action.outTextForGroup(gr_id,"CMD-HQ - Negative resupply response for " .. target_zone.name .. ", not enough supplies    (" .. local_supplies .. "/" .. cost .. ")",8)
+                                trigger.action.outTextForGroup(gr_id,"Not enough local supplies    (" .. local_supplies .. "/" .. cost .. ")",8)
                                 trigger.action.outSoundForGroup(gr_id, "radio_beep3.ogg")
                                 return
                             else
@@ -381,7 +381,7 @@ do
                             end
 
                             TheatreCommander.sendWarehouseResupply(side, false, stock, target_zone)
-                            trigger.action.outTextForGroup(gr_id,"HQ Resupply dispatched for " .. target_zone.name .. ": " .. args.stock_name .. ".",10)
+                            trigger.action.outTextForGroup(gr_id,"RESUPPLY aircraft dispatched for " .. target_zone.name .. " - " .. args.stock_name,10)
                             trigger.action.outSoundForGroup(gr_id, "radio_beep3.ogg")
                         end,
                         arg = {u = unit, target_zone = ab_zone, stock_types = stock_types, cost = cost, stock_name = stock_name}
@@ -391,10 +391,10 @@ do
             end
 
             local resupply_menu = missionCommands.addSubMenuForGroup(gr_id, "Request Resupply", logistics_main_submenu)
-            
+
             local resupply_stock_list = {}
-            
-            
+
+
             -- AA Aircraft
             local aa_aircraft_airbases = buildAirbaseSubmenu({StockTypes.AA_AIRCRAFT}, Config.supplies.resupply_costs.AA_AIRCRAFT, "AA Aircraft")
             if #aa_aircraft_airbases > 0 then
@@ -403,7 +403,7 @@ do
                     submenu = aa_aircraft_airbases
                 })
             end
-            
+
             -- AG Aircraft
             local ag_aircraft_airbases = buildAirbaseSubmenu({StockTypes.AG_AIRCRAFT}, Config.supplies.resupply_costs.AG_AIRCRAFT, "AG Aircraft")
             if #ag_aircraft_airbases > 0 then
@@ -817,11 +817,11 @@ do
                 return false
             end
 
-                            if not suppliesZoneHasAmmoDepot(supplies_zone) then
-                                trigger.action.outTextForGroup(gr_id, "CMD-HQ - Negative, no operational Ammunition Depot in your current supply zone.", 8)
-                                trigger.action.outSoundForGroup(gr_id, "radio_beep3.ogg")
-                                return false
-                            end
+            if not suppliesZoneHasAmmoDepot(supplies_zone) then
+                trigger.action.outTextForGroup(gr_id, "CMD-HQ - Negative, no operational Ammunition Depot in your current supply zone.", 8)
+                trigger.action.outSoundForGroup(gr_id, "radio_beep3.ogg")
+                return false
+            end
 
             local local_supplies = supplies_zone.local_supplies or 0
             if local_supplies >= required_supplies then
@@ -1223,7 +1223,7 @@ do
 
         local main_tasking_list = {
             {
-                name = "Request JTAC",
+                name = "Request JTAC ("..Config.supplies.tasking_costs.JTAC..")",
                 task_type = AITaskTypes.JTAC,
                 func = function()
                     local commands = buildZoneCommandList(function(zone, discovered)
@@ -1234,7 +1234,7 @@ do
                 arg = nil
             },
             {
-                name = "Request Naval Strike",
+                name = "Request Naval Strike ("..Config.supplies.tasking_costs.NAVAL_STRIKE..")",
                 func = function()
                     local commands = buildZoneCommandList(function(zone, discovered)
                         if not (Config.carrier_setup.enabled and Config.carrier_setup.tomahawk_launcher_unit_name) then
@@ -1247,7 +1247,7 @@ do
                 arg = nil
             },
             {
-                name = "Request Capture",
+                name = "Request Capture ("..Config.supplies.tasking_costs.CAPTURE_HELO..")",
                 func = function()
                     local commands = buildZoneCommandList(function(zone, discovered)
                         return zone.side == coalition.side.NEUTRAL and utils.tableContains(discovered, zone.name)
@@ -1270,7 +1270,7 @@ do
                 arg = nil
             },
             {
-                name = "Request CAP",
+                name = "Request CAP ("..Config.supplies.tasking_costs.CAP..")",
                 task_type = AITaskTypes.CAP,
                 func = function()
                     local commands = buildZoneCommandList(function(zone, discovered)
@@ -1281,7 +1281,7 @@ do
                 arg = nil
             },
             {
-                name = "Request CAS",
+                name = "Request CAS ("..Config.supplies.tasking_costs.CAS..")",
                 task_type = AITaskTypes.CAS,
                 func = function()
                     local commands = buildZoneCommandList(function(zone, discovered)
@@ -1292,7 +1292,7 @@ do
                 arg = nil
             },
             {
-                name = "Request AWACS",
+                name = "Request AWACS ("..Config.supplies.tasking_costs.AWACS..")",
                 task_type = AITaskTypes.AWACS,
                 func = function()
                     local requesting_airbase = utils.fetchSuppliesZoneFromUnit(unit)
@@ -1309,7 +1309,7 @@ do
                 arg = nil
             },
             {
-                name = "Request Tanker",
+                name = "Request Tanker ("..Config.supplies.tasking_costs.TANKER..")",
                 task_type = AITaskTypes.TANKER,
                 func = function()
                     local requesting_airbase = utils.fetchSuppliesZoneFromUnit(unit)
@@ -1326,7 +1326,7 @@ do
                 arg = nil
             },
             {
-                name = "Request Strike",
+                name = "Request Strike ("..Config.supplies.tasking_costs.STRIKE..")",
                 task_type = AITaskTypes.STRIKE,
                 func = function()
                     local commands = buildZoneCommandList(function(zone, discovered)
@@ -1338,7 +1338,7 @@ do
                 arg = nil
             },
             {
-                name = "Request SEAD",
+                name = "Request SEAD ("..Config.supplies.tasking_costs.SEAD..")",
                 task_type = AITaskTypes.SEAD,
                 func = function()
                     local commands = buildZoneCommandList(function(zone, discovered)
