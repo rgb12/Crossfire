@@ -1320,6 +1320,41 @@ do
         timer.scheduleFunction(startMoving, {}, timer.getTime() + 14)
     end
 
+
+    ---@param to_zone ZoneHandler
+    ---@param side coalition.side
+    ---@return table|nil combo_task nil if there is nothing to engage
+    function TaskManager:findATTACKCONVOYTasks(to_zone, side)
+        local enemy_side = utils.getEnemyCoalition(side)
+        local targets = {}
+
+        for _, un in ipairs(utils.getUnitsInZoneObj(to_zone, enemy_side)) do
+            targets[#targets + 1] = un:getPoint()
+        end
+        for _, st in ipairs(utils.getStaticsInZoneObj(to_zone)) do
+            if st:getCoalition() == enemy_side then
+                targets[#targets + 1] = st:getPoint()
+            end
+        end
+
+        if #targets == 0 then return nil end
+
+        local tasks = {}
+        for i, p in ipairs(targets) do
+            tasks[i] = {
+                id = 'FireAtPoint',
+                params = {
+                    point = { x = p.x, y = p.z },
+                    radius = 50,
+                    expendQty = 10,
+                    expendQtyEnabled = true,
+                },
+            }
+        end
+
+        return { id = 'ComboTask', params = { tasks = tasks } }
+    end
+
     ---@param convoy_gr_name string
     ---@param side coalition.side
     ---@param to_zone ZoneHandler
@@ -1328,21 +1363,17 @@ do
         timer.scheduleFunction(function ()
             local convoy_gr = Group.getByName(convoy_gr_name)
             if not convoy_gr or not convoy_gr:isExist() then MissionLogger:info("Capture Convoy spawn failed, no convoy sent") return end
-    
-            local enemy_units
-            if side == coalition.side.BLUE then
-                enemy_units = utils.getUnitsInZoneObj(to_zone, coalition.side.RED)
-            elseif side == coalition.side.RED then
-                enemy_units = utils.getUnitsInZoneObj(to_zone, coalition.side.BLUE)
+
+            local ctrl = convoy_gr:getController()
+            if ctrl then
+                -- Let the convoy engage anything it can see on the way to / inside the zone
+                ctrl:setOption(AI.Option.Ground.id.ROE, AI.Option.Ground.val.ROE.OPEN_FIRE)
+                ctrl:setOption(AI.Option.Ground.id.ALARM_STATE, AI.Option.Ground.val.ALARM_STATE.RED)
             end
 
-            local arrival_point
-            if enemy_units and #enemy_units > 0 then
-                arrival_point = enemy_units[1]:getPoint()
-            else
-                arrival_point= to_zone.zone.point
-            end
-            self:ConvoyToPoint(convoy_gr,arrival_point)
+            -- Route on-road toward the zone, then bombard the defenders on arrival
+            local combat_task = self:findATTACKCONVOYTasks(to_zone, side)
+            self:ConvoyToPoint(convoy_gr, to_zone.zone.point, combat_task)
 
             EnrouteManager:add({
                 group_name = convoy_gr_name,
@@ -1350,7 +1381,6 @@ do
                 from_zone = from_zone,
                 side = side,
                 ai_task_type = AITaskTypes.ATTACK_CONVOY,
-                redirects_count = 0,
             })
 
             --- [ check if convoy is moving after 2 mins, if not, respawn it ]
@@ -2322,9 +2352,10 @@ do
         end
     end
 
-    ---@param arrival_point vec3
     ---@param convoy_group Group
-    function TaskManager:ConvoyToPoint(convoy_group,arrival_point)
+    ---@param arrival_point vec3
+    ---@param arrival_task table|nil optional task run once the final waypoint is reached
+    function TaskManager:ConvoyToPoint(convoy_group,arrival_point,arrival_task)
         local gr_pos = mist.getLeadPos(convoy_group)
         if not gr_pos then return end
         local roadless = false
@@ -2373,6 +2404,11 @@ do
                 speed = 100,
                 action = AI.Task.VehicleFormation.OFF_ROAD
             }
+        end
+
+        -- Run the combat task once the convoy reaches its final waypoint inside the zone
+        if arrival_task then
+            points[#points].task = arrival_task
         end
 
         convoy_group:getController():setTask({ id = 'Mission', params = { route = { points = points } } })

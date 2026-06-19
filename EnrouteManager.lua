@@ -7,7 +7,6 @@
 ---@field group_name string
 ---@field jtac JTAC|nil
 ---@field aborted boolean|nil for aboted heli
----@field redirects_count number|nil for attack convoy
 ---@field stuck_since number|nil timestamp when the enroute got stuck
 ---@field tanker_sector_id string|nil
 ---@field tanker_role string|nil
