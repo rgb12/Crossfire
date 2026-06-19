@@ -1211,9 +1211,9 @@ GroupData = {
             capture_convoy = {
                 WW2          = "BLUE WW2 Convoy",
             },
+            -- JTAC is disabled in WW2/EARLYCOLDWAR (see EraSystem.isTaskTypeAllowed),
+            -- so only the LATECOLDWAR+ templates are ever used.
             jtac = {
-                WW2          = "BLUE LATECOLDWAR JTAC",
-                EARLYCOLDWAR = "BLUE LATECOLDWAR JTAC",
                 LATECOLDWAR  = "BLUE LATECOLDWAR JTAC",
                 MODERN       = "BLUE JTAC",
             },
@@ -1242,9 +1242,9 @@ GroupData = {
                 LATECOLDWAR  = "BLUE LATECOLDWAR CAS",
                 MODERN       = "BLUE CAS",
             },
+            -- SEAD is disabled in WW2/EARLYCOLDWAR (see EraSystem.isTaskTypeAllowed),
+            -- so only the LATECOLDWAR+ templates are ever used.
             sead = {
-                WW2          = "BLUE LATECOLDWAR SEAD",
-                EARLYCOLDWAR = "BLUE LATECOLDWAR SEAD",
                 LATECOLDWAR  = "BLUE LATECOLDWAR SEAD",
                 MODERN       = "BLUE SEAD",
             },
@@ -1260,9 +1260,9 @@ GroupData = {
                 LATECOLDWAR  = "BLUE LATECOLDWAR CAP",
                 MODERN       = "BLUE CAP",
             },
+            -- AWACS is disabled in WW2/EARLYCOLDWAR (see EraSystem.isTaskTypeAllowed),
+            -- so only the LATECOLDWAR+ templates are ever used.
             awacs = {
-                WW2          = "BLUE LATECOLDWAR AWACS",
-                EARLYCOLDWAR = "BLUE LATECOLDWAR AWACS",
                 LATECOLDWAR  = "BLUE LATECOLDWAR AWACS",
                 MODERN       = "BLUE AWACS",
             },
@@ -1302,9 +1302,9 @@ GroupData = {
             capture_convoy = {
                 WW2          = "RED WW2 Convoy",
             },
+            -- JTAC is disabled in WW2/EARLYCOLDWAR (see EraSystem.isTaskTypeAllowed),
+            -- so only the LATECOLDWAR+ templates are ever used.
             jtac = {
-                WW2          = "RED JTAC",
-                EARLYCOLDWAR = "RED JTAC",
                 LATECOLDWAR  = "RED JTAC",
                 MODERN       = "RED JTAC",
             },
@@ -1332,9 +1332,9 @@ GroupData = {
                 LATECOLDWAR  = "RED LATECOLDWAR CAS",
                 MODERN       = "RED CAS",
             },
+            -- SEAD is disabled in WW2/EARLYCOLDWAR (see EraSystem.isTaskTypeAllowed),
+            -- so only the LATECOLDWAR+ templates are ever used.
             sead = {
-                WW2          = "RED LATECOLDWAR SEAD",
-                EARLYCOLDWAR = "RED LATECOLDWAR SEAD",
                 LATECOLDWAR  = "RED LATECOLDWAR SEAD",
                 MODERN       = "RED SEAD",
             },
@@ -1350,9 +1350,9 @@ GroupData = {
                 LATECOLDWAR  = "RED LATECOLDWAR CAP",
                 MODERN       = "RED CAP",
             },
+            -- AWACS is disabled in WW2/EARLYCOLDWAR (see EraSystem.isTaskTypeAllowed),
+            -- so only the LATECOLDWAR+ templates are ever used.
             awacs = {
-                WW2          = "RED AWACS",
-                EARLYCOLDWAR = "RED AWACS",
                 LATECOLDWAR  = "RED AWACS",
                 MODERN       = "RED AWACS",
             },
