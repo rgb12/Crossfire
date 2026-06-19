@@ -26,6 +26,12 @@ do
         -- Deep-copy so we never mutate the MIST database entry
         group_data = mist.utils.deepCopy(group_data)
 
+        group_data.clone = true
+        group_data.groupId = nil
+        for _, unit in ipairs(group_data.units or {}) do
+            unit.unitId = nil
+        end
+
         -- Clear late-activation / uncontrolled flags
         group_data.lateActivation = false
         group_data.uncontrolled   = false
