@@ -1730,13 +1730,11 @@ do
             local vecZ = targetPos.z - startPos.z
             local distance = math.sqrt(vecX^2 + vecZ^2)
             
-            -- Define Standoff Distance (e.g., 25km / 25000 meters)
-            -- If the total distance is short (<30km), just go 75% of the way.
-            local standOffDist = 25000 
+            local stand_off_dist = 35000
             local ratio = 0.75
             
-            if distance > standOffDist then
-                ratio = (distance - standOffDist) / distance
+            if distance > stand_off_dist then
+                ratio = (distance - stand_off_dist) / distance
             end
 
             -- This is the "Launch Point" ~25km short of the SAM
@@ -1754,7 +1752,6 @@ do
                     expend = AI.Task.WeaponExpend.ALL,
                     altitudeEnabled = true,
                     altitude = mist.utils.feetToMeters(30000),
-                    weaponType = 4161536 -- Only allow ASM (Anti-Radiation/Anti-Ship) to prevent gun runs
                 }
             }
 
