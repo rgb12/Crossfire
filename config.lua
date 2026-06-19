@@ -57,7 +57,7 @@ Config = {
     -- (table)
     era_system = {
 
-        -- (table<enum>) You can choose one or more eras to be active in the mission.
+        -- (table<enum>) REQUIRES MISSION RESTART. You can choose one or more eras to be active in the mission.
         -- "WW2" -1947
         -- "Early Cold War" 1947-1969
         -- "Late Cold War" 1969-1989
@@ -89,7 +89,7 @@ Config = {
             -- (table<enum>) RED COALITION Russia only
             [coalition.side.RED] = {country.id["RUSSIA"]},
         },
-        -- (table<enum,table<enum>>) Disable certain zone types for certain eras.
+        -- (table<enum,table<enum>>) REQUIRES MISSION RESTART. Disable certain zone types for certain eras.
         -- Select from: "SAMSITE", "EWSITE", "FARP", "AIRBASE", "LOGISTICS", "STRONGPOINT", "COMMS"
         disable_zone_types_for_era = {
             -- (table<enum>)
