@@ -3116,6 +3116,7 @@ EraSystem = {} do
     local logisticsTasks = {
         [AITaskTypes.CAPTURE_HELO] = true,
         [AITaskTypes.REINFORCEMENT_HELO] = true,
+        [AITaskTypes.REINFORCEMENT_CONVOY] = true,
         [AITaskTypes.RESUPPLY_CARGO] = true,
     }
     ---@return string[] eras array of selected Eras.* values

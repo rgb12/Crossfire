@@ -479,7 +479,8 @@ do
                 -- Refund Asset Counts to the Save Data
                 if enroute.ai_task_type == AITaskTypes.CAPTURE_HELO then
                     zone_data.heli_avail = (zone_data.heli_avail or 0) + 1
-                elseif enroute.ai_task_type == AITaskTypes.REINFORCEMENT_HELO then
+                elseif enroute.ai_task_type == AITaskTypes.REINFORCEMENT_HELO
+                or enroute.ai_task_type == AITaskTypes.REINFORCEMENT_CONVOY then
                     zone_data.heli_avail = (zone_data.heli_avail or 0) + 1
 
                     local required_supplies = (Config.operations and Config.operations.upgrade_required_supplies) or 300
@@ -495,6 +496,7 @@ do
             -- (Skip ground assets that don't use warehouses)
             if enroute.ai_task_type ~= AITaskTypes.CAPTURE_HELO
             and enroute.ai_task_type ~= AITaskTypes.REINFORCEMENT_HELO
+            and enroute.ai_task_type ~= AITaskTypes.REINFORCEMENT_CONVOY
             and enroute.ai_task_type ~= AITaskTypes.ATTACK_CONVOY
             and enroute.ai_task_type ~= AITaskTypes.RESUPPLY_CARGO then
                 

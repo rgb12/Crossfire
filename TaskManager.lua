@@ -820,6 +820,36 @@ do
             if type(from_zone.drawF10) == "function" then from_zone:drawF10() end
             MissionLogger:info(utils.coalitionToString(side) .. " capture convoy from " .. from_zone.name .. " sent to capture zone: " .. to_zone.name)
             return true
+        elseif AITaskTypes.REINFORCEMENT_CONVOY == ai_task_type and to_zone and from_zone then
+            if to_zone.side ~= side then return false end
+
+            if prevent_duplicates and EnrouteManager:findByToZone(to_zone, side, {AITaskTypes.REINFORCEMENT_CONVOY, AITaskTypes.REINFORCEMENT_HELO}) then
+                if user_requested then
+                    trigger.action.outTextForCoalition(side, "Reinforcement convoy already enroute to " .. to_zone.name, 5)
+                end
+                return false
+            end
+
+            local convoy_template_gr_name_side
+            if side == coalition.side.BLUE then
+                convoy_template_gr_name_side = GroupData.COMMON_ASSETS.BLUE.capture_convoy
+            elseif side == coalition.side.RED then
+                convoy_template_gr_name_side = GroupData.COMMON_ASSETS.RED.capture_convoy
+            end
+            local convoy_template_gr_name = EraSystem.resolveTaskTemplateName(convoy_template_gr_name_side)
+            if not convoy_template_gr_name then return false end
+
+            local convoy_sent = mist.cloneInZone(convoy_template_gr_name, from_zone.zone.name)
+            if not convoy_sent then MissionLogger:info("Reinforcement Convoy spawn failed, no convoy sent") return false end
+
+            self:setREINFORCEMENTCONVOYTask(convoy_sent.name, side, to_zone, from_zone)
+
+            if not (from_zone and from_zone.lha_source) then
+                from_zone.heli_avail = (from_zone.heli_avail or 0) - 1
+                if type(from_zone.drawF10) == "function" then from_zone:drawF10() end
+            end
+            MissionLogger:info(utils.coalitionToString(side) .. " reinforcement convoy from " .. from_zone.name .. " sent to reinforce zone: " .. to_zone.name)
+            return true
         elseif ai_task_type == AITaskTypes.CAPTURE_HELO and to_zone and from_zone then
 
             if prevent_duplicates and EnrouteManager:findByToZone(to_zone, side, {AITaskTypes.CAPTURE_HELO}) then
@@ -846,15 +876,15 @@ do
                 return true
             end
 
-            local template_name
+            local template_name_side
             if from_zone and from_zone.lha_source and side == coalition.side.BLUE then
-                template_name = GroupData.COMMON_ASSETS.BLUE.LHA_capture_helicopter
+                template_name_side = GroupData.COMMON_ASSETS.BLUE.LHA_capture_helicopter
             elseif side == coalition.side.RED then
-                template_name = GroupData.COMMON_ASSETS.RED.capture_helicopter
+                template_name_side = GroupData.COMMON_ASSETS.RED.capture_helicopter
             elseif side == coalition.side.BLUE then
-                template_name = GroupData.COMMON_ASSETS.BLUE.capture_helicopter
+                template_name_side = GroupData.COMMON_ASSETS.BLUE.capture_helicopter
             end
-            template_name = EraSystem.resolveTaskTemplateName(template_name)
+            local template_name = EraSystem.resolveTaskTemplateName(template_name_side)
             if not template_name then return false end
 
             local helo_sent = mist.teleportToPoint({
@@ -894,34 +924,25 @@ do
                 return false
             end
 
-            -- [Era] In a pre-helicopter era (WW2) no airframe is flown; the
-            -- target zone is reinforced (tier bump) INSTANTLY, mirroring the
-            -- reinforcement-arrival effect in EnrouteManager.
+
             if not EraSystem.isHelicopterEraCapable() then
-                if to_zone.side == side and (to_zone.level or 1) < 4 then
-                    to_zone.level = (to_zone.level or 1) + 1
-                    to_zone.next_level_up_avail = timer.getTime() + (Config.logistics_level_up_interval or (16 * 60))
-                    UnitHandler.updateZoneUnits(to_zone)
-                    to_zone:drawF10()
-                    trigger.action.outTextForCoalition(side,
-                        string.format("SITREP: %s has reached operational tier %d/4 ", to_zone.name, to_zone.level), 10)
-                    trigger.action.outSoundForCoalition(side, "radio_beep3.ogg")
+                local convoy_range = Config.capture_convoy_range or 100000
+                if mist.utils.get2DDist(from_zone.zone.point, to_zone.zone.point) > convoy_range then
+                    if user_requested then
+                        trigger.action.outTextForCoalition(side, "Reinforcement convoy cannot reach " .. to_zone.name .. " (too far).", 10)
+                    end
+                    return false
                 end
-                if not (from_zone and from_zone.lha_source) then
-                    from_zone.heli_avail = (from_zone.heli_avail or 0) - 1
-                    if type(from_zone.drawF10) == "function" then from_zone:drawF10() end
-                end
-                MissionLogger:info(utils.coalitionToString(side) .." instant-reinforced zone (pre-helicopter era): " .. to_zone.name)
-                return true
+                return self:initiateAITask(AITaskTypes.REINFORCEMENT_CONVOY, side, prevent_duplicates, to_zone, from_zone, user_requested)
             end
 
-            local template_name = nil
+            local template_name_side
             if side == coalition.side.RED then
-                template_name = GroupData.COMMON_ASSETS.RED.reinforcement_helicopter or GroupData.COMMON_ASSETS.RED.capture_helicopter
+                template_name_side = GroupData.COMMON_ASSETS.RED.reinforcement_helicopter or GroupData.COMMON_ASSETS.RED.capture_helicopter
             elseif side == coalition.side.BLUE then
-                template_name = GroupData.COMMON_ASSETS.BLUE.reinforcement_helicopter or GroupData.COMMON_ASSETS.BLUE.capture_helicopter
+                template_name_side = GroupData.COMMON_ASSETS.BLUE.reinforcement_helicopter or GroupData.COMMON_ASSETS.BLUE.capture_helicopter
             end
-            template_name = EraSystem.resolveTaskTemplateName(template_name)
+            local template_name = EraSystem.resolveTaskTemplateName(template_name_side)
 
             if not template_name then
                 MissionLogger:info("Reinforcement Helo spawn failed: missing template name.")
@@ -1459,6 +1480,41 @@ do
                     convoy_gr:destroy()
                     from_zone.attack_convoy = (from_zone.attack_convoy or 0) + 1
                     from_zone:drawF10()
+                    EnrouteManager:remove(convoy_gr_name)
+                end
+            end,{},timer.getTime()+120)
+        end,{},timer.getTime()+5)
+    end
+
+    ---@param convoy_gr_name string
+    ---@param side coalition.side
+    ---@param to_zone ZoneHandler friendly zone to reinforce
+    ---@param from_zone ZoneHandler logistics zone the convoy departs from
+    function TaskManager:setREINFORCEMENTCONVOYTask(convoy_gr_name, side, to_zone, from_zone)
+        timer.scheduleFunction(function ()
+            local convoy_gr = Group.getByName(convoy_gr_name)
+            if not convoy_gr or not convoy_gr:isExist() then MissionLogger:info("Reinforcement Convoy spawn failed, no convoy sent") return end
+
+            self:ConvoyToPoint(convoy_gr, to_zone.zone.point)
+
+            EnrouteManager:add({
+                group_name = convoy_gr_name,
+                to_zone = to_zone,
+                from_zone = from_zone,
+                side = side,
+                ai_task_type = AITaskTypes.REINFORCEMENT_CONVOY,
+            })
+
+            --- [ if convoy is not moving after 2 mins, refund the slot and remove it ]
+            timer.scheduleFunction(function ()
+                if not convoy_gr or not convoy_gr:isExist() then return end
+                if not UnitHandler.checkConvoyMoving(convoy_gr) then
+                    MissionLogger:info("Reinforcement Convoy:" .. convoy_gr_name .. " not moving")
+                    convoy_gr:destroy()
+                    if not (from_zone and from_zone.lha_source) then
+                        from_zone.heli_avail = (from_zone.heli_avail or 0) + 1
+                        if type(from_zone.drawF10) == "function" then from_zone:drawF10() end
+                    end
                     EnrouteManager:remove(convoy_gr_name)
                 end
             end,{},timer.getTime()+120)

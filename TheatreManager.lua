@@ -447,16 +447,17 @@ do
                     -- this spawns a reinforcement helicopter
                     if math.random(1,100) <= Config.reinforcement_chance and zone.zone_type == ZoneTypes.LOGISTICS
                     and zone.heli_avail > 0
-                    and #EnrouteManager:findByTaskType(AITaskTypes.REINFORCEMENT_HELO,zone.side) < 2
-                    and not EnrouteManager:findByFromZone(zone,zone.side,{AITaskTypes.REINFORCEMENT_HELO, AITaskTypes.CAPTURE_HELO})
+                    and (#EnrouteManager:findByTaskType(AITaskTypes.REINFORCEMENT_HELO,zone.side)
+                        + #EnrouteManager:findByTaskType(AITaskTypes.REINFORCEMENT_CONVOY,zone.side)) < 2
+                    and not EnrouteManager:findByFromZone(zone,zone.side,{AITaskTypes.REINFORCEMENT_HELO, AITaskTypes.REINFORCEMENT_CONVOY, AITaskTypes.CAPTURE_HELO})
                     then
                         local zones_to_upgrade = zone:filterZonesByDistance(zone.side,{},{},true)
                         local zone_to_upgrade = nil
                         if #zones_to_upgrade > 0 then
                             for _,zone_t_u in ipairs(zones_to_upgrade) do
                                 if zone_t_u.level < 4
-                                and not EnrouteManager:findByToZone(zone_t_u,zone.side,{AITaskTypes.REINFORCEMENT_HELO, AITaskTypes.CAPTURE_HELO})
-                                and not EnrouteManager:findByToZone(zone,zone.side, {AITaskTypes.REINFORCEMENT_HELO, AITaskTypes.CAPTURE_HELO}) then
+                                and not EnrouteManager:findByToZone(zone_t_u,zone.side,{AITaskTypes.REINFORCEMENT_HELO, AITaskTypes.REINFORCEMENT_CONVOY, AITaskTypes.CAPTURE_HELO})
+                                and not EnrouteManager:findByToZone(zone,zone.side, {AITaskTypes.REINFORCEMENT_HELO, AITaskTypes.REINFORCEMENT_CONVOY, AITaskTypes.CAPTURE_HELO}) then
                                     zone_to_upgrade = zone_t_u
                                     break
                                 end
@@ -635,6 +636,54 @@ do
                                     enroute.stuck_since = timer.getTime()
                                 elseif (timer.getTime() - enroute.stuck_since) > Config.stuck_convoy_timeout then
                                     trigger.action.outTextForCoalition(enroute.side, "Capture convoy to " .. enroute.to_zone.zone.name .. " got stuck en route and was removed.", 10)
+                                    convoy_group:destroy()
+                                    EnrouteManager.enroutes[i] = nil
+                                end
+                            else
+                                enroute.stuck_since = nil
+                            end
+                        end
+                    end
+                elseif enroute.ai_task_type == AITaskTypes.REINFORCEMENT_CONVOY then
+                    local convoy_group = Group.getByName(enroute.group_name)
+
+                    if not convoy_group or not convoy_group:isExist() then
+                        -- Convoy destroyed enroute
+                        trigger.action.outTextForCoalition(enroute.side, "Reinforcement convoy sent to " .. enroute.to_zone.zone.name .. " has been destroyed", 10)
+                        EnrouteManager.enroutes[i] = nil
+                    else
+                        local zone_coal_check = ZoneHandler.getFromName(enroute.to_zone.name)
+                        if not zone_coal_check or zone_coal_check.side ~= enroute.side then
+                            -- Target no longer friendly (lost to the enemy): stand down
+                            MissionLogger:info("Reinforcement convoy target no longer friendly, removing: " .. enroute.group_name)
+                            EnrouteManager.enroutes[i] = nil
+                            timer.scheduleFunction(function ()
+                                if convoy_group and convoy_group:isExist() then convoy_group:destroy() end
+                            end, {}, timer.getTime() + math.random(5, 10))
+                        else
+                            local convoy_pos = mist.getLeadPos(convoy_group)
+                            if convoy_pos and enroute.to_zone:isPointInsideZone(convoy_pos) then
+                                -- Arrived inside the friendly zone: bump its tier
+                                if (zone_coal_check.level or 1) < 4 then
+                                    zone_coal_check.level = (zone_coal_check.level or 1) + 1
+                                    zone_coal_check.next_level_up_avail = timer.getTime() + (Config.logistics_level_up_interval or (16 * 60))
+                                    UnitHandler.updateZoneUnits(zone_coal_check)
+                                    zone_coal_check:drawF10()
+                                    trigger.action.outTextForCoalition(enroute.side,
+                                        string.format("SITREP: %s has reached operational tier %d/4 ", zone_coal_check.name, zone_coal_check.level), 10)
+                                    trigger.action.outSoundForCoalition(enroute.side, "radio_beep3.ogg")
+                                end
+                                MissionLogger:info(utils.coalitionToString(enroute.side) .. " reinforcement convoy reinforced zone: " .. enroute.to_zone.zone.name)
+                                EnrouteManager.enroutes[i] = nil
+                                timer.scheduleFunction(function ()
+                                    if convoy_group and convoy_group:isExist() then convoy_group:destroy() end
+                                end, {}, timer.getTime() + math.random(10, 20))
+                            elseif not UnitHandler.checkConvoyMoving(convoy_group) then
+                                -- Stuck enroute: time it out (mirrors capture convoy)
+                                if not enroute.stuck_since then
+                                    enroute.stuck_since = timer.getTime()
+                                elseif (timer.getTime() - enroute.stuck_since) > Config.stuck_convoy_timeout then
+                                    trigger.action.outTextForCoalition(enroute.side, "Reinforcement convoy to " .. enroute.to_zone.zone.name .. " got stuck en route and was removed.", 10)
                                     convoy_group:destroy()
                                     EnrouteManager.enroutes[i] = nil
                                 end
