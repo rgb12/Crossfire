@@ -540,44 +540,42 @@ Config = {
             FARP = 2500,
             
             -- (int) Air-to-air focused aircraft
-            AA_AIRCRAFT = 3500,
+            AA_AIRCRAFT = 750,
             -- (int) Air-to-ground focused aircraft
-            AG_AIRCRAFT = 3000,
+            AG_AIRCRAFT = 750,
             -- (int) Multirole aircraft
-            MULTIROLE_AIRCRAFT = 3500,
+            MULTIROLE_AIRCRAFT = 900,
             -- (int) Reconnaissance aircraft
-            RECON_AIRCRAFT = 2000,
+            RECON_AIRCRAFT = 500,
             -- (int) Transport/utility aircraft
-            CARGO_AIRCRAFT = 1500,
-            -- (int) Attack helicopters
-            ATTACK_HELICOPTER = 3000,
-            -- (int) Transport/logistics helicopters
-            LOGISTICS_HELICOPTER = 1500,
+            CARGO_AIRCRAFT = 500,
+            -- (int) NOT YET ADDED. Attack helicopters
+            ATTACK_HELICOPTER = 900,
+            -- (int) NOT YET ADDED. Transport/logistics helicopters
+            LOGISTICS_HELICOPTER = 400,
 
 
             -- (int) AIM-120, AIM-54, etc.
-            AIR_AIR_LONG_RANGE = 2000,
+            AIR_AIR_LONG_RANGE = 750,
             -- (int) AIM-9, R-73, etc.
-            AIR_AIR_SHORT_RANGE = 1200,
+            AIR_AIR_SHORT_RANGE = 500,
             
             -- (int) AGM-65, Hellfire, etc.
-            AIR_GROUND_GUIDED_MISSILES = 1800,
+            AIR_GROUND_GUIDED_MISSILES = 750,
             -- (int) GBU-12, GBU-38, etc.
-            AIR_GROUND_GUIDED_BOMBS = 1200,
+            AIR_GROUND_GUIDED_BOMBS = 600,
             -- (int) Mk-82, Mk-84, etc.
-            AIR_GROUND_BOMBS = 800,
+            AIR_GROUND_BOMBS = 250,
             -- (int) Hydra, S-8, etc.
-            AIR_GROUND_ROCKETS = 400,
+            AIR_GROUND_ROCKETS = 150,
 
-            -- (int) External fuel/drop tanks
+            -- (int) NOT YET ADDED. External fuel/drop tanks
             FUEL_TANKS = 600,
 
             -- (int) Jamming pods, countermeasures
             ECM = 2500,
             -- (int) Targeting pods, misc equipment
             TGP_MISC = 2000,
-            -- (int) SU-25T BLUFOR stock package
-            SU25T_BLUFOR = 3000,
         },
         -- (table)
         tasking_costs = {
