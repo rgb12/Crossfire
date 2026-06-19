@@ -27,6 +27,9 @@ Config = {
     -- (bool) development setting, set to false to prevent the mission from loading
     -- this config (will use default values instead)
     _enable_external_config = false,
+    -- (int) (meters) max distance a frontline segment may extend from the midpoint
+    -- between the two opposing zones that generate it
+    frontline_max_extent = 35000,
     -- (table)
     persistence = {
         -- (bool) enables or not persistence, has authority over everything below in

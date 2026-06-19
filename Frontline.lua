@@ -183,17 +183,65 @@ do
         local frontline_points = {}
         local frontline_segments = {}
 
+        local MAX_FRONTLINE_EXTENT = Config.frontline_max_extent or 35000
+
+        local function clipSegmentToExtent(ax, ay, bx, by, mid_x, mid_y, nx, ny, ext)
+            -- tangent (along the bisector)
+            local tx, ty = -ny, nx
+            local sa = (ax - mid_x) * tx + (ay - mid_y) * ty
+            local sb = (bx - mid_x) * tx + (by - mid_y) * ty
+
+            if (sa > ext and sb > ext) or (sa < -ext and sb < -ext) then
+                return nil
+            end
+
+            local t0, t1 = 0.0, 1.0
+            local d = sb - sa
+            if math.abs(d) > 1e-9 then
+                local tlo = (-ext - sa) / d
+                local thi = ( ext - sa) / d
+                if tlo > thi then tlo, thi = thi, tlo end
+                if tlo > t0 then t0 = tlo end
+                if thi < t1 then t1 = thi end
+            end
+            if t0 > t1 then return nil end
+
+            local nax = ax + (bx - ax) * t0
+            local nay = ay + (by - ay) * t0
+            local nbx = ax + (bx - ax) * t1
+            local nby = ay + (by - ay) * t1
+            return nax, nay, nbx, nby
+        end
+
         for key, bucket in pairs(seen) do
             local meta = pair_meta[key]
             local a_segs = bucket[meta[1]]
             local b_segs = bucket[meta[2]]
             if a_segs and b_segs then
+                local za = data_points[meta[1]]
+                local zb = data_points[meta[2]]
+                local mid_x = (za.x + zb.x) * 0.5
+                local mid_y = (za.y + zb.y) * 0.5
+                local jdx = zb.x - za.x
+                local jdy = zb.y - za.y
+                local jlen = math.sqrt(jdx * jdx + jdy * jdy)
+                local nx, ny = 1, 0
+                if jlen > CLIP_EPS then nx, ny = jdx / jlen, jdy / jlen end
+
                 for _, s in ipairs(a_segs) do
-                    local p1 = {x = s.ax, y = s.ay}
-                    local p2 = {x = s.bx, y = s.by}
-                    table.insert(frontline_segments, {p1, p2})
-                    table.insert(frontline_points, p1)
-                    table.insert(frontline_points, p2)
+                    local nax, nay, nbx, nby = clipSegmentToExtent(
+                        s.ax, s.ay, s.bx, s.by, mid_x, mid_y, nx, ny, MAX_FRONTLINE_EXTENT)
+                    if nax then
+                        local cdx = nbx - nax
+                        local cdy = nby - nay
+                        if (cdx * cdx + cdy * cdy) >= MIN_SEGMENT_LEN_SQ then
+                            local p1 = {x = nax, y = nay}
+                            local p2 = {x = nbx, y = nby}
+                            table.insert(frontline_segments, {p1, p2})
+                            table.insert(frontline_points, p1)
+                            table.insert(frontline_points, p2)
+                        end
+                    end
                 end
             end
         end
