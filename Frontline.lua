@@ -146,7 +146,7 @@ do
         local seen = {}        -- pair_key -> { side_index -> list of {ax,ay,bx,by} }
         local pair_meta = {}   -- pair_key -> { i, j }
 
-        local MIN_SEGMENT_LEN_SQ = 25 -- ignore sub-segments shorter than 5 m
+        local MIN_FRAGMENT_LEN_SQ = CLIP_EPS * CLIP_EPS
 
         for i = 1, #data_points do
             local site = data_points[i]
@@ -158,7 +158,7 @@ do
                     if other.coalition ~= site.coalition then
                         local dx = e.bx - e.ax
                         local dy = e.by - e.ay
-                        if (dx * dx + dy * dy) >= MIN_SEGMENT_LEN_SQ then
+                        if (dx * dx + dy * dy) >= MIN_FRAGMENT_LEN_SQ then
                             local lo = math.min(i, j)
                             local hi = math.max(i, j)
                             local key = lo .. ":" .. hi
@@ -185,33 +185,7 @@ do
 
         local MAX_FRONTLINE_EXTENT = Config.frontline_max_extent or 35000
 
-        local function clipSegmentToExtent(ax, ay, bx, by, mid_x, mid_y, nx, ny, ext)
-            -- tangent (along the bisector)
-            local tx, ty = -ny, nx
-            local sa = (ax - mid_x) * tx + (ay - mid_y) * ty
-            local sb = (bx - mid_x) * tx + (by - mid_y) * ty
-
-            if (sa > ext and sb > ext) or (sa < -ext and sb < -ext) then
-                return nil
-            end
-
-            local t0, t1 = 0.0, 1.0
-            local d = sb - sa
-            if math.abs(d) > 1e-9 then
-                local tlo = (-ext - sa) / d
-                local thi = ( ext - sa) / d
-                if tlo > thi then tlo, thi = thi, tlo end
-                if tlo > t0 then t0 = tlo end
-                if thi < t1 then t1 = thi end
-            end
-            if t0 > t1 then return nil end
-
-            local nax = ax + (bx - ax) * t0
-            local nay = ay + (by - ay) * t0
-            local nbx = ax + (bx - ax) * t1
-            local nby = ay + (by - ay) * t1
-            return nax, nay, nbx, nby
-        end
+        local MERGE_GAP = 1.0
 
         for key, bucket in pairs(seen) do
             local meta = pair_meta[key]
@@ -227,16 +201,51 @@ do
                 local jlen = math.sqrt(jdx * jdx + jdy * jdy)
                 local nx, ny = 1, 0
                 if jlen > CLIP_EPS then nx, ny = jdx / jlen, jdy / jlen end
+                -- tangent: direction along the bisector
+                local tx, ty = -ny, nx
 
-                for _, s in ipairs(a_segs) do
-                    local nax, nay, nbx, nby = clipSegmentToExtent(
-                        s.ax, s.ay, s.bx, s.by, mid_x, mid_y, nx, ny, MAX_FRONTLINE_EXTENT)
-                    if nax then
-                        local cdx = nbx - nax
-                        local cdy = nby - nay
-                        if (cdx * cdx + cdy * cdy) >= MIN_SEGMENT_LEN_SQ then
-                            local p1 = {x = nax, y = nay}
-                            local p2 = {x = nbx, y = nby}
+                local function proj(px, py)
+                    return (px - mid_x) * tx + (py - mid_y) * ty
+                end
+
+                -- Collect 1-D intervals from both cells' fragments.
+                local intervals = {}
+                local function addSegs(segs)
+                    if not segs then return end
+                    for _, s in ipairs(segs) do
+                        local s1 = proj(s.ax, s.ay)
+                        local s2 = proj(s.bx, s.by)
+                        if s1 > s2 then s1, s2 = s2, s1 end
+                        intervals[#intervals + 1] = {s1, s2}
+                    end
+                end
+                addSegs(a_segs)
+                addSegs(b_segs)
+
+                if #intervals > 0 then
+                    table.sort(intervals, function(p, q) return p[1] < q[1] end)
+
+                    -- Merge overlapping / near-touching intervals into spans.
+                    local merged = {}
+                    local cur = {intervals[1][1], intervals[1][2]}
+                    for i = 2, #intervals do
+                        local iv = intervals[i]
+                        if iv[1] <= cur[2] + MERGE_GAP then
+                            if iv[2] > cur[2] then cur[2] = iv[2] end
+                        else
+                            merged[#merged + 1] = cur
+                            cur = {iv[1], iv[2]}
+                        end
+                    end
+                    merged[#merged + 1] = cur
+
+                    for _, span in ipairs(merged) do
+                        -- Clip span to [-ext, ext] along the bisector.
+                        local s1 = math.max(span[1], -MAX_FRONTLINE_EXTENT)
+                        local s2 = math.min(span[2],  MAX_FRONTLINE_EXTENT)
+                        if s2 - s1 >= 5 then -- ignore spans shorter than 5 m
+                            local p1 = {x = mid_x + tx * s1, y = mid_y + ty * s1}
+                            local p2 = {x = mid_x + tx * s2, y = mid_y + ty * s2}
                             table.insert(frontline_segments, {p1, p2})
                             table.insert(frontline_points, p1)
                             table.insert(frontline_points, p2)
