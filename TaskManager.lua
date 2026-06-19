@@ -1743,13 +1743,49 @@ do
         timer.scheduleFunction(function()
 
             -- 1. Validation
-            if not enroute_data.to_zone or #enroute_data.to_zone.linked_groups == 0 then return false end 
-            local grp_to_attack = Group.getByName(enroute_data.to_zone.linked_groups[1])
-            if not grp_to_attack or not grp_to_attack:isExist() then return false end
-            local grp_to_attack_id = grp_to_attack:getID()
+            if not enroute_data.to_zone or #enroute_data.to_zone.linked_groups == 0 then return false end
+
+            -- Attributes that make a group a priority SEAD target (radars first)
+            local priority_attributes = { 'SAM SR', 'SAM TR' }
+
+            -- Gather all viable target groups, flagging the ones with search/track radars
+            local priority_targets = {} -- groups containing SAM SR/TR units
+            local other_targets = {}    -- remaining viable groups (launchers, etc.)
+            for _, grp_name in ipairs(enroute_data.to_zone.linked_groups) do
+                local grp = Group.getByName(grp_name)
+                if grp and grp:isExist() then
+                    local is_priority = false
+                    for _, unit in ipairs(grp:getUnits()) do
+                        if unit and unit:isExist() then
+                            for _, attr in ipairs(priority_attributes) do
+                                if unit:hasAttribute(attr) then
+                                    is_priority = true
+                                    break
+                                end
+                            end
+                        end
+                        if is_priority then break end
+                    end
+                    if is_priority then
+                        table.insert(priority_targets, grp:getID())
+                    else
+                        table.insert(other_targets, grp:getID())
+                    end
+                end
+            end
+
+            -- Radars first, then everything else
+            local viable_ids = {}
+            for _, id in ipairs(priority_targets) do table.insert(viable_ids, id) end
+            for _, id in ipairs(other_targets) do table.insert(viable_ids, id) end
+
+            if #viable_ids == 0 then
+                MissionLogger:error("Could not send SEAD: No linked enemy groups exist in zone "..enroute_data.to_zone.name)
+                return false
+            end
 
             local sead_gr = Group.getByName(sead_group_name)
-            if not (sead_gr and sead_gr:isExist() and grp_to_attack_id) then return false end
+            if not (sead_gr and sead_gr:isExist()) then return false end
 
             local ctrl = sead_gr:getController()
 
@@ -1757,15 +1793,15 @@ do
             local startPos = mist.getLeadPos(sead_group_name) -- Current Airbase pos
             if not startPos then return false end
             local targetPos = enroute_data.to_zone.zone.point -- Enemy SAM pos
-            
+
             -- Calculate vector from Start to Target
             local vecX = targetPos.x - startPos.x
             local vecZ = targetPos.z - startPos.z
             local distance = math.sqrt(vecX^2 + vecZ^2)
-            
+
             local stand_off_dist = 35000
             local ratio = 0.75
-            
+
             if distance > stand_off_dist then
                 ratio = (distance - stand_off_dist) / distance
             end
@@ -1776,15 +1812,29 @@ do
                 y = startPos.z + (vecZ * ratio)
             }
 
-            -- 3. Attack Task
+            -- 3. Attack Tasks (radars first), combined into a single ComboTask
+            local tasks = {}
+            for i, target_group_id in ipairs(viable_ids) do
+                local attackTask = {
+                    enabled = true,
+                    auto = false,
+                    id = 'AttackGroup',
+                    number = i,
+                    params = {
+                        groupId = target_group_id,
+                        groupAttack = true,
+                        expend = AI.Task.WeaponExpend.ALL,
+                        altitudeEnabled = true,
+                        altitude = mist.utils.feetToMeters(30000),
+                    }
+                }
+                table.insert(tasks, attackTask)
+            end
+
             local attackTask = {
-                id = 'AttackGroup',
+                id = 'ComboTask',
                 params = {
-                    groupId = grp_to_attack_id,
-                    groupAttack = true,
-                    expend = AI.Task.WeaponExpend.ALL,
-                    altitudeEnabled = true,
-                    altitude = mist.utils.feetToMeters(30000),
+                    tasks = tasks
                 }
             }
 
