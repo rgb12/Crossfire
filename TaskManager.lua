@@ -776,10 +776,10 @@ do
             to_zone, _ = from_zone:getClosestZone(enemy_side,nil,nil,true)
             if to_zone and to_zone.side == enemy_side
             and mist.utils.get2DDist(from_zone.zone.point, to_zone.zone.point) < Config.attack_convoy_range then
-                
+
                 if prevent_duplicates and EnrouteManager:findByToZone(to_zone,nil,{ai_task_type}) then
                     if user_requested then
-                        txt="Unable to task "..ai_task_type.." ,already tasked for this area"
+                        local txt="Unable to task "..ai_task_type.." ,already tasked for this area"
                         trigger.action.outTextForCoalition(side,txt,5)
                     end
                     return false
@@ -787,7 +787,7 @@ do
 
                 local convoy_sent = mist.cloneInZone(convoy_template_gr_name, from_zone.zone.name)
                 if not convoy_sent then MissionLogger:info("Attack Convoy spawn failed, no convoy sent") return false end
-              
+
                 self:setATTACKCONVOYTask(convoy_sent.name,side,to_zone,from_zone)
                 from_zone.attack_convoy = from_zone.attack_convoy - 1
                 if from_zone and type(from_zone.drawF10) == "function" then
@@ -2467,8 +2467,6 @@ do
                 local drogue_group = Group.getByName(sector.drogue_group_name or "")
                 local drogue_ok = drogue_group and drogue_group:isExist()
 
-                -- [Era] A drogue-only sector has no boom group; only require the
-                -- boom to exist when the sector is boom-capable.
                 local boom_ok = true
                 if sector.boom_capable ~= false then
                     local boom_group = Group.getByName(sector.boom_group_name or "")

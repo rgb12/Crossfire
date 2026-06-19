@@ -2897,24 +2897,18 @@ Stocks.AircraftLoads = {
     All `type` strings are the EXACT DCS type strings from the units datamine
     (https://github.com/Quaggles/dcs-lua-datamine "Cars" category + SAM parts).
 
-    role values (string literals, kept as plain strings to avoid a new enum):
-        "SAM_LR" "SAM_MR" "SAM_SR" "SAM_IR" "SAM_EM"   -- surface-to-air systems
-        "AAA"  "MANPADS"                               -- gun / shoulder AD
-        "TANK" "IFV" "APC" "ARTILLERY"                 -- armour / fires
-        "TRUCK" "SUPPLY_TRUCK" "INFANTRY" "EWR"        -- soft / support / radar
-        "RADAR" "LAUNCHER" "COMMAND"                   -- SAM sub-components
+    "SAM_LR" "SAM_MR" "SAM_SR" "SAM_IR" "SAM_EM"   -- surface-to-air systems
+    "AAA"  "MANPADS"                               -- gun / shoulder AD
+    "TANK" "IFV" "APC" "ARTILLERY"                 -- armour / fires
+    "TRUCK" "SUPPLY_TRUCK" "INFANTRY" "EWR"        -- soft / support / radar
+    "RADAR" "LAUNCHER" "COMMAND"                   -- SAM sub-components
 
-        SAM_IR : IR / electro-optical point defence (SA-19 Tunguska, etc.)
-        SAM_EM : short-range radar point defence    (SA-15 Tor, SA-8 Osa)
-        SAM_SR : short-range battery                 (SA-3, Rapier, IRIS-T SLS)
-        SAM_MR : medium-range battery                (SA-6, SA-11, HAWK, NASAMS)
-        SAM_LR : long-range battery                  (SA-2, SA-10, Patriot)
-    sam_classification (SAM_TYPES.*) is what ZoneHandler stores on a SAMSITE
-    zone; the composer matches the zone's classification against entries whose
-    sam_classification equals it.
+    SAM_IR : IR / electro-optical point defence (SA-19 Tunguska, etc.)
+    SAM_EM : short-range radar point defence    (SA-15 Tor, SA-8 Osa)
+    SAM_SR : short-range battery                 (SA-3, Rapier, IRIS-T SLS)
+    SAM_MR : medium-range battery                (SA-6, SA-11, HAWK, NASAMS)
+    SAM_LR : long-range battery                  (SA-2, SA-10, Patriot)
 
-    era_min / era_max use the Eras.* enum; an entry is valid for a selected era
-    E when era_min <= E <= era_max (compared via the shared era rank order
     WW2 < EARLYCOLDWAR < LATECOLDWAR < MODERN).
  ]]
 Stocks.GroundUnits = {
@@ -3396,13 +3390,7 @@ EraSystem = {} do
     end
 
 
-    ---@param filters table|nil {
-    ---   role=string|nil,                 -- exact role match
-    ---   era=string|nil,                  -- a single Eras.* the entry must cover;
-    ---                                    --   when nil, the entry must fit ANY selected era
-    ---   country=number|nil,              -- must appear in entry.countries
-    ---   sam_classification=string|nil,   -- exact SAM_TYPES.* match
-    --- }
+    ---@param filters table|nil
     ---@return table[] array of matching database entries
     function EraSystem.getGroundUnits(filters)
         filters = filters or {}
