@@ -218,6 +218,7 @@ function ev:onEvent(event)
     end
 
     if event.id == world.event.S_EVENT_LAND and event.initiator then
+        -- Player related landings are handled in the ExperienceManager
         local unit = event.initiator
         if not unit or not unit.isExist or not unit:isExist() then return end
         local group_name = unit:getGroup():getName()

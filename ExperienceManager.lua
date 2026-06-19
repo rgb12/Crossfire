@@ -113,6 +113,12 @@ do
                             ExperienceManager:addXP(user, claimed_xp) -- checks for rank up
                             user.unclaimed_xp = 0
                         end
+
+                        local players = coalition.getPlayers(unit_check:getCoalition())
+                        if #players == 1 then
+                            PersistenceManager:saveMissionToFile()
+                            PersistenceManager:saveUserDataToFile()
+                        end
                     end
                 end, {}, timer.getTime() + Config.reward_system.landing_time)
 
@@ -173,6 +179,7 @@ do
     ---@return UserData|nil
     function ExperienceManager:fetchUser(unit)
         if not Config.reward_system.enable then return nil end
+        if not unit or not unit.isExist or not unit:isExist() then return nil end
         if not (unit.getPlayerName and unit:getPlayerName()) then return nil end
         local user_name = unit:getPlayerName()
         return ExperienceManager.user_data[user_name]
