@@ -1804,11 +1804,9 @@ do
             -- IMPORTANT: Passive Defence allows them to pop flares but MAINTAIN course/lock. 
             -- 'Evade Fire' makes them turn cold immediately, ruining the HARM shot.
             ctrl:setOption(AI.Option.Air.id.REACTION_ON_THREAT, AI.Option.Air.val.REACTION_ON_THREAT.PASSIVE_DEFENCE)
-            
+
             ctrl:setOption(AI.Option.Air.id.PROHIBIT_JETT, true)
-            
-            -- RTB if out of Anti-Radiation Missiles
-            ctrl:setOption(AI.Option.Air.id.RTB_ON_OUT_OF_AMMO, 4161536) 
+
             ctrl:setOption(AI.Option.Air.id.RTB_ON_BINGO, true)
 
             trigger.action.outTextForCoalition(enroute_data.side, "SEAD tasked. Engaging from standoff range: "..enroute_data.to_zone.name, 10)
