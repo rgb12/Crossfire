@@ -9,10 +9,10 @@ UnitComposer = {} do
         [ZoneTypes.AIRBASE] = {
             { roles = { "SAM_IR" },  weight = 1 },   -- ex SA-19
             { roles = { "SAM_EM" },  weight = 1 },   -- ex SA-15
-            { roles = { "AAA" },     weight = 2 },   -- ex ZSU-23
-            { roles = { "MANPADS" }, weight = 1 },
+            { roles = { "AAA" },     weight = 1 },   -- ex ZSU-23
+            { roles = { "MANPADS" }, weight = 0 },
             { roles = { "TANK" },    weight = 0 },
-            { roles = { "APC", "IFV" }, weight = 1 },
+            { roles = { "APC", "IFV" }, weight = 2 },
             { roles = { "TRUCK" },   weight = 2 },
             { roles = { "INFANTRY" }, weight = 3 },
         },
