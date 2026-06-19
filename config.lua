@@ -749,10 +749,8 @@ Config = {
             -- (int)
             [ZoneTypes.EWSITE]      = 5,
         },
-        -- (int) The script ensures all essential zone types are present, bypassing the
-        -- above if needed -1 = random each mission start, set a number for a
-        -- reproducible layout (scenario selection, zone types and levels)
-        seed = 2025,
+        -- (int) seed determines scenario selection, zone types and levels. Use -1 for random seed
+        seed = -1,
         -- (table)
         sam_classification_thresholds = {
             -- (int) (%) rolls below this : SHORT RANGE SAM
@@ -836,7 +834,7 @@ Config = {
         -- (int) per coalition, WW2-only ground capture convoys (replaces capture helos)
         max_capture_convoy_per_theatre = 3,
         -- (int) per coalition, max resupply aircraft 
-        max_resupply_per_theatre = 4,
+        max_resupply_per_theatre = 2,
 
         -- (int)
         max_capture_helicopters_per_logistics_zone = 4,
@@ -978,6 +976,8 @@ Config = {
     -- (int) The amount of convoys given to every STRONGPOINT when starting the mission
     base_convoy_count = 2,
 
+    --- (string) Skill of AI: "Average", "Good", "High", "Excellent"
+    ground_units_skill = "High",
 
     -- (int)
     jtac_smoke_stock = 8,

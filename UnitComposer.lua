@@ -166,7 +166,7 @@ UnitComposer = {} do
                 ["x"] = spec.x,
                 ["y"] = spec.y,
                 ["heading"] = spec.heading or 0,
-                ["skill"] = spec.skill or DEFAULT_SKILL,
+                ["skill"] = spec.skill or Config.ground_units_skill or DEFAULT_SKILL,
                 ["playerCanDrive"] = false,
             }
         end
