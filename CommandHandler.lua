@@ -341,6 +341,14 @@ do
                             local cost = args.cost
                             if not CommandHandler.isGrounded(unit,gr_id) then return end
 
+                            -- Checks if max resupply per theatre has been reached
+                            local enroutes = EnrouteManager:findByTaskType(AITaskTypes.RESUPPLY_CARGO, side)
+                            if enroutes and #enroutes >= Config.tasking.max_resupply_per_theatre then
+                                trigger.action.outTextForGroup(gr_id,"Unavailable until the next resupply aircraft arrives.",8)
+                                trigger.action.outSoundForGroup(gr_id, "radio_beep3.ogg")
+                                return
+                            end
+
                             -- Check if airbase is still friendly before sending 
                             local ab = ZoneHandler.getFromName(target_zone.name)
                             if not ab then return end

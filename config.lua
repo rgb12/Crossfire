@@ -835,6 +835,8 @@ Config = {
         max_attack_convoy_per_theatre = 3,
         -- (int) per coalition, WW2-only ground capture convoys (replaces capture helos)
         max_capture_convoy_per_theatre = 3,
+        -- (int) per coalition, max resupply aircraft 
+        max_resupply_per_theatre = 4,
 
         -- (int)
         max_capture_helicopters_per_logistics_zone = 4,
