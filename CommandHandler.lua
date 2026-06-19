@@ -1197,7 +1197,7 @@ do
             trigger.action.outTextForGroup(gr_id, "CMD-HQ - Select target area with the F10 Radio Menu", 8)
             trigger.action.outSoundForGroup(gr_id, "Radio squelch.ogg")
 
-            local temp_submenu = missionCommands.addSubMenuForGroup(gr_id, "(#) Select Area")
+            local temp_submenu = missionCommands.addSubMenuForGroup(gr_id, "(~) Select Area")
             CommandHandler.addToMenuTracking(gr_id, temp_submenu, "tasking_temp_zone")
 
             local token = 1 -- this prevents a new select menu from being removed by an old timer.
