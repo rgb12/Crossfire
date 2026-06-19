@@ -2938,18 +2938,19 @@ Stocks.GroundUnits = {
     AAA_GEPARD     = { type = "Gepard",           role = "AAA", countries = { 6, 80 }, era_min = Eras.LATECOLDWAR, era_max = Eras.MODERN },
 
     -- ===================== SAM_IR (IR / EO point defence) =====================
+    SAM_IR_PANTSIR_S1 = { type = "CHAP_PantsirS1", role = "SAM_IR", sam_classification = SAM_TYPES.SHORT_RANGE, countries = { 0, 81 }, era_min = Eras.MODERN, era_max = Eras.MODERN },
     SAM_IR_SA19_TUNGUSKA = { type = "2S6 Tunguska", role = "SAM_IR", sam_classification = SAM_TYPES.SHORT_RANGE, countries = { 0, 81 }, era_min = Eras.LATECOLDWAR, era_max = Eras.MODERN },
     SAM_IR_SA13_STRELA10 = { type = "Strela-10M3",  role = "SAM_IR", sam_classification = SAM_TYPES.SHORT_RANGE, countries = { 0, 81 }, era_min = Eras.LATECOLDWAR, era_max = Eras.MODERN },
     SAM_IR_SA9_STRELA1   = { type = "Strela-1 9P31", role = "SAM_IR", sam_classification = SAM_TYPES.SHORT_RANGE, countries = { 0, 81 }, era_min = Eras.EARLYCOLDWAR, era_max = Eras.MODERN },
-    SAM_IR_AVENGER       = { type = "M1097 Avenger", role = "SAM_IR", sam_classification = SAM_TYPES.SHORT_RANGE, countries = { 2, 80 }, era_min = Eras.MODERN, era_max = Eras.MODERN },
+    -- SAM_IR_AVENGER       = { type = "M1097 Avenger", role = "SAM_IR", sam_classification = SAM_TYPES.SHORT_RANGE, countries = { 2, 80 }, era_min = Eras.MODERN, era_max = Eras.MODERN },
     SAM_IR_LINEBACKER    = { type = "M6 Linebacker", role = "SAM_IR", sam_classification = SAM_TYPES.SHORT_RANGE, countries = { 2, 80 }, era_min = Eras.MODERN, era_max = Eras.MODERN },
     SAM_IR_ROLAND_ADS    = { type = "Roland ADS",    role = "SAM_IR", sam_classification = SAM_TYPES.SHORT_RANGE, countries = { 6, 5, 80 }, era_min = Eras.LATECOLDWAR, era_max = Eras.MODERN },
 
     -- ===================== SAM_EM (short-range radar point defence) =====================
-    -- SA-15 Tor: self-contained (search+track+launcher in one vehicle) -> no sam_parts.
-    SAM_EM_SA15_TOR = { type = "Tor 9A331", role = "SAM_EM", sam_classification = SAM_TYPES.SHORT_RANGE, countries = { 0, 81 }, era_min = Eras.LATECOLDWAR, era_max = Eras.MODERN },
-    -- SA-8 Osa: self-contained.
+    SAM_EM_SA15_TOR = { type = "Tor 9A331", role = "SAM_EM", sam_classification = SAM_TYPES.SHORT_RANGE, countries = { 0, 81 }, era_min = Eras.MODERN, era_max = Eras.MODERN },
+    SAM_EM_SA15_TOR_M2 = { type = "CHAP_TorM2", role = "SAM_EM", sam_classification = SAM_TYPES.SHORT_RANGE, countries = { 0, 81 }, era_min = Eras.MODERN, era_max = Eras.MODERN },
     SAM_EM_SA8_OSA  = { type = "Osa 9A33 ln", role = "SAM_EM", sam_classification = SAM_TYPES.SHORT_RANGE, countries = { 0, 81 }, era_min = Eras.LATECOLDWAR, era_max = Eras.MODERN },
+
 
     -- ===================== SAM_SR (short-range batteries needing sam_parts) =====================
     -- SA-3 (S-125): low-blow track radar + flat-face search radar + launchers.
@@ -2964,13 +2965,13 @@ Stocks.GroundUnits = {
         countries = { 4, 80 }, era_min = Eras.LATECOLDWAR, era_max = Eras.MODERN,
         sam_parts = { track_radar = "rapier_fsa_blindfire_radar", optical = "rapier_fsa_optical_tracker_unit", launcher = "rapier_fsa_launcher", launcher_count = 3 },
     },
-    -- IRIS-T SLS (modern): radar + command post + launchers.
-    SAM_SR_IRIST = {
-        type = "IRIS-T SLS Launcher", role = "SAM_SR", sam_classification = SAM_TYPES.SHORT_RANGE,
-        countries = { 6, 80 }, era_min = Eras.MODERN, era_max = Eras.MODERN,
-        sam_parts = { search_radar = "HEMTT_TFFT", command = "IRIS-T_CP", launcher = "IRIS-T SLS Launcher", launcher_count = 3 },
+    
+    SAM_MR_NASAMS = {
+        type = "NASAMS_LN_C", role = "SAM_SR", sam_classification = SAM_TYPES.SHORT_RANGE,
+        countries = { 2, 12, 80 }, era_min = Eras.MODERN, era_max = Eras.MODERN,
+        sam_parts = { search_radar = "NASAMS_Radar_MPQ64F1", command = "NASAMS_Command_Post", launcher = "NASAMS_LN_C", launcher_count = 3 },
     },
-
+    
     -- ===================== SAM_MR (medium-range batteries) =====================
     -- SA-6 (Kub): straight-flush track/search radar + launchers.
     SAM_MR_SA6 = {
@@ -2990,13 +2991,13 @@ Stocks.GroundUnits = {
         countries = { 2, 4, 6, 20, 80 }, era_min = Eras.LATECOLDWAR, era_max = Eras.MODERN,
         sam_parts = { search_radar = "Hawk sr", track_radar = "Hawk tr", command = "Hawk pcp", launcher = "Hawk ln", launcher_count = 4 },
     },
-    -- NASAMS (modern): MPQ-64 search/track radar + command post + 120C launchers (CTLD-verified).
-    SAM_MR_NASAMS = {
-        type = "NASAMS_LN_C", role = "SAM_MR", sam_classification = SAM_TYPES.MEDIUM_RANGE,
-        countries = { 2, 12, 80 }, era_min = Eras.MODERN, era_max = Eras.MODERN,
-        sam_parts = { search_radar = "NASAMS_Radar_MPQ64F1", command = "NASAMS_Command_Post", launcher = "NASAMS_LN_C", launcher_count = 3 },
+    -- IRIS-T (modern)
+    SAM_SR_IRIST = {
+        type = "CHAP_IRISTSLM_LN", role = "SAM_MR", sam_classification = SAM_TYPES.MEDIUM_RANGE,
+        countries = { 6, 80 }, era_min = Eras.MODERN, era_max = Eras.MODERN,
+        sam_parts = { search_radar = "CHAP_IRISTSLM_STR", command = "CHAP_IRISTSLM_CP", launcher = "CHAP_IRISTSLM_LN", launcher_count = 4 },
     },
-
+    
     -- ===================== SAM_LR (long-range batteries) =====================
     -- SA-2 (S-75): fan-song track radar + spoon-rest search + launchers.
     SAM_LR_SA2 = {
@@ -3030,13 +3031,14 @@ Stocks.GroundUnits = {
     TANK_T55   = { type = "T-55",   role = "TANK", countries = { 0, 17, 81 }, era_min = Eras.EARLYCOLDWAR, era_max = Eras.LATECOLDWAR },
     TANK_T72B  = { type = "T-72B",  role = "TANK", countries = { 0, 81 }, era_min = Eras.LATECOLDWAR, era_max = Eras.MODERN },
     TANK_T80U  = { type = "T-80UD", role = "TANK", countries = { 0, 81 }, era_min = Eras.LATECOLDWAR, era_max = Eras.MODERN },
-    TANK_T90   = { type = "T-90",   role = "TANK", countries = { 0, 81 }, era_min = Eras.MODERN, era_max = Eras.MODERN },
+    -- TANK_T90   = { type = "T-90",   role = "TANK", countries = { 0, 81 }, era_min = Eras.MODERN, era_max = Eras.MODERN },
     TANK_M60   = { type = "M-60",   role = "TANK", countries = { 2, 20, 80 }, era_min = Eras.EARLYCOLDWAR, era_max = Eras.LATECOLDWAR },
     TANK_M1A2  = { type = "M-1 Abrams", role = "TANK", countries = { 2, 80 }, era_min = Eras.LATECOLDWAR, era_max = Eras.MODERN },
     --TANK_LEOPARD2 = { type = "Leopard-2A5", role = "TANK", countries = { 6, 80 }, era_min = Eras.LATECOLDWAR, era_max = Eras.MODERN },
     TANK_CHALLENGER = { type = "Challenger2", role = "TANK", countries = { 4, 80 }, era_min = Eras.MODERN, era_max = Eras.MODERN },
     TANK_LECLERC = { type = "Leclerc", role = "TANK", countries = { 5, 80 }, era_min = Eras.MODERN, era_max = Eras.MODERN },
     TANK_SHERMAN = { type = "M4_Sherman", role = "TANK", countries = {2,80}, era_min = Eras.WW2,era_max = Eras.EARLYCOLDWAR},
+    TANK_T90M = { type = "CHAP_T90M", role = "TANK", countries = {0,81}, era_min = Eras.WW2,era_max = Eras.EARLYCOLDWAR},
     
     -- ===================== IFV =====================
     IFV_BMP1   = { type = "BMP-1",  role = "IFV", countries = { 0, 17, 81 }, era_min = Eras.EARLYCOLDWAR, era_max = Eras.EARLYCOLDWAR },
@@ -3047,10 +3049,14 @@ Stocks.GroundUnits = {
     IFV_MARDER = { type = "Marder", role = "IFV", countries = { 6, 80 }, era_min = Eras.LATECOLDWAR, era_max = Eras.LATECOLDWAR },
     IFV_WARRIOR = { type = "MCV-80", role = "IFV", countries = { 4, 80 }, era_min = Eras.LATECOLDWAR, era_max = Eras.LATECOLDWAR },
     IFV_LAV25  = { type = "LAV-25", role = "IFV", countries = { 2, 80 }, era_min = Eras.LATECOLDWAR, era_max = Eras.LATECOLDWAR },
+    IFV_BMPT_TERMINATOR  = { type = "CHAP_BMPT", role = "IFV", countries = { 0, 81 }, era_min = Eras.MODERN, era_max = Eras.MODERN },
+    IFV_M1130_STRYKER  = { type = "CHAP_M1130", role = "IFV", countries = { 2, 80 }, era_min = Eras.MODERN, era_max = Eras.MODERN },
+    LT_FV101_SCORPION  = { type = "CHAP_FV101", role = "IFV", countries = { 4, 80 }, era_min = Eras.MODERN, era_max = Eras.MODERN },
+    LT_FV107_SCIMITAR  = { type = "CHAP_FV107", role = "IFV", countries = { 4, 80 }, era_min = Eras.MODERN, era_max = Eras.MODERN },
 
     -- ===================== APC =====================
-    APC_BTR70  = { type = "BTR-70", role = "APC", countries = { 0, 81 }, era_min = Eras.LATECOLDWAR, era_max = Eras.MODERN },
-    APC_BTR80  = { type = "BTR-80", role = "APC", countries = { 0, 81 }, era_min = Eras.LATECOLDWAR, era_max = Eras.MODERN },
+    APC_BTR70  = { type = "BTR-70", role = "APC", countries = { 0, 81 }, era_min = Eras.LATECOLDWAR, era_max = Eras.LATECOLDWAR },
+    APC_BTR80  = { type = "BTR-80", role = "APC", countries = { 0, 81 }, era_min = Eras.MODERN, era_max = Eras.MODERN },
     APC_BTRRD  = { type = "BTR_D",  role = "APC", countries = { 0, 81 }, era_min = Eras.LATECOLDWAR, era_max = Eras.MODERN },
     APC_MTLB   = { type = "MTLB",   role = "APC", countries = { 0, 17, 81 }, era_min = Eras.EARLYCOLDWAR, era_max = Eras.MODERN },
     APC_M113   = { type = "M-113",  role = "APC", countries = { 2, 6, 20, 80 }, era_min = Eras.EARLYCOLDWAR, era_max = Eras.MODERN },
@@ -3058,6 +3064,7 @@ Stocks.GroundUnits = {
     APC_COBRA  = { type = "Cobra",  role = "APC", countries = { 6, 80 }, era_min = Eras.MODERN, era_max = Eras.MODERN },
     APC_M2A1_HALFTRACK = {type = "M2A1_halftrack", role = "APC", countries = {2, 80}, era_min = Eras.WW2, era_max = Eras.WW2},
     APC_SDKFZ251_HALFTRACK = { type = "Sd_Kfz_251", role = "APC", countries = {6, 80}, era_min = Eras.WW2, era_max = Eras.WW2},
+    APC_MRAP_MATV = { type = "CHAP_MATV", role = "APC", countries = {2, 80}, era_min = Eras.MODERN, era_max = Eras.MODERN},
     
     -- ===================== ARTILLERY =====================
     ARTY_2S1   = { type = "SAU Gvozdika", role = "ARTILLERY", countries = { 0, 81 }, era_min = Eras.LATECOLDWAR, era_max = Eras.MODERN },
@@ -3066,6 +3073,11 @@ Stocks.GroundUnits = {
     ARTY_GRAD  = { type = "Grad-URAL",    role = "ARTILLERY", countries = { 0, 17, 81 }, era_min = Eras.LATECOLDWAR, era_max = Eras.MODERN },
     ARTY_M109  = { type = "M-109",        role = "ARTILLERY", countries = { 2, 6, 20, 80 }, era_min = Eras.LATECOLDWAR, era_max = Eras.MODERN },
     ARTY_MLRS  = { type = "MLRS",         role = "ARTILLERY", countries = { 2, 80 }, era_min = Eras.LATECOLDWAR, era_max = Eras.MODERN },
+    ARTY_TOS1A_SOLNTSEPYOK   = { type = "CHAP_TOS1A",         role = "ARTILLERY", countries = { 0, 81 }, era_min = Eras.MODERN, era_max = Eras.MODERN },
+    ARTY_MLRS_M142_HIMARS_ATACMS_CM   = { type = "CHAP_M142_ATACMS_M39A1",         role = "ARTILLERY", countries = { 2, 80 }, era_min = Eras.MODERN, era_max = Eras.MODERN },
+    ARTY_MLRS_M142_HIMARS_ATACMS_HE   = { type = "CHAP_M142_ATACMS_M48",         role = "ARTILLERY", countries = { 2, 80 }, era_min = Eras.MODERN, era_max = Eras.MODERN },
+    ARTY_MLRS_M142_HIMARS_GMLRS_CM   = { type = "CHAP_M142_GMLRS_M30",         role = "ARTILLERY", countries = { 2, 80 }, era_min = Eras.MODERN, era_max = Eras.MODERN },
+    ARTY_MLRS_M142_HIMARS_GMLRS_HE   = { type = "CHAP_M142_GMLRS_M31",         role = "ARTILLERY", countries = { 2, 80 }, era_min = Eras.MODERN, era_max = Eras.MODERN },
 
     -- ===================== TRUCKS (general transport / soft-skin guard) =====================
     TRUCK_URAL375 = { type = "Ural-375",   role = "TRUCK", countries = { 0, 17, 81 }, era_min = Eras.EARLYCOLDWAR, era_max = Eras.MODERN },
