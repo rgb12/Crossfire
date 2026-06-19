@@ -1323,8 +1323,9 @@ do
 
     ---@param to_zone ZoneHandler
     ---@param side coalition.side
-    ---@return table|nil combo_task nil if there is nothing to engage
-    function TaskManager:findATTACKCONVOYTasks(to_zone, side)
+    ---@param approach_from vec3 where the convoy is coming from (stand-off goes on the near side)
+    ---@return table[] waypoints engagement waypoints (empty if nothing to engage)
+    function TaskManager:findATTACKCONVOYTasks(to_zone, side, approach_from)
         local enemy_side = utils.getEnemyCoalition(side)
         local targets = {}
 
@@ -1337,22 +1338,50 @@ do
             end
         end
 
-        if #targets == 0 then return nil end
+        if #targets == 0 then return {} end
 
-        local tasks = {}
-        for i, p in ipairs(targets) do
-            tasks[i] = {
-                id = 'FireAtPoint',
-                params = {
-                    point = { x = p.x, y = p.z },
-                    radius = 50,
-                    expendQty = 10,
-                    expendQtyEnabled = true,
+        -- Engage the closest targets first, so the convoy advances inward through the zone.
+        table.sort(targets, function(a, b)
+            return mist.utils.get2DDist(approach_from, a) < mist.utils.get2DDist(approach_from, b)
+        end)
+
+        local standoff = Config.attack_convoy_standoff or 50
+        local max_targets = Config.attack_convoy_max_targets or 6
+        local waypoints = {}
+        local prev = approach_from
+
+        for _, tgt in ipairs(targets) do
+            if #waypoints >= max_targets then break end
+
+            -- Stop a stand-off distance short of the target, on the approach side.
+            local dx, dz = tgt.x - prev.x, tgt.z - prev.z
+            local dist = math.sqrt(dx * dx + dz * dz)
+            local wp_x, wp_z = prev.x, prev.z
+            if dist > standoff then
+                wp_x = tgt.x - dx / dist * standoff
+                wp_z = tgt.z - dz / dist * standoff
+            end
+
+            waypoints[#waypoints + 1] = {
+                type = AI.Task.WaypointType.TURNING_POINT,
+                x = wp_x,
+                y = wp_z,
+                speed = 100,
+                action = AI.Task.VehicleFormation.OFF_ROAD,
+                task = {
+                    id = 'FireAtPoint',
+                    params = {
+                        point = { x = tgt.x, y = tgt.z },
+                        radius = 1,
+                        expendQty = 10,
+                        expendQtyEnabled = true,
+                    },
                 },
             }
+            prev = tgt
         end
 
-        return { id = 'ComboTask', params = { tasks = tasks } }
+        return waypoints
     end
 
     ---@param convoy_gr_name string
@@ -1371,9 +1400,10 @@ do
                 ctrl:setOption(AI.Option.Ground.id.ALARM_STATE, AI.Option.Ground.val.ALARM_STATE.RED)
             end
 
-            -- Route on-road toward the zone, then bombard the defenders on arrival
-            local combat_task = self:findATTACKCONVOYTasks(to_zone, side)
-            self:ConvoyToPoint(convoy_gr, to_zone.zone.point, combat_task)
+            -- Route on-road toward the zone, then drive up to each defender and engage it
+            local gr_pos = mist.getLeadPos(convoy_gr) or to_zone.zone.point
+            local engage_waypoints = self:findATTACKCONVOYTasks(to_zone, side, gr_pos)
+            self:ConvoyToPoint(convoy_gr, to_zone.zone.point, engage_waypoints)
 
             EnrouteManager:add({
                 group_name = convoy_gr_name,
@@ -2404,8 +2434,8 @@ do
 
     ---@param convoy_group Group
     ---@param arrival_point vec3
-    ---@param arrival_task table|nil optional task run once the final waypoint is reached
-    function TaskManager:ConvoyToPoint(convoy_group,arrival_point,arrival_task)
+    ---@param engage_waypoints table[]|nil optional engagement waypoints appended after the approach
+    function TaskManager:ConvoyToPoint(convoy_group,arrival_point,engage_waypoints)
         local gr_pos = mist.getLeadPos(convoy_group)
         if not gr_pos then return end
         local roadless = false
@@ -2456,9 +2486,10 @@ do
             }
         end
 
-        -- Run the combat task once the convoy reaches its final waypoint inside the zone
-        if arrival_task then
-            points[#points].task = arrival_task
+        if engage_waypoints then
+            for _, wp in ipairs(engage_waypoints) do
+                points[#points + 1] = wp
+            end
         end
 
         convoy_group:getController():setTask({ id = 'Mission', params = { route = { points = points } } })

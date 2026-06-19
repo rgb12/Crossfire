@@ -974,6 +974,10 @@ Config = {
     stuck_convoy_timeout = 8*60,
     -- (int) (meters)
     attack_convoy_range = 30000,
+    -- (int) (meters) stand-off distance an attack convoy stops at from each target before firing
+    attack_convoy_standoff = 50,
+    -- (int) max number of targets an attack convoy will move up to and engage in sequence
+    attack_convoy_max_targets = 15,
     -- (int) (meters) max distance a strongpoint will send a capture convoy to a neutral zone
     capture_convoy_range = 100000,
     -- (int) The amount of convoys given to every STRONGPOINT when starting the mission
