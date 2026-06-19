@@ -1890,6 +1890,12 @@ Stocks.EquipmentData = {
         [Stocks.Equipment.LAU_88                             ] = { stock_type = StockTypes.MISC, base_qty = 15, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
         [Stocks.Equipment.WMD7                               ] = { stock_type = StockTypes.MISC, base_qty = 6, eras = { Eras.MODERN } },
         [Stocks.Equipment.GSH_23                             ] = { stock_type = StockTypes.MISC, base_qty = 10, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
+        [Stocks.Equipment.HB_ALE_40_0_0                      ] = { stock_type = StockTypes.MISC, base_qty = 10, eras = { Eras.EARLYCOLDWAR, Eras.LATECOLDWAR, Eras.MODERN } },
+        [Stocks.Equipment.HB_ALE_40_0_120                    ] = { stock_type = StockTypes.MISC, base_qty = 10, eras = { Eras.EARLYCOLDWAR, Eras.LATECOLDWAR, Eras.MODERN } },
+        [Stocks.Equipment.HB_ALE_40_15_90                    ] = { stock_type = StockTypes.MISC, base_qty = 10, eras = { Eras.EARLYCOLDWAR, Eras.LATECOLDWAR, Eras.MODERN } },
+        [Stocks.Equipment.HB_ALE_40_30_0                     ] = { stock_type = StockTypes.MISC, base_qty = 10, eras = { Eras.EARLYCOLDWAR, Eras.LATECOLDWAR, Eras.MODERN } },
+        [Stocks.Equipment.HB_ALE_40_30_60                    ] = { stock_type = StockTypes.MISC, base_qty = 10, eras = { Eras.EARLYCOLDWAR, Eras.LATECOLDWAR, Eras.MODERN } },
+
 
       -- TGP
         [Stocks.Equipment.AAQ_13_LANTIRN                     ] = { stock_type = StockTypes.TGP, base_qty = 10, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
