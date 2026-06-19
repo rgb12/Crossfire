@@ -1023,15 +1023,18 @@ do
         return false
     end
 
-    ---@param to_zone ZoneHandler
+    ---@param to_zone ZoneHandler|nil
     ---@param side coalition.side
     ---@param aircraft_type string
     ---@param aircraft_amount number
     ---@param ai_task_type AITaskTypes
+    ---@param reference_point vec3|vec2|nil optional point to sort by instead of to_zone (e.g. requesting unit position when there is no target zone)
     ---@return ZoneHandler|nil
-    function TaskManager:findClosestAirbaseWithAircraftInStock(to_zone, side, aircraft_type, aircraft_amount, ai_task_type)
+    function TaskManager:findClosestAirbaseWithAircraftInStock(to_zone, side, aircraft_type, aircraft_amount, ai_task_type, reference_point)
 
         -- Loop through all zones, check if in stock and then sort by distance
+        local sort_point = reference_point or (to_zone and to_zone.zone.point)
+        if not sort_point then return nil end
         local candidates = {}
 
         for _,zone in ipairs(zones) do
@@ -1054,7 +1057,7 @@ do
                     and math.max(aircraft_count - aircraft_reserve, 0) >= aircraft_amount then
                         table.insert(candidates,{
                             zone = zone,
-                            dist = mist.utils.get2DDist(to_zone.zone.point,zone.zone.point)
+                            dist = mist.utils.get2DDist(sort_point,zone.zone.point)
                         })
                     end
                 end

@@ -842,26 +842,6 @@ do
             return source_airbase
         end
 
-        ---@param requesting_unit Unit
-        ---@param task_label string
-        ---@return ZoneHandler|nil
-        local function resolveRequestingAirbaseZone(requesting_unit, task_label)
-            local supply_zone = utils.fetchSuppliesZoneFromUnit(requesting_unit)
-            if not supply_zone then
-                trigger.action.outTextForGroup(gr_id, "CMD-HQ - Negative, " .. task_label .. " can only be requested while at a friendly airbase.", 5)
-                trigger.action.outSoundForGroup(gr_id, "Radio squelch.ogg")
-                return nil
-            end
-
-            if supply_zone.zone_type ~= ZoneTypes.AIRBASE then
-                trigger.action.outTextForGroup(gr_id, "CMD-HQ - Negative, " .. task_label .. " can only be requested while at a friendly airbase.", 5)
-                trigger.action.outSoundForGroup(gr_id, "Radio squelch.ogg")
-                return nil
-            end
-
-            return supply_zone
-        end
-
         ---@param unit Unit
         ---@param ai_task_type AITaskTypes
         ---@return boolean
@@ -896,15 +876,18 @@ do
         end
 
         local function executeCASRequest(u, to_zone)
-            if not CommandHandler.isGrounded(unit,gr_id) then return end
             local comms = getSideCommsTowers()
             if comms < Config.tasking_requirements.comms_zones_required_for_cas then
                 trigger.action.outTextForGroup(gr_id, "CMD-HQ - Negative, CAS tasking requires " .. comms .. "/"..Config.tasking_requirements.comms_zones_required_for_cas.." active COMMS towers.", 10)
                 trigger.action.outSoundForGroup(gr_id, "Radio squelch.ogg")
                 return
             end
-            local supply_zone = resolveRequestingAirbaseZone(u, "CAS")
-            if not supply_zone then return end
+            local supply_zone = resolveAirbaseSupplyZone(to_zone, AITaskTypes.CAS)
+            if not supply_zone then
+                trigger.action.outTextForGroup(gr_id, "CMD-HQ - Negative, no friendly airbase with available CAS assets in range of " .. to_zone.name .. ".", 10)
+                trigger.action.outSoundForGroup(gr_id, "Radio squelch.ogg")
+                return
+            end
             if not checkRankRequirement(u, AITaskTypes.CAS) then return end
             if not checkSupplies(u, Config.supplies.tasking_costs.CAS, supply_zone) then return end
             if TaskManager:initiateAITask(AITaskTypes.CAS, side, false, to_zone, supply_zone, true) then
@@ -918,7 +901,6 @@ do
         end
 
         local function executeNavalStrikeRequest(u, to_zone)
-            if not CommandHandler.isGrounded(unit,gr_id) then return end
             local attack_ship_name = Config.carrier_setup.tomahawk_launcher_unit_name
             if not (Config.carrier_setup.enabled and attack_ship_name) then
                 trigger.action.outTextForGroup(gr_id, "CMD-HQ - Negative, Naval strike unavailable.", 10)
@@ -953,18 +935,16 @@ do
             TaskManager:requestNavalStrike(to_zone,ship_unit)
         end
 
-        local function executeAWACSRequest(u, from_zone)
-            if not CommandHandler.isGrounded(unit,gr_id) then return end
+        local function executeAWACSRequest(u)
             local comms = getSideCommsTowers()
             if comms < Config.tasking_requirements.comms_zones_required_for_awacs then
                 trigger.action.outTextForGroup(gr_id, "CMD-HQ - Negative, AWACS tasking requires " .. comms .. "/"..Config.tasking_requirements.comms_zones_required_for_awacs.." active COMMS towers.", 10)
                 trigger.action.outSoundForGroup(gr_id, "Radio squelch.ogg")
                 return
             end
-            local supply_zone = resolveRequestingAirbaseZone(u, "AWACS")
-            if not supply_zone then return end
-            if from_zone ~= supply_zone then
-                trigger.action.outTextForGroup(gr_id, "CMD-HQ - Negative, AWACS must launch from your current airbase (" .. supply_zone.name .. ").", 10)
+            local supply_zone = TaskManager:findClosestAirbaseWithAircraftInStock(nil, side, AITaskTypes.AWACS, 2, AITaskTypes.AWACS, u:getPoint())
+            if not supply_zone then
+                trigger.action.outTextForGroup(gr_id, "CMD-HQ - Negative, no friendly airbase with available AWACS assets.", 10)
                 trigger.action.outSoundForGroup(gr_id, "Radio squelch.ogg")
                 return
             end
@@ -980,8 +960,7 @@ do
             end
         end
 
-        local function executeTankerRequest(u, from_zone)
-            if not CommandHandler.isGrounded(unit,gr_id) then return end
+        local function executeTankerRequest(u)
             local comms = getSideCommsTowers()
             if comms < Config.tasking_requirements.comms_zones_required_for_tanker then
                 trigger.action.outTextForGroup(gr_id, "CMD-HQ - Negative, TANKER tasking requires " .. comms .. "/"..Config.tasking_requirements.comms_zones_required_for_tanker.." active COMMS towers.", 10)
@@ -989,11 +968,9 @@ do
                 return
             end
 
-            local supply_zone = resolveRequestingAirbaseZone(u, "TANKER")
-            if not supply_zone then return end
-
-            if from_zone ~= supply_zone then
-                trigger.action.outTextForGroup(gr_id, "CMD-HQ - Negative, TANKER package must launch from your current airbase (" .. supply_zone.name .. ").", 10)
+            local supply_zone = TaskManager:findClosestAirbaseWithAircraftInStock(nil, side, AITaskTypes.TANKER, 2, AITaskTypes.TANKER, u:getPoint())
+            if not supply_zone then
+                trigger.action.outTextForGroup(gr_id, "CMD-HQ - Negative, no friendly airbase with available TANKER assets.", 10)
                 trigger.action.outSoundForGroup(gr_id, "Radio squelch.ogg")
                 return
             end
@@ -1012,15 +989,18 @@ do
         end
 
         local function executeSEADRequest(u, to_zone)
-            if not CommandHandler.isGrounded(unit,gr_id) then return end
             local comms = getSideCommsTowers()
             if comms < Config.tasking_requirements.comms_zones_required_for_sead then
                 trigger.action.outTextForGroup(gr_id, "CMD-HQ - Negative, SEAD tasking requires " .. comms .. "/"..Config.tasking_requirements.comms_zones_required_for_sead.." active COMMS towers.", 10)
                 trigger.action.outSoundForGroup(gr_id, "Radio squelch.ogg")
                 return
             end
-            local supply_zone = resolveRequestingAirbaseZone(u, "SEAD")
-            if not supply_zone then return end
+            local supply_zone = resolveAirbaseSupplyZone(to_zone, AITaskTypes.SEAD)
+            if not supply_zone then
+                trigger.action.outTextForGroup(gr_id, "CMD-HQ - Negative, no friendly airbase with available SEAD assets in range of " .. to_zone.name .. ".", 10)
+                trigger.action.outSoundForGroup(gr_id, "Radio squelch.ogg")
+                return
+            end
             if not checkRankRequirement(u, AITaskTypes.SEAD) then return end
             if not checkSupplies(u, Config.supplies.tasking_costs.SEAD, supply_zone) then return end
             if TaskManager:initiateAITask(AITaskTypes.SEAD, side, false, to_zone, supply_zone, true) then
@@ -1034,7 +1014,6 @@ do
         end
 
         local function executeCaptureHeloRequest(u, to_zone)
-            if not CommandHandler.isGrounded(unit,gr_id) then return end
             if not checkRankRequirement(u, AITaskTypes.CAPTURE_HELO) then return end
 
             local from_zone = utils.findClosestCaptureHeloSource(to_zone, side, Config.capture_helicopter_max_range)
@@ -1054,8 +1033,6 @@ do
         end
 
         local function executeReinforcementHeloRequest(u, to_zone)
-            if not CommandHandler.isGrounded(unit, gr_id) then return end
-
             local required_supplies = Config.operations.upgrade_required_supplies
 
             local max_logistics_range_m = 150000
@@ -1076,11 +1053,11 @@ do
             local from_zone = nil
             for _, candidate in ipairs(logistics_candidates) do
                 local log_zone = candidate.zone
-                if (log_zone.heli_avail or 0) > 0 then
-                    if checkSupplies(u, required_supplies, log_zone) then
-                        from_zone = log_zone
-                        break
-                    end
+                if (log_zone.heli_avail or 0) > 0
+                and suppliesZoneHasAmmoDepot(log_zone)
+                and (log_zone.local_supplies or 0) >= required_supplies then
+                    from_zone = log_zone
+                    break
                 end
             end
 
@@ -1105,7 +1082,6 @@ do
         end
 
         local function executeJTACRequest(u, to_zone)
-            if not CommandHandler.isGrounded(unit,gr_id) then return end
             local comms = getSideCommsTowers()
             if comms < Config.tasking_requirements.comms_zones_required_for_jtac then
                 trigger.action.outTextForGroup(gr_id, "CMD-HQ - Negative, JTAC tasking requires " .. comms .. "/"..Config.tasking_requirements.comms_zones_required_for_jtac.." active COMMS towers.", 10)
@@ -1113,6 +1089,11 @@ do
                 return
             end
             local supply_zone = resolveAirbaseSupplyZone(to_zone, AITaskTypes.JTAC)
+            if not supply_zone then
+                trigger.action.outTextForGroup(gr_id, "CMD-HQ - Negative, no friendly airbase with available JTAC assets in range of " .. to_zone.name .. ".", 10)
+                trigger.action.outSoundForGroup(gr_id, "Radio squelch.ogg")
+                return
+            end
             if not checkRankRequirement(u, AITaskTypes.JTAC) then return end
             if not checkSupplies(u, Config.supplies.tasking_costs.JTAC, supply_zone) then return end
             if TaskManager:initiateAITask(AITaskTypes.JTAC, side, false, to_zone, nil, true) then
@@ -1126,15 +1107,18 @@ do
         end
 
         local function executeCAPRequest(u, to_zone)
-            if not CommandHandler.isGrounded(unit,gr_id) then return end
             local comms = getSideCommsTowers()
             if comms < Config.tasking_requirements.comms_zones_required_for_cap then
                 trigger.action.outTextForGroup(gr_id, "CMD-HQ - Negative, CAP tasking requires " .. comms .. "/"..Config.tasking_requirements.comms_zones_required_for_cap.." active COMMS towers.", 10)
                 trigger.action.outSoundForGroup(gr_id, "Radio squelch.ogg")
                 return
             end
-            local supply_zone = resolveRequestingAirbaseZone(u, "CAP")
-            if not supply_zone then return end
+            local supply_zone = resolveAirbaseSupplyZone(to_zone, AITaskTypes.CAP)
+            if not supply_zone then
+                trigger.action.outTextForGroup(gr_id, "CMD-HQ - Negative, no friendly airbase with available CAP assets in range of " .. to_zone.name .. ".", 10)
+                trigger.action.outSoundForGroup(gr_id, "Radio squelch.ogg")
+                return
+            end
             if not checkRankRequirement(u, AITaskTypes.CAP) then return end
             if not checkSupplies(u, Config.supplies.tasking_costs.CAP, supply_zone) then return end
             if TaskManager:initiateAITask(AITaskTypes.CAP, side, false, to_zone, supply_zone, true) then
@@ -1148,15 +1132,18 @@ do
         end
 
         local function executeStrikeRequest(u, to_zone)
-            if not CommandHandler.isGrounded(unit,gr_id) then return end
             local comms = getSideCommsTowers()
             if comms < Config.tasking_requirements.comms_zones_required_for_strike then
                 trigger.action.outTextForGroup(gr_id, "CMD-HQ - Negative, STRIKE tasking requires " .. comms .. "/"..Config.tasking_requirements.comms_zones_required_for_strike.." active COMMS towers.", 10)
                 trigger.action.outSoundForGroup(gr_id, "Radio squelch.ogg")
                 return
             end
-            local supply_zone = resolveRequestingAirbaseZone(u, "STRIKE")
-            if not supply_zone then return end
+            local supply_zone = resolveAirbaseSupplyZone(to_zone, AITaskTypes.STRIKE)
+            if not supply_zone then
+                trigger.action.outTextForGroup(gr_id, "CMD-HQ - Negative, no friendly airbase with available STRIKE assets in range of " .. to_zone.name .. ".", 10)
+                trigger.action.outSoundForGroup(gr_id, "Radio squelch.ogg")
+                return
+            end
             if not checkRankRequirement(u, AITaskTypes.STRIKE) then return end
             if not checkSupplies(u, Config.supplies.tasking_costs.STRIKE, supply_zone) then return end
             if TaskManager:initiateAITask(AITaskTypes.STRIKE, side, false, to_zone, supply_zone, true) then
@@ -1295,16 +1282,7 @@ do
                 name = "Request AWACS ("..Config.supplies.tasking_costs.AWACS..")",
                 task_type = AITaskTypes.AWACS,
                 func = function()
-                    local requesting_airbase = utils.fetchSuppliesZoneFromUnit(unit)
-                    if not requesting_airbase or requesting_airbase.zone_type ~= ZoneTypes.AIRBASE then
-                        trigger.action.outTextForGroup(gr_id, "CMD-HQ - Negative, AWACS can only be requested while at a friendly airbase.", 8)
-                        trigger.action.outSoundForGroup(gr_id, "Radio squelch.ogg")
-                        return
-                    end
-                    local commands = buildZoneCommandList(function(zone)
-                        return zone == requesting_airbase
-                    end, executeAWACSRequest)
-                    createSelectAreaMenu(commands, "CMDHQ - No friendly airbase is available for departure.")
+                    executeAWACSRequest(unit)
                 end,
                 arg = nil
             },
@@ -1312,16 +1290,7 @@ do
                 name = "Request Tanker ("..Config.supplies.tasking_costs.TANKER..")",
                 task_type = AITaskTypes.TANKER,
                 func = function()
-                    local requesting_airbase = utils.fetchSuppliesZoneFromUnit(unit)
-                    if not requesting_airbase or requesting_airbase.zone_type ~= ZoneTypes.AIRBASE then
-                        trigger.action.outTextForGroup(gr_id, "CMDHQ - Tanker sectors can only be requested while at a friendly airbase.", 8)
-                        trigger.action.outSoundForGroup(gr_id, "Radio squelch.ogg")
-                        return
-                    end
-                    local commands = buildZoneCommandList(function(zone)
-                        return zone == requesting_airbase
-                    end, executeTankerRequest)
-                    createSelectAreaMenu(commands, "CMDHQ - No friendly airbase is available for departure.")
+                    executeTankerRequest(unit)
                 end,
                 arg = nil
             },
