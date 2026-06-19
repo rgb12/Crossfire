@@ -1244,7 +1244,7 @@ do
                 arg = nil
             },
             {
-                name = "Request Reinforcement",
+                name = "Request Reinforcement ("..Config.operations.upgrade_required_supplies..")",
                 func = function()
                     local commands = buildZoneCommandList(function(zone, discovered)
                         return zone.side == side
