@@ -552,7 +552,14 @@ do
         for clsid, equipment_data in pairs(Stocks.EquipmentData) do
 
             local equipment_stock_types = {}
-            if equipment_data.stock_type then equipment_stock_types = { equipment_data.stock_type } end
+            local st = equipment_data.stock_type
+            if st then
+                if type(st) == "table" then
+                    for _, v in ipairs(st) do table.insert(equipment_stock_types, v) end
+                else
+                    table.insert(equipment_stock_types, st)
+                end
+            end
             if equipment_data.stock_types then equipment_stock_types = equipment_data.stock_types end
 
 
