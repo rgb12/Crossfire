@@ -116,7 +116,10 @@ function ev:onEvent(event)
                     local group_id = group:getID()
                     local xprank_root = missionCommands.addCommandForGroup(group_id, "XP/Rank", nil, function()
                         local user = ExperienceManager:fetchUser(unit)
+
                         if user then
+                        local unit_id = unit:getID()
+
                             local rank_name = "Unranked"
                             local next_rank_xp = nil
                             local next_rank = "..."
@@ -134,10 +137,14 @@ function ev:onEvent(event)
                             end
 
                             if not next_rank then next_rank = "No Next Rank" end
-                            local out_text = string.format("< XP and Rank >\n\nRank: %s\n\nXP: %d (+%d)\nMissions Completed: %d\n\nNext Rank: %s\n  %s XP",
-                                rank_name, user.xp, user.unclaimed_xp, user.missions_completed, next_rank, next_rank_xp)
-                            trigger.action.outTextForGroup(group_id, out_text, 15)
-                            trigger.action.outSoundForGroup(group_id, "radio_beep4.ogg")
+                            local out_text = "N/A"
+                            if not next_rank_xp then
+                                out_text = "< XP and Rank >\n\nRank: "..rank_name.."\n\nXP: "..user.xp.." (+"..user.unclaimed_xp..")\nMissions Completed: "..user.missions_completed
+                            else
+                                out_text = "< XP and Rank >\n\nRank: "..rank_name.."\n\nXP: "..user.xp.." (+"..user.unclaimed_xp..")\nMissions Completed: "..user.missions_completed.."\n\nNext Rank: "..next_rank.."\n  "..next_rank_xp.." XP"
+                            end
+                            trigger.action.outTextForUnit(unit_id, out_text, 15)
+                            trigger.action.outSoundForUnit(unit_id, "radio_beep4.ogg")
                         end
                     end)
                     CommandHandler.addToMenuTracking(group_id, xprank_root, "xp_rank_menu")
