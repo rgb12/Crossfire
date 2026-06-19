@@ -125,8 +125,9 @@ do
                     [Stocks.Equipment.GBU_16] = 2 *2,
                 },
                 [AITaskTypes.SEAD] = {
-                    [Stocks.Equipment.MK_20_ROCKEYE] = 4 *2,
+                    [Stocks.Equipment.MK_20_ROCKEYE] = 6 *2,
                     [Stocks.Equipment.AGM_65G] = 2 *2,
+                    [Stocks.Equipment.HB_ALE_40_15_90] = 1 *2,
                 },
                 [AITaskTypes.RECON] = {},
                 [AITaskTypes.AWACS] = {},
