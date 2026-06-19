@@ -57,6 +57,18 @@ Config = {
         -- scenario_selected is no longer used. Theatre is auto-detected from env.mission.theatre;
     },
 
+    -- (table) server-only behaviours
+    server = {
+        -- (bool) when a coalition wins, delete the mission
+        -- progress save file (user XP/rank data is kept) and restart the mission.
+        -- Intended for dedicated servers running the mission on a loop.
+        reset_on_mission_end = false,
+
+        -- (int) (seconds) delay between the win announcement and the restart, so
+        -- players can read the result before the mission reloads
+        reset_delay = 60,
+    },
+
     -- (table)
     era_system = {
 

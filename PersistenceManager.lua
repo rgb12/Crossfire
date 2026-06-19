@@ -576,6 +576,28 @@ do
 
     end
 
+    ---@return boolean
+    function PersistenceManager:deleteSaveFile()
+        if not lfs or not io then return false end
+
+        PersistenceManager:checkPath()
+
+        if not PersistenceManager.mission_save_file_path then
+            MissionLogger:error("Could not clear save file: path unresolved.")
+            return false
+        end
+
+        local file = io.open(PersistenceManager.mission_save_file_path, "w")
+        if not file then
+            MissionLogger:error("Failed to clear save file at " .. PersistenceManager.mission_save_file_path)
+            return false
+        end
+
+        file:close()
+        MissionLogger:info("Mission save file cleared: " .. PersistenceManager.mission_save_file_path)
+        return true
+    end
+
     ---
     --- Reads the save file and deserializes it into self.data.
     ---
@@ -593,9 +615,15 @@ do
         local file = io.open(PersistenceManager.mission_save_file_path, "r")
         if file and JSON then
             local file_data = file:read("*all")
+            file:close()
+
+            if not file_data or file_data == "" then
+                MissionLogger:info("Save file is empty, starting a fresh campaign.")
+                return false
+            end
+
             ---@diagnostic disable-next-line: undefined-field
             local data = JSON:decode(file_data)
-            file:close()
 
             if data then
                 PersistenceManager.data = data

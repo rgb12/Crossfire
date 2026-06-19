@@ -695,13 +695,31 @@ do
                 MISSION_ENDED = true
                 world.removeEventHandler(ev)
                 trigger.action.outText("************\n\n  REDFOR achieved total domination !\n\n************", 500)
+                ZoneHandler.handleMissionEnd()
             elseif stats.red_zones == 0 and stats.blue_zones > 0 then
                 MISSION_ENDED = true
                 world.removeEventHandler(ev)
                 trigger.action.outText("************\n\n  BLUFOR achieved total domination !\n\n************", 500)
+                ZoneHandler.handleMissionEnd()
             end
         end,nil,timer.getTime()+10)
 
+    end
+
+    function ZoneHandler.handleMissionEnd()
+        if not (Config.server and Config.server.reset_on_mission_end) then return end
+
+        local delay = Config.server.reset_delay or 60
+
+        MissionLogger:info("Mission ended, campaign reset scheduled in " .. delay .. " seconds.")
+        --trigger.action.outText("Mission will reset in " .. delay .. " seconds. Player progression is kept.", delay)
+
+        timer.scheduleFunction(function ()
+            if PersistenceManager and PersistenceManager.enabled then
+                PersistenceManager:deleteSaveFile()
+            end
+            TheatreCommander:restartMission()
+        end, {}, timer.getTime() + delay)
     end
 
     ---@return volume|nil
