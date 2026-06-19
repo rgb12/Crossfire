@@ -85,11 +85,11 @@ do
                     [Stocks.Equipment.AGM_65D] = 4 *2,
                     [Stocks.Equipment.AAQ_28_LITENING] = 1 *2,
                     [Stocks.Equipment.AIM_9M] = 1 *2,
-                    [Stocks.Equipment.HYDRA_70_M282_MPP_APKWS] = 7 *2
+                    [Stocks.Equipment.HYDRA_70_M282_MPP_APKWS] = 14 *2
                 },
                 [AITaskTypes.CAP] = {
                     [Stocks.Equipment.AIM_120C] = 4 *2,
-                    [Stocks.Equipment.AIM_9M] = 2 *2
+                    [Stocks.Equipment.AIM_9M] = 4 *2
                 },
                 [AITaskTypes.STRIKE] = {
                     [Stocks.Equipment.AIM_120B] = 2 *2,
@@ -101,6 +101,7 @@ do
                     [Stocks.Equipment.AIM_9X] = 2 *2,
                     [Stocks.Equipment.AGM_88_HARM] = 2 *2,
                     [Stocks.Equipment.HTS_POD] = 1 *2,
+                    [Stocks.Equipment.AIM_120B] = 2 *2,
                     [Stocks.Equipment.ALQ_184] = 1 *2,
                 },
                 [AITaskTypes.RECON] = {
@@ -125,7 +126,7 @@ do
                     [Stocks.Equipment.GBU_16] = 2 *2,
                 },
                 [AITaskTypes.SEAD] = {
-                    [Stocks.Equipment.MK_20_ROCKEYE] = 6 *2,
+                    [Stocks.Equipment.MK_83] = 3 *2,
                     [Stocks.Equipment.AGM_65G] = 2 *2,
                     [Stocks.Equipment.HB_ALE_40_15_90] = 1 *2,
                 },
@@ -139,7 +140,7 @@ do
                 },
                 [AITaskTypes.CAP] = {},
                 [AITaskTypes.STRIKE] = {
-                    [Stocks.Equipment.AN_M65] = 1 *2,
+                    [Stocks.Equipment.AN_M65] = 2 *2,
                 },
                 [AITaskTypes.RECON] = {},
             },
