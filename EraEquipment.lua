@@ -2919,6 +2919,14 @@ Stocks.GroundUnits = {
     INF_M4    = { type = "Soldier M4",          role = "INFANTRY", countries = { 2, 4, 5, 6, 20, 80 }, era_min = Eras.WW2, era_max = Eras.MODERN },
     INF_M249  = { type = "Soldier M249",        role = "INFANTRY", countries = { 2, 4, 80 }, era_min = Eras.LATECOLDWAR, era_max = Eras.MODERN },
 
+    -- ===================== INFANTRY_AT (RPG / anti-tank infantry; squad fire support) =====================
+    INF_RPG          = { type = "Soldier RPG",      role = "INFANTRY_AT", countries = { 0, 17, 81 }, era_min = Eras.WW2, era_max = Eras.MODERN },
+    INF_PARA_RPG16   = { type = "Paratrooper RPG-16", role = "INFANTRY_AT", countries = { 0, 81 }, era_min = Eras.LATECOLDWAR, era_max = Eras.MODERN },
+    INF_M4_GRG       = { type = "Soldier M4 GRG",   role = "INFANTRY_AT", countries = { 2, 4, 5, 6, 20, 80 }, era_min = Eras.LATECOLDWAR, era_max = Eras.MODERN },
+
+    -- ===================== MORTAR (infantry indirect fire; fired via FireAtPoint) =====================
+    MORTAR_2B11 = { type = "2B11 mortar", role = "MORTAR", countries = { 0, 2, 4, 5, 6, 17, 20, 80, 81 }, era_min = Eras.WW2, era_max = Eras.MODERN },
+
     -- ===================== MANPADS =====================
     MANPADS_IGLA   = { type = "SA-18 Igla manpad",   role = "MANPADS", sam_classification = SAM_TYPES.SHORT_RANGE, countries = { 0, 17, 81 }, era_min = Eras.LATECOLDWAR, era_max = Eras.MODERN },
     MANPADS_IGLA_S = { type = "SA-18 Igla-S manpad", role = "MANPADS", sam_classification = SAM_TYPES.SHORT_RANGE, countries = { 0, 81 }, era_min = Eras.MODERN, era_max = Eras.MODERN },

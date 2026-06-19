@@ -129,11 +129,13 @@ end
 ---@field desc string
 ---@field weight number
 ---@field type string
----@field crates_required number|nil 
+---@field crates_required number|nil
 ---@field group_requirement string|nil
 ---@field can_move boolean|nil
 ---@field req_supplies number|nil
 ---@field supply_amount number|nil
+---@field squad_id string|nil
+---@field troop_slots number|nil
 
 ---@type part[]
 ctld.parts = {
@@ -193,6 +195,583 @@ ctld.parts = {
     --{name = "cds_crate",       desc = "CDS Crate",           weight = 200, type = ctld.AssetTypes.CARGO_CRATES},
 }
 
+InfantrySquads = {} do
+
+    InfantrySquads.PREFIX = "squad_"   -- spawned group name prefix
+
+    ---@type table<string, table>
+    InfantrySquads.active = {}
+
+    ---@enum SquadIds
+    InfantrySquads.SquadIds = {
+        ASSAULT  = "assault",
+        MORTAR   = "mortar",
+        ENGINEER = "engineer",
+        SABOTAGE = "sabotage",
+        STINGER  = "stinger",
+        CAPTURE  = "capture",
+        JTAC     = "jtac",
+    }
+
+    InfantrySquads.SQUAD_DEFS = {
+        {
+            id = InfantrySquads.SquadIds.ASSAULT,
+            desc = "Assault Squad",
+            roles = { "INFANTRY_AT", "INFANTRY", "INFANTRY", "INFANTRY" },
+            behaviour = "assault",
+        },
+        {
+            id = InfantrySquads.SquadIds.MORTAR,
+            desc = "Mortar Team",
+            roles = { "MORTAR" },
+            behaviour = "mortar",
+        },
+        {
+            id = InfantrySquads.SquadIds.ENGINEER,
+            desc = "Engineers (+supply)",
+            roles = { "INFANTRY" },
+            behaviour = "engineer",
+        },
+        {
+            id = InfantrySquads.SquadIds.SABOTAGE,
+            desc = "Sabotage Team (-supply)",
+            roles = { "INFANTRY_AT", "INFANTRY" },
+            behaviour = "sabotage",
+        },
+        {
+            id = InfantrySquads.SquadIds.STINGER,
+            desc = "Stinger AD",
+            roles = { "MANPADS" },
+            behaviour = "static",
+        },
+        {
+            id = InfantrySquads.SquadIds.CAPTURE,
+            desc = "Capture Team",
+            roles = { "INFANTRY_AT", "INFANTRY" },
+            behaviour = "capture",
+        },
+        {
+            id = InfantrySquads.SquadIds.JTAC,
+            desc = "JTAC (ground FAC)",
+            roles = { "INFANTRY" },
+            behaviour = "jtac",
+        },
+    }
+
+    ---@param squad_id SquadIds
+    ---@return table|nil def
+    function InfantrySquads.getDef(squad_id)
+        for _, def in ipairs(InfantrySquads.SQUAD_DEFS) do
+            if def.id == squad_id then return def end
+        end
+        return nil
+    end
+
+    ---@param squad_id SquadIds
+    ---@return table cfg per-squad config block (Config.squads[squad_id]) or {}
+    function InfantrySquads.cfg(squad_id)
+        local squads = Config.squads or {}
+        local block = squads[squad_id]
+        if type(block) == "table" then return block end
+        return {}
+    end
+
+    --- Country pool of the given coalition (from the era system selector).
+    ---@param side coalition.side
+    ---@return number[]
+    local function countryPool(side)
+        local selector = Config.era_system and Config.era_system.coalition_selector
+        if selector and selector[side] then return selector[side] end
+        return {}
+    end
+
+    ---@param role string
+    ---@param pool number[]
+    ---@return string|nil dcs_type
+    local function pickTypeForRole(role, pool)
+        local candidates = {}
+        for _, country_id in ipairs(pool) do
+            local entries = EraSystem.getGroundUnits({ role = role, country = country_id })
+            for _, entry in ipairs(entries) do
+                candidates[entry.type] = true
+            end
+        end
+        local list = {}
+        for dcs_type in pairs(candidates) do list[#list + 1] = dcs_type end
+        if #list == 0 then return nil end
+        return list[math.random(#list)]
+    end
+
+    --- True if every role the squad needs can be filled for this side+era.
+    ---@param def table squad definition
+    ---@param side coalition.side
+    ---@return boolean
+    function InfantrySquads.isAvailable(def, side)
+        if not (Config.squads and Config.squads.enabled) then return false end
+        local pool = countryPool(side)
+        if #pool == 0 then return false end
+        local seen = {}
+        for _, role in ipairs(def.roles) do
+            if not seen[role] then
+                seen[role] = true
+                if not pickTypeForRole(role, pool) then return false end
+            end
+        end
+        return true
+    end
+
+    ---@param def table
+    ---@param side coalition.side
+    ---@return string[]|nil dcs_types (one per soldier) or nil if a role is unfillable
+    function InfantrySquads.composeTypes(def, side)
+        local cfg = InfantrySquads.cfg(def.id)
+        local soldiers = cfg.soldiers or #def.roles
+        local pool = countryPool(side)
+        local types = {}
+        for i = 1, soldiers do
+            local role = def.roles[((i - 1) % #def.roles) + 1]
+            local dcs_type = pickTypeForRole(role, pool)
+            if not dcs_type then return nil end
+            types[#types + 1] = dcs_type
+        end
+        return types
+    end
+
+    ---@param def table
+    ---@param side coalition.side
+    ---@param point vec3
+    ---@return boolean ok, ZoneHandler|nil zone, string|nil err
+    function InfantrySquads.validateDeploy(def, side, point)
+        local b = def.behaviour
+
+        if b == "engineer" then
+            -- Must be inside a friendly zone.
+            for _, zone in ipairs(zones) do
+                if zone.side == side and zone:isPointInsideZone(point) then
+                    return true, zone, nil
+                end
+            end
+            return false, nil, "Engineers must be deployed inside a friendly zone."
+
+        elseif b == "sabotage" then
+            -- Within configured range of an ENEMY zone.
+            local cfg = InfantrySquads.cfg(def.id)
+            local range = cfg.range or 2000
+            local best, best_d
+            for _, zone in ipairs(zones) do
+                if zone.side ~= side and zone.side ~= coalition.side.NEUTRAL then
+                    local d = mist.utils.get2DDist(point, zone.zone.point)
+                    if d <= range and (not best_d or d < best_d) then
+                        best, best_d = zone, d
+                    end
+                end
+            end
+            if best then return true, best, nil end
+            return false, nil, string.format(
+                "Sabotage team must be deployed within %d m of an enemy zone.", range)
+
+        elseif b == "capture" then
+            -- Inside a NEUTRAL zone.
+            for _, zone in ipairs(zones) do
+                if zone.side == coalition.side.NEUTRAL and zone:isPointInsideZone(point) then
+                    return true, zone, nil
+                end
+            end
+            return false, nil, "Capture team must be deployed inside a neutral zone."
+        end
+
+        -- assault / mortar / static / jtac: no placement restriction.
+        return true, nil, nil
+    end
+
+    ---@param group_name string
+    ---@return string|nil squad_id
+    function InfantrySquads.squadIdFromGroupName(group_name)
+        local marker = InfantrySquads.PREFIX
+        local s = string.find(group_name, marker, 1, true)
+        if not s then return nil end
+        local rest = string.sub(group_name, s + #marker)        -- "<id>_<gid>"
+        local id = string.match(rest, "^(%a+)_%d+$")
+        return id
+    end
+
+    ---@param def table squad definition
+    ---@param unit Unit deploying carrier
+    ---@return string|nil group_name, string|nil err
+    function InfantrySquads.spawnInactive(def, unit)
+        local side = unit:getCoalition()
+        local types = InfantrySquads.composeTypes(def, side)
+        if not types or #types == 0 then
+            return nil, "No era-eligible units to form this squad."
+        end
+
+        local base = ctld.getPointAt12Oclock(unit, ctld.getSecureDistanceFromUnit(unit))
+        if unit:getTypeName() == "C-130J-30" then
+            base = ctld.getPointAt6Oclock(unit, ctld.getSecureDistanceFromUnit(unit))
+        end
+
+        local heading = mist.getHeading(unit) or 0
+        local group_name = Config.ctld.packed_asset_prefix .. InfantrySquads.PREFIX
+            .. def.id .. "_" .. ctld.getNextGroupId()
+
+        local units_spec = {}
+        for i, dcs_type in ipairs(types) do
+            local u_id = mist.getNextUnitId()
+            local a = (i / #types) * 2 * math.pi
+            units_spec[i] = {
+                type = dcs_type,
+                unitId = u_id,
+                name = group_name .. "_u" .. i .. "_" .. u_id,
+                x = base.x + 6 * math.cos(a),
+                y = base.z + 6 * math.sin(a),
+                heading = heading,
+            }
+        end
+
+        local spawned = mist.dynAdd({
+            units = units_spec,
+            groupName = group_name,
+            country = unit:getCountry(),
+            category = Group.Category.GROUND,
+        })
+        if not spawned then return nil, "Failed to spawn squad." end
+
+        local op_context = ctld.fetchOperationContextForUnit(unit)
+        if op_context and op_context.operation_id then
+            ctld.registerOperationAsset(op_context.operation_id, {
+                unit_name = group_name,
+                part_name = def.id,
+                point = base,
+                object_type = "group",
+                coalition = side,
+            })
+        else
+            table.insert(ctld.placed_assets, {
+                is_group = true,
+                group_name = group_name,
+                asset_name = def.id,
+                type = ctld.AssetTypes.TROOPS,
+                point = base,
+                coalition = side,
+                unit_count = #units_spec,
+            })
+        end
+
+        return group_name, nil
+    end
+
+    ---@param group_name string
+    ---@return boolean ok, string|nil message
+    function InfantrySquads.activate(group_name)
+        if InfantrySquads.active[group_name] then
+            return false, "Squad already active."
+        end
+        local gr = Group.getByName(group_name)
+        if not (gr and gr:isExist() and gr:getSize() > 0) then
+            return false, "Squad group not found."
+        end
+        local squad_id = InfantrySquads.squadIdFromGroupName(group_name)
+        local def = squad_id and InfantrySquads.getDef(squad_id) or nil
+        if not def then return false, "Unknown squad type." end
+
+        local side = gr:getUnit(1):getCoalition()
+        local lead = mist.getLeadPos(group_name)
+        if not lead then return false, "Squad position unavailable." end
+
+        local ok, zone, err = InfantrySquads.validateDeploy(def, side, lead)
+        if not ok then return false, err end
+
+        InfantrySquads.startBehaviour(def, group_name, side, zone)
+        return true, def.desc .. " active."
+    end
+
+    ----------------------------------------------------------------------------
+    -- Behaviours
+    ----------------------------------------------------------------------------
+    ---@param def table
+    ---@param group_name string
+    ---@param side coalition.side
+    ---@param zone ZoneHandler|nil resolved at deploy time (engineer/sabotage/capture)
+    function InfantrySquads.startBehaviour(def, group_name, side, zone)
+        local b = def.behaviour
+        local cfg = InfantrySquads.cfg(def.id)
+        local state = {
+            squad_id = def.id,
+            behaviour = b,
+            side = side,
+            group_name = group_name,
+            zone_name = zone and zone.name or nil,
+        }
+
+        local gr = Group.getByName(group_name)
+
+        if b == "static" then
+            -- Stinger / plain AD: hold position, weapons free.
+            if gr then
+                local ctrl = gr:getController()
+                if ctrl then
+                    ctrl:setOption(AI.Option.Ground.id.ROE, AI.Option.Ground.val.ROE.OPEN_FIRE)
+                    ctrl:setOption(AI.Option.Ground.id.ALARM_STATE, AI.Option.Ground.val.ALARM_STATE.RED)
+                end
+            end
+
+        elseif b == "assault" then
+            if gr then
+                local ctrl = gr:getController()
+                if ctrl then
+                    ctrl:setOption(AI.Option.Ground.id.ROE, AI.Option.Ground.val.ROE.OPEN_FIRE)
+                    ctrl:setOption(AI.Option.Ground.id.ALARM_STATE, AI.Option.Ground.val.ALARM_STATE.RED)
+                end
+            end
+            InfantrySquads._assaultRetask(group_name, side)
+
+        elseif b == "mortar" then
+            state.ammo = cfg.ammo or 20
+
+        elseif b == "engineer" then
+            if zone then
+                zone.production_ration = cfg.production_ration or 1.5
+                zone.production_ration_until = timer.getTime() + (cfg.duration or 3*60*60)
+                zone.name_suffix = " (+)"
+                if zone.drawF10 then zone:drawF10() end
+                -- Red smoke ~20 m from the squad position.
+                local p = mist.getLeadPos(group_name)
+                if p then
+                    trigger.action.smoke(
+                        { x = p.x + 20, y = land.getHeight({ x = p.x + 20, y = p.z }), z = p.z },
+                        trigger.smokeColor.Red)
+                end
+                trigger.action.outTextForCoalition(side,
+                    string.format("Engineers deployed at %s: supply production boosted.", zone.name), 10)
+            end
+
+        elseif b == "sabotage" then
+            if zone then
+                zone.production_ration = cfg.production_ration or 0.5
+                zone.production_ration_until = timer.getTime() + (cfg.duration or 3*60*60)
+                zone.name_suffix = " (-)"
+                if zone.drawF10 then zone:drawF10() end
+                trigger.action.outTextForCoalition(side,
+                    string.format("Sabotage team active near %s: enemy production disrupted.", zone.name), 10)
+                if cfg.can_destroy_comms ~= false then
+                    InfantrySquads._sabotageComms(zone, side)
+                end
+            end
+
+        elseif b == "capture" then
+            -- Capture handled on the behaviour tick (squad must survive in-zone).
+
+        elseif b == "jtac" then
+            InfantrySquads._jtacRetask(group_name, side)
+        end
+
+        InfantrySquads.active[group_name] = state
+        InfantrySquads.ensureTicker()
+    end
+
+    --- Assault: route the squad to the nearest discovered enemy zone.
+    ---@param group_name string
+    ---@param side coalition.side
+    function InfantrySquads._assaultRetask(group_name, side)
+        local gr = Group.getByName(group_name)
+        if not (gr and gr:isExist()) then return end
+        local lead = mist.getLeadPos(group_name)
+        if not lead then return end
+
+        local enemy = utils.getEnemyCoalition(side)
+        local target, best_d
+        for _, zone in ipairs(zones) do
+            if zone.side == enemy then
+                local d = mist.utils.get2DDist(lead, zone.zone.point)
+                if not best_d or d < best_d then target, best_d = zone, d end
+            end
+        end
+        if not target then return end
+
+        local path = {
+            mist.ground.buildWP({ x = lead.x, z = lead.z }, "Off Road", 20),
+            mist.ground.buildWP({ x = target.zone.point.x, z = target.zone.point.z }, "Off Road", 20),
+        }
+        mist.goRoute(group_name, path)
+    end
+
+    ---@param zone ZoneHandler
+    ---@param side coalition.side
+    function InfantrySquads._sabotageComms(zone, side)
+        local tower_name = zone.linked_comms_tower
+        if not tower_name then return end
+        local tower = StaticObject.getByName(tower_name)
+        if tower and tower:isExist() then
+            trigger.action.explosion(tower:getPoint(), 500)
+            trigger.action.outTextForCoalition(side,
+                string.format("Sabotage team destroyed the COMMS tower at %s.", zone.name), 10)
+        end
+    end
+
+    ---@param group_name string
+    ---@param side coalition.side
+    function InfantrySquads._jtacRetask(group_name, side)
+        local gr = Group.getByName(group_name)
+        if not (gr and gr:isExist()) then return end
+        local ctrl = gr:getController()
+        if not ctrl then return end
+        local lead = mist.getLeadPos(group_name)
+        if not lead then return end
+
+        -- Find the nearest live enemy ground group.
+        local enemy = utils.getEnemyCoalition(side)
+        local target_group, best_d
+        for _, eg in ipairs(coalition.getGroups(enemy, Group.Category.GROUND)) do
+            if eg and eg:isExist() and eg:getSize() > 0 then
+                local u = eg:getUnit(1)
+                if u and u:isExist() then
+                    local d = mist.utils.get2DDist(lead, u:getPoint())
+                    if not best_d or d < best_d then target_group, best_d = eg, d end
+                end
+            end
+        end
+        if not target_group then return end
+
+        ctrl:setOption(AI.Option.Ground.id.ROE, AI.Option.Ground.val.ROE.RETURN_FIRE)
+        ctrl:setTask({
+            id = "FAC_AttackGroup",
+            params = {
+                groupId = target_group:getID(),
+                designation = AI.Task.Designation.AUTO,
+            },
+        })
+    end
+
+    function InfantrySquads.ensureTicker()
+        if InfantrySquads._ticking then return end
+        InfantrySquads._ticking = true
+        local interval = (Config.squads and Config.squads.behaviour_tick) or 30
+        timer.scheduleFunction(function()
+            InfantrySquads.tick()
+            if next(InfantrySquads.active) == nil then
+                InfantrySquads._ticking = false
+                return nil
+            end
+            return timer.getTime() + interval
+        end, {}, timer.getTime() + interval)
+    end
+
+    function InfantrySquads.tick()
+        for group_name, state in pairs(InfantrySquads.active) do
+            local gr = Group.getByName(group_name)
+            if not (gr and gr:isExist() and gr:getSize() > 0) then
+                -- Squad destroyed/removed: clear any production modifier it set.
+                if state.zone_name and (state.behaviour == "engineer" or state.behaviour == "sabotage") then
+                    local zone = ZoneHandler.getFromName(state.zone_name)
+                    if zone then
+                        zone.production_ration = nil
+                        zone.production_ration_until = nil
+                        zone.name_suffix = nil
+                        if zone.drawF10 then zone:drawF10() end
+                    end
+                end
+                InfantrySquads.active[group_name] = nil
+            elseif state.behaviour == "mortar" then
+                InfantrySquads._mortarTick(group_name, state)
+            elseif state.behaviour == "assault" then
+                InfantrySquads._assaultRetask(group_name, state.side)
+            elseif state.behaviour == "jtac" then
+                InfantrySquads._jtacRetask(group_name, state.side)
+            elseif state.behaviour == "capture" then
+                local zone = state.zone_name and ZoneHandler.getFromName(state.zone_name) or nil
+                if zone and zone.side == coalition.side.NEUTRAL then
+                    local lead = mist.getLeadPos(group_name)
+                    if lead and zone:isPointInsideZone(lead) and zone.capture then
+                        zone:capture(state.side)
+                        trigger.action.outTextForCoalition(state.side,
+                            string.format("%s captured by ground forces.", zone.name), 10)
+                        InfantrySquads.active[group_name] = nil
+                    end
+                end
+            end
+        end
+    end
+
+    --- Mortar: fire one round at the nearest enemy unit/static within range.
+    ---@param group_name string
+    ---@param state table
+    function InfantrySquads._mortarTick(group_name, state)
+        if (state.ammo or 0) <= 0 then return end
+        local cfg = InfantrySquads.cfg(InfantrySquads.SquadIds.MORTAR)
+
+        -- Respect the mortar's own fire interval (the behaviour ticker may run more
+        -- often than the configured cadence).
+        local now = timer.getTime()
+        if state.next_fire and now < state.next_fire then return end
+
+        local gr = Group.getByName(group_name)
+        if not (gr and gr:isExist()) then return end
+        local ctrl = gr:getController()
+        if not ctrl then return end
+        local lead = mist.getLeadPos(group_name)
+        if not lead then return end
+
+        local range = cfg.range or 5000
+        local enemy = utils.getEnemyCoalition(state.side)
+
+        -- One target per shot: nearest live enemy unit or static within range.
+        local target_point, best_d
+        local function consider(p)
+            local d = mist.utils.get2DDist(lead, p)
+            if d <= range and (not best_d or d < best_d) then
+                target_point, best_d = p, d
+            end
+        end
+        for _, zone in ipairs(zones) do
+            if zone.side == enemy then
+                for _, gname in ipairs(zone.linked_groups or {}) do
+                    local g = Group.getByName(gname)
+                    if g and g:isExist() and g:getSize() > 0 then
+                        local u = g:getUnit(1)
+                        if u and u:isExist() then consider(u:getPoint()) end
+                    end
+                end
+                for _, sname in ipairs(zone.linked_statics or {}) do
+                    local s = StaticObject.getByName(sname)
+                    if s and s:isExist() then consider(s:getPoint()) end
+                end
+            end
+        end
+        if not target_point then return end
+
+        ctrl:pushTask({
+            id = "FireAtPoint",
+            params = {
+                point = mist.utils.makeVec2(target_point),
+                radius = 2,
+                expendQty = 1,
+                expendQtyEnabled = true,
+            },
+        })
+        state.ammo = state.ammo - 1
+        state.next_fire = now + (cfg.fire_interval or 30)
+    end
+
+    function InfantrySquads.registerParts()
+        if not (Config.squads and Config.squads.enabled) then return end
+        for _, def in ipairs(InfantrySquads.SQUAD_DEFS) do
+            local cfg = InfantrySquads.cfg(def.id)
+            local soldiers = cfg.soldiers or #def.roles
+            table.insert(ctld.parts, {
+                name = InfantrySquads.PREFIX .. def.id,   -- identifier (not a DCS type)
+                desc = def.desc,
+                weight = 100 * soldiers,
+                type = ctld.AssetTypes.TROOPS,
+                req_supplies = cfg.req_supplies or 0,
+                squad_id = def.id,
+                troop_slots = cfg.troop_slots or soldiers,
+            })
+        end
+    end
+end
+
+InfantrySquads.registerParts()
+
 
 ---@param group Group
 function ctld.initF10RadioMenu(group)
@@ -207,12 +786,12 @@ function ctld.initF10RadioMenu(group)
         local load_submenu = missionCommands.addSubMenuForGroup(gr_id, "Load", root_menu)
     
         local load_troops_submenu = missionCommands.addSubMenuForGroup(gr_id, "Troops", load_submenu)
-        
+
         local load_CARGO_CRATES_submenu = missionCommands.addSubMenuForGroup(gr_id, "Crates", load_submenu)
         local load_vehicles_submenu = missionCommands.addSubMenuForGroup(gr_id, "Vehicles", load_submenu)
         local load_sam_submenu = missionCommands.addSubMenuForGroup(gr_id, "SAM", load_submenu)
-    
-    
+
+
         missionCommands.addCommandForGroup(gr_id, "Unload", root_menu, function ()
             ctld.unload(unit)
         end)
@@ -239,15 +818,28 @@ function ctld.initF10RadioMenu(group)
         local vehicle_commands = {}
         local sam_commands = {}
 
+        local unit_side = unit:getCoalition()
+
         for _, part in ipairs(ctld.parts) do
             if part.type == ctld.AssetTypes.TROOPS then
-                table.insert(troop_commands, {
-                    name = part.desc .. " ("..(part.req_supplies or 0)..")",
-                    func = function ()
-                        ctld.load(part, unit)
-                    end,
-                    arg = nil
-                })
+                -- Squad parts are only offered when their required roles can be
+                -- filled for this carrier's coalition under the active eras.
+                local skip = false
+                if part.squad_id then
+                    local def = InfantrySquads.getDef(part.squad_id)
+                    if not (def and InfantrySquads.isAvailable(def, unit_side)) then
+                        skip = true
+                    end
+                end
+                if not skip then
+                    table.insert(troop_commands, {
+                        name = part.desc .. " ("..(part.req_supplies or 0)..")",
+                        func = function ()
+                            ctld.load(part, unit)
+                        end,
+                        arg = nil
+                    })
+                end
             elseif part.type == ctld.AssetTypes.CARGO_CRATES then
                 table.insert(cargo_crate_commands, {
                     name = part.desc .. " ("..(part.req_supplies or 0)..")",
@@ -414,13 +1006,16 @@ function ctld.load(part, unit)
                 return
             end
         elseif part.type == ctld.AssetTypes.TROOPS then
+            -- Each troop part consumes its troop_slots (squads consume several;
+            -- regular troops default to 1).
             local current_troops = 0
             for _, p in ipairs(user.parts) do
                 if p.type == ctld.AssetTypes.TROOPS then
-                    current_troops = current_troops + 1
+                    current_troops = current_troops + (p.troop_slots or 1)
                 end
             end
-            if (current_troops + 1) > aircraft_limit.max_troops then
+            local part_slots = part.troop_slots or 1
+            if (current_troops + part_slots) > aircraft_limit.max_troops then
                 trigger.action.outTextForUnit(unit_id,"Negative, cannot load troop: "..part.desc..". Max troops limit reached ("..aircraft_limit.max_troops..").", 5)
                 trigger.action.outSoundForUnit(unit_id, "transmission1.ogg")
                 return
@@ -483,7 +1078,16 @@ function ctld.load(part, unit)
 
     if user.is_dynamic_cargo then
 
-        if part.type == ctld.AssetTypes.TROOPS then
+        if part.squad_id then
+            -- Squads deploy as a multi-soldier group (inactive until unpacked).
+            local def = InfantrySquads.getDef(part.squad_id)
+            if def then InfantrySquads.spawnInactive(def, unit) end
+            for i = #user.parts, 1, -1 do
+                if user.parts[i] == part then table.remove(user.parts, i) break end
+            end
+            trigger.action.outTextForUnit(unit_id, def and (def.desc .. " deployed (Unpack to activate).") or "Squad deployed.", 6)
+            trigger.action.outSoundForUnit(unit_id, "transmission1.ogg")
+        elseif part.type == ctld.AssetTypes.TROOPS then
             ctld.spawnTroop(unit, part)
             trigger.action.outTextForUnit(unit_id, "Troop deployed.", 5)
             trigger.action.outSoundForUnit(unit_id, "transmission1.ogg")
@@ -523,6 +1127,37 @@ function ctld.unpack(unit)
         trigger.action.outTextForUnit(unit_id,"Negative, cannot unpack in this area.", 5)
         trigger.action.outSoundForUnit(unit_id, "transmission1.ogg")
         return
+    end
+
+
+    if Config.squads and Config.squads.enabled then
+        local squad_vol = {
+            id = world.VolumeType.SPHERE,
+            params = { point = unit_pos, radius = Config.ctld.search_radius }
+        }
+        local found_squad_group, found_dist
+        world.searchObjects(Object.Category.UNIT, squad_vol, function(obj)
+            if obj and obj:isExist() and obj.getGroup and obj:getCoalition() == unit:getCoalition() then
+                local g = obj:getGroup()
+                if g and g:isExist() then
+                    local gname = g:getName()
+                    if InfantrySquads.squadIdFromGroupName(gname)
+                    and not InfantrySquads.active[gname] then
+                        local d = mist.utils.get2DDist(unit_pos, obj:getPoint())
+                        if not found_dist or d < found_dist then
+                            found_squad_group, found_dist = gname, d
+                        end
+                    end
+                end
+            end
+            return true
+        end)
+        if found_squad_group then
+            local ok, msg = InfantrySquads.activate(found_squad_group)
+            trigger.action.outTextForUnit(unit_id, ok and msg or ("Cannot activate squad: "..(msg or "unknown error")), 8)
+            trigger.action.outSoundForUnit(unit_id, "transmission1.ogg")
+            return
+        end
     end
 
     -- search for crates nearby and unpack them
@@ -883,15 +1518,29 @@ function ctld.unload(unit)
     end
 
     local part_to_spawn = user.parts[#user.parts]
-    if part_to_spawn.type == ctld.AssetTypes.TROOPS then
+    if part_to_spawn.squad_id then
+        local def = InfantrySquads.getDef(part_to_spawn.squad_id)
+        if def then
+            local _, err = InfantrySquads.spawnInactive(def, unit)
+            if err then
+                trigger.action.outTextForUnit(unit_id, "Cannot unload squad: "..err, 8)
+                trigger.action.outSoundForUnit(unit_id, "transmission1.ogg")
+                return
+            end
+        end
+    elseif part_to_spawn.type == ctld.AssetTypes.TROOPS then
         ctld.spawnTroop(unit, part_to_spawn)
     else
         ctld.spawnCargoCrate(unit, part_to_spawn)
     end
 
     local part = table.remove(user.parts)
-    
-    trigger.action.outTextForUnit(unit_id,"Unloaded "..part.desc, 5)
+
+    if part.squad_id then
+        trigger.action.outTextForUnit(unit_id, "Deployed "..part.desc.." (Unpack to activate).", 6)
+    else
+        trigger.action.outTextForUnit(unit_id,"Unloaded "..part.desc, 5)
+    end
     trigger.action.outSoundForUnit(unit_id, "transmission1.ogg")
 end
 
@@ -1701,6 +2350,8 @@ function ctld.clearOperationAssets(operation_id)
         local obj = nil
         if asset.object_type == "static" then
             obj = StaticObject.getByName(asset.unit_name)
+        elseif asset.object_type == "group" then
+            obj = Group.getByName(asset.unit_name)
         else
             obj = Unit.getByName(asset.unit_name)
         end
