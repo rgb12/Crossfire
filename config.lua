@@ -1186,7 +1186,7 @@ GroupData = {
             reinforcement_helicopter = {
                 WW2          = "BLUE EARLYCOLDWAR Reinforcement Helicopter",
                 EARLYCOLDWAR = "BLUE EARLYCOLDWAR Reinforcement Helicopter",
-                LATECOLDWAR  = "BLUE Reinforcement Helo",
+                LATECOLDWAR  = "BLUE LCW Reinforcement Helo",
                 MODERN       = "BLUE Reinforcement Helo",
             },
             LHA_capture_helicopter = {
@@ -1202,7 +1202,7 @@ GroupData = {
                 MODERN       = "BLUE MODERN Attack Convoy",
             },
             capture_convoy = {
-                WW2          = "BLUE Capture Convoy",
+                WW2          = "BLUE WW2 Convoy",
             },
             jtac = {
                 WW2          = "BLUE LATECOLDWAR JTAC",
@@ -1293,7 +1293,7 @@ GroupData = {
                 MODERN       = "RED MODERN Attack Convoy",
             },
             capture_convoy = {
-                WW2          = "RED Capture Convoy",
+                WW2          = "RED WW2 Convoy",
             },
             jtac = {
                 WW2          = "RED JTAC",

@@ -25,6 +25,7 @@ end
 ---@field runway_destroyed boolean|nil
 ---@field runway_destroyed_until number|nil
 ---@field lha_source boolean|nil
+---@field attack_convoy number|nil
 ZoneHandler = {}
 do
     function ZoneHandler:new(obj)
