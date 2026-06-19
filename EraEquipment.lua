@@ -3025,7 +3025,7 @@ Stocks.GroundUnits = {
     -- ===================== EWR =====================
     EWR_55G6   = { type = "55G6 EWR",  role = "EWR", countries = { 0, 81 }, era_min = Eras.LATECOLDWAR, era_max = Eras.MODERN },
     EWR_1L13   = { type = "1L13 EWR",  role = "EWR", countries = { 0, 81 }, era_min = Eras.LATECOLDWAR, era_max = Eras.MODERN },
-    -- EWR_FPS117 = { type = "FPS-117",   role = "EWR", countries = { 2, 4, 6, 20, 80 }, era_min = Eras.MODERN, era_max = Eras.MODERN },
+    EWR_FPS117 = { type = "FPS-117",   role = "EWR", countries = { 2, 4, 6, 20, 80 }, era_min = Eras.MODERN, era_max = Eras.MODERN },
 
     -- ===================== TANKS =====================
     TANK_T55   = { type = "T-55",   role = "TANK", countries = { 0, 17, 81 }, era_min = Eras.EARLYCOLDWAR, era_max = Eras.LATECOLDWAR },
