@@ -503,18 +503,18 @@ do
             { type = "Invisible FARP", category = "Heliports", shape_name = "invisiblefarp", offset_x = 0, offset_y = 0 },
             -- { type = "FARP", category = "Heliports", shape_name = "FARPS", offset_x = 0, offset_y = 0 },
 
-            -- Tents (clustered east of the pad)
-            { type = "FARP Tent", category = "Fortifications", offset_x = 5, offset_y = 55 },
-            { type = "FARP Tent", category = "Fortifications", offset_x = -15, offset_y = 55 },
+            -- Tents (clustered NE of the pad)
+            { type = "FARP Tent", category = "Fortifications", offset_x = 90, offset_y = 95 },
+            { type = "FARP Tent", category = "Fortifications", offset_x = 110, offset_y = 95 },
 
-            -- Ammo Storage (North of the pad)
-            { type = "FARP Ammo Dump Coating", category = "Fortifications", offset_x = 30, offset_y = 5 },
-            { type = "FARP Ammo Dump Coating", category = "Fortifications", offset_x = 30, offset_y = -5 },
+            -- Ammo Storage (NW corner)
+            { type = "FARP Ammo Dump Coating", category = "Fortifications", offset_x = -95, offset_y = 90 },
+            { type = "FARP Ammo Dump Coating", category = "Fortifications", offset_x = -95, offset_y = 100 },
 
 
-            -- Fuel Depots (South of the pad)
-            { type = "FARP Fuel Depot", category = "Fortifications", offset_x = 5, offset_y = -60 },
-            { type = "FARP Fuel Depot", category = "Fortifications", offset_x = -5, offset_y = -60 },
+            -- Fuel Depots (SE corner)
+            { type = "FARP Fuel Depot", category = "Fortifications", offset_x = 90, offset_y = -95 },
+            { type = "FARP Fuel Depot", category = "Fortifications", offset_x = 100, offset_y = -95 },
         }
 
         -- Spawn the Statics
@@ -573,23 +573,21 @@ do
         end
 
 
-        local group_offset_x = -55
-        local group_offset_y = 10
+        local group_offset_x = -95
+        local group_offset_y = -95
         local group_spawn_point = {
             x = base_x + group_offset_x,
             y = base_y + group_offset_y
         }
         
         -- Vehicle group
-        local group_template_name = nil
+        local group_template_name_side
         if zone.side == coalition.side.RED then
-            group_template_name = GroupData.COMMON_ASSETS.RED.farp
+            group_template_name_side = GroupData.COMMON_ASSETS.RED.farp
         else
-            group_template_name = GroupData.COMMON_ASSETS.BLUE.farp
+            group_template_name_side = GroupData.COMMON_ASSETS.BLUE.farp
         end
-        -- [Era] Resolve the per-era FARP support template (e.g. "BLUE WW2 FARP
-        -- VEHICLES") for the active era from its GroupData.COMMON_ASSETS table.
-        group_template_name = EraSystem.resolveTaskTemplateName(group_template_name)
+        local group_template_name = EraSystem.resolveTaskTemplateName(group_template_name_side)
 
         if group_template_name then
             local vehicles_gr = mist.teleportToPoint({
