@@ -26,6 +26,9 @@ end
 ---@field runway_destroyed_until number|nil
 ---@field lha_source boolean|nil
 ---@field attack_convoy number|nil
+---@field production_ration number|nil
+---@field production_ration_until number|nil
+---@field name_suffix string|nil
 ZoneHandler = {}
 do
     function ZoneHandler:new(obj)
@@ -193,7 +196,7 @@ do
             text_display = text_display .. "\nCOMMS"
         end
     
-        text_display = text_display.."\nT:"..(self.level or 1).."/4"
+        text_display = text_display.."\nT:"..(self.level or 1).."/4" .. (self.name_suffix or "")
     
         if addtional_text then
             text_display = text_display .. "\n" .. addtional_text
@@ -1070,10 +1073,21 @@ do
             end
         end
 
+        -- Expire any engineer/sabotage production ration that has run its course.
+        if self.production_ration_until and timer.getTime() >= self.production_ration_until then
+            self.production_ration = nil
+            self.production_ration_until = nil
+            self.name_suffix = nil
+            self:drawF10()
+        end
+
         if #depots >0 then
             local production = Config.supplies.supplies_production[zone_level] or 0
             local logistics_mult = Config.supplies.logistics_mult or 2
             if self.zone_type == ZoneTypes.LOGISTICS then production = production * logistics_mult end
+
+            -- Engineer (+) / sabotage (-) squads scale production while active.
+            if self.production_ration then production = production * self.production_ration end
 
             self.local_supplies = math.min(self.local_supplies + production,max_local_supplies)
 

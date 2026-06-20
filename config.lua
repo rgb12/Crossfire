@@ -974,6 +974,75 @@ Config = {
         }
     },
 
+    -- (table) Infantry squads
+    squads = {
+        -- (bool) master for the infantry squad system
+        enabled = true,
+        -- (int) (seconds) how often squad behaviours (assault re-task, mortar fire,
+        -- capture check) are evaluated
+        behaviour_tick = 30,
+
+        assault = {
+            -- (int) supplies deducted from the loading zone
+            req_supplies = 75,
+            -- (int) troop slots consumed in the carrier (see ctld.aircraft_limits)
+            troop_slots = 4,
+            -- (int) number of soldiers spawned in the squad
+            soldiers = 4,
+        },
+        mortar = {
+            req_supplies = 125,
+            troop_slots = 5,
+            soldiers = 5,
+            -- (int) (meters) max range a mortar team will engage enemy units within
+            range = 5000,
+            -- (int) (seconds) interval between mortar shots
+            fire_interval = 30,
+            -- (int) total rounds the team can fire before going dry
+            ammo = 20,
+        },
+        engineer = {
+            req_supplies = 125,
+            troop_slots = 3,
+            soldiers = 4,
+            -- (number) supply production multiplier applied to the host zone while
+            -- the engineers are active (e.g. 1.5 = +50% production)
+            production_ration = 1.5,
+            -- (int) (seconds) how long the production boost lasts
+            duration = 3*60*60,
+        },
+        sabotage = {
+            req_supplies = 125,
+            troop_slots = 4,
+            soldiers = 6,
+            -- (int) (meters) max distance from the target enemy zone the squad may
+            -- deploy at
+            range = 2000,
+            -- (number) supply production multiplier applied to the sabotaged enemy
+            -- zone (e.g. 0.5 = -50% production)
+            production_ration = 0.5,
+            -- (int) (seconds) how long the production reduction lasts
+            duration = 3*60*60,
+            -- (bool) allow the squad to destroy the target zone's COMMS tower
+            can_destroy_comms = true,
+        },
+        stinger = {
+            req_supplies = 50,
+            troop_slots = 1,
+            soldiers = 1,
+        },
+        capture = {
+            req_supplies = 50,
+            troop_slots = 4,
+            soldiers = 4,
+        },
+        jtac = {
+            req_supplies = 50,
+            troop_slots = 1,
+            soldiers = 1,
+        },
+    },
+
     -- (int) (meters)
     capture_helicopter_max_range = 100*1000 ,
 

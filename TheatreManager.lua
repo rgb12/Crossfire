@@ -480,32 +480,6 @@ do
  MissionLogger:info("5 mins")
 
             timer.scheduleFunction(function () --caching and cleaning when other functions free up
-                -- Logistics auto upgrade (performance-friendly: only evaluated every 5 minutes)
-                local required_supplies = Config.logistics_auto_upgrade_required_supplies or 300
-                local chance = Config.logistics_auto_upgrade_chance or 25
-                local now = timer.getTime()
-
-                for _, zone in ipairs(zones) do
-                    if zone.side ~= coalition.side.NEUTRAL
-                    and zone.zone_type == ZoneTypes.LOGISTICS
-                    and (zone.level or 1) < 4
-                    and (zone.local_supplies or 0) >= required_supplies
-                    and (zone.next_level_up_avail == nil or now >= zone.next_level_up_avail)
-                    then
-                        if math.random(1, 100) <= chance then
-                            zone.local_supplies = math.max((zone.local_supplies or 0) - required_supplies, 0)
-                            zone.level = (zone.level or 1) + 1
-                            zone.next_level_up_avail = now + (Config.logistics_level_up_interval or (16 * 60))
-
-                            UnitHandler.updateZoneUnits(zone)
-                            zone:drawF10()
-
-                            trigger.action.outTextForCoalition(zone.side, zone.name.." has reached operational tier "..zone.level.."/4", 10)
-                            trigger.action.outSoundForCoalition(zone.side, "radio_beep3.ogg")
-                        end
-                    end
-                end
-
                 for i = #EnrouteManager.enroutes, 1, -1 do
                     local enroute = EnrouteManager.enroutes[i]
                     if enroute then

@@ -1,7 +1,7 @@
 UnitComposer = {} do
 
 
-    local SAM_SUPPLY_OFFSET = 100     -- m(eters) how far the resupply truck sits from the SAM it serves.
+    local SAM_SUPPLY_OFFSET = 100     -- (meters) how far the resupply truck sits from the SAM it serves.
 
     local DEFAULT_SKILL = "High"     -- default group skill for spawned ground units.
 
@@ -100,7 +100,7 @@ UnitComposer = {} do
         for _, slot in ipairs(recipe) do
             if (slot.weight or 1) > max_weight then max_weight = slot.weight or 1 end
         end
- 
+
         for tier = 1, max_weight do
             for _, slot in ipairs(recipe) do
                 if (slot.weight or 1) >= tier then

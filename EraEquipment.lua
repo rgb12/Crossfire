@@ -2897,24 +2897,18 @@ Stocks.AircraftLoads = {
     All `type` strings are the EXACT DCS type strings from the units datamine
     (https://github.com/Quaggles/dcs-lua-datamine "Cars" category + SAM parts).
 
-    role values (string literals, kept as plain strings to avoid a new enum):
-        "SAM_LR" "SAM_MR" "SAM_SR" "SAM_IR" "SAM_EM"   -- surface-to-air systems
-        "AAA"  "MANPADS"                               -- gun / shoulder AD
-        "TANK" "IFV" "APC" "ARTILLERY"                 -- armour / fires
-        "TRUCK" "SUPPLY_TRUCK" "INFANTRY" "EWR"        -- soft / support / radar
-        "RADAR" "LAUNCHER" "COMMAND"                   -- SAM sub-components
+    "SAM_LR" "SAM_MR" "SAM_SR" "SAM_IR" "SAM_EM"   -- surface-to-air systems
+    "AAA"  "MANPADS"                               -- gun / shoulder AD
+    "TANK" "IFV" "APC" "ARTILLERY"                 -- armour / fires
+    "TRUCK" "SUPPLY_TRUCK" "INFANTRY" "EWR"        -- soft / support / radar
+    "RADAR" "LAUNCHER" "COMMAND"                   -- SAM sub-components
 
-        SAM_IR : IR / electro-optical point defence (SA-19 Tunguska, etc.)
-        SAM_EM : short-range radar point defence    (SA-15 Tor, SA-8 Osa)
-        SAM_SR : short-range battery                 (SA-3, Rapier, IRIS-T SLS)
-        SAM_MR : medium-range battery                (SA-6, SA-11, HAWK, NASAMS)
-        SAM_LR : long-range battery                  (SA-2, SA-10, Patriot)
-    sam_classification (SAM_TYPES.*) is what ZoneHandler stores on a SAMSITE
-    zone; the composer matches the zone's classification against entries whose
-    sam_classification equals it.
+    SAM_IR : IR / electro-optical point defence (SA-19 Tunguska, etc.)
+    SAM_EM : short-range radar point defence    (SA-15 Tor, SA-8 Osa)
+    SAM_SR : short-range battery                 (SA-3, Rapier, IRIS-T SLS)
+    SAM_MR : medium-range battery                (SA-6, SA-11, HAWK, NASAMS)
+    SAM_LR : long-range battery                  (SA-2, SA-10, Patriot)
 
-    era_min / era_max use the Eras.* enum; an entry is valid for a selected era
-    E when era_min <= E <= era_max (compared via the shared era rank order
     WW2 < EARLYCOLDWAR < LATECOLDWAR < MODERN).
  ]]
 Stocks.GroundUnits = {
@@ -2924,6 +2918,14 @@ Stocks.GroundUnits = {
     INF_AK74  = { type = "Soldier AK",          role = "INFANTRY", countries = { 0, 81 }, era_min = Eras.LATECOLDWAR, era_max = Eras.MODERN },
     INF_M4    = { type = "Soldier M4",          role = "INFANTRY", countries = { 2, 4, 5, 6, 20, 80 }, era_min = Eras.WW2, era_max = Eras.MODERN },
     INF_M249  = { type = "Soldier M249",        role = "INFANTRY", countries = { 2, 4, 80 }, era_min = Eras.LATECOLDWAR, era_max = Eras.MODERN },
+
+    -- ===================== INFANTRY_AT (RPG / anti-tank infantry; squad fire support) =====================
+    INF_RPG          = { type = "Soldier RPG",      role = "INFANTRY_AT", countries = { 0, 17, 81 }, era_min = Eras.WW2, era_max = Eras.MODERN },
+    INF_PARA_RPG16   = { type = "Paratrooper RPG-16", role = "INFANTRY_AT", countries = { 0, 81 }, era_min = Eras.LATECOLDWAR, era_max = Eras.MODERN },
+    INF_M4_GRG       = { type = "Soldier M4 GRG",   role = "INFANTRY_AT", countries = { 2, 4, 5, 6, 20, 80 }, era_min = Eras.LATECOLDWAR, era_max = Eras.MODERN },
+
+    -- ===================== MORTAR (infantry indirect fire; fired via FireAtPoint) =====================
+    MORTAR_2B11 = { type = "2B11 mortar", role = "MORTAR", countries = { 0, 2, 4, 5, 6, 17, 20, 80, 81 }, era_min = Eras.WW2, era_max = Eras.MODERN },
 
     -- ===================== MANPADS =====================
     MANPADS_IGLA   = { type = "SA-18 Igla manpad",   role = "MANPADS", sam_classification = SAM_TYPES.SHORT_RANGE, countries = { 0, 17, 81 }, era_min = Eras.LATECOLDWAR, era_max = Eras.MODERN },
@@ -3025,7 +3027,7 @@ Stocks.GroundUnits = {
     -- ===================== EWR =====================
     EWR_55G6   = { type = "55G6 EWR",  role = "EWR", countries = { 0, 81 }, era_min = Eras.LATECOLDWAR, era_max = Eras.MODERN },
     EWR_1L13   = { type = "1L13 EWR",  role = "EWR", countries = { 0, 81 }, era_min = Eras.LATECOLDWAR, era_max = Eras.MODERN },
-    -- EWR_FPS117 = { type = "FPS-117",   role = "EWR", countries = { 2, 4, 6, 20, 80 }, era_min = Eras.MODERN, era_max = Eras.MODERN },
+    EWR_FPS117 = { type = "FPS-117",   role = "EWR", countries = { 2, 4, 6, 20, 80 }, era_min = Eras.MODERN, era_max = Eras.MODERN },
 
     -- ===================== TANKS =====================
     TANK_T55   = { type = "T-55",   role = "TANK", countries = { 0, 17, 81 }, era_min = Eras.EARLYCOLDWAR, era_max = Eras.LATECOLDWAR },
@@ -3396,13 +3398,7 @@ EraSystem = {} do
     end
 
 
-    ---@param filters table|nil {
-    ---   role=string|nil,                 -- exact role match
-    ---   era=string|nil,                  -- a single Eras.* the entry must cover;
-    ---                                    --   when nil, the entry must fit ANY selected era
-    ---   country=number|nil,              -- must appear in entry.countries
-    ---   sam_classification=string|nil,   -- exact SAM_TYPES.* match
-    --- }
+    ---@param filters table|nil
     ---@return table[] array of matching database entries
     function EraSystem.getGroundUnits(filters)
         filters = filters or {}
