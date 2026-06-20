@@ -142,7 +142,10 @@ do
                     and (#EnrouteManager:findByTaskType(AITaskTypes.REINFORCEMENT_HELO,zone.side)
                         + #EnrouteManager:findByTaskType(AITaskTypes.REINFORCEMENT_CONVOY,zone.side)) < 2
                     and not EnrouteManager:findByFromZone(zone,zone.side,{AITaskTypes.REINFORCEMENT_HELO, AITaskTypes.REINFORCEMENT_CONVOY, AITaskTypes.CAPTURE_HELO})
+                    -- don't dispatch from a logistics zone that itself has a reinforcement/capture helo inbound
+                    and not EnrouteManager:findByToZone(zone,zone.side,{AITaskTypes.REINFORCEMENT_HELO, AITaskTypes.REINFORCEMENT_CONVOY, AITaskTypes.CAPTURE_HELO})
                     then
+                        -- candidate targets include other LOGISTICS zones (any friendly discovered zone below tier 4)
                         local zones_to_upgrade = zone:filterZonesByDistance(zone.side,{},{},true)
                         local zone_to_upgrade = nil
                         if #zones_to_upgrade > 0 then
@@ -150,8 +153,7 @@ do
                             for _,zone_t_u in ipairs(zones_to_upgrade) do
                                 if zone_t_u.level < 4
                                 and Frontline.distanceToFrontline(zone_t_u.zone.point) <= max_dist_to_frontline
-                                and not EnrouteManager:findByToZone(zone_t_u,zone.side,{AITaskTypes.REINFORCEMENT_HELO, AITaskTypes.REINFORCEMENT_CONVOY, AITaskTypes.CAPTURE_HELO})
-                                and not EnrouteManager:findByToZone(zone,zone.side, {AITaskTypes.REINFORCEMENT_HELO, AITaskTypes.REINFORCEMENT_CONVOY, AITaskTypes.CAPTURE_HELO}) then
+                                and not EnrouteManager:findByToZone(zone_t_u,zone.side,{AITaskTypes.REINFORCEMENT_HELO, AITaskTypes.REINFORCEMENT_CONVOY, AITaskTypes.CAPTURE_HELO}) then
                                     zone_to_upgrade = zone_t_u
                                     break
                                 end
