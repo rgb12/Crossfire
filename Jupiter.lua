@@ -194,6 +194,48 @@ function Jupiter:onEvent(event)
             else
                 trigger.action.outText("Jupiter: No zone found within 10km for Attack Convoy tasking.", 5)
             end
+        elseif command == "-sendmajoroffensive" then
+            local side_arg = param1 and param1:lower() or "both"
+            local function launch(side)
+                AICommander:launchOffensive(side, true)
+            end
+            if side_arg == "blue" then
+                launch(coalition.side.BLUE)
+                trigger.action.outText("Jupiter: BLUFOR major offensive launched.", 5)
+            elseif side_arg == "red" then
+                launch(coalition.side.RED)
+                trigger.action.outText("Jupiter: REDFOR major offensive launched.", 5)
+            else
+                launch(coalition.side.BLUE)
+                launch(coalition.side.RED)
+                trigger.action.outText("Jupiter: BLUFOR and REDFOR major offensives launched.", 5)
+            end
+            cmd_executed = true
+        elseif command == "-addunclaimedxp" then
+            local xp_to_add = tonumber(param1) or 1000
+            local volS = {
+                id = world.VolumeType.SPHERE,
+                params = { point = vec3, radius = 500 }
+            }
+            local players_found = 0
+            local total_units = 0
+            local function addUnclaimedXPToPlayer(obj)
+                total_units = total_units + 1
+                if obj and obj:isExist() and obj.getPlayerName and obj:getPlayerName() then
+                    local user = ExperienceManager:fetchUser(obj)
+                    if user then
+                        user.unclaimed_xp = (user.unclaimed_xp or 0) + xp_to_add
+                        trigger.action.outTextForUnit(obj:getID(), string.format("Jupiter: +%d unclaimed XP (now %d).", xp_to_add, user.unclaimed_xp), 10)
+                        players_found = players_found + 1
+                    end
+                end
+                return true
+            end
+
+            world.searchObjects({Object.Category.UNIT}, volS, addUnclaimedXPToPlayer)
+            MissionLogger:info(string.format("Jupiter -addunclaimedxp: Found %d units, %d were players", total_units, players_found))
+            trigger.action.outText(string.format("Jupiter: Added %d unclaimed XP to %d players within 500m.", xp_to_add, players_found), 5)
+            cmd_executed = true
         elseif command == "-additemwarehouse" then
             local item_flag = param1
             local quantity = tonumber(args[3]) or 10

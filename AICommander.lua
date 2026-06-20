@@ -663,9 +663,10 @@ do
 
     ---Launch a major offensive for one side, staggering each flight.
     ---@param side coalition.side
-    function AICommander:launchOffensive(side)
+    ---@param force boolean|nil bypass the per-side enable toggle (e.g. Jupiter command)
+    function AICommander:launchOffensive(side, force)
         if not Config.tasking.enable then return end
-        if not self:isOffensiveEnabled(side) then return end
+        if not force and not self:isOffensiveEnabled(side) then return end
 
         local cfg = Config.major_offensive
         local home_base, comms_towers, airbases = self:offensiveContext(side)
