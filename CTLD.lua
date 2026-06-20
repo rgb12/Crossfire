@@ -371,12 +371,15 @@ InfantrySquads = {} do
             return false, nil, "Engineers must be deployed inside a friendly logistics zone."
 
         elseif b == "sabotage" then
-            -- Within configured range of an ENEMY zone.
+            -- Within configured range of an ENEMY zone
             local cfg = InfantrySquads.cfg(def.id)
             local range = cfg.range or 2000
             local best, best_d
             for _, zone in ipairs(zones) do
-                if zone.side ~= side and zone.side ~= coalition.side.NEUTRAL then
+                if zone.side ~= side and zone.side ~= coalition.side.NEUTRAL
+                and (zone.zone_type == ZoneTypes.AIRBASE
+                    or zone.zone_type == ZoneTypes.FARP
+                    or zone.zone_type == ZoneTypes.LOGISTICS) then
                     local d = mist.utils.get2DDist(point, zone.zone.point)
                     if d <= range and (not best_d or d < best_d) then
                         best, best_d = zone, d
@@ -385,7 +388,7 @@ InfantrySquads = {} do
             end
             if best then return true, best, nil end
             return false, nil, string.format(
-                "Sabotage team must be deployed within %d m of an enemy zone.", range)
+                "Sabotage team must be deployed within %d m of an enemy supply zone (Airbase, FARP or Logistics).", range)
         end
 
         -- mortar / jtac: no placement restriction.
