@@ -2083,7 +2083,6 @@ do
             ctrl:setOption(AI.Option.Air.id.RTB_ON_OUT_OF_AMMO, ag_weapons)
             ctrl:setOption(AI.Option.Air.id.RTB_ON_BINGO, true)
 
-            MissionLogger:info(ctrl:hasTask())
             trigger.action.outTextForCoalition(enroute_data.side, "STRIKE mission tasked, engaging: "..enroute_data.to_zone.name,10)
             trigger.action.outSoundForCoalition(enroute_data.side, "transmission1.ogg")
             MissionLogger:info("STRIKE mission tasked, engaging: "..enroute_data.to_zone.name)

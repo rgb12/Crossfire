@@ -1880,7 +1880,7 @@ Stocks.EquipmentData = {
         [Stocks.Equipment.HOT3                               ] = { stock_type = StockTypes.FARP_MISSILES, base_qty = 25, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
         [Stocks.Equipment.IGLA_1E                            ] = { stock_type = StockTypes.FARP_MISSILES, base_qty = 12, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
         [Stocks.Equipment.MISTRAL                            ] = { stock_type = StockTypes.FARP_MISSILES, base_qty = 8, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
-        [Stocks.Equipment.VIKHR_M                            ] = { stock_type = StockTypes.FARP_MISSILES, base_qty = 220, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
+        [Stocks.Equipment.VIKHR_M                            ] = { stock_type = StockTypes.FARP_MISSILES, base_qty = 220, eras = { Eras.MODERN } },
 
       -- MISC
         [Stocks.Equipment.ALQ_131                            ] = { stock_type = StockTypes.MISC, base_qty = 12, eras = { Eras.LATECOLDWAR, Eras.MODERN } },

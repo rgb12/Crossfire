@@ -205,8 +205,8 @@ do
             [Eras.LATECOLDWAR] = {
                 [AITaskTypes.CAS] = {
                     [Stocks.Equipment.FAB_250_M62] = 2 *2,
-                    [Stocks.Equipment.VIKHR_M] = 16 *2,
-                    [Stocks.Equipment.S_8O0FP2_MPP] = 40 *2,
+                    [Stocks.Equipment.S25L] = 2 *2,
+                    [Stocks.Equipment.S_5M] = 32*2 *2,
                 },
                 [AITaskTypes.CAP] = {
                     [Stocks.Equipment.R_40R] = 2 *2,
@@ -887,6 +887,8 @@ do
         local user_scale = WarehouseManager:getStockScale()
         if side == coalition.side.RED and Config.red_stock_multiplier then
             user_scale = user_scale * Config.red_stock_multiplier
+        elseif side == coalition.side.BLUE and Config.blue_stock_multiplier then
+            user_scale = user_scale * Config.blue_stock_multiplier
         end
 
         -- Add to tier 1 bases
@@ -898,8 +900,11 @@ do
                         warehouse:addItem(id, final_amount)
                     end
                 end
-                for id, amount in pairs(aircraft_to_add) do
-                    warehouse:addItem(id, amount)
+                for id, base_amount in pairs(aircraft_to_add) do
+                    local final_amount = math.ceil(base_amount * mult_l1 * user_scale)
+                    if final_amount > 0 then
+                        warehouse:addItem(id, final_amount)
+                    end
                 end
             end
         end
@@ -913,8 +918,11 @@ do
                         warehouse:addItem(id, final_amount)
                     end
                 end
-                for id, amount in pairs(aircraft_to_add) do
-                    warehouse:addItem(id, amount)
+                for id, base_amount in pairs(aircraft_to_add) do
+                    local final_amount = math.ceil(base_amount * mult_l2 * user_scale)
+                    if final_amount > 0 then
+                        warehouse:addItem(id, final_amount)
+                    end
                 end
             end
         end
@@ -928,8 +936,11 @@ do
                         warehouse:addItem(id, final_amount)
                     end
                 end
-                for id, amount in pairs(aircraft_to_add) do
-                    warehouse:addItem(id, amount)
+                for id, base_amount in pairs(aircraft_to_add) do
+                    local final_amount = math.ceil(base_amount * mult_l3 * user_scale)
+                    if final_amount > 0 then
+                        warehouse:addItem(id, final_amount)
+                    end
                 end
             end
         end
@@ -940,14 +951,14 @@ do
                 for id, base_amount in pairs(items_to_add) do
                     local final_amount = math.ceil(base_amount * mult_l4 * user_scale)
                     if final_amount > 0 then
-                        if id == "weapons.nurs.HYDRA_70_M151" then
-                            MissionLogger:info("ROCKETS TO BE ADDED "..final_amount)
-                        end
                         warehouse:addItem(id, final_amount)
                     end
                 end
-                for id, amount in pairs(aircraft_to_add) do
-                    warehouse:addItem(id, amount)
+                for id, base_amount in pairs(aircraft_to_add) do
+                    local final_amount = math.ceil(base_amount * mult_l4 * user_scale)
+                    if final_amount > 0 then
+                        warehouse:addItem(id, final_amount)
+                    end
                 end
             end
         end
