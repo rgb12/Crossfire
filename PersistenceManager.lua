@@ -822,18 +822,25 @@ do
         if PersistenceManager.data.ctld_farps then
             ctld.FARPs = {}
             for _, saved_farp in ipairs(PersistenceManager.data.ctld_farps) do
-                ---@type ConstructedFARP
-                local farp = {
-                    farp_name = saved_farp.farp_name,
-                    display_name = saved_farp.display_name,
-                    point = saved_farp.point,
-                    coalition = saved_farp.coalition,
-                    linked_zone = saved_farp.linked_zone_name and ZoneHandler.getFromName(saved_farp.linked_zone_name) or nil,
-                    linked_group = saved_farp.linked_group
-                }
+                local farp_name, linked_group = ctld.spawnFARPAssets(
+                    saved_farp.coalition, saved_farp.point, saved_farp.farp_name)
 
-                table.insert(ctld.FARPs, farp)
-                ctld.displayConstructedFarp(farp)
+                if farp_name then
+                    ---@type ConstructedFARP
+                    local farp = {
+                        farp_name = farp_name,
+                        display_name = saved_farp.display_name,
+                        point = saved_farp.point,
+                        coalition = saved_farp.coalition,
+                        linked_zone = saved_farp.linked_zone_name and ZoneHandler.getFromName(saved_farp.linked_zone_name) or nil,
+                        linked_group = linked_group
+                    }
+
+                    table.insert(ctld.FARPs, farp)
+                    ctld.displayConstructedFarp(farp)
+                else
+                    MissionLogger:warn(string.format("Failed to restore CTLD FARP %s.", tostring(saved_farp.display_name or saved_farp.farp_name)))
+                end
             end
             MissionLogger:info(string.format("Restored %d CTLD FARPs.", #ctld.FARPs))
         end

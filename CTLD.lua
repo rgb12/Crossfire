@@ -1949,13 +1949,12 @@ function ctld.nearestZoneDistance(point)
     return nearest, nearest_zone
 end
 
----@param unit Unit
+---@param side coalition.side
 ---@param center_point vec3
----@param linked_zone ZoneHandler|nil
----@param assigned_name string display name for the FARP (e.g. "FARP Callisto")
----@return ConstructedFARP|nil
-function ctld.buildFARP(unit, center_point,linked_zone, assigned_name)
-    local side = unit:getCoalition()
+---@param farp_name string name for the Invisible FARP pad (also the warehouse key)
+---@return string|nil farp_name spawned pad name, nil on failure
+---@return string|nil linked_group spawned defence vehicle group name
+function ctld.spawnFARPAssets(side, center_point, farp_name)
     local country_name_id = country.id.CJTF_BLUE
     if side == coalition.side.RED then
         country_name_id = country.id.CJTF_RED
@@ -1982,7 +1981,7 @@ function ctld.buildFARP(unit, center_point,linked_zone, assigned_name)
         { type = "FARP Fuel Depot", category = "Fortifications", offset_x = 100, offset_y = -95 },
     }
 
-    local farp_name = nil
+    local spawned_pad = nil
 
     for _, static_data in ipairs(farp_statics_to_spawn) do
         local static_point = {
@@ -1990,31 +1989,28 @@ function ctld.buildFARP(unit, center_point,linked_zone, assigned_name)
             y = base_y + static_data.offset_y
         }
 
-        local new_static
         if static_data.type == "Invisible FARP" then
             -- Spawn the pad via coalition.addStaticObject with dynamicSpawn/allowHotStart
             -- so aircraft can hot-start and rearm from a constructed FARP (mirrors
             -- UnitHandler.initFARP). mist.dynAddStatic does not set these flags.
-            new_static = coalition.addStaticObject(country_name_id, {
+            local new_static = coalition.addStaticObject(country_name_id, {
                 ["category"] = static_data.category,
                 ["shape_name"] = static_data.shape_name,
                 ["type"] = static_data.type,
                 ["unitId"] = mist.getNextUnitId(),
                 ["x"] = static_point.x,
                 ["y"] = static_point.y,
-                ["name"] = assigned_name,
+                ["name"] = farp_name,
                 ["heading"] = 0,
                 ["dead"] = false,
                 ["dynamicSpawn"] = true,
                 ["allowHotStart"] = true
             })
-            -- coalition.addStaticObject returns a StaticObject; normalise to a
-            -- name field so the shared bookkeeping below works for both paths.
             if new_static and new_static.getName then
-                new_static = { name = new_static:getName() }
+                spawned_pad = new_static:getName()
             end
         else
-            new_static = mist.dynAddStatic({
+            mist.dynAddStatic({
                 type = static_data.type,
                 shape_name = static_data.shape_name,
                 name = string.format("ctld_farp_%d", ctld.getNextGroupId()),
@@ -2025,32 +2021,15 @@ function ctld.buildFARP(unit, center_point,linked_zone, assigned_name)
                 heading = 0
             })
         end
-
-        if new_static and new_static.name then
-            table.insert(ctld.placed_assets, {
-                unit_name = new_static.name,
-                asset_name = static_data.type,
-                category = static_data.category,
-                shape_name = static_data.shape_name,
-                point = { x = static_point.x, y = land.getHeight({x = static_point.x, y = static_point.y}), z = static_point.y },
-                type = ctld.AssetTypes.STATIC,
-                coalition = side
-            })
-
-            if static_data.type == "Invisible FARP" then
-                farp_name = new_static.name
-            end
-        end
-
     end
 
-    if not farp_name then
+    if not spawned_pad then
         MissionLogger:error("CTLD: Failed to construct FARP, no Invisible FARP spawned.")
-        return nil
+        return nil, nil
     end
 
     -- Fuel the constructed FARP (mirrors UnitHandler.initFARP).
-    WarehouseManager:addLiquids(farp_name)
+    WarehouseManager:addLiquids(spawned_pad)
 
     -- Spawn the FARP vehicle group, mirroring UnitHandler.initFARP.
     local group_spawn_point = {
@@ -2078,6 +2057,20 @@ function ctld.buildFARP(unit, center_point,linked_zone, assigned_name)
             linked_group_name = vehicles_gr.name
         end
     end
+
+    return spawned_pad, linked_group_name
+end
+
+---@param unit Unit
+---@param center_point vec3
+---@param linked_zone ZoneHandler|nil
+---@param assigned_name string display name for the FARP (e.g. "FARP Callisto")
+---@return ConstructedFARP|nil
+function ctld.buildFARP(unit, center_point,linked_zone, assigned_name)
+    local side = unit:getCoalition()
+
+    local farp_name, linked_group_name = ctld.spawnFARPAssets(side, center_point, assigned_name)
+    if not farp_name then return nil end
 
     ---@type ConstructedFARP
     local farp = {
