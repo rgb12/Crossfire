@@ -26,10 +26,8 @@ Config = {
     _mission_version = 6,
     -- (bool) development setting, set to false to prevent the mission from loading
     -- this config (will use default values instead)
-    _enable_external_config = false,
-    -- (int) (meters) max distance a frontline segment may extend from the midpoint
-    -- between the two opposing zones that generate it
-    frontline_max_extent = 35000,
+    _enable_external_config = true,
+
     -- (table)
     persistence = {
         -- (bool) enables or not persistence, has authority over everything below in
@@ -62,7 +60,7 @@ Config = {
         -- (bool) when a coalition wins, delete the mission
         -- progress save file (user XP/rank data is kept) and restart the mission.
         -- Intended for dedicated servers running the mission on a loop.
-        reset_on_mission_end = false,
+        reset_on_mission_end = true,
 
         -- (int) (seconds) delay between the win announcement and the restart, so
         -- players can read the result before the mission reloads
@@ -496,8 +494,6 @@ Config = {
     -- (bool) this will enable/disable resupply aircrafts, this will make the
     -- misison significantly harder
     allow_resupply = true,
-    -- (bool) adds the SU-25T to the blufor warehouse inventory
-    enabled_su25t_blufor = true,
 
     -- (int) multiplier for redfor only warehouse stocks
     red_stock_multiplier = 50,
@@ -509,6 +505,10 @@ Config = {
     -- loadouts. Alternatively, you can edit the loadouts in the WarehouseManager
     -- to match your custom loadouts.
     enable_ai_payload_checks = true,
+
+    -- (int) (meters) max distance a frontline segment may extend from the midpoint
+    -- between the two opposing zones that generate it
+    frontline_max_extent = 35000,
 
     -- (table) Auto scaling of warehouse weapon stocks to the number of human
     -- players. When enabled, generated weapon quantities are multiplied by the
@@ -539,7 +539,7 @@ Config = {
     -- (bool) enables/disables random resupply types, if disabled only INITIAL
     -- resupplies will arrive INITIAL resupply is equivalent to what the warehouses
     -- were given at mission start
-    random_resupply_types = true ,
+    random_resupply_types = true,
 
     -- (table)
     supplies = {
@@ -557,7 +557,7 @@ Config = {
         resupply_costs = {
 
             -- (int) Full initial warehouse stock restoration
-            INITIAL = 10000,
+            INITIAL = 5000,
             -- (int) FARP complete resupply
             FARP = 2500,
             
@@ -1102,7 +1102,7 @@ Config = {
             -- the engineers are active (e.g. 1.5 = +50% production)
             production_ration = 2.0,
             -- (int) (seconds) how long the production boost lasts
-            duration = 2*60,
+            duration = 60*60,
         },
         sabotage = {
             req_supplies = 80,
@@ -1115,7 +1115,7 @@ Config = {
             -- zone
             production_ration = 0.25,
             -- (int) (seconds) how long the production reduction lasts
-            duration = 3*60*60,
+            duration = 60*60,
             -- (bool) allow the squad to destroy the target zone's COMMS tower
             can_destroy_comms = true,
         },
@@ -1253,13 +1253,13 @@ Config = {
     -- (table)
     motd = {
         -- (bool) enables/disables the MOTD system
-        enable = true,
+        enable = false,
         -- (int) (seconds) how long the MOTD is displayed for
         display_time = 5,
         -- (int) (seconds) how often the MOTD is displayed, set to 0 to disable repeating
-        period = 0,
+        period = 30,
         -- (string) Message
-        message = "Crossfire MOTD, this message will repeat itself"
+        message = "Crossfire MOTD, this message will repeat itself."
     },
 
     -- (table)
