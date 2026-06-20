@@ -936,13 +936,13 @@ Config = {
         -- (table)
         package = {
             -- (int) escort/sweep fighters
-            cap = 2,
+            cap = 1,
             -- (int) close air support
             cas = 2,
             -- (int) SEAD against enemy SAM sites
             sead = 1,
             -- (int) strike against enemy logistics/comms/airbase statics
-            strike = 2,
+            strike = 1,
             -- (int) AWACS support flights
             awacs = 0,
         },

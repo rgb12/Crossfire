@@ -754,11 +754,14 @@ do
             return
         end
 
-        MissionLogger:info(string.format("[OFFENSIVE] %s launching major offensive: %d flights queued.",
-            utils.coalitionToString(side), #launches))
-        trigger.action.outTextForCoalition(utils.getEnemyCoalition(side),
-            "WARNING: Large enemy air offensive inbound!", 15)
-        trigger.action.outSoundForCoalition(utils.getEnemyCoalition(side), "radio_beep3.ogg")
+        MissionLogger:info(string.format("[OFFENSIVE] %s launching major offensive: %d flights queued.",utils.coalitionToString(side), #launches))
+        local enemy_side = utils.getEnemyCoalition(side)
+
+        trigger.action.outTextForCoalition(enemy_side,"Large enemy offensive inbound!", 15)
+        trigger.action.outSoundForCoalition(enemy_side,"alert1.ogg")
+        timer.scheduleFunction(function ()
+            trigger.action.outSoundForCoalition(enemy_side,"alert1.ogg")
+        end,{},timer.getTime()+1)
 
         -- Stagger the launches so they don't all spawn at once.
         local stagger = cfg.launch_stagger or 11
