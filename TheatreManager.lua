@@ -413,6 +413,25 @@ do
         trigger.action.setUserFlag("MISSIONEND",10)
     end
 
+    function TheatreCommander:initMOTD()
+        if not Config.motd.enable then return end
+
+        local function sendMessage(loop)
+            trigger.action.outText(Config.motd.message, Config.motd.display_time)
+            if loop then
+                timer.scheduleFunction(function ()
+                    sendMessage(true)
+                end, {}, timer.getTime() + Config.motd.period)
+            end
+        end
+
+        if Config.motd.period <= 0 then
+            sendMessage(false)
+            return
+        end 
+        sendMessage(true)
+    end
+
     ---@param side coalition.side
     ---@param repeat_tasking boolean|nil
     ---@param stock_types StockTypes[]|nil
@@ -1255,13 +1274,13 @@ do
         TheatreCommander.blue_op_manager = OperationManager:new(coalition.side.BLUE, blue_airbase)
         TheatreCommander.red_op_manager = OperationManager:new(coalition.side.RED, red_airbase)
 
-        
+
         timer.scheduleFunction(TheatreCommander.sendWarehouseResupply, coalition.side.BLUE, timer.getTime() + Config.std_resupply_time)
         timer.scheduleFunction(TheatreCommander.sendWarehouseResupply, coalition.side.RED, timer.getTime() + Config.std_resupply_time)
-        
+
         ATIS:init()
         TheatreCommander:tick()
-        
+
         -- AI DISPATCHER + AI COMMANDER (both owned by AICommander.lua)
         if AICommander and AICommander.init then
             AICommander.init()
@@ -1269,18 +1288,19 @@ do
             MissionLogger:error("AICommander not loaded; AI dispatcher will not run. Add AICommander.lua to the mission.")
         end
 
+        TheatreCommander:initMOTD()
 
         EWRS_coalition = {
             [coalition.side.BLUE] = EWRS:new(coalition.side.BLUE),
             [coalition.side.RED] = EWRS:new(coalition.side.RED),
         }
-        
+
         world.addEventHandler(ExperienceManager.EventHandler)
 
         if Config.jupiter_enabled then
             world.addEventHandler(Jupiter)
         end
-        
+
         Frontline.drawFrontline()
 
         -- trigger.action.outText("Theatre setup complete.", 5)

@@ -1253,37 +1253,48 @@ Config = {
         -- (bool)
         enabled = true,
     },
+    -- (table)
+    motd = {
+        -- (bool) enables/disables the MOTD system
+        enable = true,
+        -- (int) (seconds) how long the MOTD is displayed for
+        display_time = 5,
+        -- (int) (seconds) how often the MOTD is displayed, set to 0 to disable repeating
+        period = 20,
+        -- (string) Message
+        message = "Crossfire MOTD, this message will repeat itself"
+    },
 
--- (table)
-draw_color_palette = {
+    -- (table)
+    draw_color_palette = {
 
-    -- (table<...>)
-    red_palette = {
-            {0.8, 0.1, 0.1, 0.9},  -- Border: Bright, distinct red for clear boundary definition
-            {0.8, 0.1, 0.1, 0.2},  -- Fill: Subtle red tint, slightly reduced opacity to preserve map detail
-            {1.0, 1.0, 1.0, 1.0},  -- Text: Pure white for maximum contrast and legibility
-            {0.4, 0.0, 0.0, 0.4}   -- Text background: Deep, moderately opaque red to ground the white text
-        },
         -- (table<...>)
-        blue_palette = {
-            {0.1, 0.3, 0.9, 0.9},  -- Border: Bright, distinct blue
-            {0.1, 0.3, 0.9, 0.2},  -- Fill: Subtle blue tint
-            {1.0, 1.0, 1.0, 1.0},  -- Text: Pure white
-            {0.0, 0.1, 0.4, 0.4}   -- Text background: Deep, moderately opaque blue
-        },
-        -- (table<...>)
-        neutral_palette = {
-            {0.5, 0.5, 0.5, 0.9},  -- Border: Solid neutral grey
-            {0.5, 0.5, 0.5, 0.2},  -- Fill: Subtle grey tint
-            {1.0, 1.0, 1.0, 1.0},  -- Text: Pure white
-            {0.2, 0.2, 0.2, 0.6}   -- Text background: Dark grey to frame the text
-        },
+        red_palette = {
+                {0.8, 0.1, 0.1, 0.9},  -- Border: Bright, distinct red for clear boundary definition
+                {0.8, 0.1, 0.1, 0.2},  -- Fill: Subtle red tint, slightly reduced opacity to preserve map detail
+                {1.0, 1.0, 1.0, 1.0},  -- Text: Pure white for maximum contrast and legibility
+                {0.4, 0.0, 0.0, 0.4}   -- Text background: Deep, moderately opaque red to ground the white text
+            },
+            -- (table<...>)
+            blue_palette = {
+                {0.1, 0.3, 0.9, 0.9},  -- Border: Bright, distinct blue
+                {0.1, 0.3, 0.9, 0.2},  -- Fill: Subtle blue tint
+                {1.0, 1.0, 1.0, 1.0},  -- Text: Pure white
+                {0.0, 0.1, 0.4, 0.4}   -- Text background: Deep, moderately opaque blue
+            },
+            -- (table<...>)
+            neutral_palette = {
+                {0.5, 0.5, 0.5, 0.9},  -- Border: Solid neutral grey
+                {0.5, 0.5, 0.5, 0.2},  -- Fill: Subtle grey tint
+                {1.0, 1.0, 1.0, 1.0},  -- Text: Pure white
+                {0.2, 0.2, 0.2, 0.6}   -- Text background: Dark grey to frame the text
+            },
 
-    -- (table<number>)
-    frontline_color = {0.90, 0.90, 0.90, 0.85},
-    -- (int)
-    frontline_linestyle = 1
-}
+        -- (table<number>)
+        frontline_color = {0.90, 0.90, 0.90, 0.85},
+        -- (int)
+        frontline_linestyle = 1
+    }
 
 }
 
