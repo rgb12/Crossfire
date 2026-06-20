@@ -1045,6 +1045,14 @@ Config = {
         search_radius = 100,
         -- (int) (meters)
         random_crate_spacing = 6,
+
+        -- (table) constructed FARP requirements (CTLD-built FARPs, not zone FARPs)
+        farp_construction = {
+            -- (int) number of nearby unpacked supply crates consumed to build a FARP
+            required_supply_crates = 4,
+            -- (int) (meters) minimum distance a constructed FARP must be from ANY zone
+            min_zone_distance = 5000,
+        },
         -- (bool)
         allow_unpacking_in_zones = true,
         -- (bool)

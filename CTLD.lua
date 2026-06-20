@@ -101,13 +101,6 @@ ctld.dynamic_cargo_capable_units = {
     "C-130J-30"
 }
 
--- Required unpacked vehicles to assemble a CTLD-built FARP.
-ctld.farp_vehicle_requirements = {
-    "Hummer",
-    "M 818",
-    "M978 HEMTT Tanker"
-}
-
 ---@class ctld_user
 ---@field parts part[]
 ---@field unit Unit
@@ -884,7 +877,7 @@ function ctld.initF10RadioMenu(group)
         end)
     
         missionCommands.addCommandForGroup(gr_id, "Construct FARP", root_menu, function ()
-            -- Check if nearby unpacked support vehicles can assemble a FARP.
+            -- Check if nearby supply crates can be consumed to assemble a FARP.
             ctld.tryConstructFARP(unit)
         end)
 
@@ -1886,39 +1879,49 @@ function ctld.getPointAtDirection(unit, offset, direction_in_radian)
     return { x = point.x + xOffset, z = point.z + zOffset, y = point.y }
 end
 
+---Find nearby placed supply crates of the given coalition.
 ---@param point vec3
 ---@param coalition_side coalition.side
 ---@param radius number
----@return table<string, Unit>
-function ctld.findNearbyFARPRequirementVehicles(point, coalition_side, radius)
-    local found_by_part = {}
-    local required_lookup = {}
-    for _, part_name in ipairs(ctld.farp_vehicle_requirements) do
-        required_lookup[part_name] = true
-    end
-
+---@return StaticObject[]
+function ctld.findNearbySupplyCrates(point, coalition_side, radius)
+    local found = {}
     local vol = {
         id = world.VolumeType.SPHERE,
-        params = {
-            point = point,
-            radius = radius
-        }
+        params = { point = point, radius = radius }
     }
 
-    world.searchObjects({Object.Category.UNIT}, vol, function(obj)
-        if obj and obj:isExist() and obj.getName and obj.getCoalition and obj:getCoalition() == coalition_side then
-            local obj_name = obj:getName()
-            if ctld.isUnpackedAsset(obj_name) then
-                local part_name = ctld.getUnpackedPartName(obj_name)
-                if part_name and required_lookup[part_name] and not found_by_part[part_name] then
-                    found_by_part[part_name] = obj
-                end
+    world.searchObjects({Object.Category.STATIC}, vol, function(obj)
+        if obj and obj:isExist() and obj.getName and obj.getCoalition
+        and obj:getCoalition() == coalition_side then
+            local part_name = ctld.getPackedPartName(obj:getName())
+            if part_name == CargoCrates.SUPPLY_CRATE then
+                table.insert(found, obj)
             end
         end
         return true
     end)
 
-    return found_by_part
+    return found
+end
+
+---Distance (m) to the nearest zone, or math.huge if there are no zones.
+---@param point vec3
+---@return number nearest_distance
+---@return ZoneHandler|nil nearest_zone
+function ctld.nearestZoneDistance(point)
+    local nearest = math.huge
+    local nearest_zone = nil
+    for _, zone in ipairs(zones) do
+        if zone.zone and zone.zone.point then
+            local dist = mist.utils.get2DDist(point, zone.zone.point)
+            if dist < nearest then
+                nearest = dist
+                nearest_zone = zone
+            end
+        end
+    end
+    return nearest, nearest_zone
 end
 
 ---@param unit Unit
@@ -1953,17 +1956,42 @@ function ctld.buildFARP(unit, center_point,linked_zone)
             y = base_y + static_data.offset_y
         }
 
-        local new_static = mist.dynAddStatic({
-            type = static_data.type,
-            shape_name = static_data.shape_name,
-            name = string.format("ctld_farp_%d", ctld.getNextGroupId()),
-            country = country_name_id,
-            category = static_data.category,
-            x = static_point.x,
-            y = static_point.y,
-            heading = 0
-        })
-        
+        local new_static
+        if static_data.type == "Invisible FARP" then
+            -- Spawn the pad via coalition.addStaticObject with dynamicSpawn/allowHotStart
+            -- so aircraft can hot-start and rearm from a constructed FARP (mirrors
+            -- UnitHandler.initFARP). mist.dynAddStatic does not set these flags.
+            new_static = coalition.addStaticObject(country_name_id, {
+                ["category"] = static_data.category,
+                ["shape_name"] = static_data.shape_name,
+                ["type"] = static_data.type,
+                ["unitId"] = mist.getNextUnitId(),
+                ["x"] = static_point.x,
+                ["y"] = static_point.y,
+                ["name"] = string.format("ctld_farp_%d", ctld.getNextGroupId()),
+                ["heading"] = 0,
+                ["dead"] = false,
+                ["dynamicSpawn"] = true,
+                ["allowHotStart"] = true
+            })
+            -- coalition.addStaticObject returns a StaticObject; normalise to a
+            -- name field so the shared bookkeeping below works for both paths.
+            if new_static and new_static.getName then
+                new_static = { name = new_static:getName() }
+            end
+        else
+            new_static = mist.dynAddStatic({
+                type = static_data.type,
+                shape_name = static_data.shape_name,
+                name = string.format("ctld_farp_%d", ctld.getNextGroupId()),
+                country = country_name_id,
+                category = static_data.category,
+                x = static_point.x,
+                y = static_point.y,
+                heading = 0
+            })
+        end
+
         -- Assign custom display name to FARP (unique among active FARPs)
         if static_data.type == "Invisible FARP" then
             local failsafe = 0
@@ -2042,27 +2070,26 @@ function ctld.tryConstructFARP(unit)
     local search_radius = Config.ctld.search_radius or 100
     local current_zone = utils.getZoneOfUnitFromPosition(unit_pos)
 
-    local found_parts = ctld.findNearbyFARPRequirementVehicles(unit_pos, coalition_side, search_radius)
-    local missing_parts = {}
-    for _, required_part_name in ipairs(ctld.farp_vehicle_requirements) do
-        if not found_parts[required_part_name] then
-            table.insert(missing_parts, required_part_name)
-        end
+    local farp_cfg = Config.ctld.farp_construction or {}
+    local required_crates = farp_cfg.required_supply_crates or 4
+    local min_zone_distance = farp_cfg.min_zone_distance or 5000
+
+    -- Block construction too close to any existing zone.
+    local nearest_dist, nearest_zone = ctld.nearestZoneDistance(unit_pos)
+    if nearest_dist < min_zone_distance then
+        trigger.action.outTextForUnit(unit_id, string.format(
+            "Cannot construct FARP. Too close to %s (%.0f m). Must be at least %.0f m from any zone.",
+            nearest_zone and nearest_zone.name or "a zone", nearest_dist, min_zone_distance), 10)
+        trigger.action.outSoundForUnit(unit_id, "transmission1.ogg")
+        return false
     end
 
-    if #missing_parts > 0 then
-        local out_text = "Cannot construct FARP. Missing required assets:\n"
-        for _, part_name in ipairs(missing_parts) do
-            local part_desc = part_name
-            for _, part in ipairs(ctld.parts) do
-                if part.name == part_name then
-                    part_desc = part.desc
-                    break
-                end
-            end
-            out_text = out_text .. "- " .. part_desc .. "\n"
-        end
-        trigger.action.outTextForUnit(unit_id, out_text, 10)
+    -- Require enough nearby supply crates to build the FARP.
+    local crates = ctld.findNearbySupplyCrates(unit_pos, coalition_side, search_radius)
+    if #crates < required_crates then
+        trigger.action.outTextForUnit(unit_id, string.format(
+            "Cannot construct FARP. Requires %d supply crates nearby, found %d.",
+            required_crates, #crates), 10)
         trigger.action.outSoundForUnit(unit_id, "transmission1.ogg")
         return false
     end
@@ -2077,12 +2104,13 @@ function ctld.tryConstructFARP(unit)
         current_zone.linked_farp = nil
     end
 
+    -- Center the FARP on the average position of the consumed crates.
     local center = { x = 0, y = 0, z = 0 }
     local count = 0
-    for _, required_part_name in ipairs(ctld.farp_vehicle_requirements) do
-        local req_obj = found_parts[required_part_name]
-        if req_obj and req_obj:isExist() then
-            local p = req_obj:getPoint()
+    for i = 1, required_crates do
+        local crate = crates[i]
+        if crate and crate:isExist() then
+            local p = crate:getPoint()
             center.x = center.x + p.x
             center.z = center.z + p.z
             count = count + 1
@@ -2105,10 +2133,11 @@ function ctld.tryConstructFARP(unit)
         return false
     end
 
-    for _, required_part_name in ipairs(ctld.farp_vehicle_requirements) do
-        local req_obj = found_parts[required_part_name]
-        if req_obj and req_obj:isExist() then
-            req_obj:destroy()
+    -- Consume the supply crates used to construct the FARP.
+    for i = 1, required_crates do
+        local crate = crates[i]
+        if crate and crate:isExist() then
+            crate:destroy()
         end
     end
 
