@@ -789,7 +789,7 @@ InfantrySquads = {} do
             id = "FireAtPoint",
             params = {
                 point = mist.utils.makeVec2(target_point),
-                radius = 2,
+                radius = 10,
                 expendQty = 1,
                 expendQtyEnabled = true,
             },

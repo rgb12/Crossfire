@@ -1085,7 +1085,7 @@ Config = {
 
         assault = {
             -- (int) supplies deducted from the loading zone
-            req_supplies = 75,
+            req_supplies = 10,
             -- (int) troop slots consumed in the carrier (see ctld.aircraft_limits)
             troop_slots = 4,
             -- (int) number of soldiers spawned in the squad
@@ -1108,27 +1108,27 @@ Config = {
             soldiers = 4,
             -- (number) supply production multiplier applied to the host zone while
             -- the engineers are active (e.g. 1.5 = +50% production)
-            production_ration = 1.5,
+            production_ration = 2.0,
             -- (int) (seconds) how long the production boost lasts
             duration = 2*60,
         },
         sabotage = {
-            req_supplies = 125,
+            req_supplies = 80,
             troop_slots = 4,
             soldiers = 6,
             -- (int) (meters) max distance from the target enemy zone the squad may
             -- deploy at
             range = 2000,
             -- (number) supply production multiplier applied to the sabotaged enemy
-            -- zone (e.g. 0.5 = -50% production)
-            production_ration = 0.5,
+            -- zone
+            production_ration = 0.25,
             -- (int) (seconds) how long the production reduction lasts
             duration = 3*60*60,
             -- (bool) allow the squad to destroy the target zone's COMMS tower
             can_destroy_comms = true,
         },
         jtac = {
-            req_supplies = 50,
+            req_supplies = 40,
             troop_slots = 1,
             soldiers = 1,
         },
