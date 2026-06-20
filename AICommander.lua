@@ -697,6 +697,109 @@ do
         return zones_only
     end
 
+    ---@param side coalition.side
+    ---@return table plan
+    function AICommander:newOffensivePlan(side)
+        local airbases = {}
+        for _, zone in ipairs(zones) do
+            if zone.zone_type == ZoneTypes.AIRBASE and zone.side == side and zone.airbase_name
+            and TaskManager:isAirbaseRunwayOperational(zone) then
+                table.insert(airbases, zone)
+            end
+        end
+        return { side = side, airbases = airbases, planned = {}, planned_acft = {} }
+    end
+
+    ---@param plan table
+    ---@param airbase_zone ZoneHandler
+    ---@return number
+    function AICommander:plannedTaskCount(plan, airbase_zone)
+        local existing = EnrouteManager:findByFromZone(airbase_zone, plan.side,
+            { AITaskTypes.CAS, AITaskTypes.CAP, AITaskTypes.SEAD, AITaskTypes.STRIKE,
+              AITaskTypes.RECON, AITaskTypes.AWACS, AITaskTypes.TANKER })
+        local existing_n = existing and #existing or 0
+        local planned_n = (plan.planned[airbase_zone.name] and plan.planned[airbase_zone.name].total) or 0
+        return existing_n + planned_n
+    end
+
+    ---Per-type committed count (existing enroutes + plan) from an airbase.
+    ---@param plan table
+    ---@param airbase_zone ZoneHandler
+    ---@param task_type AITaskTypes
+    ---@return number
+    function AICommander:plannedTypeCount(plan, airbase_zone, task_type)
+        local existing = EnrouteManager:findByFromZone(airbase_zone, plan.side, { task_type })
+        local existing_n = existing and #existing or 0
+        local planned_n = (plan.planned[airbase_zone.name] and plan.planned[airbase_zone.name][task_type]) or 0
+        return existing_n + planned_n
+    end
+
+    ---Per-type max-per-airbase cap from config (mirrors checkIfMaxTasksReached).
+    ---@param task_type AITaskTypes
+    ---@return number
+    function AICommander:perAirbaseTypeCap(task_type)
+        local t = Config.tasking
+        if task_type == AITaskTypes.CAS then return t.max_cas_per_airbase or math.huge end
+        if task_type == AITaskTypes.CAP then return t.max_cap_per_airbase or math.huge end
+        if task_type == AITaskTypes.SEAD then return t.max_sead_per_airbase or math.huge end
+        if task_type == AITaskTypes.STRIKE then return t.max_strike_per_airbase or math.huge end
+        if task_type == AITaskTypes.AWACS then return t.max_awacs_per_airbase or math.huge end
+        return math.huge
+    end
+
+    ---@param plan table
+    ---@param airbase_zone ZoneHandler
+    ---@param task_type AITaskTypes
+    ---@return number available, string|nil acft_type
+    function AICommander:plannedAircraftAvailable(plan, airbase_zone, task_type)
+        local airbase = Airbase.getByName(airbase_zone.airbase_name)
+        if not airbase or airbase:getCoalition() ~= plan.side then return 0, nil end
+        local warehouse = airbase:getWarehouse()
+        if not warehouse then return 0, nil end
+
+        local acft_type = WarehouseManager:getAircraftTypeForTask(plan.side, task_type)
+        if not acft_type then return 0, nil end
+
+        local count = warehouse:getItemCount(acft_type) or 0
+        local reserve = WarehouseManager:getAircraftReserveThreshold()
+        local committed = (plan.planned_acft[airbase_zone.name] and plan.planned_acft[airbase_zone.name][acft_type]) or 0
+        return math.max(count - reserve - committed, 0), acft_type
+    end
+
+    ---@param plan table
+    ---@param task_type AITaskTypes
+    ---@param sort_point vec3|vec2
+    ---@return ZoneHandler|nil
+    function AICommander:pickSourceAirbase(plan, task_type, sort_point)
+        local candidates = {}
+        for _, ab in ipairs(plan.airbases) do
+            local avail, acft_type = self:plannedAircraftAvailable(plan, ab, task_type)
+            local under_total = self:plannedTaskCount(plan, ab) < (Config.tasking.max_tasks_per_airbase or math.huge)
+            local under_type = self:plannedTypeCount(plan, ab, task_type) < self:perAirbaseTypeCap(task_type)
+            if avail >= 1 and under_total and under_type then
+                table.insert(candidates, {
+                    zone = ab,
+                    acft_type = acft_type,
+                    dist = sort_point and mist.utils.get2DDist(sort_point, ab.zone.point) or 0
+                })
+            end
+        end
+        table.sort(candidates, function(a, b) return a.dist < b.dist end)
+
+        local best = candidates[1]
+        if not best then return nil end
+
+        -- Commit to the plan.
+        local name = best.zone.name
+        plan.planned[name] = plan.planned[name] or { total = 0 }
+        plan.planned[name].total = plan.planned[name].total + 1
+        plan.planned[name][task_type] = (plan.planned[name][task_type] or 0) + 1
+        plan.planned_acft[name] = plan.planned_acft[name] or {}
+        plan.planned_acft[name][best.acft_type] = (plan.planned_acft[name][best.acft_type] or 0) + 1
+
+        return best.zone
+    end
+
     ---Launch a major offensive for one side, staggering each flight.
     ---@param side coalition.side
     ---@param force boolean|nil bypass the per-side enable toggle (e.g. Jupiter command)
@@ -727,16 +830,37 @@ do
         -- Build an ordered launch list of {task_type, to_zone, from_zone}.
         local launches = {}
 
+        local distribute = cfg.distribute_across_airbases ~= false
+        local plan = distribute and self:newOffensivePlan(side) or nil
+
         local function queue(count, task_type, target_list, use_home_as_from)
             count = count or 0
             for i = 1, count do
                 if use_home_as_from then
-                    -- AWACS launches from home base, no target zone.
-                    table.insert(launches, { type = task_type, to_zone = nil, from_zone = home_base })
+                    -- AWACS launches from an airbase, no target zone.
+                    local from = home_base
+                    if plan then
+                        from = self:pickSourceAirbase(plan, task_type, home_base.zone.point) or home_base
+                    end
+                    table.insert(launches, { type = task_type, to_zone = nil, from_zone = from })
                 elseif #target_list > 0 then
                     -- Spread across available targets, wrapping round-robin.
                     local tgt = target_list[((i - 1) % #target_list) + 1]
-                    table.insert(launches, { type = task_type, to_zone = tgt, from_zone = nil })
+                    local from = nil
+                    if plan then
+                        from = self:pickSourceAirbase(plan, task_type, tgt.zone.point)
+                        if not from then
+                            -- No airbase can take this flight; skip it instead of
+                            -- piling onto the closest one.
+                            MissionLogger:info(string.format(
+                                "[OFFENSIVE] %s: no airbase with stock/capacity for %s, skipping a flight.",
+                                utils.coalitionToString(side), tostring(task_type)))
+                        else
+                            table.insert(launches, { type = task_type, to_zone = tgt, from_zone = from })
+                        end
+                    else
+                        table.insert(launches, { type = task_type, to_zone = tgt, from_zone = nil })
+                    end
                 end
             end
         end

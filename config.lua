@@ -950,6 +950,10 @@ Config = {
         -- (int) (meters) only target enemy zones within this range of the
         -- launching coalition's home airbase
         max_target_range = 250*1000,
+
+        -- (bool) distribute the package across all friendly airbases that have
+        -- stocks
+        distribute_across_airbases = true,
     },
 
     -- (table)
