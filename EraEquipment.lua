@@ -1795,8 +1795,10 @@ Stocks.EquipmentData = {
         [Stocks.Equipment.X_25MP                             ] = { stock_type = StockTypes.AIR_GROUND_GUIDED_MISSILES, base_qty = 50, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
         [Stocks.Equipment.X_29L                              ] = { stock_type = StockTypes.AIR_GROUND_GUIDED_MISSILES, base_qty = 50, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
         [Stocks.Equipment.AGM_12A                            ] = { stock_type = StockTypes.AIR_GROUND_GUIDED_MISSILES, base_qty = 20, eras = { Eras.EARLYCOLDWAR, Eras.LATECOLDWAR } },
-
-      -- AIR GROUND ROCKETS
+        
+        
+        -- AIR GROUND ROCKETS
+        [Stocks.Equipment.VIKHR_M                            ] = { stock_type = {StockTypes.FARP_MISSILES, StockTypes.AIR_GROUND_ROCKETS}, base_qty = { [StockTypes.FARP_MISSILES] = 220, [StockTypes.AIR_GROUND_ROCKETS] = 400 }, eras = { Eras.MODERN } },
         [Stocks.Equipment.ARAKM70BAP                         ] = { stock_type = StockTypes.AIR_GROUND_ROCKETS, base_qty = 300, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
         [Stocks.Equipment.ARAKM70BHE                         ] = { stock_type = StockTypes.AIR_GROUND_ROCKETS, base_qty = 300, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
         [Stocks.Equipment.HVAR                               ] = { stock_type = StockTypes.AIR_GROUND_ROCKETS, base_qty = 100, eras = { Eras.WW2, Eras.EARLYCOLDWAR } },
@@ -1880,7 +1882,6 @@ Stocks.EquipmentData = {
         [Stocks.Equipment.HOT3                               ] = { stock_type = StockTypes.FARP_MISSILES, base_qty = 25, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
         [Stocks.Equipment.IGLA_1E                            ] = { stock_type = StockTypes.FARP_MISSILES, base_qty = 12, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
         [Stocks.Equipment.MISTRAL                            ] = { stock_type = StockTypes.FARP_MISSILES, base_qty = 8, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
-        [Stocks.Equipment.VIKHR_M                            ] = { stock_type = StockTypes.FARP_MISSILES, base_qty = 220, eras = { Eras.MODERN } },
 
       -- MISC
         [Stocks.Equipment.ALQ_131                            ] = { stock_type = StockTypes.MISC, base_qty = 12, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
