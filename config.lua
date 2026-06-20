@@ -488,8 +488,8 @@ Config = {
     -- (bool) prevents or not air spawns for players
     allow_air_spawn = true,
     -- (bool) enables/disables the slot blocker system to prevent players spawning
-    -- in enemy airbases
-    enable_slot_blocker = true,
+    -- in enemy airbases, this should be left disabled as contructed FARPS depend on this.
+    enable_slot_blocker = false,
     -- (bool) this does not disable/enable the system, but stocks will be nearly
     -- unlimited if disabled
     enable_warehouse = true,
