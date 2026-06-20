@@ -899,6 +899,11 @@ do
             timer.scheduleFunction(function()
                 if MISSION_ENDED == true then return end
                 local ok, err = pcall(function()
+                    MissionLogger:info(string.format("[OFFENSIVE] %s launching %s from %s to %s (%d/%d)",
+                        utils.coalitionToString(side), tostring(launch.type),
+                        launch.from_zone and launch.from_zone.name or "home base",
+                        launch.to_zone and launch.to_zone.name or "unknown target",
+                        idx, #launches))
                     TaskManager:initiateAITask(launch.type, side, true, launch.to_zone, launch.from_zone, false)
                 end)
                 if not ok then
