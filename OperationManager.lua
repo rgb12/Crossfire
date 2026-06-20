@@ -295,9 +295,9 @@ do
             if not release_point then return end
 
             -- Prevents ground units triggering runway destruction
-            if event.initiator and event.initiator.getCategory and event.initiator.inAir() then
+            if event.initiator and event.initiator.inAir then
                 if not event.initiator:inAir() then return end
-             end
+            end
 
             local lock_duration = Config.operations.runway_destroyed_duration or 3600
             for _, zone in ipairs(zones) do
