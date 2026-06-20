@@ -565,13 +565,15 @@ do
         end
 
         -- Add to warehouse
-        if zone.linked_farp and restock then
-            timer.scheduleFunction(function()
-                WarehouseManager:clearWarehouse(zone.linked_farp)
-                WarehouseManager:attributeAirbaseStock(zone.linked_farp, zone.side, {StockTypes.FARP})
-            end, {}, timer.getTime()+1)
+        if zone.linked_farp then
+            if restock then
+                timer.scheduleFunction(function()
+                    WarehouseManager:clearWarehouse(zone.linked_farp)
+                    WarehouseManager:attributeAirbaseStock(zone.linked_farp, zone.side, {StockTypes.FARP})
+                end, {}, timer.getTime()+1)
+            end
+            WarehouseManager:addLiquids(zone.linked_farp)
         end
-
 
         local group_offset_x = -95
         local group_offset_y = -95

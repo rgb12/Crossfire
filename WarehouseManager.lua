@@ -41,42 +41,6 @@ do
 
         return units[1]:getTypeName()
     end
-    --[[ ========================================================================
-        AIPayloads -- the Lua mirror of what each AI flight actually carries.
-        ------------------------------------------------------------------------
-        For every AI air template you place in the mission editor, declare here
-        the weapons that template is loaded with (the SAME stores you set on the
-        pylons in the ME). Before an AI task launches, checkIfAIPayloadInStock()
-        verifies the airbase warehouse holds enough of each declared store; if
-        not, the task is skipped. This keeps AI flights from spawning "for free"
-        once a warehouse runs dry, and lets warehouse stock actually limit sortie
-        generation.
-
-        ERA SUPPORT
-        -----------
-        The table is keyed [coalition][AITaskTypes]. To give a DIFFERENT loadout
-        to a per-era template (e.g. the "BLUE WW2 CAS" P-47 flight carries bombs
-        and rockets, not Mavericks + Litening), add an optional era sub-table:
-
-            [coalition.side.BLUE] = {
-                [AITaskTypes.CAS] = { ...modern default... },
-                [Eras.WW2] = {                      -- per-era overrides
-                    [AITaskTypes.CAS] = {
-                        [Stocks.Equipment.MK_82]    = 2 *2,
-                        [Stocks.Equipment.HVAR ...] = 8 *2,
-                    },
-                },
-            }
-
-        Resolution (getAIPayload below): for the ACTIVE era, an
-        [coalition][Eras.X][task] entry is used when present; otherwise it falls
-        back to the plain [coalition][task] entry. This mirrors how AI templates
-        resolve "BLUE WW2 CAS" -> "BLUE CAS" via EraSystem.resolveTaskTemplateName,
-        so the stock GATE and the spawned FLIGHT always agree.
-
-        The Eras.* keys are tables, so they never collide with AITaskTypes string
-        keys ("CAS", "CAP", ...) sitting alongside them in the same table.
-       ======================================================================== ]]
     WarehouseManager.AIPayloads = {
         [coalition.side.BLUE] = {
             [Eras.MODERN] = {
@@ -233,44 +197,7 @@ do
                     [Stocks.Equipment.SC_500_J] = 1 *2
                 }
             }
-
-            --[[ ----------------------------------------------------------------
-                PER-ERA RED PAYLOAD OVERRIDES (example -- copy into the live
-                table to use). Layout is [side][Eras.X][task]; it only applies
-                when that era is ACTIVE and the matching per-era ME template
-                (e.g. "RED EARLYCOLDWAR CAP") exists.
-            [Eras.EARLYCOLDWAR] = {
-                [AITaskTypes.CAP] = {              -- e.g. a MiG-21 flight
-                    [Stocks.Equipment.R_3S] = 2 *2,
-                },
-            },
-            ---------------------------------------------------------------- ]]
         },
-
-        --[[ --------------------------------------------------------------------
-            PER-ERA BLUE PAYLOAD OVERRIDES (example -- copy into the live table
-            to use). Layout is [side][Eras.X][task]: a per-era entry wins for the
-            active era, otherwise the plain [side][task] payload above is used
-        (see WarehouseManager:getAIPayload). The amounts must match the
-            stores you loaded on those flights' pylons in the mission editor
-            ("*2" = a two-ship flight).
-
-        [Eras.WW2] = {
-            [AITaskTypes.CAS] = {                  -- e.g. a P-47 flight
-                [Stocks.Equipment.MK_82] = 2 *2,
-                [Stocks.Equipment.HVAR]  = 8 *2,
-            },
-            [AITaskTypes.CAP] = {},                -- guns only, no missiles
-            [AITaskTypes.STRIKE] = {
-                [Stocks.Equipment.MK_82] = 2 *2,
-            },
-        },
-        [Eras.EARLYCOLDWAR] = {
-            [AITaskTypes.CAP] = {                  -- e.g. an F-5E flight
-                [Stocks.Equipment.AIM_9P] = 2 *2,
-            },
-        },
-        -------------------------------------------------------------------- ]]
     }
 
     -- The set of weapon (non-aircraft) stock types
@@ -291,10 +218,6 @@ do
         StockTypes.FUEL_TANKS
     }
 
-    -- Which weapon stock types a composite/bespoke package draws from. Keys and
-    -- values are BOTH StockTypes enum values (no strings). Single-stock-type
-    -- packages (e.g. AIR_GROUND_BOMBS) are not listed: they resolve implicitly
-    -- to themselves.
     WarehouseManager.StockTypeContents = {
         [StockTypes.INITIAL] = {
             StockTypes.AIR_AIR_LONG_RANGE, StockTypes.AIR_AIR_SHORT_RANGE,
@@ -326,8 +249,6 @@ do
         },
     }
 
-    -- The aircraft (role) stock types whose lists are built dynamically from
-    -- EraSystem.getEnabledAircraft() rather than read from a static table.
     WarehouseManager.AircraftStockTypes = {
         StockTypes.AG_AIRCRAFT,
         StockTypes.AA_AIRCRAFT,
@@ -343,9 +264,6 @@ do
         return math.floor(x + 0.5)
     end
 
-    -- Which weapon stock types feed a given stock type. Composite/bespoke types
-    -- are listed in StockTypeContents; a single weapon stock type resolves to
-    -- itself; anything else (e.g. an aircraft stock type) yields none.
     ---@param stock_type StockTypes
     ---@return StockTypes[] list of weapon stock type enum values
     local function weaponStockTypesFor(stock_type)
@@ -358,8 +276,7 @@ do
     end
 
 
-    local UNTRACKABLE_WEAPON_PREFIXES = {
-    }
+    local UNTRACKABLE_WEAPON_PREFIXES = {}
     ---@param clsid string weapon clsid
     ---@return boolean trackable whether the DCS warehouse API can hold/count it
     local function isWarehouseTrackable(clsid)
@@ -370,7 +287,34 @@ do
     end
     WarehouseManager.isWarehouseTrackable = isWarehouseTrackable
 
- 
+    function WarehouseManager:addLiquids(airbase_name)
+                    -- add liquids
+            local airbase = Airbase.getByName(airbase_name)
+            if not airbase then return end
+            local warehouse = airbase:getWarehouse()
+            if not warehouse then return end
+
+            local side = airbase:getCoalition()
+
+            local scale = WarehouseManager:getStockScale()
+            if side == coalition.side.RED and Config.red_stock_multiplier then
+                scale = scale * Config.red_stock_multiplier
+            elseif side == coalition.side.BLUE and Config.blue_stock_multiplier then
+                scale = scale * Config.blue_stock_multiplier
+            end
+            --[[
+            0    : jetfuel
+            1    : Aviation gasoline
+            2    : MW50
+            3    : Diesel
+            ]]
+            warehouse:addLiquid(0, 50000 * scale) -- jetfuel
+            warehouse:addLiquid(1, 20000 * scale) -- avgas  
+            warehouse:addLiquid(2, 5000 * scale)  -- MW50
+            warehouse:addLiquid(3, 10000 * scale) -- diesel
+    end
+
+
     ---@param dcs_type string
     ---@return StockTypes role
     function WarehouseManager:classifyAircraftRole(dcs_type)
@@ -737,27 +681,6 @@ do
                     table.insert(added_stuff_tbl, {id, scaled_amount})
                 end
             end
-        end
-
-
-        if utils.tableContains(stock_types, StockTypes.FARP) then
-            -- add liquids
-            local scale = WarehouseManager:getStockScale()
-            if side == coalition.side.RED and Config.red_stock_multiplier then
-                scale = scale * Config.red_stock_multiplier
-            elseif side == coalition.side.BLUE and Config.blue_stock_multiplier then
-                scale = scale * Config.blue_stock_multiplier
-            end
-            --[[
-            0    : jetfuel
-            1    : Aviation gasoline
-            2    : MW50
-            3    : Diesel
-            ]]
-            warehouse:addLiquid(0, 50000 * scale) -- jetfuel
-            warehouse:addLiquid(1, 20000 * scale) -- avgas  
-            warehouse:addLiquid(2, 5000 * scale)  -- MW50
-            warehouse:addLiquid(3, 10000 * scale) -- diesel
         end
 
         return added_stuff_tbl
