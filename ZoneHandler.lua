@@ -619,6 +619,19 @@ do
             end
         end
 
+        local function addSupplies(supply_side)
+            timer.scheduleFunction(function ()
+                local nearest_valid_zone, nearest_distance = self:getClosestZone(supply_side, nil, {ZoneTypes.LOGISTICS, ZoneTypes.AIRBASE, ZoneTypes.FARP}, true)
+                if nearest_valid_zone and nearest_valid_zone.ammo_depot_intact then
+                    local added_supplies = Config.supplies.supplies_looted_on_destroyed + math.random(-Config.supplies.supplies_looted_on_destroyed_variance,Config.supplies.supplies_looted_on_destroyed_variance)
+                    local local_cap = Config.supplies.supplies_cap[nearest_valid_zone.level or 1] or 0
+                    nearest_valid_zone.local_supplies = math.min((nearest_valid_zone.local_supplies or 0) + added_supplies, local_cap)
+                    trigger.action.outTextForCoalition(supply_side,"Frontline forces looted " .. added_supplies .. " supplies from "..self.name, 10)
+                    trigger.action.outSoundForCoalition(supply_side, "radio_beep3.ogg")
+                end
+            end,{},timer.getTime()+math.random(30,60))
+        end
+
         -- Notify players
         if self.side == coalition.side.BLUE then
 
@@ -632,16 +645,7 @@ do
             trigger.action.outTextForCoalition(2,"SITREP: Allied forces have occupied " .. self.name .. ".", 15)
 
             -- Adds supplies on capture
-            timer.scheduleFunction(function ()
-                if self.ammo_depot_intact then
-
-                    local added_supplies = Config.supplies.supplies_looted_on_destroyed + math.random(-Config.supplies.supplies_looted_on_destroyed_variance,Config.supplies.supplies_looted_on_destroyed_variance)
-                    local local_cap = Config.supplies.supplies_cap[self.level or 1] or 0
-                    self.local_supplies = math.min((self.local_supplies or 0) + added_supplies, local_cap)
-                    trigger.action.outTextForCoalition(2,"Frontline forces looted " .. added_supplies .. " supplies from "..self.name, 10)
-                    trigger.action.outSoundForCoalition(2, "radio_beep3.ogg")
-                end
-            end,{},timer.getTime()+math.random(30,60))
+            addSupplies(self.side)
 
         elseif self.side == coalition.side.RED then
             --Add discovered zone to blue players
@@ -649,18 +653,10 @@ do
                 table.insert(stats.red_discovered_zones, self.name)
             end
             -- Adds supplies on capture
-            timer.scheduleFunction(function ()
-                if self.ammo_depot_intact then
-                    local added_supplies = Config.supplies.supplies_looted_on_destroyed + math.random(-Config.supplies.supplies_looted_on_destroyed_variance,Config.supplies.supplies_looted_on_destroyed_variance)
-                    local local_cap = Config.supplies.supplies_cap[self.level or 1] or 0
-                    self.local_supplies = math.min((self.local_supplies or 0) + added_supplies, local_cap)
-                    trigger.action.outTextForCoalition(1,"Frontline forces looted " .. added_supplies .. " supplies from "..self.name, 10)
-                    trigger.action.outSoundForCoalition(1, "radio_beep3.ogg")
-                end
-            end,{},timer.getTime()+math.random(30,60))
+            addSupplies(self.side)
 
             trigger.action.outTextForCoalition(2,"SITEP: Allied forces lost control of " .. self.name .. ".", 15)
-            
+
             trigger.action.outTextForCoalition(1,"SITREP: Allied forces have occupied " .. self.name .. ".", 15)
         else
             trigger.action.outText("SITREP: ".. self.name .. " is now neutral territory.", 15)
@@ -670,19 +666,19 @@ do
             self.last_capture_attempt = nil
             self:drawF10()
         else
-            self.last_attacked_by = nil 
+            self.last_attacked_by = nil
             self.last_capture_attempt = nil
-            
+
             self.attack_convoy = 0
             self.heli_avail = 0
             self:drawF10()
             self:updateDiscoveredZones()
-            
+
         end
 
         trigger.action.outSound("radio click.ogg")
         MissionLogger:info("Zone " .. self.zone.name .. " captured by " .. utils.coalitionToString(self.side))
-        
+
         -- Invalidate cached operation lists immediately after ownership changes.
         if TheatreCommander.blue_op_manager and TheatreCommander.blue_op_manager.forceRegenerateOperations then
             TheatreCommander.blue_op_manager:forceRegenerateOperations()
