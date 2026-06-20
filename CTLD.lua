@@ -1588,7 +1588,7 @@ function ctld.unload(unit)
 
     local user = ctld.users[unit_id]
     if user == nil or #user.parts == 0 then
-        trigger.action.outTextForUnit(unit_id,"Negative, no cargo to unload.", 5)
+        trigger.action.outTextForUnit(unit_id,"No cargo to unload.", 5)
         trigger.action.outSoundForUnit(unit_id, "transmission1.ogg")
         return
     end
@@ -1707,6 +1707,7 @@ function ctld.listSupplies(unit)
     local relevant_zones = 0
 
     -- Detail the production rates
+    ---@type ZoneHandler[]
     local sorted_zones = {}
     for _, zone in ipairs(zones) do
         if zone.side == unit_coalition and (zone.zone_type == ZoneTypes.AIRBASE or zone.zone_type == ZoneTypes.LOGISTICS
@@ -1750,6 +1751,10 @@ function ctld.listSupplies(unit)
 
                 if zone:isPointInsideZone(unit_point) then
                     txt_heading = "Logistics SITREP\n\n".. zone_supplies .. " / " .. current_cap .. " local available supplies.\n"
+                end
+
+                if zone.production_ration and zone.production_ration_until then
+                    zone_production = math.floor(zone_production * zone.production_ration)
                 end
 
                 txt_body = txt_body .. "\n - ".. zone.name .. "            "..zone_supplies.."/"..current_cap.."      +".. zone_production .. " / minute"
@@ -1997,7 +2002,7 @@ function ctld.buildFARP(unit, center_point,linked_zone, assigned_name)
                 ["unitId"] = mist.getNextUnitId(),
                 ["x"] = static_point.x,
                 ["y"] = static_point.y,
-                ["name"] = string.format("ctld_farp_%d", ctld.getNextGroupId()),
+                ["name"] = assigned_name,
                 ["heading"] = 0,
                 ["dead"] = false,
                 ["dynamicSpawn"] = true,

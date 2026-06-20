@@ -1110,7 +1110,7 @@ Config = {
             -- the engineers are active (e.g. 1.5 = +50% production)
             production_ration = 1.5,
             -- (int) (seconds) how long the production boost lasts
-            duration = 3*60*60,
+            duration = 2*60,
         },
         sabotage = {
             req_supplies = 125,

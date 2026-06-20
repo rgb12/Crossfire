@@ -1087,7 +1087,7 @@ do
             if self.zone_type == ZoneTypes.LOGISTICS then production = production * logistics_mult end
 
             -- Engineer (+) / sabotage (-) squads scale production while active.
-            if self.production_ration then production = production * self.production_ration end
+            if self.production_ration then production = math.floor(production * self.production_ration) end
 
             self.local_supplies = math.min(self.local_supplies + production,max_local_supplies)
 
