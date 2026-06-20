@@ -745,6 +745,8 @@ do
             local scale = WarehouseManager:getStockScale()
             if side == coalition.side.RED and Config.red_stock_multiplier then
                 scale = scale * Config.red_stock_multiplier
+            elseif side == coalition.side.BLUE and Config.blue_stock_multiplier then
+                scale = scale * Config.blue_stock_multiplier
             end
             --[[
             0    : jetfuel

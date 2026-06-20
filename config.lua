@@ -34,7 +34,7 @@ Config = {
     persistence = {
         -- (bool) enables or not persistence, has authority over everything below in
         -- this section
-        enable =  false,
+        enable =  true,
         -- (int) (seconds) interval at which the mission state is saved You can use
         -- fixed values or multiplications like above 51 seconds is used to avoid
         -- multiples of 15 to reduce lag spikes
@@ -77,7 +77,7 @@ Config = {
         -- "Early Cold War" 1947-1969
         -- "Late Cold War" 1969-1989
         -- "Modern" 1989-
-        eras_selected = { Eras.LATECOLDWAR},
+        eras_selected = { Eras.MODERN},
 
         -- (table<...>) When this is empty, the script considers all modules flyable.
         -- To restrict to a specific set of aircraft, list them
