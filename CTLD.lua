@@ -483,16 +483,6 @@ InfantrySquads = {} do
                 object_type = "group",
                 coalition = side,
             })
-        else
-            table.insert(ctld.placed_assets, {
-                is_group = true,
-                group_name = group_name,
-                asset_name = def.id,
-                type = ctld.AssetTypes.TROOPS,
-                point = base,
-                coalition = side,
-                unit_count = #units_spec,
-            })
         end
 
         return group_name, nil
