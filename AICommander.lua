@@ -656,7 +656,6 @@ do
     -- MAJOR OFFENSIVE
     -- Every few hours each enabled coalition launches a big coordinated strike
     -- package against the enemy.
-    ---Is this side enabled for major offensives?
     ---@param side coalition.side
     ---@return boolean
     function AICommander:isOffensiveEnabled(side)

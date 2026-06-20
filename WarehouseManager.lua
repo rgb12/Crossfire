@@ -1033,9 +1033,8 @@ do
             -- warehouse-limited, so treat them as always available.
             if isWarehouseTrackable(wpn_id) then
                 local current_count = warehouse:getItemCount(wpn_id)
-                local critical_amount = math.max(current_count-2,0)
-                if critical_amount < amount then
-                    MissionLogger:info("[PAYLOAD CHECK] "..ai_task_type.." payload INSUFFICIENT: need "..amount.." of "..wpn_id..", have "..critical_amount)
+                if current_count < amount then
+                    MissionLogger:info("[PAYLOAD CHECK] "..ai_task_type.." payload INSUFFICIENT: need "..amount.." of "..wpn_id..", have "..current_count.. " at "..airbase:getName())
                     return false
                 end
             else
@@ -1043,7 +1042,7 @@ do
             end
         end
         
-        MissionLogger:info("[PAYLOAD CHECK] "..ai_task_type.." payload OK")
+        MissionLogger:info("[PAYLOAD CHECK] "..ai_task_type.." payload OK at "..airbase:getName())
         return true
 
     end
