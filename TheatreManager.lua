@@ -253,11 +253,11 @@ do
                                 enroute.stuck_since = nil
                                 local enemy_units = utils.getUnitsInZoneObj(enroute.to_zone, utils.getEnemyCoalition(enroute.side))
                                 if not enemy_units or #enemy_units == 0 then
-                                    trigger.action.outTextForCoalition(enroute.side, "Convoy sent to attack " .. enroute.to_zone.zone.name .. " has completed its mission", 10)
+                                    trigger.action.outTextForCoalition(enroute.side, "Attack convoy sent to " .. enroute.to_zone.zone.name .. " has completed its mission", 10)
                                     EnrouteManager.enroutes[i] = nil
                                     timer.scheduleFunction(function ()
                                         if convoy_group and convoy_group:isExist() then convoy_group:destroy() end
-                                    end, {}, timer.getTime() + math.random(5, 10))
+                                    end, {}, timer.getTime() + math.random(50, 60))
                                 end
                             elseif not UnitHandler.checkConvoyMoving(convoy_group) then
                                 -- Stuck en route (not in zone, not moving): time it out
