@@ -117,7 +117,6 @@ function Jupiter:onEvent(event)
                     TheatreCommander:restartMission()
                 end, nil, timer.getTime() + 5)
             end
-            TheatreCommander:restartMission()
         elseif command == "-restock" then
             WarehouseManager:handleIncomingSupplies(coalition.side.BLUE, {StockTypes.INITIAL})
             WarehouseManager:handleIncomingSupplies(coalition.side.RED, {StockTypes.INITIAL})
