@@ -131,13 +131,20 @@ do
             }
         })
 
+        -- Fallback to orbit near frontline
+        local closest_enemy_zone, closest_dist = red_airbase:getClosestZone(coalition.side.BLUE,nil,nil,false)
+        local closest_friendly_zone_to_frontline = closest_enemy_zone and closest_enemy_zone:getClosestZone(self.hunting_side,nil,nil,false)
+
+        if closest_friendly_zone_to_frontline then
+            target_pos = closest_friendly_zone_to_frontline.zone.point
+        end
         table.insert(tasks, {
             id = 'Orbit',
             params = {
                 pattern = AI.Task.OrbitPattern.CIRCLE,
                 point = { x = target_pos.x, y = target_pos.z },
                 speed = 250,
-                altitude = mist.utils.feetToMeters(20000),
+                altitude = mist.utils.feetToMeters(math.random(10000, 20000)),
                 priority = 2,
             }
         })

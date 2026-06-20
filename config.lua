@@ -1044,7 +1044,7 @@ Config = {
         allow_unloading_in_zones = true,
         -- (bool)
         enable_weighted_loading = false,
-        
+
         -- (table<string>)
         FARP_names = {
             "Elara",
