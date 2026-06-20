@@ -375,7 +375,8 @@ do
                         display_name = farp_data.display_name,
                         point = farp_data.point,
                         coalition = farp_data.coalition,
-                        linked_zone_name = farp_data.linked_zone and farp_data.linked_zone.name or nil
+                        linked_zone_name = farp_data.linked_zone and farp_data.linked_zone.name or nil,
+                        linked_group = farp_data.linked_group
                     })
                 end
             end
@@ -827,7 +828,8 @@ do
                     display_name = saved_farp.display_name,
                     point = saved_farp.point,
                     coalition = saved_farp.coalition,
-                    linked_zone = saved_farp.linked_zone_name and ZoneHandler.getFromName(saved_farp.linked_zone_name) or nil
+                    linked_zone = saved_farp.linked_zone_name and ZoneHandler.getFromName(saved_farp.linked_zone_name) or nil,
+                    linked_group = saved_farp.linked_group
                 }
 
                 table.insert(ctld.FARPs, farp)

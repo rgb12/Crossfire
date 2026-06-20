@@ -88,6 +88,7 @@ ctld.operation_assets = {}
 ---@field linked_zone ZoneHandler|nil
 ---@field display_name string|nil
 ---@field mark_id any|nil
+---@field linked_group string|nil FARP defence vehicle group spawned on construction
 
 ---@type ConstructedFARP[]
 ctld.FARPs = {} -- store for persistence
@@ -1905,6 +1906,25 @@ function ctld.findNearbySupplyCrates(point, coalition_side, radius)
     return found
 end
 
+---Pick the first unused FARP name from Config.ctld.FARP_names.
+---Returns nil if every configured name is already in use by an active FARP.
+---@return string|nil display_name e.g. "FARP Callisto"
+function ctld.pickFARPName()
+    for _, candidate in ipairs(Config.ctld.FARP_names) do
+        local taken = false
+        for _, farp in ipairs(ctld.FARPs) do
+            if farp.display_name == "FARP " .. candidate then
+                taken = true
+                break
+            end
+        end
+        if not taken then
+            return "FARP " .. candidate
+        end
+    end
+    return nil
+end
+
 ---Distance (m) to the nearest zone, or math.huge if there are no zones.
 ---@param point vec3
 ---@return number nearest_distance
@@ -1927,28 +1947,37 @@ end
 ---@param unit Unit
 ---@param center_point vec3
 ---@param linked_zone ZoneHandler|nil
+---@param assigned_name string display name for the FARP (e.g. "FARP Callisto")
 ---@return ConstructedFARP|nil
-function ctld.buildFARP(unit, center_point,linked_zone)
+function ctld.buildFARP(unit, center_point,linked_zone, assigned_name)
+    local side = unit:getCoalition()
     local country_name_id = country.id.CJTF_BLUE
-    if unit:getCoalition() == coalition.side.RED then
+    if side == coalition.side.RED then
         country_name_id = country.id.CJTF_RED
     end
 
     local base_x = center_point.x
     local base_y = center_point.z
 
+    -- Static layout mirrors UnitHandler.initFARP (zone FARPs) for consistency.
     local farp_statics_to_spawn = {
+        -- Invisible FARP (Center Point)
         { type = "Invisible FARP", category = "Heliports", shape_name = "invisiblefarp", offset_x = 0, offset_y = 0 },
-        { type = "FARP Tent", category = "Fortifications", offset_x = 5, offset_y = 55 },
-        { type = "FARP Tent", category = "Fortifications", offset_x = -15, offset_y = 55 },
-        { type = "FARP Ammo Dump Coating", category = "Fortifications", offset_x = 30, offset_y = 5 },
-        { type = "FARP Ammo Dump Coating", category = "Fortifications", offset_x = 30, offset_y = -5 },
-        { type = "FARP Fuel Depot", category = "Fortifications", offset_x = 5, offset_y = -60 },
-        { type = "FARP Fuel Depot", category = "Fortifications", offset_x = -5, offset_y = -60 },
+
+        -- Tents (clustered NE of the pad)
+        { type = "FARP Tent", category = "Fortifications", offset_x = 90, offset_y = 95 },
+        { type = "FARP Tent", category = "Fortifications", offset_x = 110, offset_y = 95 },
+
+        -- Ammo Storage (NW corner)
+        { type = "FARP Ammo Dump Coating", category = "Fortifications", offset_x = -95, offset_y = 90 },
+        { type = "FARP Ammo Dump Coating", category = "Fortifications", offset_x = -95, offset_y = 100 },
+
+        -- Fuel Depots (SE corner)
+        { type = "FARP Fuel Depot", category = "Fortifications", offset_x = 90, offset_y = -95 },
+        { type = "FARP Fuel Depot", category = "Fortifications", offset_x = 100, offset_y = -95 },
     }
 
     local farp_name = nil
-    local assigned_name = nil
 
     for _, static_data in ipairs(farp_statics_to_spawn) do
         local static_point = {
@@ -1958,6 +1987,9 @@ function ctld.buildFARP(unit, center_point,linked_zone)
 
         local new_static
         if static_data.type == "Invisible FARP" then
+            -- Spawn the pad via coalition.addStaticObject with dynamicSpawn/allowHotStart
+            -- so aircraft can hot-start and rearm from a constructed FARP (mirrors
+            -- UnitHandler.initFARP). mist.dynAddStatic does not set these flags.
             new_static = coalition.addStaticObject(country_name_id, {
                 ["category"] = static_data.category,
                 ["shape_name"] = static_data.shape_name,
@@ -1971,6 +2003,8 @@ function ctld.buildFARP(unit, center_point,linked_zone)
                 ["dynamicSpawn"] = true,
                 ["allowHotStart"] = true
             })
+            -- coalition.addStaticObject returns a StaticObject; normalise to a
+            -- name field so the shared bookkeeping below works for both paths.
             if new_static and new_static.getName then
                 new_static = { name = new_static:getName() }
             end
@@ -1987,31 +2021,6 @@ function ctld.buildFARP(unit, center_point,linked_zone)
             })
         end
 
-        -- Assign custom display name to FARP (unique among active FARPs)
-        if static_data.type == "Invisible FARP" then
-            local failsafe = 0
-            while failsafe < 1000 and not assigned_name do
-                failsafe = failsafe + 1
-                local candidate = Config.ctld.FARP_names[math.random(1, #Config.ctld.FARP_names)]
-                local taken = false
-                for _, farp in ipairs(ctld.FARPs) do
-                    if farp.display_name == candidate then
-                        taken = true
-                        break
-                    end
-                end
-                if not taken then
-                    assigned_name = candidate
-                end
-            end
-            -- Fallback if all names are already in use
-            if not assigned_name then
-                assigned_name = string.format("FARP %d", #ctld.FARPs + 1)
-            else
-                assigned_name = "FARP "..assigned_name
-            end
-        end
-
         if new_static and new_static.name then
             table.insert(ctld.placed_assets, {
                 unit_name = new_static.name,
@@ -2020,9 +2029,9 @@ function ctld.buildFARP(unit, center_point,linked_zone)
                 shape_name = static_data.shape_name,
                 point = { x = static_point.x, y = land.getHeight({x = static_point.x, y = static_point.y}), z = static_point.y },
                 type = ctld.AssetTypes.STATIC,
-                coalition = unit:getCoalition()
+                coalition = side
             })
-            
+
             if static_data.type == "Invisible FARP" then
                 farp_name = new_static.name
             end
@@ -2035,18 +2044,44 @@ function ctld.buildFARP(unit, center_point,linked_zone)
         return nil
     end
 
-    -- timer.scheduleFunction(function()
-    --     WarehouseManager:clearWarehouse(farp_name)
-    --     WarehouseManager:attributeAirbaseStock(farp_name, unit:getCoalition(), {StockTypes.FARP})
-    -- end, {}, timer.getTime() + 1)
+    -- Fuel the constructed FARP (mirrors UnitHandler.initFARP).
+    WarehouseManager:addLiquids(farp_name)
+
+    -- Spawn the FARP vehicle group, mirroring UnitHandler.initFARP.
+    local group_spawn_point = {
+        x = base_x - 95,
+        y = base_y - 95
+    }
+    local linked_group_name = nil
+    local group_template_name_side
+    if side == coalition.side.RED then
+        group_template_name_side = GroupData.COMMON_ASSETS.RED.farp
+    else
+        group_template_name_side = GroupData.COMMON_ASSETS.BLUE.farp
+    end
+    local group_template_name = EraSystem.resolveTaskTemplateName(group_template_name_side)
+    if group_template_name then
+        local vehicles_gr = mist.teleportToPoint({
+            groupName = group_template_name,
+            point = group_spawn_point,
+            action = 'clone',
+            disperse = false,
+            initTasks = true,
+            anyTerrain = true
+        })
+        if vehicles_gr and vehicles_gr.name then
+            linked_group_name = vehicles_gr.name
+        end
+    end
 
     ---@type ConstructedFARP
     local farp = {
         farp_name = farp_name,
         display_name = assigned_name,
         point = center_point,
-        coalition = unit:getCoalition(),
-        linked_zone = linked_zone
+        coalition = side,
+        linked_zone = linked_zone,
+        linked_group = linked_group_name
     }
     table.insert(ctld.FARPs, farp)
 
@@ -2099,29 +2134,23 @@ function ctld.tryConstructFARP(unit)
         current_zone.linked_farp = nil
     end
 
-    -- Center the FARP on the average position of the consumed crates.
-    local center = { x = 0, y = 0, z = 0 }
-    local count = 0
-    for i = 1, required_crates do
-        local crate = crates[i]
-        if crate and crate:isExist() then
-            local p = crate:getPoint()
-            center.x = center.x + p.x
-            center.z = center.z + p.z
-            count = count + 1
-        end
-    end
-
-    if count == 0 then
+    -- Reserve a FARP name from the config list; reject if none are free.
+    local assigned_name = ctld.pickFARPName()
+    if not assigned_name then
+        trigger.action.outTextForUnit(unit_id,
+            "Cannot construct FARP. No FARP designations available.", 10)
+        trigger.action.outSoundForUnit(unit_id, "transmission1.ogg")
         return false
     end
 
-    center.x = center.x / count
-    center.z = center.z / count
-    center.y = land.getHeight({x = center.x, y = center.z})
+    -- The FARP is centered on the constructing unit's current position.
+    local center = {
+        x = unit_pos.x,
+        z = unit_pos.z,
+        y = land.getHeight({ x = unit_pos.x, y = unit_pos.z })
+    }
 
-
-    local farp = ctld.buildFARP(unit, center, current_zone)
+    local farp = ctld.buildFARP(unit, center, current_zone, assigned_name)
     if not farp then
         trigger.action.outTextForUnit(unit_id, "Failed to construct FARP.", 5)
         trigger.action.outSoundForUnit(unit_id, "transmission1.ogg")
@@ -2345,6 +2374,14 @@ function ctld.monitorFARPDestruction()
             local invisible_farp = StaticObject.getByName(farp.farp_name)
             if invisible_farp and invisible_farp:isExist() then
                 invisible_farp:destroy()
+            end
+
+            -- Remove the FARP defence vehicle group
+            if farp.linked_group then
+                local grp = Group.getByName(farp.linked_group)
+                if grp and grp:isExist() then
+                    grp:destroy()
+                end
             end
 
             -- Update linked zone if applicable
