@@ -1891,7 +1891,7 @@ function ctld.findNearbySupplyCrates(point, coalition_side, radius)
         params = { point = point, radius = radius }
     }
 
-    world.searchObjects({Object.Category.STATIC}, vol, function(obj)
+    world.searchObjects({Object.Category.STATIC, Object.Category.CARGO}, vol, function(obj)
         if obj and obj:isExist() and obj.getName and obj.getCoalition
         and obj:getCoalition() == coalition_side then
             local part_name = ctld.getPackedPartName(obj:getName())
@@ -2123,7 +2123,7 @@ function ctld.tryConstructFARP(unit)
 
     local farp = ctld.buildFARP(unit, center, current_zone)
     if not farp then
-        trigger.action.outTextForUnit(unit_id, "Negative, failed to construct FARP.", 5)
+        trigger.action.outTextForUnit(unit_id, "Failed to construct FARP.", 5)
         trigger.action.outSoundForUnit(unit_id, "transmission1.ogg")
         return false
     end
