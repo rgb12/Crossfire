@@ -556,13 +556,6 @@ InfantrySquads = {} do
                 if zone.drawF10 then zone:drawF10() end
                 -- Engineers disband when their work period ends (see tick).
                 state.expire_at = zone.production_ration_until
-                -- Red smoke ~20 m from the squad position.
-                local p = mist.getLeadPos(group_name)
-                if p then
-                    trigger.action.smoke(
-                        { x = p.x + 20, y = land.getHeight({ x = p.x + 20, y = p.z+5 }), z = p.z+5 },
-                        trigger.smokeColor.Red)
-                end
                 trigger.action.outTextForCoalition(side,
                     string.format("Engineers deployed at %s, supply production increased.", zone.name), 10)
             end
