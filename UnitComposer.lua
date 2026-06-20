@@ -118,7 +118,7 @@ UnitComposer = {} do
     ---@param minimum_spacing number|nil minimum distance to any prior unit (default 10)
     ---@return number x, number y
     local function scatterPos(origin, placed_positions, validTerrain, minimum_spacing)
-        local terrain_filter = validTerrain or { "LAND", "ROAD" }
+        local terrain_filter = validTerrain or { "LAND" }
         local spacing = minimum_spacing or 10
 
         local function isFarEnough(coord)
