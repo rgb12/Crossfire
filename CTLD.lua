@@ -590,12 +590,20 @@ InfantrySquads = {} do
         -- Hold fire so the JTAC spots rather than engages
         ctrl:setOption(AI.Option.Ground.id.ROE, AI.Option.Ground.val.ROE.WEAPON_HOLD)
 
-        ctrl:setTask({
+        local FAC_task ={
             id = "FAC",
             params = {
                 priority = 0,
             },
+        }
+
+        ctrl:setTask({
+            id = 'ComboTask',
+            params = {
+                [1] = FAC_task,
+            }
         })
+        MissionLogger:info("Has task "..ctrl:hasTask())
     end
 
     function InfantrySquads.ensureTicker()
@@ -1116,19 +1124,19 @@ function ctld.unpack(unit)
 
     local operation_context = ctld.fetchOperationContextForUnit(unit)
     if operation_context and operation_context.operation_type == OperationTypes.STRATEGIC_AIRLIFT then
-        trigger.action.outTextForUnit(unit_id, "Negative, cannot unpack during Strategic Airlift operations.", 5)
+        trigger.action.outTextForUnit(unit_id, "Cannot unpack during Strategic Airlift operations.", 5)
         trigger.action.outSoundForUnit(unit_id, "transmission1.ogg")
         return
     end
 
     if unit:inAir() then
-        trigger.action.outTextForUnit(unit_id,"Negative, cannot unpack while airborne.", 5)
+        trigger.action.outTextForUnit(unit_id,"Cannot unpack while airborne.", 5)
         trigger.action.outSoundForUnit(unit_id, "transmission1.ogg")
         return
     end
 
     if utils.getZoneOfUnitFromPosition(unit_pos) and not Config.ctld.allow_unpacking_in_zones then
-        trigger.action.outTextForUnit(unit_id,"Negative, cannot unpack in this area.", 5)
+        trigger.action.outTextForUnit(unit_id,"Cannot unpack in this area.", 5)
         trigger.action.outSoundForUnit(unit_id, "transmission1.ogg")
         return
     end
