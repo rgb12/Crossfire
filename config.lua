@@ -1071,8 +1071,8 @@ Config = {
     squads = {
         -- (bool) master for the infantry squad system
         enabled = true,
-        -- (int) (seconds) how often squad behaviours (assault re-task, mortar fire,
-        -- capture check) are evaluated
+        -- (int) (seconds) how often squad behaviours (assault re-task, mortar fire)
+        -- are evaluated
         behaviour_tick = 30,
 
         assault = {
@@ -1118,11 +1118,6 @@ Config = {
             duration = 3*60*60,
             -- (bool) allow the squad to destroy the target zone's COMMS tower
             can_destroy_comms = true,
-        },
-        capture = {
-            req_supplies = 50,
-            troop_slots = 4,
-            soldiers = 4,
         },
         jtac = {
             req_supplies = 50,

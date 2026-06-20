@@ -208,7 +208,6 @@ InfantrySquads = {} do
         MORTAR   = "mortar",
         ENGINEER = "engineer",
         SABOTAGE = "sabotage",
-        CAPTURE  = "capture",
         JTAC     = "jtac",
     }
 
@@ -225,7 +224,6 @@ InfantrySquads = {} do
         MORTAR   = "mortar",
         ENGINEER = "engineer",
         SABOTAGE = "sabotage",
-        CAPTURE  = "capture",
         JTAC     = "jtac",
     }
 
@@ -281,12 +279,6 @@ InfantrySquads = {} do
             desc = "Sabotage Squad",
             roles = { InfantrySquads.SquadRoles.INFANTRY_AT, InfantrySquads.SquadRoles.INFANTRY },
             behaviour = InfantrySquads.Behaviours.SABOTAGE,
-        },
-        {
-            id = InfantrySquads.SquadIds.CAPTURE,
-            desc = "Capture Squad",
-            roles = { InfantrySquads.SquadRoles.INFANTRY_AT, InfantrySquads.SquadRoles.INFANTRY },
-            behaviour = InfantrySquads.Behaviours.CAPTURE,
         },
         {
             id = InfantrySquads.SquadIds.JTAC,
@@ -407,18 +399,9 @@ InfantrySquads = {} do
             if best then return true, best, nil end
             return false, nil, string.format(
                 "Sabotage team must be deployed within %d m of an enemy zone.", range)
-
-        elseif b == "capture" then
-            -- Inside a NEUTRAL zone.
-            for _, zone in ipairs(zones) do
-                if zone.side == coalition.side.NEUTRAL and zone:isPointInsideZone(point) then
-                    return true, zone, nil
-                end
-            end
-            return false, nil, "Capture team must be deployed inside a neutral zone."
         end
 
-        -- assault / mortar / static / jtac: no placement restriction.
+        -- assault / mortar / jtac: no placement restriction.
         return true, nil, nil
     end
 
@@ -552,7 +535,7 @@ InfantrySquads = {} do
     ---@param def SquadDef
     ---@param group_name string
     ---@param side coalition.side
-    ---@param zone ZoneHandler|nil resolved at deploy time (engineer/sabotage/capture)
+    ---@param zone ZoneHandler|nil resolved at deploy time (engineer/sabotage)
     function InfantrySquads.startBehaviour(def, group_name, side, zone)
         local b = def.behaviour
         local cfg = InfantrySquads.cfg(def.id)
@@ -611,9 +594,6 @@ InfantrySquads = {} do
                     InfantrySquads._sabotageComms(zone, side)
                 end
             end
-
-        elseif b == "capture" then
-            -- Capture handled on the behaviour tick (squad must survive in-zone).
 
         elseif b == "jtac" then
             InfantrySquads._jtacRetask(group_name, side)
@@ -746,17 +726,6 @@ InfantrySquads = {} do
                 InfantrySquads._assaultRetask(group_name, state.side)
             elseif state.behaviour == "jtac" then
                 InfantrySquads._jtacRetask(group_name, state.side)
-            elseif state.behaviour == "capture" then
-                local zone = state.zone_name and ZoneHandler.getFromName(state.zone_name) or nil
-                if zone and zone.side == coalition.side.NEUTRAL then
-                    local lead = mist.getLeadPos(group_name)
-                    if lead and zone:isPointInsideZone(lead) and zone.capture then
-                        zone:capture(state.side)
-                        trigger.action.outTextForCoalition(state.side,
-                            string.format("%s captured by ground forces.", zone.name), 10)
-                        InfantrySquads.active[group_name] = nil
-                    end
-                end
             end
         end
     end
