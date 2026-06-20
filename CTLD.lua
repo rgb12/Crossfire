@@ -25,8 +25,8 @@ ctld.aircraft_limits = {
     {aircraft_type = "Mi-24P",     max_parts = 2,  max_troops = 8, weight_limit = 2500},
     {aircraft_type = "CH-47Fbl1",   max_parts = 6,  max_troops = 30, weight_limit = 10000},
     {aircraft_type = "C-130J-30",   max_parts = 12, max_troops = 60, weight_limit = 20000},
-    {aircraft_type = "SA342L",     max_parts = 1,  max_troops = 4, weight_limit = 800},
-    {aircraft_type = "SA342M",     max_parts = 1,  max_troops = 4, weight_limit = 800},
+    {aircraft_type = "SA342L",     max_parts = 1000,  max_troops = 4000, weight_limit = 800},
+    {aircraft_type = "SA342M",     max_parts = 1000,  max_troops = 4000, weight_limit = 800},
     {aircraft_type = "SA342Mistral",max_parts = 1,  max_troops = 4, weight_limit = 800},
     {aircraft_type = "SA342Minigun",max_parts = 1,  max_troops = 4, weight_limit = 800},
     {aircraft_type = "UH-60L",      max_parts = 2,  max_troops = 8, weight_limit = 2000},
@@ -213,53 +213,78 @@ InfantrySquads = {} do
         JTAC     = "jtac",
     }
 
+    ---@enum SquadRoles
+    InfantrySquads.SquadRoles = {
+        INFANTRY    = "INFANTRY",
+        INFANTRY_AT = "INFANTRY_AT",
+        MORTAR      = "MORTAR",
+        MANPADS     = "MANPADS",
+    }
+
+    ---@enum Behaviours
+    InfantrySquads.Behaviours = {
+        ASSAULT  = "assault",
+        MORTAR   = "mortar",
+        ENGINEER = "engineer",
+        SABOTAGE = "sabotage",
+        STINGER  = "static",
+        CAPTURE  = "capture",
+        JTAC     = "jtac",
+    }
+
+    ---@class SquadDef
+    ---@field id SquadIds
+    ---@field desc string
+    ---@field roles SquadRoles[]
+    ---@field behaviour Behaviours
+
     InfantrySquads.SQUAD_DEFS = {
         {
             id = InfantrySquads.SquadIds.ASSAULT,
             desc = "Assault Squad",
-            roles = { "INFANTRY_AT", "INFANTRY", "INFANTRY", "INFANTRY" },
-            behaviour = "assault",
+            roles = { InfantrySquads.SquadRoles.INFANTRY_AT, InfantrySquads.SquadRoles.INFANTRY, InfantrySquads.SquadRoles.INFANTRY, InfantrySquads.SquadRoles.INFANTRY },
+            behaviour = InfantrySquads.Behaviours.ASSAULT,
         },
         {
             id = InfantrySquads.SquadIds.MORTAR,
             desc = "Mortar Team",
-            roles = { "MORTAR" },
-            behaviour = "mortar",
+            roles = { InfantrySquads.SquadRoles.MORTAR },
+            behaviour = InfantrySquads.Behaviours.MORTAR,
         },
         {
             id = InfantrySquads.SquadIds.ENGINEER,
-            desc = "Engineers (+supply)",
-            roles = { "INFANTRY" },
-            behaviour = "engineer",
+            desc = "Engineers",
+            roles = { InfantrySquads.SquadRoles.INFANTRY },
+            behaviour = InfantrySquads.Behaviours.ENGINEER,
         },
         {
             id = InfantrySquads.SquadIds.SABOTAGE,
-            desc = "Sabotage Team (-supply)",
-            roles = { "INFANTRY_AT", "INFANTRY" },
-            behaviour = "sabotage",
+            desc = "Sabotage Squad",
+            roles = { InfantrySquads.SquadRoles.INFANTRY_AT, InfantrySquads.SquadRoles.INFANTRY },
+            behaviour = InfantrySquads.Behaviours.SABOTAGE,
         },
         {
             id = InfantrySquads.SquadIds.STINGER,
             desc = "Stinger AD",
-            roles = { "MANPADS" },
-            behaviour = "static",
+            roles = { InfantrySquads.SquadRoles.MANPADS },
+            behaviour = InfantrySquads.Behaviours.STINGER,
         },
         {
             id = InfantrySquads.SquadIds.CAPTURE,
-            desc = "Capture Team",
-            roles = { "INFANTRY_AT", "INFANTRY" },
-            behaviour = "capture",
+            desc = "Capture Squad",
+            roles = { InfantrySquads.SquadRoles.INFANTRY_AT, InfantrySquads.SquadRoles.INFANTRY },
+            behaviour = InfantrySquads.Behaviours.CAPTURE,
         },
         {
             id = InfantrySquads.SquadIds.JTAC,
-            desc = "JTAC (ground FAC)",
-            roles = { "INFANTRY" },
-            behaviour = "jtac",
+            desc = "JTAC (FAC)",
+            roles = { InfantrySquads.SquadRoles.INFANTRY },
+            behaviour = InfantrySquads.Behaviours.JTAC,
         },
     }
 
     ---@param squad_id SquadIds
-    ---@return table|nil def
+    ---@return SquadDef|nil def
     function InfantrySquads.getDef(squad_id)
         for _, def in ipairs(InfantrySquads.SQUAD_DEFS) do
             if def.id == squad_id then return def end
@@ -395,7 +420,7 @@ InfantrySquads = {} do
         return id
     end
 
-    ---@param def table squad definition
+    ---@param def SquadDef squad definition
     ---@param unit Unit deploying carrier
     ---@return string|nil group_name, string|nil err
     function InfantrySquads.spawnInactive(def, unit)
@@ -538,11 +563,11 @@ InfantrySquads = {} do
                 local p = mist.getLeadPos(group_name)
                 if p then
                     trigger.action.smoke(
-                        { x = p.x + 20, y = land.getHeight({ x = p.x + 20, y = p.z }), z = p.z },
+                        { x = p.x + 20, y = land.getHeight({ x = p.x + 20, y = p.z+5 }), z = p.z+5 },
                         trigger.smokeColor.Red)
                 end
                 trigger.action.outTextForCoalition(side,
-                    string.format("Engineers deployed at %s: supply production boosted.", zone.name), 10)
+                    string.format("Engineers deployed at %s, supply production increased.", zone.name), 10)
             end
 
         elseif b == "sabotage" then

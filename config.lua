@@ -765,7 +765,7 @@ Config = {
             [ZoneTypes.EWSITE]      = 5,
         },
         -- (int) seed determines scenario selection, zone types and levels. Use -1 for random seed
-        seed = -1,
+        seed = 844,
         -- (table)
         sam_classification_thresholds = {
             -- (int) (%) rolls below this : SHORT RANGE SAM
