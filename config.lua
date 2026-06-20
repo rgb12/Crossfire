@@ -806,6 +806,20 @@ Config = {
         BLUFOR_dispatcher_interval = 10*60+8,
         -- (int) (seconds), avoid multiples of 15 to reduce lag spikes
         REDFOR_dispatcher_interval = 8*60+8,
+
+        -- (table) Scale a coalition dispatcher freq by how many real
+        -- players are on the ENEMY coalition so a heavily-played side faces more AI.
+        scale_by_player_count = {
+            -- (bool) enable/disable the player-count scaling
+            enable = true,
+            -- (number) The interval is multiplied by 1/(1 + per_player*enemies).
+            speedup_per_enemy_player = 0.06,
+            -- (number) lower bound on the multiplier so the interval can never
+            -- drop below this fraction of the configured base (0.4 = at most 2.5x
+            -- faster). Prevents runaway tasking with very full servers.
+            min_interval_multiplier = 0.4,
+        },
+
         -- (int) maximum number of concurrent tasks per airbase
         max_tasks_per_airbase = 4,
         -- (int) minimum aircraft to leave in stock so AI does not empty the warehouse

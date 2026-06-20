@@ -592,15 +592,51 @@ do
     end
 
     ---Self-scheduling dispatch loop for the routine AI dispatcher.
+    ---Number of real players on a coalition.
+    ---@param side coalition.side
+    ---@return number
+    function AICommander.countPlayers(side)
+        local players = coalition.getPlayers(side)
+        return (players and #players) or 0
+    end
+
+    ---Compute this side's dispatcher interval, scaled by how many real players
+    ---are on the ENEMY coalition (more enemy players => faster tasking).
+    ---@param side coalition.side
+    ---@return number seconds
+    function AICommander.getDispatchInterval(side)
+        local base
+        if side == coalition.side.BLUE then
+            base = Config.tasking.BLUFOR_dispatcher_interval
+        else
+            base = Config.tasking.REDFOR_dispatcher_interval
+        end
+
+        local scale_cfg = Config.tasking.scale_by_player_count
+        if not (scale_cfg and scale_cfg.enable) then
+            return base
+        end
+
+        local enemy_players = AICommander.countPlayers(utils.getEnemyCoalition(side))
+        if enemy_players <= 0 then
+            return base
+        end
+
+        local per_player = scale_cfg.speedup_per_enemy_player or 0
+        local min_mult = scale_cfg.min_interval_multiplier or 0.4
+        local multiplier = 1 / (1 + per_player * enemy_players)
+        if multiplier < min_mult then multiplier = min_mult end
+
+        local scaled = math.floor(base * multiplier)
+        MissionLogger:info(string.format("[DISPATCH] %s interval %ds -> %ds (%d enemy players)",
+            utils.coalitionToString(side), base, scaled, enemy_players))
+        return scaled
+    end
+
     ---@param side coalition.side
     function AICommander.dispatchAI(side)
 
-        local next_interval = 999999
-        if side == coalition.side.BLUE then
-            next_interval = Config.tasking.BLUFOR_dispatcher_interval
-        else
-            next_interval = Config.tasking.REDFOR_dispatcher_interval
-        end
+        local next_interval = AICommander.getDispatchInterval(side)
         timer.scheduleFunction(function ()
             if MISSION_ENDED == true then return end
             AICommander:evaluateAITasks(side)
