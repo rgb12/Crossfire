@@ -93,7 +93,6 @@ available_zones = {
     ZoneHandler:new({name = "XRAY"}),
     ZoneHandler:new({name = "MIKE"}),
     ZoneHandler:new({name = "ZULU"}),
-    ZoneHandler:new({name = "PEREDOVAYA"}),
     ZoneHandler:new({name = "LIMA"}),
     ZoneHandler:new({name = "OUTPOST"}),
     ZoneHandler:new({name = "VALLEY"}),
