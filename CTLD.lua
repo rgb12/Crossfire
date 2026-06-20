@@ -1958,9 +1958,6 @@ function ctld.buildFARP(unit, center_point,linked_zone)
 
         local new_static
         if static_data.type == "Invisible FARP" then
-            -- Spawn the pad via coalition.addStaticObject with dynamicSpawn/allowHotStart
-            -- so aircraft can hot-start and rearm from a constructed FARP (mirrors
-            -- UnitHandler.initFARP). mist.dynAddStatic does not set these flags.
             new_static = coalition.addStaticObject(country_name_id, {
                 ["category"] = static_data.category,
                 ["shape_name"] = static_data.shape_name,
@@ -1974,8 +1971,6 @@ function ctld.buildFARP(unit, center_point,linked_zone)
                 ["dynamicSpawn"] = true,
                 ["allowHotStart"] = true
             })
-            -- coalition.addStaticObject returns a StaticObject; normalise to a
-            -- name field so the shared bookkeeping below works for both paths.
             if new_static and new_static.getName then
                 new_static = { name = new_static:getName() }
             end
