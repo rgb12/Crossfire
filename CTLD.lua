@@ -688,7 +688,7 @@ InfantrySquads = {} do
 
         ctrl:setOption(AI.Option.Ground.id.ROE, AI.Option.Ground.val.ROE.RETURN_FIRE)
         ctrl:setTask({
-            id = "FAC_AttackGroup",
+            id = "FAC_EngageGroup",
             params = {
                 groupId = target_group:getID(),
                 designation = AI.Task.Designation.AUTO,

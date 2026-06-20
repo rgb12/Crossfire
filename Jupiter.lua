@@ -166,8 +166,8 @@ function Jupiter:onEvent(event)
                 end
             end
         elseif command == "-dispatch" then
-            TheatreCommander:evaluateAITasks(coalition.side.BLUE)
-            TheatreCommander:evaluateAITasks(coalition.side.RED)
+            AICommander:evaluateAITasks(coalition.side.BLUE)
+            AICommander:evaluateAITasks(coalition.side.RED)
             cmd_executed = true
         elseif command == "-save" then
             PersistenceManager:saveMissionToFile()
