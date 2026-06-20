@@ -600,10 +600,10 @@ InfantrySquads = {} do
         ctrl:setTask({
             id = 'ComboTask',
             params = {
-                [1] = FAC_task,
+                tasks = { [1] = FAC_task },
             }
         })
-        MissionLogger:info("Has task "..ctrl:hasTask())
+        MissionLogger:info("JTAC FAC task assigned to "..group_name..", hasTask="..tostring(ctrl:hasTask()))
     end
 
     function InfantrySquads.ensureTicker()
