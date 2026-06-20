@@ -369,13 +369,14 @@ InfantrySquads = {} do
         local b = def.behaviour
 
         if b == "engineer" then
-            -- Must be inside a friendly zone.
+            -- Must be inside a friendly LOGISTICS zone.
             for _, zone in ipairs(zones) do
-                if zone.side == side and zone:isPointInsideZone(point) then
+                if zone.side == side and zone.zone_type == ZoneTypes.LOGISTICS
+                and zone:isPointInsideZone(point) then
                     return true, zone, nil
                 end
             end
-            return false, nil, "Engineers must be deployed inside a friendly zone."
+            return false, nil, "Engineers must be deployed inside a friendly logistics zone."
 
         elseif b == "sabotage" then
             -- Within configured range of an ENEMY zone.
@@ -789,7 +790,7 @@ InfantrySquads = {} do
     end
 
     ---@param part part squad part (must have part.squad_id)
-    ---@param unit Unit carrier (used to read the current zone level)
+    ---@param unit Unit carrier (used to read the current logistics zone level, if any)
     ---@return string label
     function InfantrySquads.menuLabel(part, unit)
         local base = part.desc .. " (" .. (part.req_supplies or 0) .. ")"
@@ -802,14 +803,11 @@ InfantrySquads = {} do
         local ration = cfg.production_ration or 1.5
         local duration_min = math.floor((cfg.duration or 3*60*60) / 60)
 
-        -- Per-minute production of the carrier's current zone (fallback: level 1).
         local level = 1
         local zone = utils.getZoneOfUnitFromPosition(unit:getPoint())
-        if zone then level = zone.level or 1 end
+        if zone and zone.zone_type == ZoneTypes.LOGISTICS then level = zone.level or 1 end
         local base_rate = (Config.supplies.supplies_production[level] or 0)
-        if zone and zone.zone_type == ZoneTypes.LOGISTICS then
-            base_rate = base_rate * (Config.supplies.logistics_mult or 2)
-        end
+            * (Config.supplies.logistics_mult or 2)
         local extra = math.floor((ration - 1) * base_rate + 0.5)
 
         return string.format("%s +%d/min for %dmin", base, extra, duration_min)
