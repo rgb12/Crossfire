@@ -1079,18 +1079,10 @@ Config = {
     squads = {
         -- (bool) master for the infantry squad system
         enabled = true,
-        -- (int) (seconds) how often squad behaviours (assault re-task, mortar fire)
+        -- (int) (seconds) how often squad behaviours (mortar fire, effect expiry)
         -- are evaluated
         behaviour_tick = 30,
 
-        assault = {
-            -- (int) supplies deducted from the loading zone
-            req_supplies = 10,
-            -- (int) troop slots consumed in the carrier (see ctld.aircraft_limits)
-            troop_slots = 4,
-            -- (int) number of soldiers spawned in the squad
-            soldiers = 4,
-        },
         mortar = {
             req_supplies = 125,
             troop_slots = 5,

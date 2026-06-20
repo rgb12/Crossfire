@@ -198,7 +198,6 @@ InfantrySquads = {} do
 
     ---@enum SquadIds
     InfantrySquads.SquadIds = {
-        ASSAULT  = "assault",
         MORTAR   = "mortar",
         ENGINEER = "engineer",
         SABOTAGE = "sabotage",
@@ -214,7 +213,6 @@ InfantrySquads = {} do
 
     ---@enum Behaviours
     InfantrySquads.Behaviours = {
-        ASSAULT  = "assault",
         MORTAR   = "mortar",
         ENGINEER = "engineer",
         SABOTAGE = "sabotage",
@@ -250,12 +248,6 @@ InfantrySquads = {} do
     ---@field expire_at number|nil
 
     InfantrySquads.SQUAD_DEFS = {
-        {
-            id = InfantrySquads.SquadIds.ASSAULT,
-            desc = "Assault Squad",
-            roles = { InfantrySquads.SquadRoles.INFANTRY_AT, InfantrySquads.SquadRoles.INFANTRY, InfantrySquads.SquadRoles.INFANTRY, InfantrySquads.SquadRoles.INFANTRY },
-            behaviour = InfantrySquads.Behaviours.ASSAULT,
-        },
         {
             id = InfantrySquads.SquadIds.MORTAR,
             desc = "Mortar Team",
@@ -396,7 +388,7 @@ InfantrySquads = {} do
                 "Sabotage team must be deployed within %d m of an enemy zone.", range)
         end
 
-        -- assault / mortar / jtac: no placement restriction.
+        -- mortar / jtac: no placement restriction.
         return true, nil, nil
     end
 
@@ -533,19 +525,7 @@ InfantrySquads = {} do
             zone_name = zone and zone.name or nil,
         }
 
-        local gr = Group.getByName(group_name)
-
-        if b == "assault" then
-            if gr then
-                local ctrl = gr:getController()
-                if ctrl then
-                    ctrl:setOption(AI.Option.Ground.id.ROE, AI.Option.Ground.val.ROE.OPEN_FIRE)
-                    ctrl:setOption(AI.Option.Ground.id.ALARM_STATE, AI.Option.Ground.val.ALARM_STATE.GREEN)
-                end
-            end
-            InfantrySquads._assaultRetask(group_name, side)
-
-        elseif b == "mortar" then
+        if b == "mortar" then
             state.ammo = cfg.ammo or 20
 
         elseif b == "engineer" then
@@ -581,32 +561,6 @@ InfantrySquads = {} do
 
         InfantrySquads.active[group_name] = state
         InfantrySquads.ensureTicker()
-    end
-
-    --- Assault: route the squad to the nearest discovered enemy zone.
-    ---@param group_name string
-    ---@param side coalition.side
-    function InfantrySquads._assaultRetask(group_name, side)
-        local gr = Group.getByName(group_name)
-        if not (gr and gr:isExist()) then return end
-        local lead = mist.getLeadPos(group_name)
-        if not lead then return end
-
-        local enemy = utils.getEnemyCoalition(side)
-        local target, best_d
-        for _, zone in ipairs(zones) do
-            if zone.side == enemy then
-                local d = mist.utils.get2DDist(lead, zone.zone.point)
-                if not best_d or d < best_d then target, best_d = zone, d end
-            end
-        end
-        if not target then return end
-
-        local path = {
-            mist.ground.buildWP({ x = lead.x, z = lead.z }, "Off Road", 20),
-            mist.ground.buildWP({ x = target.zone.point.x, z = target.zone.point.z }, "Off Road", 20),
-        }
-        mist.goRoute(group_name, path)
     end
 
     ---@param zone ZoneHandler
@@ -692,8 +646,8 @@ InfantrySquads = {} do
                 InfantrySquads.active[group_name] = nil
             elseif state.behaviour == "mortar" then
                 InfantrySquads._mortarTick(group_name, state)
-            elseif state.behaviour == "assault" then
-                InfantrySquads._assaultRetask(group_name, state.side)
+            -- engineer/sabotage effects are timed (expire_at, above); JTAC uses the
+            -- stock DCS FAC task assigned on activation. Neither needs per-tick work.
             end
         end
     end
