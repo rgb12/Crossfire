@@ -1026,11 +1026,6 @@ Config = {
             -- (bool) allow the squad to destroy the target zone's COMMS tower
             can_destroy_comms = true,
         },
-        stinger = {
-            req_supplies = 50,
-            troop_slots = 1,
-            soldiers = 1,
-        },
         capture = {
             req_supplies = 50,
             troop_slots = 4,

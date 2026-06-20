@@ -199,7 +199,7 @@ InfantrySquads = {} do
 
     InfantrySquads.PREFIX = "squad_"   -- spawned group name prefix
 
-    ---@type table<string, table>
+    ---@type table<string, SquadState>
     InfantrySquads.active = {}
 
     ---@enum SquadIds
@@ -208,7 +208,6 @@ InfantrySquads = {} do
         MORTAR   = "mortar",
         ENGINEER = "engineer",
         SABOTAGE = "sabotage",
-        STINGER  = "stinger",
         CAPTURE  = "capture",
         JTAC     = "jtac",
     }
@@ -218,7 +217,6 @@ InfantrySquads = {} do
         INFANTRY    = "INFANTRY",
         INFANTRY_AT = "INFANTRY_AT",
         MORTAR      = "MORTAR",
-        MANPADS     = "MANPADS",
     }
 
     ---@enum Behaviours
@@ -227,16 +225,37 @@ InfantrySquads = {} do
         MORTAR   = "mortar",
         ENGINEER = "engineer",
         SABOTAGE = "sabotage",
-        STINGER  = "static",
         CAPTURE  = "capture",
         JTAC     = "jtac",
     }
 
+    --- Static definition of a squad type (shape of each SQUAD_DEFS entry).
     ---@class SquadDef
     ---@field id SquadIds
     ---@field desc string
     ---@field roles SquadRoles[]
     ---@field behaviour Behaviours
+
+    ---@class SquadConfig
+    ---@field req_supplies number|nil
+    ---@field troop_slots number|nil
+    ---@field soldiers number|nil
+    ---@field range number|nil
+    ---@field fire_interval number|nil
+    ---@field ammo number|nil
+    ---@field production_ration number|nil
+    ---@field duration number|nil
+    ---@field can_destroy_comms boolean|nil
+
+    ---@class SquadState
+    ---@field squad_id SquadIds
+    ---@field behaviour Behaviours
+    ---@field side coalition.side
+    ---@field group_name string
+    ---@field zone_name string|nil
+    ---@field ammo number|nil mortar rounds remaining
+    ---@field next_fire number|nil for the next mortar shot
+    ---@field expire_at number|nil
 
     InfantrySquads.SQUAD_DEFS = {
         {
@@ -248,7 +267,7 @@ InfantrySquads = {} do
         {
             id = InfantrySquads.SquadIds.MORTAR,
             desc = "Mortar Team",
-            roles = { InfantrySquads.SquadRoles.MORTAR },
+            roles = { InfantrySquads.SquadRoles.MORTAR, InfantrySquads.SquadRoles.INFANTRY, InfantrySquads.SquadRoles.INFANTRY, InfantrySquads.SquadRoles.INFANTRY },
             behaviour = InfantrySquads.Behaviours.MORTAR,
         },
         {
@@ -262,12 +281,6 @@ InfantrySquads = {} do
             desc = "Sabotage Squad",
             roles = { InfantrySquads.SquadRoles.INFANTRY_AT, InfantrySquads.SquadRoles.INFANTRY },
             behaviour = InfantrySquads.Behaviours.SABOTAGE,
-        },
-        {
-            id = InfantrySquads.SquadIds.STINGER,
-            desc = "Stinger AD",
-            roles = { InfantrySquads.SquadRoles.MANPADS },
-            behaviour = InfantrySquads.Behaviours.STINGER,
         },
         {
             id = InfantrySquads.SquadIds.CAPTURE,
@@ -293,7 +306,7 @@ InfantrySquads = {} do
     end
 
     ---@param squad_id SquadIds
-    ---@return table cfg per-squad config block (Config.squads[squad_id]) or {}
+    ---@return SquadConfig cfg per-squad config block (Config.squads[squad_id]) or {}
     function InfantrySquads.cfg(squad_id)
         local squads = Config.squads or {}
         local block = squads[squad_id]
@@ -420,6 +433,24 @@ InfantrySquads = {} do
         return id
     end
 
+    --- Heading (radians) from `point` toward the nearest enemy zone, or nil if none.
+    ---@param point vec3
+    ---@param side coalition.side
+    ---@return number|nil heading_radians
+    function InfantrySquads._headingToNearestEnemyZone(point, side)
+        local enemy = utils.getEnemyCoalition(side)
+        local target, best_d
+        for _, zone in ipairs(zones) do
+            if zone.side == enemy then
+                local d = mist.utils.get2DDist(point, zone.zone.point)
+                if not best_d or d < best_d then target, best_d = zone, d end
+            end
+        end
+        if not target then return nil end
+        ---@diagnostic disable-next-line: deprecated
+        return math.atan2(target.zone.point.z - point.z, target.zone.point.x - point.x)
+    end
+
     ---@param def SquadDef squad definition
     ---@param unit Unit deploying carrier
     ---@return string|nil group_name, string|nil err
@@ -436,6 +467,11 @@ InfantrySquads = {} do
         end
 
         local heading = mist.getHeading(unit) or 0
+        if def.behaviour == InfantrySquads.Behaviours.MORTAR then
+            local h = InfantrySquads._headingToNearestEnemyZone(base, side)
+            if h then heading = h end
+        end
+
         local group_name = Config.ctld.packed_asset_prefix .. InfantrySquads.PREFIX
             .. def.id .. "_" .. ctld.getNextGroupId()
 
@@ -513,13 +549,14 @@ InfantrySquads = {} do
     ----------------------------------------------------------------------------
     -- Behaviours
     ----------------------------------------------------------------------------
-    ---@param def table
+    ---@param def SquadDef
     ---@param group_name string
     ---@param side coalition.side
     ---@param zone ZoneHandler|nil resolved at deploy time (engineer/sabotage/capture)
     function InfantrySquads.startBehaviour(def, group_name, side, zone)
         local b = def.behaviour
         local cfg = InfantrySquads.cfg(def.id)
+        ---@type SquadState
         local state = {
             squad_id = def.id,
             behaviour = b,
@@ -530,22 +567,12 @@ InfantrySquads = {} do
 
         local gr = Group.getByName(group_name)
 
-        if b == "static" then
-            -- Stinger / plain AD: hold position, weapons free.
+        if b == "assault" then
             if gr then
                 local ctrl = gr:getController()
                 if ctrl then
                     ctrl:setOption(AI.Option.Ground.id.ROE, AI.Option.Ground.val.ROE.OPEN_FIRE)
-                    ctrl:setOption(AI.Option.Ground.id.ALARM_STATE, AI.Option.Ground.val.ALARM_STATE.RED)
-                end
-            end
-
-        elseif b == "assault" then
-            if gr then
-                local ctrl = gr:getController()
-                if ctrl then
-                    ctrl:setOption(AI.Option.Ground.id.ROE, AI.Option.Ground.val.ROE.OPEN_FIRE)
-                    ctrl:setOption(AI.Option.Ground.id.ALARM_STATE, AI.Option.Ground.val.ALARM_STATE.RED)
+                    ctrl:setOption(AI.Option.Ground.id.ALARM_STATE, AI.Option.Ground.val.ALARM_STATE.GREEN)
                 end
             end
             InfantrySquads._assaultRetask(group_name, side)
@@ -559,6 +586,8 @@ InfantrySquads = {} do
                 zone.production_ration_until = timer.getTime() + (cfg.duration or 3*60*60)
                 zone.name_suffix = " (+)"
                 if zone.drawF10 then zone:drawF10() end
+                -- Engineers disband when their work period ends (see tick).
+                state.expire_at = zone.production_ration_until
                 -- Red smoke ~20 m from the squad position.
                 local p = mist.getLeadPos(group_name)
                 if p then
@@ -682,6 +711,7 @@ InfantrySquads = {} do
     end
 
     function InfantrySquads.tick()
+        local now = timer.getTime()
         for group_name, state in pairs(InfantrySquads.active) do
             local gr = Group.getByName(group_name)
             if not (gr and gr:isExist() and gr:getSize() > 0) then
@@ -695,6 +725,20 @@ InfantrySquads = {} do
                         if zone.drawF10 then zone:drawF10() end
                     end
                 end
+                InfantrySquads.active[group_name] = nil
+            elseif state.expire_at and now >= state.expire_at then
+                if state.zone_name then
+                    local zone = ZoneHandler.getFromName(state.zone_name)
+                    if zone then
+                        zone.production_ration = nil
+                        zone.production_ration_until = nil
+                        zone.name_suffix = nil
+                        if zone.drawF10 then zone:drawF10() end
+                        trigger.action.outTextForCoalition(state.side,
+                            string.format("Engineers at %s have completed their task.", zone.name), 10)
+                    end
+                end
+                gr:destroy()
                 InfantrySquads.active[group_name] = nil
             elseif state.behaviour == "mortar" then
                 InfantrySquads._mortarTick(group_name, state)
@@ -717,9 +761,29 @@ InfantrySquads = {} do
         end
     end
 
-    --- Mortar: fire one round at the nearest enemy unit/static within range.
+    --- Collect live unit/static target points belonging to a zone.
+    ---@param zone ZoneHandler
+    ---@return vec3[]
+    local function zoneTargetPoints(zone)
+        local pts = {}
+        for _, gname in ipairs(zone.linked_groups or {}) do
+            local g = Group.getByName(gname)
+            if g and g:isExist() and g:getSize() > 0 then
+                local u = g:getUnit(1)
+                if u and u:isExist() then pts[#pts + 1] = u:getPoint() end
+            end
+        end
+        for _, sname in ipairs(zone.linked_statics or {}) do
+            local s = StaticObject.getByName(sname)
+            if s and s:isExist() then pts[#pts + 1] = s:getPoint() end
+        end
+        return pts
+    end
+
+    --- Mortar: bombard the CLOSEST enemy zone (any type). Fires one round per shot
+    --- at the nearest in-range target belonging to that zone.
     ---@param group_name string
-    ---@param state table
+    ---@param state SquadState
     function InfantrySquads._mortarTick(group_name, state)
         if (state.ammo or 0) <= 0 then return end
         local cfg = InfantrySquads.cfg(InfantrySquads.SquadIds.MORTAR)
@@ -739,27 +803,21 @@ InfantrySquads = {} do
         local range = cfg.range or 5000
         local enemy = utils.getEnemyCoalition(state.side)
 
-        -- One target per shot: nearest live enemy unit or static within range.
+        local target_zone, best_zone_d
+        for _, zone in ipairs(zones) do
+            if zone.side == enemy then
+                local d = mist.utils.get2DDist(lead, zone.zone.point)
+                if not best_zone_d or d < best_zone_d then target_zone, best_zone_d = zone, d end
+            end
+        end
+        if not target_zone then return end
+
+        -- One target per shot: nearest in-range object belonging to that zone.
         local target_point, best_d
-        local function consider(p)
+        for _, p in ipairs(zoneTargetPoints(target_zone)) do
             local d = mist.utils.get2DDist(lead, p)
             if d <= range and (not best_d or d < best_d) then
                 target_point, best_d = p, d
-            end
-        end
-        for _, zone in ipairs(zones) do
-            if zone.side == enemy then
-                for _, gname in ipairs(zone.linked_groups or {}) do
-                    local g = Group.getByName(gname)
-                    if g and g:isExist() and g:getSize() > 0 then
-                        local u = g:getUnit(1)
-                        if u and u:isExist() then consider(u:getPoint()) end
-                    end
-                end
-                for _, sname in ipairs(zone.linked_statics or {}) do
-                    local s = StaticObject.getByName(sname)
-                    if s and s:isExist() then consider(s:getPoint()) end
-                end
             end
         end
         if not target_point then return end
@@ -775,6 +833,33 @@ InfantrySquads = {} do
         })
         state.ammo = state.ammo - 1
         state.next_fire = now + (cfg.fire_interval or 30)
+    end
+
+    ---@param part part squad part (must have part.squad_id)
+    ---@param unit Unit carrier (used to read the current zone level)
+    ---@return string label
+    function InfantrySquads.menuLabel(part, unit)
+        local base = part.desc .. " (" .. (part.req_supplies or 0) .. ")"
+        local def = part.squad_id and InfantrySquads.getDef(part.squad_id) or nil
+        if not (def and def.behaviour == InfantrySquads.Behaviours.ENGINEER) then
+            return base
+        end
+
+        local cfg = InfantrySquads.cfg(def.id)
+        local ration = cfg.production_ration or 1.5
+        local duration_min = math.floor((cfg.duration or 3*60*60) / 60)
+
+        -- Per-minute production of the carrier's current zone (fallback: level 1).
+        local level = 1
+        local zone = utils.getZoneOfUnitFromPosition(unit:getPoint())
+        if zone then level = zone.level or 1 end
+        local base_rate = (Config.supplies.supplies_production[level] or 0)
+        if zone and zone.zone_type == ZoneTypes.LOGISTICS then
+            base_rate = base_rate * (Config.supplies.logistics_mult or 2)
+        end
+        local extra = math.floor((ration - 1) * base_rate + 0.5)
+
+        return string.format("%s +%d/min for %dmin", base, extra, duration_min)
     end
 
     function InfantrySquads.registerParts()
@@ -857,8 +942,11 @@ function ctld.initF10RadioMenu(group)
                     end
                 end
                 if not skip then
+                    local label = part.squad_id
+                        and InfantrySquads.menuLabel(part, unit)
+                        or (part.desc .. " ("..(part.req_supplies or 0)..")")
                     table.insert(troop_commands, {
-                        name = part.desc .. " ("..(part.req_supplies or 0)..")",
+                        name = label,
                         func = function ()
                             ctld.load(part, unit)
                         end,
