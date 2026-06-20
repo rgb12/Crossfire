@@ -985,7 +985,7 @@ Config = {
     -- stuck and will be removed
     stuck_convoy_timeout = 8*60,
     -- (int) (meters)
-    attack_convoy_range = 30000,
+    attack_convoy_range = 60000,
     -- (int) (meters) stand-off distance an attack convoy stops at from each target before firing
     attack_convoy_standoff = 50,
     -- (int) max number of targets an attack convoy will move up to and engage in sequence
@@ -1199,7 +1199,7 @@ GroupData = {
             capture_helicopter = {
                 WW2          = "BLUE Capture Helo",
                 EARLYCOLDWAR = "BLUE EARLYCOLDWAR Reinforcement Helicopter",
-                LATECOLDWAR  = "BLUE Capture Helo",
+                LATECOLDWAR  = "BLUE EARLYCOLDWAR Reinforcement Helicopter",
                 MODERN       = "BLUE Capture Helo",
             },
             reinforcement_helicopter = {
