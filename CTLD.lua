@@ -574,7 +574,7 @@ InfantrySquads = {} do
             end
 
         elseif b == "jtac" then
-            InfantrySquads._jtacRetask(group_name, side)
+            InfantrySquads._jtacRetask(group_name)
         end
 
         InfantrySquads.active[group_name] = state
@@ -621,35 +621,17 @@ InfantrySquads = {} do
     end
 
     ---@param group_name string
-    ---@param side coalition.side
-    function InfantrySquads._jtacRetask(group_name, side)
+    function InfantrySquads._jtacRetask(group_name)
         local gr = Group.getByName(group_name)
         if not (gr and gr:isExist()) then return end
         local ctrl = gr:getController()
         if not ctrl then return end
-        local lead = mist.getLeadPos(group_name)
-        if not lead then return end
 
-        -- Find the nearest live enemy ground group.
-        local enemy = utils.getEnemyCoalition(side)
-        local target_group, best_d
-        for _, eg in ipairs(coalition.getGroups(enemy, Group.Category.GROUND)) do
-            if eg and eg:isExist() and eg:getSize() > 0 then
-                local u = eg:getUnit(1)
-                if u and u:isExist() then
-                    local d = mist.utils.get2DDist(lead, u:getPoint())
-                    if not best_d or d < best_d then target_group, best_d = eg, d end
-                end
-            end
-        end
-        if not target_group then return end
-
-        ctrl:setOption(AI.Option.Ground.id.ROE, AI.Option.Ground.val.ROE.RETURN_FIRE)
+        -- ctrl:setOption(AI.Option.Ground.id.ROE, AI.Option.Ground.val.ROE.RETURN_FIRE)
         ctrl:setTask({
-            id = "FAC_EngageGroup",
+            id = "FAC",
             params = {
-                groupId = target_group:getID(),
-                designation = AI.Task.Designation.AUTO,
+                priority = 0
             },
         })
     end
@@ -703,7 +685,7 @@ InfantrySquads = {} do
             elseif state.behaviour == "assault" then
                 InfantrySquads._assaultRetask(group_name, state.side)
             elseif state.behaviour == "jtac" then
-                InfantrySquads._jtacRetask(group_name, state.side)
+                InfantrySquads._jtacRetask(group_name)
             end
         end
     end
