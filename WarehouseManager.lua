@@ -712,10 +712,9 @@ do
         local warehouse = airbase:getWarehouse()
         if not warehouse then MissionLogger:warn("No warehouse") return false end
 
-        stock_types = expandStockTypes(stock_types)
 
         local added_stuff_tbl = {}
-        for i,stock_type in ipairs(stock_types) do
+        for i,stock_type in ipairs(expandStockTypes(stock_types)) do
             if utils.tableContains(WarehouseManager.AircraftStockTypes, stock_type) then
                 -- Aircraft availability is derived from the enabled aircraft set
                 -- (era/config aware) and added WITHOUT user scaling, as before.
