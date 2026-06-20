@@ -3031,11 +3031,11 @@ Stocks.GroundUnits = {
     EWR_FPS117 = { type = "FPS-117",   role = "EWR", countries = { 2, 4, 6, 20, 80 }, era_min = Eras.MODERN, era_max = Eras.MODERN },
 
     -- ===================== TANKS =====================
-    TANK_T55   = { type = "T-55",   role = "TANK", countries = { 0, 17, 81 }, era_min = Eras.EARLYCOLDWAR, era_max = Eras.LATECOLDWAR },
-    TANK_T72B  = { type = "T-72B",  role = "TANK", countries = { 0, 81 }, era_min = Eras.LATECOLDWAR, era_max = Eras.MODERN },
-    TANK_T80U  = { type = "T-80UD", role = "TANK", countries = { 0, 81 }, era_min = Eras.LATECOLDWAR, era_max = Eras.MODERN },
+    TANK_T55   = { type = "T-55",   role = "TANK", countries = { 0, 17, 81 }, era_min = Eras.EARLYCOLDWAR, era_max = Eras.EARLYCOLDWAR },
+    TANK_T72B  = { type = "T-72B",  role = "TANK", countries = { 0, 81 }, era_min = Eras.LATECOLDWAR, era_max = Eras.LATECOLDWAR },
+    TANK_T80U  = { type = "T-80UD", role = "TANK", countries = { 0, 81 }, era_min = Eras.LATECOLDWAR, era_max = Eras.LATECOLDWAR },
     -- TANK_T90   = { type = "T-90",   role = "TANK", countries = { 0, 81 }, era_min = Eras.MODERN, era_max = Eras.MODERN },
-    TANK_M60   = { type = "M-60",   role = "TANK", countries = { 2, 20, 80 }, era_min = Eras.EARLYCOLDWAR, era_max = Eras.LATECOLDWAR },
+    TANK_M60   = { type = "M-60",   role = "TANK", countries = { 2, 20, 80 }, era_min = Eras.EARLYCOLDWAR, era_max = Eras.EARLYCOLDWAR },
     TANK_M1A2  = { type = "M-1 Abrams", role = "TANK", countries = { 2, 80 }, era_min = Eras.LATECOLDWAR, era_max = Eras.MODERN },
     --TANK_LEOPARD2 = { type = "Leopard-2A5", role = "TANK", countries = { 6, 80 }, era_min = Eras.LATECOLDWAR, era_max = Eras.MODERN },
     TANK_CHALLENGER = { type = "Challenger2", role = "TANK", countries = { 4, 80 }, era_min = Eras.MODERN, era_max = Eras.MODERN },
@@ -3060,9 +3060,9 @@ Stocks.GroundUnits = {
     -- ===================== APC =====================
     APC_BTR70  = { type = "BTR-70", role = "APC", countries = { 0, 81 }, era_min = Eras.LATECOLDWAR, era_max = Eras.LATECOLDWAR },
     APC_BTR80  = { type = "BTR-80", role = "APC", countries = { 0, 81 }, era_min = Eras.MODERN, era_max = Eras.MODERN },
-    APC_BTRRD  = { type = "BTR_D",  role = "APC", countries = { 0, 81 }, era_min = Eras.LATECOLDWAR, era_max = Eras.MODERN },
-    APC_MTLB   = { type = "MTLB",   role = "APC", countries = { 0, 17, 81 }, era_min = Eras.EARLYCOLDWAR, era_max = Eras.MODERN },
-    APC_M113   = { type = "M-113",  role = "APC", countries = { 2, 6, 20, 80 }, era_min = Eras.EARLYCOLDWAR, era_max = Eras.MODERN },
+    APC_BTRRD  = { type = "BTR_D",  role = "APC", countries = { 0, 81 }, era_min = Eras.LATECOLDWAR, era_max = Eras.LATECOLDWAR },
+    APC_MTLB   = { type = "MTLB",   role = "APC", countries = { 0, 17, 81 }, era_min = Eras.EARLYCOLDWAR, era_max = Eras.LATECOLDWAR },
+    APC_M113   = { type = "M-113",  role = "APC", countries = { 2, 6, 20, 80 }, era_min = Eras.EARLYCOLDWAR, era_max = Eras.LATECOLDWAR},
     APC_MRAP   = { type = "M1126 Stryker ICV", role = "APC", countries = { 2, 80 }, era_min = Eras.MODERN, era_max = Eras.MODERN },
     APC_COBRA  = { type = "Cobra",  role = "APC", countries = { 6, 80 }, era_min = Eras.MODERN, era_max = Eras.MODERN },
     APC_M2A1_HALFTRACK = {type = "M2A1_halftrack", role = "APC", countries = {2, 80}, era_min = Eras.WW2, era_max = Eras.WW2},
