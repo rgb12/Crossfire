@@ -712,25 +712,24 @@ do
         local warehouse = airbase:getWarehouse()
         if not warehouse then MissionLogger:warn("No warehouse") return false end
 
+        local user_scale = WarehouseManager:getStockScale()
+        if side == coalition.side.RED and Config.red_stock_multiplier then
+            user_scale = user_scale * Config.red_stock_multiplier
+        elseif side == coalition.side.BLUE and Config.blue_stock_multiplier then
+            user_scale = user_scale * Config.blue_stock_multiplier    
+        end
 
         local added_stuff_tbl = {}
         for i,stock_type in ipairs(expandStockTypes(stock_types)) do
             if utils.tableContains(WarehouseManager.AircraftStockTypes, stock_type) then
-                -- Aircraft availability is derived from the enabled aircraft set
-                -- (era/config aware) and added WITHOUT user scaling, as before.
                 local stock = WarehouseManager:generateAircraftStock(stock_type, side)
                 for id,amount in pairs(stock) do
-                    warehouse:addItem(id, amount)
-                    table.insert(added_stuff_tbl, {id, amount})
+                    local scaled_amount = math.max(1, math.floor(amount * user_scale))
+                    warehouse:addItem(id, scaled_amount)
+                    table.insert(added_stuff_tbl, {id, scaled_amount})
                 end
             else
-                -- Weapon stock types are generated from the cost/usefulness
-                -- economy (only enabled weapons appear), then user-scaled.
                 local stock = WarehouseManager:generateStock(stock_type, side)
-                local user_scale = WarehouseManager:getStockScale()
-                if side == coalition.side.RED and Config.red_stock_multiplier then
-                    user_scale = user_scale * Config.red_stock_multiplier
-                end
 
                 for id,amount in pairs(stock) do
                     local scaled_amount = math.max(1, math.floor(amount * user_scale))

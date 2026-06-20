@@ -501,6 +501,9 @@ Config = {
 
     -- (int) multiplier for redfor only warehouse stocks
     red_stock_multiplier = 50,
+    -- (int) multiplier for blufor only warehouse stocks
+    blue_stock_multiplier = 1,
+
     -- (bool) enables/disables AI payload checks, this will prevent AI from
     -- spawning with no weapons You must turn this off if you change AI aircraft
     -- loadouts. Alternatively, you can edit the loadouts in the WarehouseManager
@@ -1264,7 +1267,7 @@ Config = {
         -- (int) (seconds) how long the MOTD is displayed for
         display_time = 5,
         -- (int) (seconds) how often the MOTD is displayed, set to 0 to disable repeating
-        period = 20,
+        period = 0,
         -- (string) Message
         message = "Crossfire MOTD, this message will repeat itself"
     },
