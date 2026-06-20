@@ -566,6 +566,8 @@ InfantrySquads = {} do
                 zone.production_ration_until = timer.getTime() + (cfg.duration or 3*60*60)
                 zone.name_suffix = " (-)"
                 if zone.drawF10 then zone:drawF10() end
+                -- Sabotage team disbands when its disruption period ends (see tick).
+                state.expire_at = zone.production_ration_until
                 trigger.action.outTextForCoalition(side,
                     string.format("Sabotage team active near %s: enemy production disrupted.", zone.name), 10)
                 if cfg.can_destroy_comms ~= false then
@@ -667,6 +669,8 @@ InfantrySquads = {} do
                 end
                 InfantrySquads.active[group_name] = nil
             elseif state.expire_at and now >= state.expire_at then
+                -- Engineer/sabotage squads disband once their timed effect ends:
+                -- clear the zone's production modifier and destroy the group.
                 if state.zone_name then
                     local zone = ZoneHandler.getFromName(state.zone_name)
                     if zone then
@@ -674,8 +678,11 @@ InfantrySquads = {} do
                         zone.production_ration_until = nil
                         zone.name_suffix = nil
                         if zone.drawF10 then zone:drawF10() end
+                        local done_msg = (state.behaviour == "sabotage")
+                            and "Sabotage team near %s has withdrawn; production restored."
+                            or "Engineers at %s have completed their task."
                         trigger.action.outTextForCoalition(state.side,
-                            string.format("Engineers at %s have completed their task.", zone.name), 10)
+                            string.format(done_msg, zone.name), 10)
                     end
                 end
                 gr:destroy()
