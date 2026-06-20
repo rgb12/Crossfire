@@ -1325,41 +1325,25 @@ stats = {
 
 -- This table allows you to link the in-mission groups to the script logic
 -- Group names from the mission editor. 
-
--- V6 change: every COMMON_ASSET below is keyed by ERA so the exact mission-editor
--- group name for each era is spelled out explicitly. Create the ME group whose
--- name matches the era you intend to run. The script picks the entry for the
--- active era (Config.era_system.eras_selected[1]); if that era's entry is left
--- empty it falls back to the MODERN entry, then to any entry that is filled, so
--- you only NEED to author the eras you actually play.
---
--- Naming convention: "<SIDE> <ERA TOKEN> <TASK>", era tokens are
--- WW2 / EARLYCOLDWAR / LATECOLDWAR / MODERN. Example: a BLUE WW2 CAP group must
--- be named exactly "BLUE WW2 CAP". You may rename these to anything you like as
--- long as the ME group name matches the string here.
 GroupData = {
     COMMON_ASSETS = {
         BLUE = {
             resupply_aircraft = {
-                WW2          = "C130",
                 EARLYCOLDWAR = "C130 Early",
                 LATECOLDWAR  = "C130 Early",
                 MODERN       = "C130",
             },
             capture_helicopter = {
-                WW2          = "BLUE Capture Helo",
                 EARLYCOLDWAR = "BLUE EARLYCOLDWAR Reinforcement Helicopter",
                 LATECOLDWAR  = "BLUE EARLYCOLDWAR Reinforcement Helicopter",
                 MODERN       = "BLUE Capture Helo",
             },
             reinforcement_helicopter = {
-                WW2          = "BLUE EARLYCOLDWAR Reinforcement Helicopter",
                 EARLYCOLDWAR = "BLUE EARLYCOLDWAR Reinforcement Helicopter",
                 LATECOLDWAR  = "BLUE LCW Reinforcement Helo",
                 MODERN       = "BLUE Reinforcement Helo",
             },
             LHA_capture_helicopter = {
-                WW2          = "LHA Capture Helicopter",
                 EARLYCOLDWAR = "LHA Capture Helicopter",
                 LATECOLDWAR  = "LHA Capture Helicopter",
                 MODERN       = "LHA Capture Helicopter",
@@ -1380,19 +1364,16 @@ GroupData = {
                 MODERN       = "BLUE JTAC",
             },
             farp = {
-                WW2          = "BLUE FARP VEHICLES",
                 EARLYCOLDWAR = "BLUE FARP VEHICLES",
                 LATECOLDWAR  = "BLUE FARP VEHICLES",
                 MODERN       = "BLUE FARP VEHICLES",
             },
             tanker_drogue = {
-                WW2          = "BLUE DROGUE TANKER",
                 EARLYCOLDWAR = "BLUE DROGUE TANKER",
                 LATECOLDWAR  = "BLUE DROGUE TANKER",
                 MODERN       = "BLUE DROGUE TANKER",
             },
             tanker_boom = {
-                WW2          = "BLUE BOOM TANKER",
                 EARLYCOLDWAR = "BLUE BOOM TANKER",
                 LATECOLDWAR  = "BLUE BOOM TANKER",
                 MODERN       = "BLUE BOOM TANKER",
@@ -1438,19 +1419,16 @@ GroupData = {
 
         RED = {
             resupply_aircraft = {
-                WW2          = "IL76",
                 EARLYCOLDWAR = "AN26B",
                 LATECOLDWAR  = "IL76",
                 MODERN       = "IL76",
             },
             capture_helicopter = {
-                WW2          = "RED Capture Helo",
                 EARLYCOLDWAR = "RED Capture Helo",
                 LATECOLDWAR  = "RED Capture Helo",
                 MODERN       = "RED Capture Helo",
             },
             reinforcement_helicopter = {
-                WW2          = "RED Reinforcement Helo",
                 EARLYCOLDWAR = "RED Reinforcement Helo",
                 LATECOLDWAR  = "RED Reinforcement Helo",
                 MODERN       = "RED Reinforcement Helo",
@@ -1471,19 +1449,16 @@ GroupData = {
                 MODERN       = "RED JTAC",
             },
             farp = {
-                WW2          = "RED FARP VEHICLES",
                 EARLYCOLDWAR = "RED FARP VEHICLES",
                 LATECOLDWAR  = "RED FARP VEHICLES",
                 MODERN       = "RED FARP VEHICLES",
             },
             tanker_drogue = {
-                WW2          = "RED DROGUE TANKER",
                 EARLYCOLDWAR = "RED DROGUE TANKER",
                 LATECOLDWAR  = "RED DROGUE TANKER",
                 MODERN       = "RED DROGUE TANKER",
             },
             tanker_boom = {
-                WW2          = "RED BOOM TANKER",
                 EARLYCOLDWAR = "RED BOOM TANKER",
                 LATECOLDWAR  = "RED BOOM TANKER",
                 MODERN       = "RED BOOM TANKER",
