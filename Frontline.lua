@@ -264,6 +264,41 @@ do
 
     Frontline.mark_id = nil
     Frontline.mark_ids = nil
+    -- Cache of the most recently computed frontline segments, refreshed by
+    -- drawFrontline(). Used by distanceToFrontline() so callers don't recompute.
+    Frontline.cached_segments = {}
+
+    -- Shortest distance (meters) from a world point to the current frontline.
+    ---@param point table
+    ---@return number
+    function Frontline.distanceToFrontline(point)
+        local segments = Frontline.cached_segments
+        if not segments or #segments == 0 then
+            return 0
+        end
+
+        -- Frontline segment points are stored as {x = world.x, y = world.z}.
+        local px = point.x
+        local py = point.z or point.y
+
+        local best = math.huge
+        for _, segment in ipairs(segments) do
+            local a, b = segment[1], segment[2]
+            local abx, aby = b.x - a.x, b.y - a.y
+            local apx, apy = px - a.x, py - a.y
+            local ab_len_sq = abx * abx + aby * aby
+            local t = 0
+            if ab_len_sq > 0 then
+                t = (apx * abx + apy * aby) / ab_len_sq
+                if t < 0 then t = 0 elseif t > 1 then t = 1 end
+            end
+            local cx, cy = a.x + abx * t, a.y + aby * t
+            local dx, dy = px - cx, py - cy
+            local dist = math.sqrt(dx * dx + dy * dy)
+            if dist < best then best = dist end
+        end
+        return best
+    end
 
     function Frontline.clearFrontline()
         if not Frontline.mark_ids then
@@ -282,6 +317,7 @@ do
     function Frontline.drawFrontline()
         MissionLogger:info("FRONTLINE: Computing frontline...")
         local frontline_data = Frontline.computeFrontline()
+        Frontline.cached_segments = frontline_data.frontline_segments
         Frontline.clearFrontline()
 
         for _, segment in ipairs(frontline_data.frontline_segments) do
