@@ -146,8 +146,10 @@ do
                         local zones_to_upgrade = zone:filterZonesByDistance(zone.side,{},{},true)
                         local zone_to_upgrade = nil
                         if #zones_to_upgrade > 0 then
+                            local max_dist_to_frontline = Config.operations.reinforcement_max_distance_to_frontline or math.huge
                             for _,zone_t_u in ipairs(zones_to_upgrade) do
                                 if zone_t_u.level < 4
+                                and Frontline.distanceToFrontline(zone_t_u.zone.point) <= max_dist_to_frontline
                                 and not EnrouteManager:findByToZone(zone_t_u,zone.side,{AITaskTypes.REINFORCEMENT_HELO, AITaskTypes.REINFORCEMENT_CONVOY, AITaskTypes.CAPTURE_HELO})
                                 and not EnrouteManager:findByToZone(zone,zone.side, {AITaskTypes.REINFORCEMENT_HELO, AITaskTypes.REINFORCEMENT_CONVOY, AITaskTypes.CAPTURE_HELO}) then
                                     zone_to_upgrade = zone_t_u

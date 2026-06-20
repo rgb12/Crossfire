@@ -162,6 +162,10 @@ Config = {
         
         -- (int) (meters)
         reinforcement_max_range = 50*1000,
+        -- (int) (meters) AI reinforcement helicopters will only upgrade a target
+        -- zone if it lies within this distance of the frontline. Keeps
+        -- reinforcements near the fighting instead of upgrading deep rear zones.
+        reinforcement_max_distance_to_frontline = 60*1000,
         -- (int) supplies required to upgrade a zone via AIRDROP / REINFORCEMENT (ex:
         -- 300 with 50/crate => 6 supply crates)
         upgrade_required_supplies = 300,
