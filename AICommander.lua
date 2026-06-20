@@ -610,6 +610,154 @@ do
 
     end
 
+    -- MAJOR OFFENSIVE
+    -- Every few hours each enabled coalition launches a big coordinated strike
+    -- package against the enemy.
+    ---Is this side enabled for major offensives?
+    ---@param side coalition.side
+    ---@return boolean
+    function AICommander:isOffensiveEnabled(side)
+        if side == coalition.side.BLUE then return Config.major_offensive.enable_blue == true end
+        if side == coalition.side.RED then return Config.major_offensive.enable_red == true end
+        return false
+    end
+
+    ---Gather the launching side's home base and basic gating info.
+    ---@param side coalition.side
+    ---@return ZoneHandler|nil home_base, number comms_towers, number airbases
+    function AICommander:offensiveContext(side)
+        if side == coalition.side.BLUE then
+            return blue_airbase, stats.blue_comms_antennas, stats.blue_airbases
+        else
+            return red_airbase, stats.red_comms_antennas, stats.red_airbases
+        end
+    end
+
+    ---Discovered enemy zones within range of home_base, closest first.
+    ---@param side coalition.side
+    ---@param home_base ZoneHandler
+    ---@param zone_types ZoneTypes[]|nil restrict to these zone types
+    ---@return ZoneHandler[]
+    function AICommander:offensiveTargets(side, home_base, zone_types)
+        local enemy_side = utils.getEnemyCoalition(side)
+        local discovered = (side == coalition.side.BLUE) and stats.blue_discovered_zones or stats.red_discovered_zones
+        local results = {}
+
+        for _, zone in ipairs(zones) do
+            if zone.side == enemy_side
+            and (not zone_types or utils.tableContains(zone_types, zone.zone_type))
+            and utils.tableContains(discovered, zone.name) then
+                local dist = mist.utils.get2DDist(home_base.zone.point, zone.zone.point)
+                if dist <= Config.major_offensive.max_target_range then
+                    table.insert(results, { zone = zone, dist = dist })
+                end
+            end
+        end
+
+        table.sort(results, function(a, b) return a.dist < b.dist end)
+
+        local zones_only = {}
+        for _, r in ipairs(results) do table.insert(zones_only, r.zone) end
+        return zones_only
+    end
+
+    ---Launch a major offensive for one side, staggering each flight.
+    ---@param side coalition.side
+    function AICommander:launchOffensive(side)
+        if not Config.tasking.enable then return end
+        if not self:isOffensiveEnabled(side) then return end
+
+        local cfg = Config.major_offensive
+        local home_base, comms_towers, airbases = self:offensiveContext(side)
+
+        if not home_base or home_base.side ~= side then return end
+        if cfg.require_comms_and_airbase and (comms_towers == 0 or airbases == 0) then
+            MissionLogger:info("[OFFENSIVE] "..utils.coalitionToString(side)..
+                " offensive skipped (no comms/airbase).")
+            return
+        end
+
+        local pkg = cfg.package or {}
+
+        -- Targets per task type. CAS/STRIKE go after ground; SEAD after SAM
+        -- sites; CAP escorts toward the closest enemy zones.
+        local strike_targets = self:offensiveTargets(side, home_base,
+            { ZoneTypes.LOGISTICS, ZoneTypes.COMMS, ZoneTypes.AIRBASE })
+        local cas_targets = self:offensiveTargets(side, home_base, nil)
+        local sead_targets = self:offensiveTargets(side, home_base, { ZoneTypes.SAMSITE })
+        local cap_targets = self:offensiveTargets(side, home_base, nil)
+
+        -- Build an ordered launch list of {task_type, to_zone, from_zone}.
+        local launches = {}
+
+        local function queue(count, task_type, target_list, use_home_as_from)
+            count = count or 0
+            for i = 1, count do
+                if use_home_as_from then
+                    -- AWACS launches from home base, no target zone.
+                    table.insert(launches, { type = task_type, to_zone = nil, from_zone = home_base })
+                elseif #target_list > 0 then
+                    -- Spread across available targets, wrapping round-robin.
+                    local tgt = target_list[((i - 1) % #target_list) + 1]
+                    table.insert(launches, { type = task_type, to_zone = tgt, from_zone = nil })
+                end
+            end
+        end
+
+        -- SEAD first (clear the way), then strike, CAS, CAP escort, AWACS support.
+        queue(pkg.sead,   AITaskTypes.SEAD,   sead_targets,   false)
+        queue(pkg.strike, AITaskTypes.STRIKE, strike_targets, false)
+        queue(pkg.cas,    AITaskTypes.CAS,    cas_targets,    false)
+        queue(pkg.cap,    AITaskTypes.CAP,    cap_targets,    false)
+        queue(pkg.awacs,  AITaskTypes.AWACS,  nil,            true)
+
+        if #launches == 0 then
+            MissionLogger:info("[OFFENSIVE] "..utils.coalitionToString(side)..
+                ": no valid targets/package, offensive aborted.")
+            return
+        end
+
+        MissionLogger:info(string.format("[OFFENSIVE] %s launching major offensive: %d flights queued.",
+            utils.coalitionToString(side), #launches))
+        trigger.action.outTextForCoalition(utils.getEnemyCoalition(side),
+            "WARNING: Large enemy air offensive inbound!", 15)
+        trigger.action.outSoundForCoalition(utils.getEnemyCoalition(side), "radio_beep3.ogg")
+
+        -- Stagger the launches so they don't all spawn at once.
+        local stagger = cfg.launch_stagger or 11
+        for idx, launch in ipairs(launches) do
+            timer.scheduleFunction(function()
+                if MISSION_ENDED == true then return end
+                local ok, err = pcall(function()
+                    TaskManager:initiateAITask(launch.type, side, true, launch.to_zone, launch.from_zone, false)
+                end)
+                if not ok then
+                    MissionLogger:error("[OFFENSIVE] launch error ("..tostring(launch.type).."): "..tostring(err))
+                end
+            end, {}, timer.getTime() + (idx - 1) * stagger)
+        end
+    end
+
+    ---@param side coalition.side
+    function AICommander.dispatchOffensive(side)
+        local cfg = Config.major_offensive
+        local min_i = cfg.min_interval or (2*60*60)
+        local max_i = cfg.max_interval or (3*60*60)
+        if max_i < min_i then max_i = min_i end
+        local delay = math.random(min_i, max_i)
+
+        timer.scheduleFunction(function()
+            if MISSION_ENDED == true then return end
+            local ok, err = pcall(function()
+                AICommander:launchOffensive(side)
+            end)
+            if not ok then
+                MissionLogger:error("[OFFENSIVE] Evaluator error: "..tostring(err))
+            end
+            AICommander.dispatchOffensive(side)
+        end, nil, timer.getTime() + delay)
+    end
+
     ---Start the AICommander loops. Call once at mission init.
     function AICommander.init()
         -- Routine AI dispatcher (always on when tasking is enabled).
@@ -622,6 +770,18 @@ do
             AICommander.dispatchHunt()
         else
             MissionLogger:info("[AICommander] Hunt experienced players disabled.")
+        end
+
+        -- Major offensives (optional, per-side).
+        if Config.major_offensive then
+            if AICommander:isOffensiveEnabled(coalition.side.BLUE) then
+                MissionLogger:info("[AICommander] Major offensive enabled for BLUE.")
+                AICommander.dispatchOffensive(coalition.side.BLUE)
+            end
+            if AICommander:isOffensiveEnabled(coalition.side.RED) then
+                MissionLogger:info("[AICommander] Major offensive enabled for RED.")
+                AICommander.dispatchOffensive(coalition.side.RED)
+            end
         end
     end
 end

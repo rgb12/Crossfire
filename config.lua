@@ -897,6 +897,47 @@ Config = {
         spawn_if_no_cap = true,
     },
 
+    -- (table) periodic large-scale offensives.
+    major_offensive = {
+        -- (bool) enable/disable the major offensive for BLUE
+        enable_blue = true,
+        -- (bool) enable/disable the major offensive for RED
+        enable_red = true,
+
+        -- (int) (seconds) minimum delay between offensives for a coalition
+        min_interval = 2*60*60,
+        -- (int) (seconds) maximum delay between offensives for a coalition. Each
+        -- offensive picks a random time between min and max.
+        max_interval = 3*60*60,
+
+        -- (int) (seconds) stagger between each flight launch in a package so they
+        -- do not all spawn on the same instant (reduces lag spikes / parking
+        -- contention). Avoid multiples of 15.
+        launch_stagger = 11,
+
+        -- (bool) only launch if the coalition still holds an airbase and at least
+        -- one COMMS tower
+        require_comms_and_airbase = true,
+
+        -- (table)
+        package = {
+            -- (int) escort/sweep fighters
+            cap = 2,
+            -- (int) close air support
+            cas = 2,
+            -- (int) SEAD against enemy SAM sites
+            sead = 1,
+            -- (int) strike against enemy logistics/comms/airbase statics
+            strike = 2,
+            -- (int) AWACS support flights
+            awacs = 0,
+        },
+
+        -- (int) (meters) only target enemy zones within this range of the
+        -- launching coalition's home airbase
+        max_target_range = 250*1000,
+    },
+
     -- (table)
     tanker = {
         -- (int) (seconds)
