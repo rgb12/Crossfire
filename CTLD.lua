@@ -622,6 +622,7 @@ InfantrySquads = {} do
         end
     end
 
+    --- https://wiki.hoggitworld.com/view/DCS_task_fac
     ---@param group_name string
     function InfantrySquads._jtacRetask(group_name)
         local gr = Group.getByName(group_name)
@@ -629,11 +630,13 @@ InfantrySquads = {} do
         local ctrl = gr:getController()
         if not ctrl then return end
 
-        -- ctrl:setOption(AI.Option.Ground.id.ROE, AI.Option.Ground.val.ROE.RETURN_FIRE)
+        -- Hold fire so the JTAC spots rather than engages
+        ctrl:setOption(AI.Option.Ground.id.ROE, AI.Option.Ground.val.ROE.WEAPON_HOLD)
+
         ctrl:setTask({
             id = "FAC",
             params = {
-                priority = 0
+                priority = 0,
             },
         })
     end
@@ -691,8 +694,6 @@ InfantrySquads = {} do
                 InfantrySquads._mortarTick(group_name, state)
             elseif state.behaviour == "assault" then
                 InfantrySquads._assaultRetask(group_name, state.side)
-            elseif state.behaviour == "jtac" then
-                InfantrySquads._jtacRetask(group_name)
             end
         end
     end

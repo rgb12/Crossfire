@@ -1055,7 +1055,7 @@ Config = {
         },
         -- (bool)
         allow_unpacking_in_zones = true,
-        -- (bool)
+        -- (bool) WARN this is needed for operations and ctld units to work
         allow_unloading_in_zones = true,
         -- (bool)
         enable_weighted_loading = false,
