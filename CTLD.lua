@@ -201,7 +201,6 @@ InfantrySquads = {} do
         MORTAR   = "mortar",
         ENGINEER = "engineer",
         SABOTAGE = "sabotage",
-        JTAC     = "jtac",
     }
 
     ---@enum SquadRoles
@@ -216,7 +215,6 @@ InfantrySquads = {} do
         MORTAR   = "mortar",
         ENGINEER = "engineer",
         SABOTAGE = "sabotage",
-        JTAC     = "jtac",
     }
 
     --- Static definition of a squad type (shape of each SQUAD_DEFS entry).
@@ -265,12 +263,6 @@ InfantrySquads = {} do
             desc = "Sabotage Squad",
             roles = { InfantrySquads.SquadRoles.INFANTRY_AT, InfantrySquads.SquadRoles.INFANTRY },
             behaviour = InfantrySquads.Behaviours.SABOTAGE,
-        },
-        {
-            id = InfantrySquads.SquadIds.JTAC,
-            desc = "JTAC (FAC)",
-            roles = { InfantrySquads.SquadRoles.INFANTRY },
-            behaviour = InfantrySquads.Behaviours.JTAC,
         },
     }
 
@@ -391,7 +383,7 @@ InfantrySquads = {} do
                 "Sabotage team must be deployed within %d m of an enemy supply zone (Airbase, FARP or Logistics).", range)
         end
 
-        -- mortar / jtac: no placement restriction.
+        -- mortar: no placement restriction.
         return true, nil, nil
     end
 
@@ -557,9 +549,6 @@ InfantrySquads = {} do
                     InfantrySquads._sabotageComms(zone, side)
                 end
             end
-
-        elseif b == "jtac" then
-            InfantrySquads._jtacRetask(group_name)
         end
 
         InfantrySquads.active[group_name] = state
@@ -577,33 +566,6 @@ InfantrySquads = {} do
             trigger.action.outTextForCoalition(side,
                 string.format("Sabotage team destroyed the COMMS tower at %s.", zone.name), 10)
         end
-    end
-
-    --- https://wiki.hoggitworld.com/view/DCS_task_fac
-    ---@param group_name string
-    function InfantrySquads._jtacRetask(group_name)
-        local gr = Group.getByName(group_name)
-        if not (gr and gr:isExist()) then return end
-        local ctrl = gr:getController()
-        if not ctrl then return end
-
-        -- Hold fire so the JTAC spots rather than engages
-        ctrl:setOption(AI.Option.Ground.id.ROE, AI.Option.Ground.val.ROE.WEAPON_HOLD)
-
-        local FAC_task ={
-            id = "FAC",
-            params = {
-                priority = 0,
-            },
-        }
-
-        ctrl:setTask({
-            id = 'ComboTask',
-            params = {
-                tasks = { [1] = FAC_task },
-            }
-        })
-        MissionLogger:info("JTAC FAC task assigned to "..group_name..", hasTask="..tostring(ctrl:hasTask()))
     end
 
     function InfantrySquads.ensureTicker()
@@ -657,8 +619,8 @@ InfantrySquads = {} do
                 InfantrySquads.active[group_name] = nil
             elseif state.behaviour == "mortar" then
                 InfantrySquads._mortarTick(group_name, state)
-            -- engineer/sabotage effects are timed (expire_at, above); JTAC uses the
-            -- stock DCS FAC task assigned on activation. Neither needs per-tick work.
+            -- engineer/sabotage effects are timed (expire_at, handled above); they
+            -- need no per-tick work.
             end
         end
     end

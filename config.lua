@@ -1119,11 +1119,6 @@ Config = {
             -- (bool) allow the squad to destroy the target zone's COMMS tower
             can_destroy_comms = true,
         },
-        jtac = {
-            req_supplies = 40,
-            troop_slots = 1,
-            soldiers = 1,
-        },
     },
 
     -- (int) (meters)
