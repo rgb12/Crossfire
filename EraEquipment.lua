@@ -1649,6 +1649,8 @@ Stocks.EquipmentData = {
         [Stocks.Equipment.R_40T                      ] = { stock_type = StockTypes.AIR_AIR_LONG_RANGE, base_qty = 16, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
 
       -- AIR AIR SHORT RANGE
+        [Stocks.Equipment.AIM_9JULI                  ] = { stock_type = StockTypes.AIR_AIR_SHORT_RANGE, base_qty = 18, eras = { Eras.EARLYCOLDWAR, Eras.LATECOLDWAR } }, -- AIM-9J/JULI (German upgrade)
+        [Stocks.Equipment.RB_24                      ] = { stock_type = StockTypes.AIR_AIR_SHORT_RANGE, base_qty = 18, eras = { Eras.EARLYCOLDWAR, Eras.LATECOLDWAR } }, -- Swedish Rb 24 (AIM-9B)
         [Stocks.Equipment.AIM_9J                     ] = { stock_type = StockTypes.AIR_AIR_SHORT_RANGE, base_qty = 18, eras = { Eras.EARLYCOLDWAR, Eras.LATECOLDWAR } },
         [Stocks.Equipment.AIM_9B                     ] = { stock_type = StockTypes.AIR_AIR_SHORT_RANGE, base_qty = 18, eras = { Eras.EARLYCOLDWAR } },
         [Stocks.Equipment.AIM_9L                     ] = { stock_type = StockTypes.AIR_AIR_SHORT_RANGE, base_qty = 30, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
@@ -1796,6 +1798,9 @@ Stocks.EquipmentData = {
         [Stocks.Equipment.X_29L                              ] = { stock_type = StockTypes.AIR_GROUND_GUIDED_MISSILES, base_qty = 50, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
         [Stocks.Equipment.AGM_12A                            ] = { stock_type = StockTypes.AIR_GROUND_GUIDED_MISSILES, base_qty = 20, eras = { Eras.EARLYCOLDWAR, Eras.LATECOLDWAR } },
         [Stocks.Equipment.VIKHR_M                            ] = { stock_type = {StockTypes.FARP_MISSILES, StockTypes.AIR_GROUND_GUIDED_MISSILES}, base_qty = { [StockTypes.FARP_MISSILES] = 220, [StockTypes.AIR_GROUND_GUIDED_MISSILES] = 150 }, eras = { Eras.MODERN } },
+        [Stocks.Equipment.AGM_45B                            ] = { stock_type = StockTypes.AIR_GROUND_GUIDED_MISSILES, base_qty = 10, eras = { Eras.EARLYCOLDWAR, Eras.LATECOLDWAR, Eras.MODERN } }, -- AGM-45B Shrike
+        [Stocks.Equipment.AGM_65L                            ] = { stock_type = StockTypes.AIR_GROUND_GUIDED_MISSILES, base_qty = 30, eras = { Eras.MODERN } }, -- AGM-65L Maverick
+        [Stocks.Equipment.AGM_84E                            ] = { stock_type = StockTypes.AIR_GROUND_GUIDED_MISSILES, base_qty = 10, eras = { Eras.LATECOLDWAR, Eras.MODERN } }, -- AGM-84E SLAM
 
 
         -- AIR GROUND ROCKETS
@@ -1841,12 +1846,16 @@ Stocks.EquipmentData = {
         [Stocks.Equipment.L005_SORBSIYA_ECM_POD_RIGHT        ] = { stock_type = StockTypes.ECM, base_qty = 2, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
         [Stocks.Equipment.L081_FANTASMAGORIA                 ] = { stock_type = StockTypes.ECM, base_qty = 2, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
         [Stocks.Equipment.MPS_410                            ] = { stock_type = StockTypes.ECM, base_qty = 2, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
+        [Stocks.Equipment.U22                                ] = { stock_type = StockTypes.ECM, base_qty = 2, eras = { Eras.LATECOLDWAR, Eras.MODERN } }, -- AJS37 U22 jammer pod
+        [Stocks.Equipment.ASO_2                              ] = { stock_type = StockTypes.ECM, base_qty = 3, eras = { Eras.EARLYCOLDWAR, Eras.LATECOLDWAR, Eras.MODERN } }, -- ASO-2 flare dispenser
+        [Stocks.Equipment.ECLAIR                             ] = { stock_type = StockTypes.ECM, base_qty = 3, eras = { Eras.LATECOLDWAR, Eras.MODERN } }, -- Eclair chaff/flare dispenser
+        [Stocks.Equipment.ECLAIRM_06                         ] = { stock_type = StockTypes.ECM, base_qty = 3, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
+        [Stocks.Equipment.ECLAIRM_15                         ] = { stock_type = StockTypes.ECM, base_qty = 3, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
+        [Stocks.Equipment.ECLAIRM_24                         ] = { stock_type = StockTypes.ECM, base_qty = 3, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
+        [Stocks.Equipment.ECLAIRM_33                         ] = { stock_type = StockTypes.ECM, base_qty = 3, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
+        [Stocks.Equipment.ECLAIRM_42                         ] = { stock_type = StockTypes.ECM, base_qty = 3, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
 
-      -- FARP AG ROCKETS
-        -- NOTE: HYDRA_70_M151_HE / M257 / MK5_HEAT are also FARP rockets but are
-        -- declared as dual-role records in the AIR GROUND ROCKETS section above
-        -- (one record per clsid, stock_type list). Do NOT re-add them here or the
-        -- duplicate clsid key will clobber the merged record.
+        -- FARP AG ROCKETS
         [Stocks.Equipment.HYDRA_70_M274                      ] = { stock_type = StockTypes.FARP_AG_ROCKETS, base_qty = 54, eras = { Eras.EARLYCOLDWAR, Eras.LATECOLDWAR, Eras.MODERN } },
         [Stocks.Equipment.HYDRA_70_MK1                       ] = { stock_type = StockTypes.FARP_AG_ROCKETS, base_qty = 54, eras = { Eras.EARLYCOLDWAR, Eras.LATECOLDWAR, Eras.MODERN } },
         [Stocks.Equipment.SNEB_251_HE                        ] = { stock_type = StockTypes.FARP_AG_ROCKETS, base_qty = 54, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
@@ -1896,6 +1905,12 @@ Stocks.EquipmentData = {
         [Stocks.Equipment.HB_ALE_40_15_90                    ] = { stock_type = StockTypes.MISC, base_qty = 10, eras = { Eras.EARLYCOLDWAR, Eras.LATECOLDWAR, Eras.MODERN } },
         [Stocks.Equipment.HB_ALE_40_30_0                     ] = { stock_type = StockTypes.MISC, base_qty = 10, eras = { Eras.EARLYCOLDWAR, Eras.LATECOLDWAR, Eras.MODERN } },
         [Stocks.Equipment.HB_ALE_40_30_60                    ] = { stock_type = StockTypes.MISC, base_qty = 10, eras = { Eras.EARLYCOLDWAR, Eras.LATECOLDWAR, Eras.MODERN } },
+        [Stocks.Equipment.AKAN_CONT                          ] = { stock_type = StockTypes.MISC, base_qty = 12, eras = { Eras.LATECOLDWAR, Eras.MODERN } }, -- AJS37 cannon container
+        [Stocks.Equipment.SUU_23_POD_CONT                    ] = { stock_type = StockTypes.MISC, base_qty = 20, eras = { Eras.EARLYCOLDWAR, Eras.LATECOLDWAR } },
+        [Stocks.Equipment.HVAR_ROCKET_CONT                   ] = { stock_type = StockTypes.MISC, base_qty = 100, eras = { Eras.WW2, Eras.EARLYCOLDWAR } }, -- HVAR rocket container
+        [Stocks.Equipment.KBPOD                              ] = { stock_type = StockTypes.MISC, base_qty = 6, eras = { Eras.LATECOLDWAR, Eras.MODERN } }, -- AJS37 recon pod
+        [Stocks.Equipment.ANAWW_13                           ] = { stock_type = StockTypes.MISC, base_qty = 6, eras = { Eras.LATECOLDWAR, Eras.MODERN } }, -- AN/AWW-13 datalink pod
+        [Stocks.Equipment.HB_F14_EXT_AN_APQ_167              ] = { stock_type = StockTypes.MISC, base_qty = 6, eras = { Eras.LATECOLDWAR, Eras.MODERN } }, -- F-14 TARPS pod
 
 
       -- TGP
@@ -1906,11 +1921,84 @@ Stocks.EquipmentData = {
         [Stocks.Equipment.AN_ASQ_228_ATFLIR                  ] = { stock_type = StockTypes.TGP, base_qty = 16, eras = { Eras.MODERN } },
         [Stocks.Equipment.F14_LANTIRN                        ] = { stock_type = StockTypes.TGP, base_qty = 10, eras = { Eras.MODERN } },
         [Stocks.Equipment.MERCURY_LLTV_POD                   ] = { stock_type = StockTypes.TGP, base_qty = 10, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
+        [Stocks.Equipment.F4E_TARGETING_POD_PAVE_SPIKE       ] = { stock_type = StockTypes.TGP, base_qty = 10, eras = { Eras.LATECOLDWAR, Eras.MODERN } }, -- AN/AVQ-23 Pave Spike
+        [Stocks.Equipment.F4E_TARGETING_POD_PAVE_SPIKE_FAST  ] = { stock_type = StockTypes.TGP, base_qty = 10, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
 
         -- Fuel tanks
-        [Stocks.Equipment.FPU_8A] = { stock_type = StockTypes.FUEL_TANKS, base_qty = 20, eras = { Eras.MODERN } },
-        [Stocks.Equipment._800L_TANK] = { stock_type = StockTypes.FUEL_TANKS, base_qty = 20, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
+        [Stocks.Equipment.FPU_8A                             ] = { stock_type = StockTypes.FUEL_TANKS, base_qty = 20, eras = { Eras.MODERN } },
+        [Stocks.Equipment._800L_TANK                         ] = { stock_type = StockTypes.FUEL_TANKS, base_qty = 20, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
+        [Stocks.Equipment.FUEL_TANK_300GAL                   ] = { stock_type = StockTypes.FUEL_TANKS, base_qty = 20, eras = { Eras.LATECOLDWAR, Eras.MODERN } }, -- F-16 300 gal tank
+        [Stocks.Equipment.FUEL_TANK_370GAL                   ] = { stock_type = StockTypes.FUEL_TANKS, base_qty = 20, eras = { Eras.LATECOLDWAR, Eras.MODERN } }, -- F-16 370 gal tank
+        [Stocks.Equipment.M2KC_02_RPL541                     ] = { stock_type = StockTypes.FUEL_TANKS, base_qty = 20, eras = { Eras.LATECOLDWAR, Eras.MODERN } }, -- Mirage 2000C RPL 541 tank
+        [Stocks.Equipment.M2KC_08_RPL541                     ] = { stock_type = StockTypes.FUEL_TANKS, base_qty = 20, eras = { Eras.LATECOLDWAR, Eras.MODERN } }, -- Mirage 2000C RPL 541 tank
+        [Stocks.Equipment.M2KC_RPL_522                       ] = { stock_type = StockTypes.FUEL_TANKS, base_qty = 20, eras = { Eras.LATECOLDWAR, Eras.MODERN } }, -- Mirage 2000C centreline RPL 522 tank
 
+        -- AIR AIR SHORT RANGE
+
+        -- AIR AIR LONG RANGE (medium-range A/A)
+        [Stocks.Equipment.R_530F_EM                          ] = { stock_type = StockTypes.AIR_AIR_LONG_RANGE, base_qty = 12, eras = { Eras.EARLYCOLDWAR, Eras.LATECOLDWAR } }, -- Matra R.530 (SARH)
+        [Stocks.Equipment.R_530F_IR                          ] = { stock_type = StockTypes.AIR_AIR_LONG_RANGE, base_qty = 12, eras = { Eras.EARLYCOLDWAR, Eras.LATECOLDWAR } }, -- Matra R.530 (IR)
+
+        -- AIR GROUND BOMBS
+        --[Stocks.Equipment.BDU_50HD                           ] = { stock_type = StockTypes.AIR_GROUND_BOMBS, base_qty = 40, eras = { Eras.LATECOLDWAR, Eras.MODERN } }, -- inert Mk-82 (high drag)
+        --[Stocks.Equipment.BDU_50LD                           ] = { stock_type = StockTypes.AIR_GROUND_BOMBS, base_qty = 40, eras = { Eras.LATECOLDWAR, Eras.MODERN } }, -- inert Mk-82 (low drag)
+        [Stocks.Equipment.MK_82Y                             ] = { stock_type = StockTypes.AIR_GROUND_BOMBS, base_qty = 40, eras = { Eras.LATECOLDWAR, Eras.MODERN } }, -- Mk-82 with daisy-cutter fuze extender
+        [Stocks.Equipment.BEER_BOMB                          ] = { stock_type = StockTypes.AIR_GROUND_BOMBS, base_qty = 30, eras = { Eras.WW2 } }, -- improvised WW2 incendiary
+        [Stocks.Equipment.BKF_AO2_5RT                        ] = { stock_type = StockTypes.AIR_GROUND_BOMBS, base_qty = 21, eras = { Eras.LATECOLDWAR, Eras.MODERN } }, -- KMGU submunition dispenser (AO-2.5RT)
+        [Stocks.Equipment.BKF_PTAB2_5KO                      ] = { stock_type = StockTypes.AIR_GROUND_BOMBS, base_qty = 21, eras = { Eras.LATECOLDWAR, Eras.MODERN } }, -- KMGU submunition dispenser (PTAB-2.5KO)
+        [Stocks.Equipment.OFAB_250_270                       ] = { stock_type = StockTypes.AIR_GROUND_BOMBS, base_qty = 42, eras = { Eras.EARLYCOLDWAR, Eras.LATECOLDWAR, Eras.MODERN } }, -- OFAB-250-270
+        [Stocks.Equipment.FAB_250M54                         ] = { stock_type = StockTypes.AIR_GROUND_BOMBS, base_qty = 54, eras = { Eras.WW2, Eras.EARLYCOLDWAR } }, -- FAB-250 M54
+        [Stocks.Equipment.RN_28                              ] = { stock_type = StockTypes.AIR_GROUND_BOMBS, base_qty = 4, eras = { Eras.EARLYCOLDWAR, Eras.LATECOLDWAR } }, -- RN-28 (tactical nuclear shape)
+        -- British WW2 bombs
+        [Stocks.Equipment.BRITISH_GP_250LB_BOMB_MK1          ] = { stock_type = StockTypes.AIR_GROUND_BOMBS, base_qty = 30, eras = { Eras.WW2 } },
+        [Stocks.Equipment.BRITISH_GP_250LB_BOMB_MK4          ] = { stock_type = StockTypes.AIR_GROUND_BOMBS, base_qty = 30, eras = { Eras.WW2 } },
+        [Stocks.Equipment.BRITISH_GP_250LB_BOMB_MK5          ] = { stock_type = StockTypes.AIR_GROUND_BOMBS, base_qty = 30, eras = { Eras.WW2 } },
+        [Stocks.Equipment.BRITISH_GP_500LB_BOMB_MK1          ] = { stock_type = StockTypes.AIR_GROUND_BOMBS, base_qty = 24, eras = { Eras.WW2 } },
+        [Stocks.Equipment.BRITISH_GP_500LB_BOMB_MK4          ] = { stock_type = StockTypes.AIR_GROUND_BOMBS, base_qty = 24, eras = { Eras.WW2 } },
+        [Stocks.Equipment.BRITISH_GP_500LB_BOMB_MK4_SHORT    ] = { stock_type = StockTypes.AIR_GROUND_BOMBS, base_qty = 24, eras = { Eras.WW2 } },
+        [Stocks.Equipment.BRITISH_GP_500LB_BOMB_MK5          ] = { stock_type = StockTypes.AIR_GROUND_BOMBS, base_qty = 24, eras = { Eras.WW2 } },
+        [Stocks.Equipment.BRITISH_MC_250LB_BOMB_MK1          ] = { stock_type = StockTypes.AIR_GROUND_BOMBS, base_qty = 30, eras = { Eras.WW2 } },
+        [Stocks.Equipment.BRITISH_MC_250LB_BOMB_MK2          ] = { stock_type = StockTypes.AIR_GROUND_BOMBS, base_qty = 30, eras = { Eras.WW2 } },
+        [Stocks.Equipment.BRITISH_MC_500LB_BOMB_MK1_SHORT    ] = { stock_type = StockTypes.AIR_GROUND_BOMBS, base_qty = 24, eras = { Eras.WW2 } },
+        [Stocks.Equipment.BRITISH_MC_500LB_BOMB_MK2          ] = { stock_type = StockTypes.AIR_GROUND_BOMBS, base_qty = 24, eras = { Eras.WW2 } },
+        [Stocks.Equipment.BRITISH_SAP_250LB_BOMB_MK5         ] = { stock_type = StockTypes.AIR_GROUND_BOMBS, base_qty = 30, eras = { Eras.WW2 } },
+
+        -- AIR GROUND GUIDED BOMBS
+        [Stocks.Equipment.GBU_31                             ] = { stock_type = StockTypes.AIR_GROUND_GUIDED_BOMBS, base_qty = 16, eras = { Eras.MODERN } }, -- GBU-31 JDAM
+        [Stocks.Equipment.GBU_31_V_2B                        ] = { stock_type = StockTypes.AIR_GROUND_GUIDED_BOMBS, base_qty = 16, eras = { Eras.MODERN } }, -- GBU-31(V)2/B JDAM
+        [Stocks.Equipment.GBU_31_V_4B                        ] = { stock_type = StockTypes.AIR_GROUND_GUIDED_BOMBS, base_qty = 16, eras = { Eras.MODERN } }, -- GBU-31(V)4/B JDAM
+        [Stocks.Equipment.GBU_8_B                            ] = { stock_type = StockTypes.AIR_GROUND_GUIDED_BOMBS, base_qty = 12, eras = { Eras.LATECOLDWAR } }, -- GBU-8 HOBOS (EO-guided)
+        [Stocks.Equipment.HB_F4E_GBU15V1                     ] = { stock_type = StockTypes.AIR_GROUND_GUIDED_BOMBS, base_qty = 12, eras = { Eras.LATECOLDWAR, Eras.MODERN } }, -- GBU-15(V)1 (F-4E)
+
+        -- AIR GROUND GUIDED MISSILES
+
+        -- AIR GROUND ROCKETS
+        [Stocks.Equipment.FFAR_MK5_HEAT                      ] = { stock_type = StockTypes.AIR_GROUND_ROCKETS, base_qty = 400, eras = { Eras.EARLYCOLDWAR, Eras.LATECOLDWAR } }, -- FFAR Mk5 HEAT
+        [Stocks.Equipment.FFAR_M156_WP                       ] = { stock_type = StockTypes.AIR_GROUND_ROCKETS, base_qty = 400, eras = { Eras.EARLYCOLDWAR, Eras.LATECOLDWAR } }, -- FFAR M156 white phosphorus
+        [Stocks.Equipment.HYDRA_70_MK61                      ] = { stock_type = StockTypes.AIR_GROUND_ROCKETS, base_qty = 400, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
+        [Stocks.Equipment.HYDRA_70_WTU1B                     ] = { stock_type = StockTypes.AIR_GROUND_ROCKETS, base_qty = 400, eras = { Eras.LATECOLDWAR, Eras.MODERN } }, -- practice
+        [Stocks.Equipment.SNEB_TYPE250_F1B                   ] = { stock_type = StockTypes.AIR_GROUND_ROCKETS, base_qty = 400, eras = { Eras.LATECOLDWAR, Eras.MODERN } }, -- SNEB 68mm (Mirage F1)
+        [Stocks.Equipment.SNEB_TYPE251_F1B                   ] = { stock_type = StockTypes.AIR_GROUND_ROCKETS, base_qty = 400, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
+        [Stocks.Equipment.SNEB_TYPE252_F1B                   ] = { stock_type = StockTypes.AIR_GROUND_ROCKETS, base_qty = 400, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
+        [Stocks.Equipment.SNEB_TYPE253_F1B                   ] = { stock_type = StockTypes.AIR_GROUND_ROCKETS, base_qty = 400, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
+        [Stocks.Equipment.SNEB_TYPE254_F1B_YELLOW            ] = { stock_type = StockTypes.AIR_GROUND_ROCKETS, base_qty = 400, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
+        [Stocks.Equipment.SNEB_TYPE256_F1B                   ] = { stock_type = StockTypes.AIR_GROUND_ROCKETS, base_qty = 400, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
+        [Stocks.Equipment.SNEB_TYPE257_F1B                   ] = { stock_type = StockTypes.AIR_GROUND_ROCKETS, base_qty = 400, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
+        [Stocks.Equipment.SNEB_TYPE259E_F1B                  ] = { stock_type = StockTypes.AIR_GROUND_ROCKETS, base_qty = 400, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
+        [Stocks.Equipment.BRITISH_AP_25LBNO1_3INCHNO1        ] = { stock_type = StockTypes.AIR_GROUND_ROCKETS, base_qty = 100, eras = { Eras.WW2 } },
+        [Stocks.Equipment.BRITISH_HE_60LBFNO1_3INCHNO1       ] = { stock_type = StockTypes.AIR_GROUND_ROCKETS, base_qty = 100, eras = { Eras.WW2 } },
+        [Stocks.Equipment.BRITISH_HE_60LBSAPNO2_3INCHNO1     ] = { stock_type = StockTypes.AIR_GROUND_ROCKETS, base_qty = 100, eras = { Eras.WW2 } },
+
+        -- FARP GUNS / gun pods
+        [Stocks.Equipment.AKAN_GUN                           ] = { stock_type = StockTypes.FARP_GUNS, base_qty = 30, eras = { Eras.LATECOLDWAR, Eras.MODERN } }, -- AJS37 30mm cannon
+        [Stocks.Equipment.AKAN_GUN_2                         ] = { stock_type = StockTypes.FARP_GUNS, base_qty = 30, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
+        [Stocks.Equipment.DEFA_553                           ] = { stock_type = StockTypes.FARP_GUNS, base_qty = 30, eras = { Eras.LATECOLDWAR, Eras.MODERN } }, -- DEFA 553 30mm pod (Mirage F1)
+        [Stocks.Equipment.DEFA_553_LOWER                     ] = { stock_type = StockTypes.FARP_GUNS, base_qty = 30, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
+        [Stocks.Equipment.FN_HMP400_100_GUN                  ] = { stock_type = StockTypes.FARP_GUNS, base_qty = 12, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
+        [Stocks.Equipment.FN_HMP400_200_GUN                  ] = { stock_type = StockTypes.FARP_GUNS, base_qty = 12, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
+        [Stocks.Equipment.SUU_23_POD_GUN                     ] = { stock_type = StockTypes.FARP_GUNS, base_qty = 20, eras = { Eras.EARLYCOLDWAR, Eras.LATECOLDWAR } }, -- SUU-23 20mm gun pod
+        [Stocks.Equipment.FN_HMP400_100_CONT                 ] = { stock_type = StockTypes.FARP_GUNS, base_qty = 12, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
+        [Stocks.Equipment.FN_HMP400_200_CONT                 ] = { stock_type = StockTypes.FARP_GUNS, base_qty = 12, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
 }
 
 -- Shared store lists for airframes that appear under several Stocks.Aircraft
@@ -2057,12 +2145,38 @@ local MIRAGE_F1_STORES = { -- complete
     Stocks.Equipment.SNEB_259_IL,
 }
 
--- ============================================================================
---  Helicopter shared store lists (FARP rearm parity with airbases)
---  Each list only references clsids defined in Stocks.Equipment AND given an
---  EquipmentData record, so an enabled helicopter actually enables its weapons
---  for FARP / airbase stocking via EraSystem.getEnabledWeapons().
--- ============================================================================
+local MIG29_STORES = {
+    Stocks.Equipment.R_60M,
+    Stocks.Equipment.R_60,
+    Stocks.Equipment.R73_AA_11_ARCHER,
+
+    Stocks.Equipment.R_77,
+    Stocks.Equipment.R27ER,
+    Stocks.Equipment.R27ET,
+    Stocks.Equipment.R_27R,
+    Stocks.Equipment.R_27T,
+    Stocks.Equipment.S8_KOM_80MM_HEAT,
+
+    -- Rockets
+    Stocks.Equipment.S24B,
+    Stocks.Equipment.S8_KOM_80MM_HEAT,
+    Stocks.Equipment.S8_OM_FP2_MPP,
+    Stocks.Equipment.S8_TsM_SM_ORANGE,
+
+    -- Bombs
+    Stocks.Equipment.BETAB_500,
+    Stocks.Equipment.BETAB_500SHP,
+    Stocks.Equipment.FAB_250_M62,
+    Stocks.Equipment.FAB_500,
+    Stocks.Equipment.BKF_AO2_5RT,
+    Stocks.Equipment.BKF_PTAB2_5KO,
+    Stocks.Equipment.OFAB_250_270,
+    Stocks.Equipment.RBK_250,
+    Stocks.Equipment.RBK_250_275_AO_1SCH,
+    Stocks.Equipment.RBK_500AO,
+    Stocks.Equipment.RBK_500U,
+    Stocks.Equipment.RBK_500U_OAB_2_5RT,
+}
 
 -- AH-64 Apache (A / D / D BLK II)
 local AH64_STORES = {
@@ -2160,6 +2274,11 @@ local SA342_STORES = {
     Stocks.Equipment.SNEB_253_HEAT,
     Stocks.Equipment.SNEB_259_IL,
     Stocks.Equipment.FN_HMP400,
+    Stocks.Equipment.FN_HMP400_200,
+    Stocks.Equipment.FN_HMP400_100_CONT,
+    Stocks.Equipment.FN_HMP400_100_GUN,
+    Stocks.Equipment.FN_HMP400_200_CONT,
+    Stocks.Equipment.FN_HMP400_200_GUN,
     Stocks.Equipment.IR_DEFLECTOR,
     Stocks.Equipment.SAND_FILTER,
 }
@@ -2311,6 +2430,7 @@ Stocks.AircraftLoads = {
         Stocks.Equipment.GBU_38,
         Stocks.Equipment.GBU_54_V_1B,
         Stocks.Equipment.MK_82,
+        Stocks.Equipment.MK_81,
         Stocks.Equipment.MK82_SNAKEEYE,
         Stocks.Equipment.MK_82AIR,
         Stocks.Equipment.MK_83,
@@ -2631,6 +2751,7 @@ Stocks.AircraftLoads = {
         Stocks.Equipment.RBK_250,
         Stocks.Equipment.RBK_500U,
         Stocks.Equipment.L005_SORBSIYA_ECM_POD_LEFT,
+        Stocks.Equipment.L005_SORBSIYA_ECM_POD_RIGHT,
     },
     [Stocks.Aircraft.J11A] = {
         Stocks.Equipment.R27ER,
@@ -2653,35 +2774,10 @@ Stocks.AircraftLoads = {
         Stocks.Equipment.FAB_500,
         Stocks.Equipment.RBK_250,
     },
-    [Stocks.Aircraft.MIG29A] = {
-        Stocks.Equipment.R27ER,
-        Stocks.Equipment.R27ET,
-        Stocks.Equipment.R_60M,
-        Stocks.Equipment.R73_AA_11_ARCHER,
-        Stocks.Equipment.S8_KOM_80MM_HEAT,
-        Stocks.Equipment.FAB_250,
-        Stocks.Equipment.FAB_500,
-        Stocks.Equipment.RBK_250,
-    },
-    [Stocks.Aircraft.MIG29S] = {
-        Stocks.Equipment.R27ER,
-        Stocks.Equipment.R27ET,
-        Stocks.Equipment.R73_AA_11_ARCHER,
-        Stocks.Equipment.R_77,
-        Stocks.Equipment.S8_KOM_80MM_HEAT,
-        Stocks.Equipment.FAB_250,
-        Stocks.Equipment.FAB_500,
-        Stocks.Equipment.RBK_250,
-    },
-    [Stocks.Aircraft.MIG29G] = {
-        Stocks.Equipment.R27ER,
-        Stocks.Equipment.R27ET,
-        Stocks.Equipment.R_60M,
-        Stocks.Equipment.R73_AA_11_ARCHER,
-        Stocks.Equipment.S8_KOM_80MM_HEAT,
-        Stocks.Equipment.FAB_250,
-        Stocks.Equipment.FAB_500,
-    },
+    [Stocks.Aircraft.MIG29A] = MIG29_STORES,
+    [Stocks.Aircraft.MIG29S] = MIG29_STORES,
+    [Stocks.Aircraft.MIG29G] = MIG29_STORES,
+    [Stocks.Aircraft.MIG29_FULCRUM] = MIG29_STORES,
     [Stocks.Aircraft.SU24M] = {
         Stocks.Equipment.KAB_1500LG,
         Stocks.Equipment.R_60M,
@@ -2801,14 +2897,6 @@ Stocks.AircraftLoads = {
         Stocks.Equipment.SAB_100MN,
         Stocks.Equipment.P_50T,
     },
-    [Stocks.Aircraft.P47D_40] = {
-        Stocks.Equipment.HVAR,
-        Stocks.Equipment.AN_M57,
-        Stocks.Equipment.AN_M65,
-        Stocks.Equipment.AN_M64,
-        Stocks.Equipment.AN_M30A1,
-        Stocks.Equipment.M8_ROCKET,
-    },
     [Stocks.Aircraft.FW190D9] = {
         Stocks.Equipment.R4M,
         Stocks.Equipment.SC_500_J,
@@ -2894,7 +2982,75 @@ Stocks.AircraftLoads = {
         Stocks.Equipment.FAB_50,
         Stocks.Equipment.OFAB_250_270,
         Stocks.Equipment.S_5M,
-    }
+    },
+    [Stocks.Aircraft.SPITFIRE_LF] = {
+        Stocks.Equipment.BEER_BOMB,
+        Stocks.Equipment.BRITISH_GP_250LB_BOMB_MK1,
+        Stocks.Equipment.BRITISH_GP_500LB_BOMB_MK1,
+    },
+    [Stocks.Aircraft.SPITFIRE_LF] = {
+        Stocks.Equipment.BEER_BOMB,
+        Stocks.Equipment.BRITISH_GP_250LB_BOMB_MK1,
+        Stocks.Equipment.BRITISH_GP_500LB_BOMB_MK1,
+    },
+    [Stocks.Aircraft.P51D] = {
+        Stocks.Equipment.HVAR_ROCKET_CONT,
+        Stocks.Equipment.HVAR,
+        Stocks.Equipment.AN_M64,
+    },
+    [Stocks.Aircraft.P51D_30_NA] = {
+        Stocks.Equipment.HVAR_ROCKET_CONT,
+        Stocks.Equipment.HVAR,
+        Stocks.Equipment.AN_M64,
+    },
+    [Stocks.Aircraft.P47D_40] = {
+        Stocks.Equipment.M8_ROCKET,
+        Stocks.Equipment.HVAR_ROCKET_CONT,
+        Stocks.Equipment.HVAR,
+        Stocks.Equipment.AN_M64,
+        Stocks.Equipment.AN_M65,
+        Stocks.Equipment.AN_M57,
+        Stocks.Equipment.AN_M30A1,
+    },
+    [Stocks.Aircraft.P47D_30] = {
+        Stocks.Equipment.M8_ROCKET,
+        Stocks.Equipment.HVAR_ROCKET_CONT,
+        Stocks.Equipment.HVAR,
+        Stocks.Equipment.AN_M64,
+        Stocks.Equipment.AN_M65,
+        Stocks.Equipment.AN_M57,
+        Stocks.Equipment.AN_M30A1,
+    },
+    [Stocks.Aircraft.P47D_30BL1] = {
+        -- Rockets
+        Stocks.Equipment.M8_ROCKET,
+        Stocks.Equipment.HVAR_ROCKET_CONT,
+        Stocks.Equipment.HVAR,
+
+        -- Bombs
+        Stocks.Equipment.AN_M64,
+        Stocks.Equipment.AN_M65,
+        Stocks.Equipment.AN_M57,
+        Stocks.Equipment.AN_M30A1,
+    },
+    [Stocks.Aircraft.MOSQUITO] = {
+        -- Bombs
+        Stocks.Equipment.BRITISH_GP_250LB_BOMB_MK4,
+        Stocks.Equipment.BRITISH_GP_250LB_BOMB_MK5,
+        Stocks.Equipment.BRITISH_MC_250LB_BOMB_MK1,
+        Stocks.Equipment.BRITISH_MC_250LB_BOMB_MK2,
+        Stocks.Equipment.BRITISH_GP_500LB_BOMB_MK4,
+        Stocks.Equipment.BRITISH_GP_500LB_BOMB_MK5,
+        Stocks.Equipment.BRITISH_GP_500LB_BOMB_MK4_SHORT,
+        Stocks.Equipment.BRITISH_MC_500LB_BOMB_MK2,
+        Stocks.Equipment.BRITISH_MC_500LB_BOMB_MK1_SHORT,
+        Stocks.Equipment.BRITISH_SAP_250LB_BOMB_MK5,
+
+        -- Rockets
+        Stocks.Equipment.BRITISH_AP_25LBNO1_3INCHNO1, --rocket
+        Stocks.Equipment.BRITISH_HE_60LBFNO1_3INCHNO1,
+        Stocks.Equipment.BRITISH_HE_60LBSAPNO2_3INCHNO1,
+    },
 }
 
 --[[ 
