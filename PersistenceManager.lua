@@ -162,16 +162,12 @@ do
 
     local function buildConfigExport()
         return {
-        Config = copyTable(Config),
-        stats = copyTable(stats), GroupData = copyTable(GroupData) }
-    end
-
-    local function buildScenariosExport()
-        return {
-            _config_enabled = true,
-            _scenario_file_version = Config._scenario_file_version,
-            available_zones = copyTable(available_zones),
-            scenarios = copyTable(scenarios),
+            _config_file_version = Config._config_file_version,
+            _mission_version = Config._mission_version,
+            _enable_external_config = true,
+            Config = copyTable(Config),
+            stats = copyTable(stats),
+            GroupData = copyTable(GroupData),
         }
     end
 
@@ -187,58 +183,73 @@ do
         local theatre_name = PersistenceManager:fetchTheatre()
         if not theatre_name then return end
 
-        -- if this is the first do not load the files, just create them with the default data
-        local pass_overrides = false
-
         local dir = PersistenceManager:fetchDir(theatre_name)
         lfs.mkdir(dir)
 
         local config_path = dir .. "config.json"
+
         if not lfs.attributes(config_path) then
             writeJSON(config_path, buildConfigExport())
-            pass_overrides = true
-        end
-
-        local scenarios_path = dir .. "scenarios.json"
-        if not lfs.attributes(scenarios_path) then
-            writeJSON(scenarios_path, buildScenariosExport())
-            pass_overrides = true
-        end
-
-        if pass_overrides then
-            MissionLogger:info("No user override files found, created default files at " .. dir)
+            MissionLogger:info("No user config override found, created default file at " .. config_path)
             return
         end
+
         local config_file = readJSONFile(config_path)
-        if config_file and config_file._config_file_version == Config._config_file_version and config_file._enable_external_config then
-            Config = config_file.Config
-            stats = config_file.stats
-            GroupData = config_file.GroupData
-            MissionLogger:info("Loaded user config override from " .. config_path)
-        else
-            MissionLogger:error("No valid user config override found at " .. config_path .. ", check file version and enabled flag.")
+
+        if not config_file or type(config_file) ~= "table" then
+            MissionLogger:error("User config override at " .. config_path .. " is missing or corrupt, using mission defaults.")
+            trigger.action.outText("Crossfire: your config.json could not be read and was ignored. Mission defaults are in use.", 30)
+            return
         end
 
-        local scenarios_file = readJSONFile(scenarios_path)
-        if scenarios_file and scenarios_file._scenario_file_version == Config._scenario_file_version and scenarios_file._enable_external_scenarios then
-            available_zones = scenarios_file.available_zones
-            scenarios = scenarios_file.scenarios
-
-            for _, stripped_zones in pairs(available_zones or {}) do
-                if type(stripped_zones) ~= "table" then return end
-
-                for _, zone in pairs(stripped_zones) do
-                    if type(zone) == "table" and zone.name and zone.zone then
-                        setmetatable(zone, ZoneHandler)
-                        ZoneHandler.__index = ZoneHandler
-                    end
-                end
-            end
-
-            MissionLogger:info("Loaded user scenarios override from " .. scenarios_path)
-        else
-            MissionLogger:error("No valid user scenarios override found at " .. scenarios_path .. ", check file version and enabled flag.")
+        if not config_file._enable_external_config then
+            MissionLogger:info("User config override at " .. config_path .. " is disabled via _enable_external_config, using mission defaults.")
+            return
         end
+
+        if not PersistenceManager:isCompatibleOverride(config_file, config_path) then
+            return
+        end
+
+        if type(config_file.Config) ~= "table" then
+            MissionLogger:error("User config override at " .. config_path .. " is missing its Config table, using mission defaults.")
+            trigger.action.outText("Crossfire: your config.json is incomplete and was ignored. Mission defaults are in use.", 30)
+            return
+        end
+
+        Config = config_file.Config
+        stats = config_file.stats
+        GroupData = config_file.GroupData
+        MissionLogger:info("Loaded user config override from " .. config_path)
+    end
+
+    ---@param config_file table parsed override file
+    ---@param config_path string path used for log messages
+    ---@return boolean compatible true if safe to apply the override
+    function PersistenceManager:isCompatibleOverride(config_file, config_path)
+        local file_mission_version = config_file._mission_version
+        local file_config_version = config_file._config_file_version
+
+        if file_mission_version ~= Config._mission_version
+            or file_config_version ~= Config._config_file_version then
+
+            local detail = string.format(
+                "file mission v%s / config v%s, mission expects mission v%s / config v%s",
+                tostring(file_mission_version), tostring(file_config_version),
+                tostring(Config._mission_version), tostring(Config._config_file_version))
+
+            MissionLogger:warn("User config override at " .. config_path
+                .. " is from an older/incompatible mission version (" .. detail
+                .. "). Ignoring it and using mission defaults. Delete this file (or back up your edits) to regenerate a fresh, compatible config.")
+
+            trigger.action.outText(
+                "config.json is from an older mission version and was ignored.\n"
+                .. "Delete it to regenerate a compatible config (back up your edits first).", 45)
+
+            return false
+        end
+
+        return true
     end
 
     function PersistenceManager:isEnabled()

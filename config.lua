@@ -19,9 +19,6 @@
 Config = {
     -- (int) config version should not be edited unless comprehensively understood
     _config_file_version = 1,
-    -- (int) scenario file version should not be edited unless comprehensively
-    -- understood
-    _scenario_file_version = 1,
     -- (int) mission version should not be edited unless comprehensively understood
     _mission_version = 6,
     -- (bool) development setting, set to false to prevent the mission from loading
