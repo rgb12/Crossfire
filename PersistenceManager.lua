@@ -189,9 +189,6 @@ do
 
     local function buildConfigExport()
         return {
-            _config_file_version = Config._config_file_version,
-            _mission_version = Config._mission_version,
-            _enable_external_config = true,
             Config = copyTable(Config),
             stats = copyTable(stats),
             GroupData = copyTable(GroupData),
@@ -229,6 +226,12 @@ do
             return
         end
 
+        if type(config_file.Config) ~= "table" then
+            MissionLogger:error("User config override at " .. config_path .. " is missing its Config table, using mission defaults.")
+            trigger.action.outText("Crossfire: your config.json is incomplete and was ignored. Mission defaults are in use.", 30)
+            return
+        end
+
         if not config_file.Config._enable_external_config then
             MissionLogger:info("User config override at " .. config_path .. " is disabled via _enable_external_config, using mission defaults.")
             return
@@ -238,15 +241,13 @@ do
             return
         end
 
-        if type(config_file.Config) ~= "table" then
-            MissionLogger:error("User config override at " .. config_path .. " is missing its Config table, using mission defaults.")
-            trigger.action.outText("Crossfire: your config.json is incomplete and was ignored. Mission defaults are in use.", 30)
-            return
-        end
-
         Config = restoreIntegerKeys(config_file.Config)
-        stats = restoreIntegerKeys(config_file.stats)
-        GroupData = restoreIntegerKeys(config_file.GroupData)
+        if type(config_file.stats) == "table" then
+            stats = restoreIntegerKeys(config_file.stats)
+        end
+        if type(config_file.GroupData) == "table" then
+            GroupData = restoreIntegerKeys(config_file.GroupData)
+        end
         MissionLogger:info("Loaded user config override from " .. config_path)
     end
 
