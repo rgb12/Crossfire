@@ -1275,7 +1275,7 @@ do
         timer.scheduleFunction(TheatreCommander.sendWarehouseResupply, coalition.side.BLUE, timer.getTime() + Config.std_resupply_time)
         timer.scheduleFunction(TheatreCommander.sendWarehouseResupply, coalition.side.RED, timer.getTime() + Config.std_resupply_time)
 
-        ATIS:init()
+        -- ATIS:init()
         TheatreCommander:tick()
 
         -- AI DISPATCHER + AI COMMANDER (both owned by AICommander.lua)
