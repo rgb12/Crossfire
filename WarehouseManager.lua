@@ -225,7 +225,7 @@ do
             StockTypes.AIR_GROUND_BOMBS, StockTypes.AIR_GROUND_ROCKETS,
             StockTypes.ECM, StockTypes.TGP, StockTypes.MISC,
             StockTypes.AG_AIRCRAFT, StockTypes.AA_AIRCRAFT, StockTypes.MULTIROLE_AIRCRAFT,
-            StockTypes.RECON_AIRCRAFT, StockTypes.CARGO_AIRCRAFT, StockTypes.LOGISTICS_HELICOPTER,
+            StockTypes.RECON_AIRCRAFT, StockTypes.CARGO_AIRCRAFT,
         },
         [StockTypes.CARRIER_INITAL] = {
             StockTypes.AIR_AIR_LONG_RANGE, StockTypes.AIR_AIR_SHORT_RANGE,
@@ -556,9 +556,9 @@ do
         -- A small per-role default quantity (how many airframes a base of that
         -- role-type holds). Kept modest, matching the old hardcoded 2..8 range.
         local role_qty = {
-            [StockTypes.AG_AIRCRAFT]          = {min=10, max=14},
-            [StockTypes.AA_AIRCRAFT]          = {min=10, max=14},
-            [StockTypes.MULTIROLE_AIRCRAFT]   = {min=10, max=14},
+            [StockTypes.AG_AIRCRAFT]          = {min=16, max=18},
+            [StockTypes.AA_AIRCRAFT]          = {min=16, max=18},
+            [StockTypes.MULTIROLE_AIRCRAFT]   = {min=18, max=20},
             [StockTypes.RECON_AIRCRAFT]       = {min=4, max=6},
             [StockTypes.CARGO_AIRCRAFT]       = {min=10, max=14},
             [StockTypes.ATTACK_HELICOPTER]    = {min=8, max=10},
