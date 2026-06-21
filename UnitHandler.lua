@@ -189,14 +189,6 @@ do
 
     end
 
-    -- Set once the first time a composed group lands on the WRONG coalition
-    -- (the picked country is not registered on the zone's side in the .miz).
-    -- Used to throw the user-facing message box only a single time.
-    local side_mismatch_notified = false
-
-    -- Per-(zone_type, side) stat counter increment, identical to the legacy
-    -- initZoneUnits/capture behaviour. Called ONCE per zone when its primary
-    -- group(s) spawn successfully.
     local function bumpZoneStat(zone, spawned_any)
         if not spawned_any then return end
         local red = (zone.side == coalition.side.RED)
@@ -225,11 +217,6 @@ do
         end
     end
 
-    --- Spawn the dynamically-composed ground units for a zone.
-    --- Ground units are FULLY SCRIPTED: UnitComposer builds native group tables
-    --- and we spawn each via coalition.addGroup. Every live group name is
-    --- recorded in zone.linked_groups (capture / persistence / cleanup depend
-    --- on it). The same stats.* counters the legacy code maintained are kept.
     ---@param zone ZoneHandler
     function UnitHandler.initZoneUnits(zone)
         if not zone or zone.side == coalition.side.NEUTRAL then return end
@@ -238,28 +225,14 @@ do
         local compositions = UnitComposer.compose(zone)
         local spawned_any = false
 
+        local spawn_country = (zone.side == coalition.side.BLUE)
+            and country.id.CJTF_BLUE or country.id.CJTF_RED
+
         for _, comp in ipairs(compositions) do
             local gt = comp.group_table
             if gt and gt.units and #gt.units > 0 then
-                local country_id = comp.country
-                local grp = coalition.addGroup(country_id, Group.Category.GROUND, gt)
+                local grp = coalition.addGroup(spawn_country, Group.Category.GROUND, gt)
                 if grp and grp:getUnit(1) then
-                    -- DCS binds a group to the coalition its country belongs to
-                    -- in the .miz, NOT to the side we intended. If the picked
-                    -- country is not registered on this zone's side, the group
-                    -- spawns on the wrong coalition. Detect it and notify ONCE.
-                    local actual_country = grp:getUnit(1):getCountry()
-
-                    if not utils.tableContains(Config.era_system.coalition_selector[zone.side], actual_country) then
-
-                        MissionLogger:error("[UnitHandler] " .. tostring(gt.name).. " spawned on country " .. tostring(actual_country).. " but zone " .. tostring(zone.name) .. " is side "
-                            .. tostring(zone.side) .. " -- country " .. tostring(country_id)
-                            .. " is not registered on that side in the .miz.")
-                        if not side_mismatch_notified then
-                            side_mismatch_notified = true
-                            env.error("CONFIG ERROR: coalition_selector country ".. tostring(country.name[country_id]) .. " is not on the intended coalition in this mission. Ground units are spawning with the wrong country. Add that country to the correct coalition in the Mission Editor.", true)
-                        end
-                    end
                     table.insert(zone.linked_groups, gt.name)
                     spawned_any = true
                 else
@@ -380,19 +353,6 @@ do
         return true
     end
 
-    --- Collect the group name that EACH GroupData.COMMON_ASSETS asset will
-    --- actually clone for the ACTIVE era, paired with a human-readable path and a
-    --- flag for whether that name came from the active era's OWN entry or from a
-    --- fallback (MODERN / any other era).
-    ---
-    --- We validate the REAL spawn target: resolveTaskTemplateName returns exactly
-    --- the name the spawn path will clone (active era's own entry if present,
-    --- otherwise the MODERN/base fallback). This gives full crash protection. The
-    --- `own_entry` flag lets the reporter tailor the fix advice -- a missing OWN
-    --- entry means "build that ME group or remove the per-era entry to fall back";
-    --- a missing FALLBACK name means the base/MODERN group itself is wrong.
-    --- Logistics assets that resolve to an INSTANT mechanic in the active era are
-    --- skipped (they are never cloned -- see isLogisticsAssetUsed).
     ---@return table[] list of { name=string, path=string, own_entry=boolean }
     local function collectCommonAssetTemplateRefs()
         local refs = {}
@@ -420,22 +380,11 @@ do
         return refs
     end
 
-    --- Preflight check, run ONCE at mission start (before any spawning), that
-    --- every late-activated template group referenced by GroupData.COMMON_ASSETS
-    --- actually exists in the mission. Missing groups are almost always a typo or
-    --- a forgotten/renamed ME group; each one is surfaced to the user with
-    --- env.error(..., true) (the second arg pops the in-game error box) so the
-    --- mistake is visible immediately instead of as a later mist index crash.
     ---@return boolean ok true when every referenced group was found
     function UnitHandler.validateGroupTemplates()
         local present = getLateActivatedGroupNames()
         local refs = collectCommonAssetTemplateRefs()
 
-        -- De-duplicate: the same group name may be referenced from several paths
-        -- (e.g. an era table whose entries all point at one base group). Report
-        -- each MISSING name once, listing every config path that needs it. Track
-        -- whether the name comes from the active era's OWN entry so the fix advice
-        -- can be tailored.
         local missing_paths = {}   -- name -> { path, ... }
         local missing_own = {}     -- name -> boolean (any ref was an own-entry)
         local missing_order = {}   -- preserves first-seen order for stable output
@@ -457,11 +406,6 @@ do
 
         for _, name in ipairs(missing_order) do
             local paths = table.concat(missing_paths[name], ", ")
-            -- Tailor the fix advice: an OWN per-era entry that points at a missing
-            -- group is most often an era template you have not built yet -- the
-            -- user can either create it OR remove that era entry so the asset
-            -- falls back to the base/MODERN group. A missing fallback name means
-            -- the base/MODERN group itself is wrong.
             local advice
             if missing_own[name] then
                 advice = "Create that group in the mission editor (Late Activation, exact name), "
