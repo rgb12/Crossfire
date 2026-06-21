@@ -21,7 +21,6 @@ end
 ---@field linked_comms_tower string|nil
 ---@field linked_farp string|nil
 ---@field local_supplies number|nil
----@field next_level_up_avail number|nil
 ---@field runway_destroyed boolean|nil
 ---@field runway_destroyed_until number|nil
 ---@field lha_source boolean|nil
@@ -46,9 +45,6 @@ do
         end
 
         if obj.zone_type == ZoneTypes.LOGISTICS then
-            if not obj.next_level_up_avail then
-                obj.next_level_up_avail = timer.getTime()
-            end
             obj.ammo_depot_intact = false
             obj.heli_avail = obj.heli_avail or obj.capture_heli_avail or 0
         end
@@ -1025,7 +1021,7 @@ do
         local max_local_supplies = (#depots > 0 and self.ammo_depot_intact ~= false) and depot_cap or 0
         self.local_supplies = math.min(self.local_supplies, max_local_supplies)
 
-        local depot_respawn_time = Config.logistics_ammo_depot_respawn_time or (65*60)
+        local depot_respawn_time = Config.ammo_depot_respawn_time or (65*60)
 
         if self.ammo_depot_last_destroyed and not self.ammo_depot_intact
         and self.ammo_depot_last_destroyed + depot_respawn_time > timer.getTime() then

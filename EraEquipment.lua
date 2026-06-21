@@ -3041,7 +3041,7 @@ Stocks.GroundUnits = {
     TANK_CHALLENGER = { type = "Challenger2", role = "TANK", countries = { 4, 80 }, era_min = Eras.MODERN, era_max = Eras.MODERN },
     TANK_LECLERC = { type = "Leclerc", role = "TANK", countries = { 5, 80 }, era_min = Eras.MODERN, era_max = Eras.MODERN },
     TANK_SHERMAN = { type = "M4_Sherman", role = "TANK", countries = {2,80}, era_min = Eras.WW2,era_max = Eras.EARLYCOLDWAR},
-    TANK_T90M = { type = "CHAP_T90M", role = "TANK", countries = {0,81}, era_min = Eras.WW2,era_max = Eras.EARLYCOLDWAR},
+    TANK_T90M = { type = "CHAP_T90M", role = "TANK", countries = {0,81}, era_min = Eras.MODERN,era_max = Eras.MODERN},
     
     -- ===================== IFV =====================
     IFV_BMP1   = { type = "BMP-1",  role = "IFV", countries = { 0, 17, 81 }, era_min = Eras.EARLYCOLDWAR, era_max = Eras.EARLYCOLDWAR },

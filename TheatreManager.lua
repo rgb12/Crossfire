@@ -336,7 +336,6 @@ do
                                 -- Arrived inside the friendly zone: bump its tier
                                 if (zone_coal_check.level or 1) < 4 then
                                     zone_coal_check.level = (zone_coal_check.level or 1) + 1
-                                    zone_coal_check.next_level_up_avail = timer.getTime() + (Config.logistics_level_up_interval or (16 * 60))
                                     UnitHandler.updateZoneUnits(zone_coal_check)
                                     zone_coal_check:drawF10()
                                     trigger.action.outTextForCoalition(enroute.side,
@@ -991,7 +990,6 @@ do
             if idx <= #unassigned then
                 if allow_logistics then
                     unassigned[idx].zone_type = ZoneTypes.LOGISTICS
-                    unassigned[idx].next_level_up_avail = timer.getTime()
                     unassigned[idx].heli_avail = 4
                 else
                     unassigned[idx].zone_type = ZoneTypes.STRONGPOINT
@@ -1079,7 +1077,6 @@ do
                         budget_comms = budget_comms - 1
                     elseif budget_logistics > 0 then
                         zone.zone_type = ZoneTypes.LOGISTICS
-                        zone.next_level_up_avail = timer.getTime()
                         zone.heli_avail = 4
                         budget_logistics = budget_logistics - 1
                     elseif budget_farp > 0 then
@@ -1139,7 +1136,7 @@ do
             -- Randomize level
             if not zone.level then
                 local _, dist = zone:getClosestZone(utils.getEnemyCoalition(zone.side), nil, nil, false)
-                if dist and dist < Config.upgrade_tier_range then
+                if dist and dist < 50000 then
                     local rnd = rng_int(1,100)
                     if rnd > 90 then
                         zone.level = 4

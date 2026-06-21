@@ -1123,7 +1123,6 @@ do
                                     zone.level = zone.level + 1
                                     UnitHandler.updateZoneUnits(zone)
                                     zone:drawF10()
-                                    zone.next_level_up_avail = timer.getTime() + Config.logistics_level_up_interval
                                     trigger.action.outSoundForCoalition(zone.side,"radio_beep.ogg")
                                     trigger.action.outTextForCoalition(zone.side, "SITREP: Successful chute deployment over " .. zone.name .. ". Airdrop supplies have been processed, upgrading the sector to operational tier " .. zone.level .. " / 4",10)
                                 else
@@ -1208,7 +1207,6 @@ do
                             target_zone.level = target_zone.level + 1
                             UnitHandler.updateZoneUnits(target_zone)
                             target_zone:drawF10()
-                            target_zone.next_level_up_avail = timer.getTime() + Config.logistics_level_up_interval
                             trigger.action.outTextForCoalition(target_zone.side,"SITREP: " .. target_zone.name .. " has reached operational tier " .. target_zone.level.." / 4", 10)
                             trigger.action.outSoundForCoalition(target_zone.side, "radio_beep.ogg")
                         else

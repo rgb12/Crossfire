@@ -223,7 +223,6 @@ do
             then
                 if (zone_coal_check.level or 1) < 4 then
                     zone_coal_check.level = (zone_coal_check.level or 1) + 1
-                    zone_coal_check.next_level_up_avail = timer.getTime() + (Config.logistics_level_up_interval or (16 * 60))
                     UnitHandler.updateZoneUnits(zone_coal_check)
                     zone_coal_check:drawF10()
 

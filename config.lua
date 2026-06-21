@@ -154,7 +154,7 @@ Config = {
         attributes_for_SEAD_targeting = { 'SAM SR', 'SAM TR', 'IR Guided SAM', 'EWR' },
         -- (int) (seconds) runtime-only runway disable duration
         runway_destroyed_duration = 60*60,
-        
+
         -- (int) (meters)
         reinforcement_max_range = 50*1000,
         -- (int) (meters) AI reinforcement helicopters will only upgrade a target
@@ -220,7 +220,7 @@ Config = {
         -- (int) (seconds) this is to set a cooldown for generating operations
         operation_refresh_time = 30,
 
-        
+
         -- (table<enum,table<string>>)
         aircraft_filter = {
             -- (table<string>)
@@ -557,7 +557,7 @@ Config = {
             INITIAL = 5000,
             -- (int) FARP complete resupply
             FARP = 2500,
-            
+
             -- (int) Air-to-air focused aircraft
             AA_AIRCRAFT = 750,
             -- (int) Air-to-ground focused aircraft
@@ -578,7 +578,7 @@ Config = {
             AIR_AIR_LONG_RANGE = 750,
             -- (int) AIM-9, R-73, etc.
             AIR_AIR_SHORT_RANGE = 500,
-            
+
             -- (int) AGM-65, Hellfire, etc.
             AIR_GROUND_GUIDED_MISSILES = 750,
             -- (int) GBU-12, GBU-38, etc.
@@ -752,7 +752,7 @@ Config = {
     -- (table)
     theatre = {
 
-        -- (table<enum,int>) Weights for random generation (Airbases are excluded) 50%
+        -- (table<enum,int>) REQUIRES MISSION RESTART. Weights for random generation (Airbases are excluded) 50%
         -- of zones will be strongpoints 20% logistics
         zone_type_weights = {
             -- (int)
@@ -768,9 +768,9 @@ Config = {
             -- (int)
             [ZoneTypes.EWSITE]      = 5,
         },
-        -- (int) seed determines scenario selection, zone types and levels. Use -1 for random seed
+        -- (int) REQUIRES MISSION RESTART. seed determines scenario selection, zone types and levels. Use -1 for random seed
         seed = 844,
-        -- (table)
+        -- (table)  REQUIRES MISSION RESTART
         sam_classification_thresholds = {
             -- (int) (%) rolls below this : SHORT RANGE SAM
             short_range  = 15,
@@ -799,13 +799,13 @@ Config = {
         -- (int)
         comms_zones_required_for_recon = 1,
     },
-    
+
     -- (table)
     tasking = {
         -- (bool) enables/disables AI tasking system, does not affect resupply and
         -- capture mechanics
         enable = true,
-        
+
         -- (int) (seconds), avoid multiples of 15 to reduce lag spikes
         BLUFOR_dispatcher_interval = 10*60+8,
         -- (int) (seconds), avoid multiples of 15 to reduce lag spikes
@@ -828,7 +828,7 @@ Config = {
         max_tasks_per_airbase = 4,
         -- (int) minimum aircraft to leave in stock so AI does not empty the warehouse
         warehouse_aircraft_reserve = 2,
-        
+
         -- (int)
         max_jtac_per_airbase = 2,
         -- (int)
@@ -845,7 +845,7 @@ Config = {
         max_tanker_per_airbase = 1,
         -- (int)
         max_recon_per_airbase = 1,
-        
+
         -- (int) per coalition, only for AI auto tasking
         max_jtac_theatre = 4,
         -- (int) per coalition, only for AI auto tasking
@@ -875,7 +875,7 @@ Config = {
         max_attack_convoys_per_strongpoint_zone = 2,
         -- (int)
         max_awacs_theatre = 2,
-        
+
         -- (int) (meters)
         range_for_recon_to_discover_zone = 15*1000,
         -- (int) (meters)
@@ -1157,16 +1157,8 @@ Config = {
     -- statics
     spawn_inner_radius = 100,
 
-    -- (int) (seconds) minimum time between level ups
-    logistics_level_up_interval = 16*60,
-    -- (int) (seconds) time it takes for an ammo depot to respawn after being
-    -- destroyed
-    logistics_ammo_depot_respawn_time = 45*60,
-    -- (int) supplies required in a LOGISTICS zone stock to be eligible for auto
-    -- upgrade
-    logistics_auto_upgrade_required_supplies = 300,
-    -- (int) (%) evaluated at the 5-minute tick for eligible LOGISTICS zones
-    logistics_auto_upgrade_chance = 25,
+    -- (int) (seconds) time it takes for an ammo depot to respawn after being destroyed
+    ammo_depot_respawn_time = 45*60,
     -- (int) (seconds)
     comms_tower_respawn_time = 55*60,
 
@@ -1183,10 +1175,6 @@ Config = {
         tier_4 = 0.40,
     },
 
-    -- (int) (meters) Zones must be within this distance from logistics zones in
-    -- order to allow tier upgrades
-    upgrade_tier_range = 50000,
-
     -- (table)
     EWRS = {
         -- (bool) enables/disables the EWRS system
@@ -1197,11 +1185,9 @@ Config = {
         max_aircraft_per_text = 6,
     },
 
-    -- (bool) enables/disables the ATIS system
-    -- ATIS HAS BEEN DISABLED AS IT CAUSES DCS CRASHES
+    -- (ignore)
     ATIS_enabled = false,
-    -- (table<enum,int>)
-    -- ATIS HAS BEEN DISABLED AS IT CAUSES DCS CRASHES
+    -- (ignore)
     ATIS_frequencies = {
         -- (int) (Hertz)
         [Airbases.Caucasus.Vaziani] = 127.5*1e6,
@@ -1229,8 +1215,7 @@ Config = {
 
 
 
-    -- (table) Carrier and LHA are always enabled by default. They are global
-    -- assets, not scenario-specific.
+    -- (table)
     carrier_setup = {
         -- (string)
         carrier_unit_name = "Carrier",
@@ -1362,8 +1347,6 @@ GroupData = {
             capture_convoy = {
                 WW2          = "BLUE WW2 Convoy",
             },
-            -- JTAC is disabled in WW2/EARLYCOLDWAR (see EraSystem.isTaskTypeAllowed),
-            -- so only the LATECOLDWAR+ templates are ever used.
             jtac = {
                 LATECOLDWAR  = "BLUE LATECOLDWAR JTAC",
                 MODERN       = "BLUE JTAC",
@@ -1390,8 +1373,6 @@ GroupData = {
                 LATECOLDWAR  = "BLUE LATECOLDWAR CAS",
                 MODERN       = "BLUE CAS",
             },
-            -- SEAD is disabled in WW2/EARLYCOLDWAR (see EraSystem.isTaskTypeAllowed),
-            -- so only the LATECOLDWAR+ templates are ever used.
             sead = {
                 LATECOLDWAR  = "BLUE LATECOLDWAR SEAD",
                 MODERN       = "BLUE SEAD",
@@ -1408,8 +1389,6 @@ GroupData = {
                 LATECOLDWAR  = "BLUE LATECOLDWAR CAP",
                 MODERN       = "BLUE CAP",
             },
-            -- AWACS is disabled in WW2/EARLYCOLDWAR (see EraSystem.isTaskTypeAllowed),
-            -- so only the LATECOLDWAR+ templates are ever used.
             awacs = {
                 LATECOLDWAR  = "BLUE LATECOLDWAR AWACS",
                 MODERN       = "BLUE AWACS",
@@ -1447,8 +1426,6 @@ GroupData = {
             capture_convoy = {
                 WW2          = "RED WW2 Convoy",
             },
-            -- JTAC is disabled in WW2/EARLYCOLDWAR (see EraSystem.isTaskTypeAllowed),
-            -- so only the LATECOLDWAR+ templates are ever used.
             jtac = {
                 LATECOLDWAR  = "RED JTAC",
                 MODERN       = "RED JTAC",
@@ -1474,8 +1451,6 @@ GroupData = {
                 LATECOLDWAR  = "RED LATECOLDWAR CAS",
                 MODERN       = "RED CAS",
             },
-            -- SEAD is disabled in WW2/EARLYCOLDWAR (see EraSystem.isTaskTypeAllowed),
-            -- so only the LATECOLDWAR+ templates are ever used.
             sead = {
                 LATECOLDWAR  = "RED LATECOLDWAR SEAD",
                 MODERN       = "RED SEAD",
@@ -1492,8 +1467,6 @@ GroupData = {
                 LATECOLDWAR  = "RED LATECOLDWAR CAP",
                 MODERN       = "RED CAP",
             },
-            -- AWACS is disabled in WW2/EARLYCOLDWAR (see EraSystem.isTaskTypeAllowed),
-            -- so only the LATECOLDWAR+ templates are ever used.
             awacs = {
                 LATECOLDWAR  = "RED AWACS",
                 MODERN       = "RED AWACS",
