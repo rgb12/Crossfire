@@ -191,7 +191,7 @@ do
             local meta = pair_meta[key]
             local a_segs = bucket[meta[1]]
             local b_segs = bucket[meta[2]]
-            if a_segs and b_segs then
+            if a_segs or b_segs then
                 local za = data_points[meta[1]]
                 local zb = data_points[meta[2]]
                 local mid_x = (za.x + zb.x) * 0.5
