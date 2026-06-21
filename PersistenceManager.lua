@@ -162,8 +162,6 @@ do
 
     local function buildConfigExport()
         return {
-        _config_enabled = true,
-        _config_file_version = Config._config_file_version,
         Config = copyTable(Config),
         stats = copyTable(stats), GroupData = copyTable(GroupData) }
     end
@@ -212,17 +210,17 @@ do
             return
         end
         local config_file = readJSONFile(config_path)
-        if config_file and config_file._config_file_version == Config._config_file_version and config_file._config_enabled then
+        if config_file and config_file._config_file_version == Config._config_file_version and config_file._enable_external_config then
             Config = config_file.Config
             stats = config_file.stats
             GroupData = config_file.GroupData
             MissionLogger:info("Loaded user config override from " .. config_path)
         else
-            MissionLogger:info("No valid user config override found at " .. config_path .. ", check file version and enabled flag.")
+            MissionLogger:error("No valid user config override found at " .. config_path .. ", check file version and enabled flag.")
         end
 
         local scenarios_file = readJSONFile(scenarios_path)
-        if scenarios_file and scenarios_file._scenario_file_version == Config._scenario_file_version and scenarios_file._scenarios_enabled then
+        if scenarios_file and scenarios_file._scenario_file_version == Config._scenario_file_version and scenarios_file._enable_external_scenarios then
             available_zones = scenarios_file.available_zones
             scenarios = scenarios_file.scenarios
 
@@ -239,7 +237,7 @@ do
 
             MissionLogger:info("Loaded user scenarios override from " .. scenarios_path)
         else
-            MissionLogger:info("No valid user scenarios override found at " .. scenarios_path .. ", check file version and enabled flag.")
+            MissionLogger:error("No valid user scenarios override found at " .. scenarios_path .. ", check file version and enabled flag.")
         end
     end
 
