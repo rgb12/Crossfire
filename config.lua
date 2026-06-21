@@ -77,7 +77,7 @@ Config = {
         -- (table<...>) When this is empty, the script considers all modules flyable.
         -- To restrict to a specific set of aircraft, list them
         -- explicitly by type name for example: enabled_aircraft = { "FA-18C_hornet", "F-15ESE",
-        -- "F-16C_50", "A-10C_2", },
+        -- "F-16C_50", "A-10C_2", }. This affects AI too, be careful.
         enabled_aircraft = {},
 
         -- (table<string>)
@@ -88,7 +88,7 @@ Config = {
 
         -- (table<enum>)
         carrier_eras_allowed = { Eras.LATECOLDWAR, Eras.MODERN},
-        -- (table<enum>)
+        -- (table<enum>) LHA capture helicopter will not work in Early Cold War and WW2
         lha_eras_allowed = { Eras.LATECOLDWAR, Eras.MODERN},
 
         -- (table<enum,table<enum>>) Country composition used when
@@ -1194,32 +1194,32 @@ Config = {
         max_aircraft_per_text = 6,
     },
 
-    -- (ignore)
-    ATIS_enabled = false,
-    -- (ignore)
-    ATIS_frequencies = {
-        -- (int) (Hertz)
-        [Airbases.Caucasus.Vaziani] = 127.5*1e6,
-        -- (int) (Hertz)
-        [Airbases.Caucasus.Batumi] = 118.250*1e6,
-        -- (int) (Hertz)
-        [Airbases.Caucasus.Kutaisi] = 118.600*1e6,
-        -- (int) (Hertz)
-        [Airbases.Caucasus.Senaki_Kolkhi] = 119.100*1e6,
-        -- (int) (Hertz)
-        [Airbases.Caucasus.Kobuleti] = 119.450*1e6,
-        -- (int) (Hertz)
-        [Airbases.Caucasus.Sukhumi_Babushara] = 120.250*1e6,
-        -- (int) (Hertz)
-        [Airbases.Caucasus.Gudauta] = 120.750*1e6,
+    -- -- (ignore)
+    -- ATIS_enabled = false,
+    -- -- (ignore)
+    -- ATIS_frequencies = {
+    --     -- (int) (Hertz)
+    --     [Airbases.Caucasus.Vaziani] = 127.5*1e6,
+    --     -- (int) (Hertz)
+    --     [Airbases.Caucasus.Batumi] = 118.250*1e6,
+    --     -- (int) (Hertz)
+    --     [Airbases.Caucasus.Kutaisi] = 118.600*1e6,
+    --     -- (int) (Hertz)
+    --     [Airbases.Caucasus.Senaki_Kolkhi] = 119.100*1e6,
+    --     -- (int) (Hertz)
+    --     [Airbases.Caucasus.Kobuleti] = 119.450*1e6,
+    --     -- (int) (Hertz)
+    --     [Airbases.Caucasus.Sukhumi_Babushara] = 120.250*1e6,
+    --     -- (int) (Hertz)
+    --     [Airbases.Caucasus.Gudauta] = 120.750*1e6,
 
-        -- (int) (Hertz)
-        [Airbases.Syria.An_Nasiriyah] = 118.600*1e6,
-        -- (int) (Hertz)
-        [Airbases.Syria.Shayrat] = 127.5*1e6,
-        -- (int) (Hertz)
-        [Airbases.Syria.Rayak] = 119.450*1e6,
-    },
+    --     -- (int) (Hertz)
+    --     [Airbases.Syria.An_Nasiriyah] = 118.600*1e6,
+    --     -- (int) (Hertz)
+    --     [Airbases.Syria.Shayrat] = 127.5*1e6,
+    --     -- (int) (Hertz)
+    --     [Airbases.Syria.Rayak] = 119.450*1e6,
+    -- },
 
 
 
@@ -1343,7 +1343,6 @@ GroupData = {
                 MODERN       = "BLUE Reinforcement Helo",
             },
             LHA_capture_helicopter = {
-                EARLYCOLDWAR = "LHA Capture Helicopter",
                 LATECOLDWAR  = "LHA Capture Helicopter",
                 MODERN       = "LHA Capture Helicopter",
             },
