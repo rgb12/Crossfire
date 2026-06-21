@@ -1,21 +1,9 @@
 -- Profiler.lua
---
--- A minimal, self-contained performance profiler for the Crossfire framework.
---
--- It works by monkey-patching timer.scheduleFunction. Every scheduled callback
--- in DCS runs on the sim's main thread, so a slow callback is a direct cause of
--- stutters. The patch wraps each callback in an os.clock() measurement and
--- buckets the time by the call site that scheduled it (file:line), so the report
--- tells you which scheduler is eating the most CPU per call and per minute.
---
--- HOW TO USE
---   * Load this file FIRST, before any other framework script, so it sees every
+--   * load this file before any other framework script, so it sees every
 --     timer.scheduleFunction call. (Callbacks scheduled before it loads are not
 --     tracked, but anything re-scheduled afterwards is.)
 --   * In-game: place an F10 map mark with the text  -profile  to print a sorted
 --     report on screen and to the DCS log. Use  -profile reset  to zero counters.
---   * The profiler also dumps the top offenders to dcs.log every REPORT_INTERVAL
---     seconds automatically.
 
 Profiler = Profiler or {}
 
@@ -127,10 +115,6 @@ do
         return text
     end
 
-    -- ----- in-game trigger: F10 mark with text "-profile" ---------------------
-    -- Listen for mark-panel changes so a player can request a report without any
-    -- coupling to the menu system. Text "-profile" prints on screen + to log;
-    -- "-profile reset" clears counters.
     if world and world.addEventHandler then
         local handler = {}
         function handler:onEvent(event)
