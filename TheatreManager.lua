@@ -1267,10 +1267,6 @@ do
             return trigger.action.outText("ERROR: Mission theatre setup failed. Check logs (dcs.log) and config.", 30)
         end
 
-        if persistence_enabled then
-            PersistenceManager:autoSave()
-            timer.scheduleFunction(function() trigger.action.outText("Persistence enabled.",30) end, {}, timer.getTime() + 2)
-        end
 
         TheatreCommander.checkAirbasesCoalition()
 
@@ -1310,7 +1306,13 @@ do
         -- trigger.action.outText("Theatre setup complete.", 5)
         MissionLogger:info("THEATRE SETUP COMPLETE")
         timer.scheduleFunction(function()
-        end, {}, timer.getTime() + 15)
+            if persistence_enabled then
+                PersistenceManager:saveMissionToFile()
+                PersistenceManager:saveUserDataToFile()
+                PersistenceManager:autoSave()
+                trigger.action.outText("Persistence enabled.",30)
+            end
+        end, {}, timer.getTime() + 3)
     end
 
 end
