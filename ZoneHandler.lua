@@ -153,14 +153,14 @@ do
         local red_palette = Config.draw_color_palette.red_palette
         local blue_palette = Config.draw_color_palette.blue_palette
         local neutral_palette = Config.draw_color_palette.neutral_palette
-        
+
         -- Set default colors to neutral
         local border_color = neutral_palette[1]
         local fill_color   = neutral_palette[2]
         local text_color   = neutral_palette[3]
         local text_bg      = neutral_palette[4]
         local text_display = self.name
-    
+
         if self.side == coalition.side.RED then
             border_color = red_palette[1]
             fill_color   = red_palette[2]
@@ -172,14 +172,16 @@ do
             text_color   = blue_palette[3]
             text_bg      = blue_palette[4]
         end
-        
+
         -- 2. Build Display Text
         if self.zone_type == ZoneTypes.STRONGPOINT then
             text_display = text_display .. "\nSTRONGPOINT"
             text_display = text_display .. "\nConvoys: " .. (self.attack_convoy or 0)
         elseif self.zone_type == ZoneTypes.LOGISTICS then
             text_display = text_display .. "\nLOGISTICS"
-            text_display = text_display .. "\nHelicopters: " .. (self.heli_avail or 0)
+            if EraSystem.isHelicopterEraCapable() then
+                text_display = text_display .. "\nHelicopters: " .. (self.heli_avail or 0)
+            end
         elseif self.zone_type == ZoneTypes.FARP then
             text_display = text_display .. "\nFARP"
         elseif self.zone_type == ZoneTypes.SAMSITE then
@@ -211,13 +213,13 @@ do
         if self._markIds.redText      then trigger.action.removeMark(self._markIds.redText) end
         if self._markIds.neutral      then trigger.action.removeMark(self._markIds.neutral) end
         if self._markIds.neutralText  then trigger.action.removeMark(self._markIds.neutralText) end
-    
+
         -- 4. Draw New Marks
         if self.side == coalition.side.NEUTRAL then
-    
+
             local nCircleId = nextMarkId()
             local nTextId   = nextMarkId()
-    
+
             if self:isCircle() then
                 trigger.action.circleToAll(-1, nCircleId, self.zone.point, self.zone.radius, border_color, fill_color, 1, true)
             elseif self:isQuad() then
@@ -225,13 +227,13 @@ do
                     self.zone.vertices[2], self.zone.vertices[1], border_color, fill_color, 1, true)
             end
             trigger.action.textToAll(-1, nTextId, self.zone.point, text_color, text_bg, 13, true, text_display)
-    
+
             self._markIds.neutral = nCircleId
             self._markIds.neutralText = nTextId
         else
             -- Draw for BLUE coalition (if they discovered it)
             if utils.tableContains(stats.blue_discovered_zones, self.zone.name) then
-    
+
                 local bCircleId = nextMarkId()
                 local bTextId   = nextMarkId()
 

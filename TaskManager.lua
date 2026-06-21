@@ -788,6 +788,14 @@ do
                 local convoy_sent = mist.cloneInZone(convoy_template_gr_name, from_zone.zone.name)
                 if not convoy_sent then MissionLogger:info("Attack Convoy spawn failed, no convoy sent") return false end
 
+                EnrouteManager:add({
+                    group_name = convoy_sent.name,
+                    to_zone = to_zone,
+                    from_zone = from_zone,
+                    side = side,
+                    ai_task_type = AITaskTypes.ATTACK_CONVOY,
+                })
+
                 self:setATTACKCONVOYTask(convoy_sent.name,side,to_zone,from_zone)
                 from_zone.attack_convoy = from_zone.attack_convoy - 1
                 if from_zone and type(from_zone.drawF10) == "function" then
@@ -814,6 +822,14 @@ do
 
             local convoy_sent = mist.cloneInZone(convoy_template_gr_name, from_zone.zone.name)
             if not convoy_sent then MissionLogger:info("Capture Convoy spawn failed, no convoy sent") return false end
+
+            EnrouteManager:add({
+                group_name = convoy_sent.name,
+                to_zone = to_zone,
+                from_zone = from_zone,
+                side = side,
+                ai_task_type = AITaskTypes.CAPTURE_CONVOY,
+            })
 
             self:setCAPTURECONVOYTask(convoy_sent.name, side, to_zone, from_zone)
             from_zone.attack_convoy = (from_zone.attack_convoy or 0) - 1
@@ -842,6 +858,14 @@ do
             local convoy_sent = mist.cloneInZone(convoy_template_gr_name, from_zone.zone.name)
             if not convoy_sent then MissionLogger:info("Reinforcement Convoy spawn failed, no convoy sent") return false end
 
+            EnrouteManager:add({
+                group_name = convoy_sent.name,
+                to_zone = to_zone,
+                from_zone = from_zone,
+                side = side,
+                ai_task_type = AITaskTypes.REINFORCEMENT_CONVOY,
+            })
+
             self:setREINFORCEMENTCONVOYTask(convoy_sent.name, side, to_zone, from_zone)
 
             if not (from_zone and from_zone.lha_source) then
@@ -860,8 +884,6 @@ do
                 return false
             end
 
-            -- [Era] In a pre-helicopter era (WW2) no airframe is flown; the zone
-            -- is captured INSTANTLY instead, so the capture loop still works.
             if not EraSystem.isHelicopterEraCapable() then
                 if to_zone.side ~= coalition.side.NEUTRAL then return false end
                 to_zone:capture(side)
@@ -1426,13 +1448,6 @@ do
             local engage_waypoints = self:findATTACKCONVOYTasks(to_zone, side, gr_pos)
             self:ConvoyToPoint(convoy_gr, to_zone.zone.point, engage_waypoints)
 
-            EnrouteManager:add({
-                group_name = convoy_gr_name,
-                to_zone = to_zone,
-                from_zone = from_zone,
-                side = side,
-                ai_task_type = AITaskTypes.ATTACK_CONVOY,
-            })
 
             --- [ check if convoy is moving after 2 mins, if not, respawn it ]
             timer.scheduleFunction(function ()
@@ -1464,14 +1479,6 @@ do
 
             self:ConvoyToPoint(convoy_gr, to_zone.zone.point)
 
-            EnrouteManager:add({
-                group_name = convoy_gr_name,
-                to_zone = to_zone,
-                from_zone = from_zone,
-                side = side,
-                ai_task_type = AITaskTypes.CAPTURE_CONVOY,
-            })
-
             --- [ if convoy is not moving after 2 mins, refund the slot and remove it ]
             timer.scheduleFunction(function ()
                 if not convoy_gr or not convoy_gr:isExist() then return end
@@ -1497,13 +1504,6 @@ do
 
             self:ConvoyToPoint(convoy_gr, to_zone.zone.point)
 
-            EnrouteManager:add({
-                group_name = convoy_gr_name,
-                to_zone = to_zone,
-                from_zone = from_zone,
-                side = side,
-                ai_task_type = AITaskTypes.REINFORCEMENT_CONVOY,
-            })
 
             --- [ if convoy is not moving after 2 mins, refund the slot and remove it ]
             timer.scheduleFunction(function ()
