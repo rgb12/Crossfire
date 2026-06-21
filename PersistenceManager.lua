@@ -110,6 +110,33 @@ do
         return copied
     end
 
+    local function restoreIntegerKeys(value, seen)
+        if type(value) ~= "table" then return value end
+
+        seen = seen or {}
+        if seen[value] then return value end
+        seen[value] = true
+
+        local remapped = {}
+        for key, child in pairs(value) do
+            restoreIntegerKeys(child, seen)
+
+            if type(key) == "string" and key:match("^%-?%d+$") then
+                local numeric_key = tonumber(key)
+                if numeric_key ~= nil and value[numeric_key] == nil then
+                    remapped[numeric_key] = child
+                    value[key] = nil
+                end
+            end
+        end
+
+        for numeric_key, child in pairs(remapped) do
+            value[numeric_key] = child
+        end
+
+        return value
+    end
+
     local function readJSONFile(file_path)
 
         --[[
@@ -217,9 +244,9 @@ do
             return
         end
 
-        Config = config_file.Config
-        stats = config_file.stats
-        GroupData = config_file.GroupData
+        Config = restoreIntegerKeys(config_file.Config)
+        stats = restoreIntegerKeys(config_file.stats)
+        GroupData = restoreIntegerKeys(config_file.GroupData)
         MissionLogger:info("Loaded user config override from " .. config_path)
     end
 
