@@ -978,11 +978,13 @@ do
         ---@type StaticObject[]
         local depots = {} -- Ammunition depots
 
+        local supply_static = EraSystem.getSupplyStatic()
+
         for _, static_name in pairs(self.linked_statics) do
-            
+
             local static = StaticObject.getByName(static_name)
             if static and static:isExist() then
-                if static:getTypeName() == ".Ammunition depot" then
+                if static:getTypeName() == supply_static.type then
                     table.insert(depots, static)
                 end
             
@@ -1040,18 +1042,18 @@ do
 
             MissionLogger:info(self.name .." Ammunition depot respawn")
 
-            
-            -- respawn the ammo depot --TO CHANGE
+
+            -- respawn the ammo depot
             local country_name
             if self.side == coalition.side.BLUE then country_name = country.id.CJTF_BLUE
             else country_name = country.id.CJTF_RED end
-            
+
             local pnt = mist.getRandomPointInZone(self.zone.name,40) or {x=self.zone.point.x-67, y=self.zone.point.z+42}
 
             local ammo_depot_gr = mist.dynAddStatic({
-                type = ".Ammunition depot",
+                type = supply_static.type,
                 country = country_name,
-                category = "Warehouses",
+                category = supply_static.category,
                 x = pnt.x,
                 y = pnt.y})
                 if ammo_depot_gr then

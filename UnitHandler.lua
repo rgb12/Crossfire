@@ -285,11 +285,13 @@ do
             if zone.ammo_depot_intact == false then return false end
 
             local depot_point = UnitHandler.findClearPoint(zone,30,200,40)
-            
+
+            local supply_static = EraSystem.getSupplyStatic()
+
             local ammo_depot = mist.dynAddStatic({
-                type = ".Ammunition depot",
+                type = supply_static.type,
                 country = country_name,
-                category = "Warehouses",
+                category = supply_static.category,
                 x = depot_point.x,
                 y = depot_point.y
             })

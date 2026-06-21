@@ -1159,6 +1159,15 @@ Config = {
 
     -- (int) (seconds) time it takes for an ammo depot to respawn after being destroyed
     ammo_depot_respawn_time = 45*60,
+
+    -- (table<enum,table>) REQUIRES MISSION RESTART. The static spawned as the
+    -- ammunition depot in LOGISTICS / AIRBASE / FARP zones, per era.
+    supply_static = {
+        [Eras.WW2]          = { type = "Building08_PBR", category = "Fortification" },
+        [Eras.EARLYCOLDWAR] = { type = "Building08_PBR", category = "Fortification" },
+        [Eras.LATECOLDWAR]  = { type = ".Ammunition depot", category = "Warehouses" },
+        [Eras.MODERN]       = { type = ".Ammunition depot", category = "Warehouses" },
+    },
     -- (int) (seconds)
     comms_tower_respawn_time = 55*60,
 

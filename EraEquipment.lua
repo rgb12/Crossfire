@@ -3332,6 +3332,18 @@ EraSystem = {} do
         return selected[#selected] or Eras.MODERN
     end
 
+    --- The static used as the ammunition / supply depot for the active era.
+    --- Falls back to the default ".Ammunition depot" / "Warehouses" when the era
+    --- has no entry in Config.supply_static.
+    ---@return table {type=string, category=string}
+    function EraSystem.getSupplyStatic()
+        local supply_static = (Config.supply_static or {})[EraSystem.getActiveEra()]
+        if supply_static and supply_static.type and supply_static.category then
+            return supply_static
+        end
+        return { type = ".Ammunition depot", category = "Warehouses" }
+    end
+
     ---@return number rank
     local function maxSelectedEraRank()
         local best = 0
