@@ -9,31 +9,12 @@ Run it again after every config.lua change to rebuild the wizard:
 
     python3 build_wizard.py                 # config.lua -> config_wizard.html
     python3 build_wizard.py myconf.lua out.html
-
-Design decisions (agreed with the project owner):
-  * Lua enum tokens (AITaskTypes.JTAC, coalition.side.BLUE, Eras.MODERN, ...)
-    are emitted as BARE string tokens: "JTAC", "BLUE", "MODERN". The mission's
-    Lua loader is responsible for mapping these strings back to real enums.
-  * Arithmetic expressions (4*51, 10*60+8, 118.250*1e6) are EVALUATED to a
-    single number and stored as that number.
-  * The whole file is walked automatically. Both Config and GroupData (and any
-    other top-level table assignment) are exposed. No per-field curation needed.
-
-The Lua we parse is the restricted subset this config file uses: table
-constructors, numbers, arithmetic (+ - * / and parentheses), strings, booleans,
-nil, dotted identifier tokens (treated as enum strings) and [expr] = value keys.
-That is intentionally not a full Lua parser; it only needs to handle this file.
 """
 
 import sys
 import json
 import re
 from pathlib import Path
-
-
-# --------------------------------------------------------------------------- #
-# Tokenizer
-# --------------------------------------------------------------------------- #
 
 class Tok:
     def __init__(self, kind, value, pos, line):
@@ -46,7 +27,6 @@ class Tok:
         return f"Tok({self.kind},{self.value!r})"
 
 
-# A "comment" we keep around so the UI can show field help text.
 class Comment:
     def __init__(self, text, line, inline):
         self.text = text       # cleaned comment text (no leading --)
@@ -55,15 +35,11 @@ class Comment:
 
 
 def strip_comments(src):
-    """Remove Lua comments from the source but record them with their line
-    numbers and whether they were inline (trailing code) or standalone.
-    Returns (clean_source, comments_list)."""
     comments = []
     out = []
     i = 0
     n = len(src)
     line = 1
-    # track whether anything non-space has appeared on the current line of OUTPUT
     line_has_code = False
 
     while i < n:
@@ -85,18 +61,13 @@ def strip_comments(src):
                 block = src[j + len(m.group(0)):end - len(close)] if end != n else src[j:]
                 text = block.strip()
                 comments.append(Comment(text, line, inline=line_has_code))
-                # advance, counting newlines. Emit the SAME number of newlines
-                # into the cleaned output so downstream line numbers (used by the
-                # tokenizer) stay aligned with the original source.
                 consumed = src[i:end]
                 nlines = consumed.count('\n')
                 line += nlines
                 out.append('\n' * nlines)
                 i = end
-                # a long comment may end mid-line; keep line_has_code as is
                 continue
             else:
-                # single line comment to end of line
                 end = src.find('\n', j)
                 if end == -1:
                     end = n
@@ -186,18 +157,6 @@ def tokenize(src):
     toks.append(Tok('eof', None, n, line))
     return toks
 
-
-# --------------------------------------------------------------------------- #
-# Parser -> intermediate "node" tree carrying values + metadata
-# --------------------------------------------------------------------------- #
-#
-# Each parsed value becomes a dict node so we can attach a "comment"/type hint
-# and preserve key ordering and whether a table is an array or a map.
-#
-#   scalar node: {"kind":"num"/"str"/"bool"/"nil"/"enum", "value":...}
-#   table  node: {"kind":"table","array":bool,"entries":[ {key, keykind, value, comment} ]}
-#
-
 class Parser:
     def __init__(self, toks):
         self.toks = toks
@@ -217,7 +176,6 @@ class Parser:
             raise SyntaxError(f"Expected {value!r} got {t.value!r} at line {t.line}")
         return t
 
-    # ---- expression evaluation (numbers + arithmetic) --------------------- #
     def parse_value(self):
         """Parse a value: table, string, bool, nil, enum name, or numeric expr."""
         t = self.peek()
@@ -232,15 +190,12 @@ class Parser:
         if t.kind == 'nil':
             self.next()
             return {"kind": "nil", "value": None}
-        # could be an enum name OR a numeric expression starting with a name
-        # (no plain identifiers besides enums occur as values here). Decide by
-        # whether the name is followed by an arithmetic operator.
         if t.kind == 'name':
             nxt = self.toks[self.p + 1]
             if nxt.kind == 'punct' and nxt.value in ('+', '-', '*', '/', '%'):
                 return {"kind": "num", "value": self.parse_arith()}
             # indexed lookup like country.id["USA"] or Foo[1] -> resolve the
-            # whole reference (e.g. country.id["USA"] -> 2) through the enum map.
+            # whole reference (country.id["USA"] -> 2) through the enum map
             if nxt.kind == 'punct' and nxt.value == '[':
                 base = t.value
                 self.next()              # name
@@ -309,12 +264,9 @@ class Parser:
             self.expect(')')
             return v
         if t.kind == 'name':
-            # enum used inside arithmetic (e.g. an index) - shouldn't happen for
-            # numeric output; treat as error to be safe.
             raise SyntaxError(f"Identifier {t.value!r} in numeric expr at line {t.line}")
         raise SyntaxError(f"Bad atom {t.value!r} at line {t.line}")
 
-    # ---- table ------------------------------------------------------------ #
     def parse_table(self):
         self.expect('{')
         entries = []
@@ -393,11 +345,6 @@ def parse_number_expr(parser):
     """Parse a (possibly arithmetic) number used as a [key]."""
     return parser.parse_arith()
 
-
-# --------------------------------------------------------------------------- #
-# helpers
-# --------------------------------------------------------------------------- #
-
 def parse_number(text):
     if text.lower().startswith('0x'):
         return int(text, 16)
@@ -413,22 +360,9 @@ def decode_lua_string(tok):
     return bytes(inner, "utf-8").decode("unicode_escape")
 
 
-# --------------------------------------------------------------------------- #
-# Enum resolution: map a Lua enum reference to the VALUE it resolves to.
-#
-# Enums.lua defines tables like Eras = { EARLYCOLDWAR = "Early Cold War", ... },
-# Airbases = { Caucasus = { Vaziani = "Vaziani", ... } }, so a reference such as
-# Eras.EARLYCOLDWAR must emit "Early Cold War", not the token "EARLYCOLDWAR".
-#
-# coalition.side.* and country.id[*] are DCS engine built-ins (not in Enums.lua);
-# their standard numeric ids are baked in below so they resolve to numbers.
-# --------------------------------------------------------------------------- #
-
-# Standard DCS coalition side ids.
 DCS_COALITION_SIDE = {"NEUTRAL": 0, "RED": 1, "BLUE": 2}
 
-# Standard DCS country.id table (subset is fine; full standard set included so
-# future countries resolve without code changes).
+
 DCS_COUNTRY_ID = {
     "RUSSIA": 0, "UKRAINE": 1, "USA": 2, "TURKEY": 3, "UK": 4, "FRANCE": 5,
     "GERMANY": 6, "AGGRESSORS": 7, "CANADA": 8, "SPAIN": 9, "THE_NETHERLANDS": 10,
@@ -448,8 +382,6 @@ DCS_COUNTRY_ID = {
     "LEBANON": 71, "CUBA": 72, "ECUADOR": 73, "SLOVENIA": 79,
 }
 
-# Populated from Enums.lua: dotted path (e.g. "Eras.EARLYCOLDWAR",
-# "Airbases.Caucasus.Vaziani") -> resolved value.
 ENUM_RESOLVER = {}
 
 
@@ -468,9 +400,6 @@ def _flatten_enum(prefix, node, out):
 
 
 def load_enum_resolver(enums_path):
-    """Parse Enums.lua and fill ENUM_RESOLVER with dotted-path -> value, plus the
-    baked DCS coalition.side / country.id maps. Safe to call with a missing
-    file (then only the DCS built-ins are available)."""
     ENUM_RESOLVER.clear()
     # DCS built-ins
     for k, v in DCS_COALITION_SIDE.items():
@@ -485,10 +414,6 @@ def load_enum_resolver(enums_path):
     src = p.read_text(encoding="utf-8")
     clean, _ = strip_comments(src)
 
-    # Enums.lua may contain non-table Lua (class defs, method calls) that our
-    # restricted tokenizer cannot handle. So locate each top-level
-    # `Name = { ... }` block by brace matching on the cleaned text and parse
-    # ONLY that block, skipping everything else.
     assign_re = re.compile(r'(?m)^(?P<name>[A-Za-z_][A-Za-z0-9_]*)\s*=\s*\{')
     for m in assign_re.finditer(clean):
         name = m.group("name")
@@ -521,13 +446,7 @@ def load_enum_resolver(enums_path):
 
 
 def resolve_enum(dotted, index=None):
-    """Resolve a Lua enum reference to its value via ENUM_RESOLVER.
-      dotted: the dotted name, e.g. 'Eras.EARLYCOLDWAR' or 'country.id'
-      index : optional [index] applied to it, e.g. country.id["USA"] -> index 'USA'
-    Falls back to the last token segment (the old behavior) when unknown, so
-    DCS globals we have not baked in still produce a readable string."""
     if index is not None:
-        # try dotted["index"] and dotted.index forms
         for key in (f'{dotted}["{index}"]', f'{dotted}.{index}'):
             if key in ENUM_RESOLVER:
                 return ENUM_RESOLVER[key]
@@ -538,14 +457,7 @@ def resolve_enum(dotted, index=None):
 
 
 def enum_token(dotted):
-    """Backward-compatible name kept for the key paths; resolves through the
-    enum table, falling back to the last token segment."""
     return resolve_enum(dotted)
-
-
-# --------------------------------------------------------------------------- #
-# Attach comments as field descriptions
-# --------------------------------------------------------------------------- #
 
 def build_comment_index(comments):
     inline = {}      # line -> text (trailing comment on that line)
@@ -562,20 +474,12 @@ TYPE_HINT_RE = re.compile(r'^\((?P<t>[^)]*)\)\s*(?P<rest>.*)$')
 
 
 def annotate(node, inline, standalone):
-    """Walk the value tree; for each table entry derive a 'comment' and a
-    'typehint' from the inline comment on its line, or the standalone comment
-    block immediately above it."""
     if node["kind"] != "table":
         return
     for ent in node["entries"]:
         desc = ""
-        # 1) inline comment on the entry's DECLARATION line only. We must not
-        #    scan into a table value's body (ent.line..ent.endline) or a parent
-        #    table would wrongly inherit an inner field's trailing comment
-        #    (e.g. era_system inheriting restricted_weapons' inline note).
         if ent["line"] in inline:
             desc = " ".join(inline[ent["line"]]).strip()
-        # 2) otherwise gather standalone comments on the lines directly above
         if not desc:
             block = []
             ln = ent["line"] - 1
@@ -589,26 +493,12 @@ def annotate(node, inline, standalone):
         if m:
             typehint = m.group("t").strip()
             desc = m.group("rest").strip()
-
-        # A field whose comment block carries the (ignore) marker is hidden from
-        # the wizard entirely (it is dropped in to_schema).
         ent["ignore"] = (typehint.lower() == "ignore")
 
         ent["comment"] = desc
         ent["typehint"] = typehint
         annotate(ent["value"], inline, standalone)
 
-
-# --------------------------------------------------------------------------- #
-# Convert node tree -> plain JSON-able "schema" the JS understands
-# --------------------------------------------------------------------------- #
-#
-# schema node shapes:
-#   {"t":"scalar","vt":"num|str|bool|nil|enum","value":...,"comment":...}
-#   {"t":"map","comment":...,"fields":[ {key,keytype,comment,typehint,schema} ]}
-#   {"t":"list","comment":...,"items":[ schema,... ],"itemvt":"num|str|enum|.."}
-#
-# "map" preserves insertion order of fields. "list" is a pure positional array.
 
 def to_schema(node):
     if node["kind"] != "table":
@@ -638,13 +528,7 @@ def to_schema(node):
     return {"t": "map", "fields": fields}
 
 
-# --------------------------------------------------------------------------- #
-# Top-level: find "Name = { ... }" assignments and parse each
-# --------------------------------------------------------------------------- #
-
 def section_is_ignored(decl_line, standalone):
-    """True if the contiguous standalone comment block directly above a section's
-    `name = {` declaration line contains an (ignore) marker."""
     ln = decl_line - 1
     while ln in standalone:
         for text in standalone[ln]:
@@ -658,9 +542,6 @@ def parse_lua(src):
     clean, comments = strip_comments(src)
     inline, standalone = build_comment_index(comments)
 
-    # Tokenize the whole file once and find top-level `name = { ... }`
-    # assignments by walking tokens at brace depth 0. This is immune to the
-    # source indentation (some tables in this file are mis-indented to col 0).
     toks = tokenize(clean)
 
     sections = []  # (name, schema)
@@ -675,10 +556,7 @@ def parse_lua(src):
             parser = Parser(toks[i + 2:])     # start at the '{'
             node = parser.parse_table()
             annotate(node, inline, standalone)
-            # advance i past this table by re-using the parser's consumed count
             i += 2 + parser.p
-            # A whole top-level section can be hidden by putting (ignore) in the
-            # standalone comment block directly above its `name = {` line.
             if not section_is_ignored(t.line, standalone):
                 sections.append((name, to_schema(node)))
             continue
@@ -686,9 +564,6 @@ def parse_lua(src):
     return sections
 
 
-# --------------------------------------------------------------------------- #
-# HTML emission
-# --------------------------------------------------------------------------- #
 
 HTML_TEMPLATE = r"""<!DOCTYPE html>
 <html lang="en">
@@ -1110,9 +985,6 @@ def main(argv):
     if not src_path.exists():
         print(f"error: {src_path} not found", file=sys.stderr)
         return 1
-
-    # Load enum definitions so references like Eras.EARLYCOLDWAR resolve to their
-    # value ("Early Cold War") rather than the bare token.
     load_enum_resolver(enums_path)
     if not Path(enums_path).exists():
         print(f"warning: {enums_path} not found - enum values will fall back to "
