@@ -1820,6 +1820,7 @@ Stocks.EquipmentData = {
         [Stocks.Equipment.S25_O_420MM_FRAG                   ] = { stock_type = StockTypes.AIR_GROUND_ROCKETS, base_qty = 400, eras = { Eras.MODERN } },
         [Stocks.Equipment.S5_KP_57MM_HEAT_FRAG               ] = { stock_type = StockTypes.AIR_GROUND_ROCKETS, base_qty = 400, eras = { Eras.EARLYCOLDWAR, Eras.LATECOLDWAR, Eras.MODERN } },
         [Stocks.Equipment.S_5M                               ] = { stock_type = StockTypes.AIR_GROUND_ROCKETS, base_qty = 400, eras = { Eras.EARLYCOLDWAR, Eras.LATECOLDWAR, Eras.MODERN } },
+        [Stocks.Equipment.S_5M_DASH                          ] = { stock_type = StockTypes.AIR_GROUND_ROCKETS, base_qty = 400, eras = { Eras.EARLYCOLDWAR, Eras.LATECOLDWAR, Eras.MODERN } },
         [Stocks.Equipment.S5_OFM_340MM                       ] = { stock_type = StockTypes.AIR_GROUND_ROCKETS, base_qty = 400, eras = { Eras.MODERN } },
         [Stocks.Equipment.S8_KOM_80MM_HEAT                   ] = { stock_type = StockTypes.AIR_GROUND_ROCKETS, base_qty = 400, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
         [Stocks.Equipment.S8_OM_FP2_MPP                      ] = { stock_type = StockTypes.AIR_GROUND_ROCKETS, base_qty = 400, eras = { Eras.MODERN } },
@@ -1832,7 +1833,6 @@ Stocks.EquipmentData = {
         [Stocks.Equipment.S8_TsM_SM_YELLOW                   ] = { stock_type = StockTypes.AIR_GROUND_ROCKETS, base_qty = 400, eras = { Eras.MODERN } },
         [Stocks.Equipment.S_8O0FP2_MPP                       ] = { stock_type = StockTypes.AIR_GROUND_ROCKETS, base_qty = 400, eras = { Eras.MODERN } },
         [Stocks.Equipment.FFAR_MK1_HE                        ] = { stock_type = StockTypes.AIR_GROUND_ROCKETS, base_qty = 400, eras = { Eras.EARLYCOLDWAR, Eras.LATECOLDWAR, Eras.MODERN } }, -- FFAR Mk1 HE
-
       -- ECM
         [Stocks.Equipment.ALQ_184                            ] = { stock_type = StockTypes.ECM, base_qty = 2, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
         [Stocks.Equipment.ECLAIR_M_51                        ] = { stock_type = StockTypes.ECM, base_qty = 3, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
@@ -2090,6 +2090,7 @@ local KA50_STORES = {
     -- rockets
     Stocks.Equipment.S5_KP_57MM_HEAT_FRAG,
     Stocks.Equipment.S_5M,
+    Stocks.Equipment.S_5M_DASH,
     Stocks.Equipment.S8_KOM_80MM_HEAT,
     Stocks.Equipment.S8_OM_FP2_MPP,
     Stocks.Equipment.S13_OF_122MM,
@@ -2114,6 +2115,7 @@ local MI24_STORES = {
     -- rockets
     Stocks.Equipment.S5_KP_57MM_HEAT_FRAG,
     Stocks.Equipment.S_5M,
+    Stocks.Equipment.S_5M_DASH,
     Stocks.Equipment.S8_KOM_80MM_HEAT,
     Stocks.Equipment.S8_OM_FP2_MPP,
     Stocks.Equipment.S13_OF_122MM,
@@ -2143,6 +2145,7 @@ local MI8_STORES = {
     Stocks.Equipment.S8_OM_FP2_MPP,
     Stocks.Equipment.S5_KP_57MM_HEAT_FRAG,
     Stocks.Equipment.S_5M,
+    Stocks.Equipment.S_5M_DASH,
     Stocks.Equipment.FAB_100,
     Stocks.Equipment.FAB_250,
     Stocks.Equipment.FAB_500,
@@ -2754,7 +2757,8 @@ Stocks.AircraftLoads = {
     },
     [Stocks.Aircraft.MIG19P] = {
         Stocks.Equipment.R_3S,
-        Stocks.Equipment.S_5M,
+        -- Stocks.Equipment.S_5M,
+        Stocks.Equipment.S_5M_DASH,
         Stocks.Equipment.FAB_50,
         Stocks.Equipment.FAB_100,
         Stocks.Equipment.FAB_250,
@@ -2939,6 +2943,7 @@ Stocks.GroundUnits = {
     AAA_ZU23_URAL  = { type = "Ural-375 ZU-23",   role = "AAA", countries = { 0, 17, 81 }, era_min = Eras.EARLYCOLDWAR, era_max = Eras.MODERN },
     AAA_VULCAN     = { type = "Vulcan",           role = "AAA", countries = { 2, 80 }, era_min = Eras.LATECOLDWAR, era_max = Eras.MODERN },
     AAA_GEPARD     = { type = "Gepard",           role = "AAA", countries = { 6, 80 }, era_min = Eras.LATECOLDWAR, era_max = Eras.MODERN },
+    AAA_BOFORS     = { type = "bofors40",           role = "AAA", countries = { 2, 80 }, era_min = Eras.WW2, era_max = Eras.EARLYCOLDWAR },
 
     -- ===================== SAM_IR (IR / EO point defence) =====================
     SAM_IR_PANTSIR_S1 = { type = "CHAP_PantsirS1", role = "SAM_IR", sam_classification = SAM_TYPES.SHORT_RANGE, countries = { 0, 81 }, era_min = Eras.MODERN, era_max = Eras.MODERN },
@@ -3332,9 +3337,6 @@ EraSystem = {} do
         return selected[#selected] or Eras.MODERN
     end
 
-    --- The static used as the ammunition / supply depot for the active era.
-    --- Falls back to the default ".Ammunition depot" / "Warehouses" when the era
-    --- has no entry in Config.supply_static.
     ---@return table {type=string, category=string}
     function EraSystem.getSupplyStatic()
         local supply_static = (Config.supply_static or {})[EraSystem.getActiveEra()]
@@ -3370,7 +3372,7 @@ EraSystem = {} do
     end
 
     ---@param base_name table|nil per-era table or base template name "<SIDE> <TASK>"
-    ---@return string|nil --era-specific name, or base_name unchanged
+    ---@return string|nil
     function EraSystem.resolveTaskTemplateName(base_name)
         if not base_name then return nil end
         local era_string = EraNameMEStrings[EraSystem.getActiveEra()]

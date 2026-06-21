@@ -1888,9 +1888,6 @@ function ctld.spawnFARPAssets(side, center_point, farp_name)
         }
 
         if static_data.type == "Invisible FARP" then
-            -- Spawn the pad via coalition.addStaticObject with dynamicSpawn/allowHotStart
-            -- so aircraft can hot-start and rearm from a constructed FARP (mirrors
-            -- UnitHandler.initFARP). mist.dynAddStatic does not set these flags.
             local new_static = coalition.addStaticObject(country_name_id, {
                 ["category"] = static_data.category,
                 ["shape_name"] = static_data.shape_name,

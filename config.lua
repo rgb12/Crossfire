@@ -68,6 +68,8 @@ Config = {
     era_system = {
 
         -- (table<enum>) REQUIRES MISSION RESTART. You can choose one or more eras to be active in the mission.
+        -- The crossfire folder name will stay the same, if you edit the late cold war mission and use ww2 era this can get confusing.
+        -- I would recommend editing the modern mission.
         -- "WW2" -1947
         -- "Early Cold War" 1947-1969
         -- "Late Cold War" 1969-1989
@@ -493,7 +495,7 @@ Config = {
     allow_resupply = true,
 
     -- (int) multiplier for redfor only warehouse stocks
-    red_stock_multiplier = 50,
+    red_stock_multiplier = 5,
     -- (int) multiplier for blufor only warehouse stocks
     blue_stock_multiplier = 1,
 
@@ -559,23 +561,23 @@ Config = {
             FARP = 2500,
 
             -- (int) Air-to-air focused aircraft
-            AA_AIRCRAFT = 750,
+            AA_AIRCRAFT = 900,
             -- (int) Air-to-ground focused aircraft
-            AG_AIRCRAFT = 750,
+            AG_AIRCRAFT = 900,
             -- (int) Multirole aircraft
-            MULTIROLE_AIRCRAFT = 900,
+            MULTIROLE_AIRCRAFT = 1000,
             -- (int) Reconnaissance aircraft
             RECON_AIRCRAFT = 500,
             -- (int) Transport/utility aircraft
             CARGO_AIRCRAFT = 500,
             -- (int) NOT YET ADDED. Attack helicopters
-            ATTACK_HELICOPTER = 900,
+            ATTACK_HELICOPTER = 400,
             -- (int) NOT YET ADDED. Transport/logistics helicopters
-            LOGISTICS_HELICOPTER = 400,
+            LOGISTICS_HELICOPTER = 200,
 
 
             -- (int) AIM-120, AIM-54, etc.
-            AIR_AIR_LONG_RANGE = 750,
+            AIR_AIR_LONG_RANGE = 700,
             -- (int) AIM-9, R-73, etc.
             AIR_AIR_SHORT_RANGE = 500,
 
@@ -615,7 +617,7 @@ Config = {
             -- (int)
             RECON = 300,
             -- (int)
-            CAPTURE_HELO = 150,
+            CAPTURE_HELO = 250,
             -- (int)
             NAVAL_STRIKE = 3500
         },
@@ -630,7 +632,7 @@ Config = {
             -- (int)
             [4] = 25
         },
-        -- (int)
+        -- (int) Logistcs zones produce supplies at a faster rate than other zones, this is the multiplier
         logistics_mult = 2,
         -- (table<int,int>) per zone level
         supplies_cap = {
@@ -769,7 +771,7 @@ Config = {
             [ZoneTypes.EWSITE]      = 5,
         },
         -- (int) REQUIRES MISSION RESTART. seed determines scenario selection, zone types and levels. Use -1 for random seed
-        seed = 844,
+        seed = 2025,
         -- (table)  REQUIRES MISSION RESTART
         sam_classification_thresholds = {
             -- (int) (%) rolls below this : SHORT RANGE SAM
