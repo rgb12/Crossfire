@@ -236,7 +236,7 @@ do
 
                     if not convoy_group or not convoy_group:isExist() then
                         -- Convoy destroyed
-                        trigger.action.outTextForCoalition(enroute.side, "Convoy sent to attack " .. enroute.to_zone.zone.name .. " has been destroyed", 10)
+                        trigger.action.outTextForCoalition(enroute.side, "SITREP: Lost contact with attack convoy sent to " .. enroute.to_zone.zone.name, 10)
                         EnrouteManager.enroutes[i] = nil
                     else
                         -- Destination captured by friendly side (or gone neutral): stand down
@@ -253,7 +253,7 @@ do
                                 enroute.stuck_since = nil
                                 local enemy_units = utils.getUnitsInZoneObj(enroute.to_zone, utils.getEnemyCoalition(enroute.side))
                                 if not enemy_units or #enemy_units == 0 then
-                                    trigger.action.outTextForCoalition(enroute.side, "Attack convoy sent to " .. enroute.to_zone.zone.name .. " has completed its mission", 10)
+                                    trigger.action.outTextForCoalition(enroute.side, "SITREP: Attack convoy sent to " .. enroute.to_zone.zone.name .. " has completed its task.", 10)
                                     EnrouteManager.enroutes[i] = nil
                                     timer.scheduleFunction(function ()
                                         if convoy_group and convoy_group:isExist() then convoy_group:destroy() end
@@ -265,7 +265,7 @@ do
                                     enroute.stuck_since = timer.getTime()
                                     MissionLogger:info("Attack convoy " .. enroute.group_name .. " detected as stuck en route, starting timer.")
                                 elseif (timer.getTime() - enroute.stuck_since) > Config.stuck_convoy_timeout then
-                                    trigger.action.outTextForCoalition(enroute.side, "Attack convoy to " .. enroute.to_zone.zone.name .. " got stuck en route and was removed.", 10)
+                                    -- trigger.action.outTextForCoalition(enroute.side, "SITREP: Attack convoy to " .. enroute.to_zone.zone.name .. " got stuck en route and was removed.", 10)
                                     convoy_group:destroy()
                                     EnrouteManager.enroutes[i] = nil
                                 end
@@ -279,7 +279,7 @@ do
 
                     if not convoy_group or not convoy_group:isExist() then
                         -- Convoy destroyed enroute
-                        trigger.action.outTextForCoalition(enroute.side, "Capture convoy sent to " .. enroute.to_zone.zone.name .. " has been destroyed", 10)
+                        trigger.action.outTextForCoalition(enroute.side, "SITREP: Lost contact with capture convoy sent to " .. enroute.to_zone.zone.name, 10)
                         EnrouteManager.enroutes[i] = nil
                     else
                         local zone_coal_check = ZoneHandler.getFromName(enroute.to_zone.name)
@@ -305,7 +305,7 @@ do
                                 if not enroute.stuck_since then
                                     enroute.stuck_since = timer.getTime()
                                 elseif (timer.getTime() - enroute.stuck_since) > Config.stuck_convoy_timeout then
-                                    trigger.action.outTextForCoalition(enroute.side, "Capture convoy to " .. enroute.to_zone.zone.name .. " got stuck en route and was removed.", 10)
+                                    -- trigger.action.outTextForCoalition(enroute.side, "SITREP: Capture convoy to " .. enroute.to_zone.zone.name .. " got stuck en route and was removed.", 10)
                                     convoy_group:destroy()
                                     EnrouteManager.enroutes[i] = nil
                                 end
@@ -319,7 +319,7 @@ do
 
                     if not convoy_group or not convoy_group:isExist() then
                         -- Convoy destroyed enroute
-                        trigger.action.outTextForCoalition(enroute.side, "Reinforcement convoy sent to " .. enroute.to_zone.zone.name .. " has been destroyed", 10)
+                        trigger.action.outTextForCoalition(enroute.side, "SITREP: Lost contact with reinforcement convoy sent to " .. enroute.to_zone.zone.name, 10)
                         EnrouteManager.enroutes[i] = nil
                     else
                         local zone_coal_check = ZoneHandler.getFromName(enroute.to_zone.name)
@@ -352,7 +352,7 @@ do
                                 if not enroute.stuck_since then
                                     enroute.stuck_since = timer.getTime()
                                 elseif (timer.getTime() - enroute.stuck_since) > Config.stuck_convoy_timeout then
-                                    trigger.action.outTextForCoalition(enroute.side, "Reinforcement convoy to " .. enroute.to_zone.zone.name .. " got stuck en route and was removed.", 10)
+                                    -- trigger.action.outTextForCoalition(enroute.side, "Reinforcement convoy to " .. enroute.to_zone.zone.name .. " got stuck en route and was removed.", 10)
                                     convoy_group:destroy()
                                     EnrouteManager.enroutes[i] = nil
                                 end
