@@ -67,9 +67,8 @@ Config = {
     -- (table)
     era_system = {
 
-        -- (table<enum>) REQUIRES MISSION RESTART. You can choose one or more eras to be active in the mission.
-        -- The crossfire folder name will stay the same, if you edit the late cold war mission and use ww2 era this can get confusing.
-        -- I would recommend editing the modern mission.
+        -- (table<enum>) Eras should not be edited unless comprehensively understood. Changing this without following the proper procedure will break the mission.
+        -- REQUIRES MISSION RESTART. You can choose one or more eras to be active in the mission.
         -- "WW2" -1947
         -- "Early Cold War" 1947-1969
         -- "Late Cold War" 1969-1989
