@@ -202,7 +202,7 @@ do
             return
         end
 
-        if not config_file._enable_external_config then
+        if not config_file.Config._enable_external_config then
             MissionLogger:info("User config override at " .. config_path .. " is disabled via _enable_external_config, using mission defaults.")
             return
         end
@@ -227,8 +227,8 @@ do
     ---@param config_path string path used for log messages
     ---@return boolean compatible true if safe to apply the override
     function PersistenceManager:isCompatibleOverride(config_file, config_path)
-        local file_mission_version = config_file._mission_version
-        local file_config_version = config_file._config_file_version
+        local file_mission_version = config_file.Config._mission_version
+        local file_config_version = config_file.Config._config_file_version
 
         if file_mission_version ~= Config._mission_version
             or file_config_version ~= Config._config_file_version then
