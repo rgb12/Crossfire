@@ -184,8 +184,20 @@ do
         local frontline_segments = {}
 
         local MAX_FRONTLINE_EXTENT = Config.frontline_max_extent or 35000
+        local MAX_EXTENT_SQ = MAX_FRONTLINE_EXTENT * MAX_FRONTLINE_EXTENT
 
         local MERGE_GAP = 1.0
+
+        local function nearestZoneDistSq(px, py)
+            local best = math.huge
+            for _, z in ipairs(data_points) do
+                local dx = px - z.x
+                local dy = py - z.y
+                local d = dx * dx + dy * dy
+                if d < best then best = d end
+            end
+            return best
+        end
 
         for key, bucket in pairs(seen) do
             local meta = pair_meta[key]
@@ -222,6 +234,36 @@ do
                 addSegs(a_segs)
                 addSegs(b_segs)
 
+                -- World point at bisector parameter s
+                local function pointAt(s)
+                    return mid_x + tx * s, mid_y + ty * s
+                end
+
+                local function findCrossing(s_near, s_far)
+                    for _ = 1, 24 do
+                        local sm = (s_near + s_far) * 0.5
+                        local mx, my = pointAt(sm)
+                        if nearestZoneDistSq(mx, my) <= MAX_EXTENT_SQ then
+                            s_near = sm
+                        else
+                            s_far = sm
+                        end
+                    end
+                    return s_near
+                end
+
+                local function emit(s1, s2)
+                    if s2 - s1 >= 5 then -- ignore spans shorter than 5 m
+                        local ax, ay = pointAt(s1)
+                        local bx, by = pointAt(s2)
+                        local p1 = {x = ax, y = ay}
+                        local p2 = {x = bx, y = by}
+                        table.insert(frontline_segments, {p1, p2})
+                        table.insert(frontline_points, p1)
+                        table.insert(frontline_points, p2)
+                    end
+                end
+
                 if #intervals > 0 then
                     table.sort(intervals, function(p, q) return p[1] < q[1] end)
 
@@ -240,15 +282,23 @@ do
                     merged[#merged + 1] = cur
 
                     for _, span in ipairs(merged) do
-                        -- Clip span to [-ext, ext] along the bisector.
-                        local s1 = math.max(span[1], -MAX_FRONTLINE_EXTENT)
-                        local s2 = math.min(span[2],  MAX_FRONTLINE_EXTENT)
-                        if s2 - s1 >= 5 then -- ignore spans shorter than 5 m
-                            local p1 = {x = mid_x + tx * s1, y = mid_y + ty * s1}
-                            local p2 = {x = mid_x + tx * s2, y = mid_y + ty * s2}
-                            table.insert(frontline_segments, {p1, p2})
-                            table.insert(frontline_points, p1)
-                            table.insert(frontline_points, p2)
+                        local s1, s2 = span[1], span[2]
+                        local m1x, m1y = pointAt(s1)
+                        local m2x, m2y = pointAt(s2)
+                        local in1 = nearestZoneDistSq(m1x, m1y) <= MAX_EXTENT_SQ
+                        local in2 = nearestZoneDistSq(m2x, m2y) <= MAX_EXTENT_SQ
+
+                        if in1 and in2 then
+                            emit(s1, s2)
+                        else
+                            local seed = math.max(s1, math.min(s2, 0))
+                            local sx, sy = pointAt(seed)
+                            if nearestZoneDistSq(sx, sy) <= MAX_EXTENT_SQ then
+                                local lo = in1 and s1 or findCrossing(seed, s1)
+                                local hi = in2 and s2 or findCrossing(seed, s2)
+                                emit(lo, hi)
+                            end
+                            -- else: entire span is outside the extent -> dropped
                         end
                     end
                 end
