@@ -40,6 +40,9 @@ Config = {
         -- new mission, simple change the last folder name
         save_dir = "Missions/Saves/",
 
+        -- (string) save dir suffix, do not change unless you know what you are doing, this is used to differentiate between eras
+        save_dir_suffix = "",
+
         -- (string) this is the name of the mission file
         save_file = "mission.json",
         -- (string) this is the name of user data only file, note that this only saves

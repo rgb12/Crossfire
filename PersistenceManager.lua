@@ -198,7 +198,7 @@ do
     ---@param theatre_name string
     ---@return string
     function PersistenceManager:fetchDir(theatre_name)
-        return lfs.writedir() .. Config.persistence.save_dir .. "Crossfire " .. theatre_name .. "/"
+        return lfs.writedir() .. Config.persistence.save_dir .. "Crossfire " .. theatre_name .. Config.persistence.save_dir_suffix .. "/"
     end
 
     function PersistenceManager:loadUserOverrides()
