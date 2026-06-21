@@ -262,8 +262,7 @@ do
             local _, hunter_group = self:findRedirectableCAP()
             if hunter_group then
                 if self:assignHuntTask(hunter_group, t.unit, t.user.name) then
-                    MissionLogger:info("[HUNT] Redirected existing CAP " .. hunter_group:getName() ..
-                        " onto '" .. t.user.name .. "'")
+                    MissionLogger:info("[HUNT] Redirected existing CAP " .. hunter_group:getName() .." onto '" .. t.user.name .. "'")
                 end
             elseif Config.hunt.spawn_if_no_cap then
                 -- 2. No CAP available: spawn one outside the dispatcher.
@@ -277,12 +276,7 @@ do
         local interval = Config.hunt.hunt_dispatcher_interval or (5 * 60 + 7)
         timer.scheduleFunction(function()
             if MISSION_ENDED == true then return end
-            local ok, err = pcall(function()
-                AICommander:huntExperiencedPlayers()
-            end)
-            if not ok then
-                MissionLogger:error("[HUNT] Evaluator error: " .. tostring(err))
-            end
+            AICommander:huntExperiencedPlayers()
             AICommander.dispatchHunt()
         end, nil, timer.getTime() + interval)
     end
@@ -898,17 +892,12 @@ do
         for idx, launch in ipairs(launches) do
             timer.scheduleFunction(function()
                 if MISSION_ENDED == true then return end
-                local ok, err = pcall(function()
-                    MissionLogger:info(string.format("[OFFENSIVE] %s launching %s from %s to %s (%d/%d)",
-                        utils.coalitionToString(side), tostring(launch.type),
-                        launch.from_zone and launch.from_zone.name or "home base",
-                        launch.to_zone and launch.to_zone.name or "unknown target",
-                        idx, #launches))
-                    TaskManager:initiateAITask(launch.type, side, true, launch.to_zone, launch.from_zone, false)
-                end)
-                if not ok then
-                    MissionLogger:error("[OFFENSIVE] launch error ("..tostring(launch.type).."): "..tostring(err))
-                end
+                MissionLogger:info(string.format("[OFFENSIVE] %s launching %s from %s to %s (%d/%d)",
+                    utils.coalitionToString(side), tostring(launch.type),
+                    launch.from_zone and launch.from_zone.name or "home base",
+                    launch.to_zone and launch.to_zone.name or "unknown target",
+                    idx, #launches))
+                TaskManager:initiateAITask(launch.type, side, true, launch.to_zone, launch.from_zone, false)
             end, {}, timer.getTime() + (idx - 1) * stagger)
         end
     end
@@ -923,12 +912,7 @@ do
 
         timer.scheduleFunction(function()
             if MISSION_ENDED == true then return end
-            local ok, err = pcall(function()
-                AICommander:launchOffensive(side)
-            end)
-            if not ok then
-                MissionLogger:error("[OFFENSIVE] Evaluator error: "..tostring(err))
-            end
+            AICommander:launchOffensive(side)
             AICommander.dispatchOffensive(side)
         end, nil, timer.getTime() + delay)
     end
