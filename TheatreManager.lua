@@ -89,6 +89,35 @@ do
         return true
     end
 
+    ---@param target_zone ZoneHandler neutral zone to capture
+    ---@return ZoneHandler|nil
+    function TheatreCommander.findNearestCaptureConvoySource(target_zone)
+        local best_zone = nil
+        local best_dist = math.huge
+
+        for _, candidate in ipairs(zones) do
+            if candidate.zone_type == ZoneTypes.STRONGPOINT
+            and candidate.side ~= coalition.side.NEUTRAL
+            and candidate.attack_convoy and candidate.attack_convoy > 0
+            and #EnrouteManager:findByTaskType(AITaskTypes.CAPTURE_CONVOY, candidate.side) < Config.tasking.max_capture_convoy_per_theatre
+            and not EnrouteManager:findByFromZone(candidate, candidate.side, {AITaskTypes.CAPTURE_CONVOY})
+            then
+                -- the dispatching side must have discovered the target
+                local discovered_zones = candidate.side == coalition.side.BLUE
+                    and stats.blue_discovered_zones or stats.red_discovered_zones
+                if utils.tableContains(discovered_zones, target_zone.name) then
+                    local dist = mist.utils.get2DDist(candidate.zone.point, target_zone.zone.point)
+                    if dist <= Config.capture_convoy_range and dist < best_dist then
+                        best_dist = dist
+                        best_zone = candidate
+                    end
+                end
+            end
+        end
+
+        return best_zone
+    end
+
     function TheatreCommander:tick_1m()
  MissionLogger:info("1 minute")
 
@@ -119,20 +148,14 @@ do
                         TaskManager:initiateAITask(AITaskTypes.ATTACK_CONVOY,zone.side,true,nil,zone,false)
                     end
 
-                    -- WW2 ground capture convoy: strongpoints send a convoy to the
-                    -- nearest neutral zone in range to capture it (replaces capture helos).
                     if not EraSystem.isHelicopterEraCapable()
                     and math.random(1,100) <= Config.retry_capture_chance
-                    and zone.zone_type == ZoneTypes.STRONGPOINT and zone.side ~= coalition.side.NEUTRAL
-                    and zone.attack_convoy and zone.attack_convoy > 0
-                    and #EnrouteManager:findByTaskType(AITaskTypes.CAPTURE_CONVOY, zone.side) < Config.tasking.max_capture_convoy_per_theatre
-                    and not EnrouteManager:findByFromZone(zone, zone.side, {AITaskTypes.CAPTURE_CONVOY})
+                    and zone.side == coalition.side.NEUTRAL
+                    and not EnrouteManager:findByToZone(zone, nil, {AITaskTypes.CAPTURE_CONVOY, AITaskTypes.CAPTURE_HELO})
                     then
-                        local target_zone, target_dist = zone:getClosestZone(coalition.side.NEUTRAL, nil, nil, true)
-                        if target_zone and target_dist <= Config.capture_convoy_range
-                        and not EnrouteManager:findByToZone(target_zone, nil, {AITaskTypes.CAPTURE_CONVOY, AITaskTypes.CAPTURE_HELO})
-                        then
-                            TaskManager:initiateAITask(AITaskTypes.CAPTURE_CONVOY, zone.side, true, target_zone, zone, false)
+                        local from_zone = TheatreCommander.findNearestCaptureConvoySource(zone)
+                        if from_zone then
+                            TaskManager:initiateAITask(AITaskTypes.CAPTURE_CONVOY, from_zone.side, true, zone, from_zone, false)
                         end
                     end
 
