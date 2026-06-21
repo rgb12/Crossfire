@@ -181,6 +181,10 @@ do
             text_display = text_display .. "\nLOGISTICS"
             if EraSystem.isHelicopterEraCapable() then
                 text_display = text_display .. "\nHelicopters: " .. (self.heli_avail or 0)
+            else
+                -- in WW2 the script uses heli avail instead of convoys for logistics zones to replace reinforcement helicopters
+                text_display = text_display .. "\nConvoys: " .. (self.heli_avail or 0)
+
             end
         elseif self.zone_type == ZoneTypes.FARP then
             text_display = text_display .. "\nFARP"
