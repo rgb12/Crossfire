@@ -197,7 +197,9 @@ function ev:onEvent(event)
 
         local unit = event.initiator
         if unit and unit.isExist and unit:isExist() and unit.getGroup then
-            local group_name = unit:getGroup():getName()
+            local abort_gr = unit:getGroup()
+            if not abort_gr or not abort_gr.isExist or not abort_gr:isExist() then return end
+            local group_name = abort_gr:getName()
             MissionLogger:info("AI unit aborted mission: " .. unit:getName())
 
             local enroute_aborted = EnrouteManager:findByGroup(group_name)
@@ -221,10 +223,11 @@ function ev:onEvent(event)
         -- Player related landings are handled in the ExperienceManager
         local unit = event.initiator
         if not unit or not unit.isExist or not unit:isExist() then return end
-        local group_name = unit:getGroup():getName()
-        
+        local gr = unit:getGroup()
+        if not gr or not gr.isExist or not gr:isExist() then return end
+        local group_name = gr:getName()
         local desc = unit:getDesc()
-        
+
         if desc.category == Unit.Category.HELICOPTER then
             MissionLogger:info("Helicopter landed: " .. unit:getName())
 
@@ -243,15 +246,14 @@ function ev:onEvent(event)
                     if zone.side == coalition.side.NEUTRAL and zone:isPointInsideZone(unit:getPoint()) then
                         trigger.action.outTextForUnit(u_id, "Allied forces deployed at ".. zone.name..".", 15)
                         trigger.action.outSoundForUnit(u_id, "radio click.ogg")
-                        
+
                         timer.scheduleFunction(function ()
                             zone:capture(unit_coalition)
                         end, {}, timer.getTime() + math.random(10,30))
                     end
                 end
-                
-            end
 
+            end
 
         elseif desc.category == Unit.Category.AIRPLANE then
             local enroute_task = EnrouteManager:findByGroup(group_name)

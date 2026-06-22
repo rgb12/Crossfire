@@ -201,30 +201,32 @@ do
                     end
                 end
                 -- sort by range
-                if #nearby_units ==0 then return
+                if #nearby_units ==0 then
                     trigger.action.outTextForGroup(data.unit:getGroup():getID(),"EWRS Report\n\n PICTURE CLEAR",15)
-                end
-                table.sort(nearby_units, function(a, b) return a.range < b.range end)
+                else
+                    table.sort(nearby_units, function(a, b) return a.range < b.range end)
 
-                local report = "EWRS Report\n\n"
-    
-                for i = 1, math.min(#nearby_units, Config.EWRS.max_aircraft_per_text) do
+                    local report = "EWRS Report\n\n"
 
-                    local txt=""
-                    if nearby_units[i].range > 1500 then
-                        txt = string.format("%-16s BRAA %03.0f° / %2.0fnm  ALT %-13s ASPECT %-14s",
-                        nearby_units[i].type,
-                        nearby_units[i].bearing,
-                        mist.utils.metersToNM(nearby_units[i].range),
-                        math.floor((mist.utils.metersToFeet(nearby_units[i].altitude)+500)/1000)*1000,
-                        nearby_units[i].aspect)
-                    else
-                        txt=string.format("%-16s  MERGED",nearby_units[i].type)
+                    for i = 1, math.min(#nearby_units, Config.EWRS.max_aircraft_per_text) do
+
+                        local txt=""
+                        if nearby_units[i].range > 1500 then
+                            txt = string.format("%-16s BRAA %03.0f° / %2.0fnm  ALT %-13s ASPECT %-14s",
+                            nearby_units[i].type,
+                            nearby_units[i].bearing,
+                            mist.utils.metersToNM(nearby_units[i].range),
+                            math.floor((mist.utils.metersToFeet(nearby_units[i].altitude)+500)/1000)*1000,
+                            nearby_units[i].aspect)
+                        else
+                            txt=string.format("%-16s  MERGED",nearby_units[i].type)
+                        end
+                        report = report .. txt .. "\n"
+
                     end
-                    report = report .. txt .. "\n"
+                    trigger.action.outTextForGroup(data.unit:getGroup():getID(),report,15)
 
                 end
-                trigger.action.outTextForGroup(data.unit:getGroup():getID(),report,15)
 
 
             else

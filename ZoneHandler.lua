@@ -960,7 +960,7 @@ do
                 utils.editCommsAntennasCount(self.side, 1)
                 self:drawF10()
                 -- Every level reduces the respawn time by 10%
-                local level_modifier = 1 - ((self.level -1) * 0.1)
+                local level_modifier = 1 - (((self.level or 1) -1) * 0.1)
                 Config.comms_tower_respawn_time = math.floor(Config.comms_tower_respawn_time * level_modifier)
            
                 trigger.action.outSoundForCoalition(self.side,"chatter3.ogg")

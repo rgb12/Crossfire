@@ -245,10 +245,11 @@ do
 
         missionCommands.addCommandForCoalition(self.side, "Next Target", self.jtac_menu, function (jtac)
             local jtac_gr = Group.getByName(jtac.jtac_gr_name)
-            if jtac_gr and jtac_gr:getUnit(1):inAir() then
-                
+            local u = jtac_gr and jtac_gr:getUnit(1)
+            if u and u:inAir() then
+
                 jtac:searchTarget(false)
-                
+
                 -- Determine which list we are using
                 local target_list = jtac.viable_targets
                 if jtac.priority and #jtac.priority_targets > 0 then
@@ -258,7 +259,7 @@ do
                 if #target_list > 0 then
                     jtac.search_index = (jtac.search_index or 1) + 1
                     if jtac.search_index > #target_list then jtac.search_index = 1 end
-                    
+
                     jtac:setTarget(target_list[jtac.search_index])
                     jtac:startLasing(1688)
                 else
@@ -272,7 +273,8 @@ do
 
         missionCommands.addCommandForCoalition(self.side,"Request 9-Line",self.jtac_menu, function (jtac)
             local jtac_gr = Group.getByName(jtac.jtac_gr_name)
-            if jtac_gr and jtac_gr:getUnit(1):inAir() then
+            local u = jtac_gr and jtac_gr:getUnit(1)
+            if u and u:inAir() then
                 if not jtac.target or not jtac.target:isExist() then
                     jtac:searchTarget(false)
                     if jtac.target then jtac:startLasing(1688) end
@@ -284,14 +286,14 @@ do
 
                 local toprint = jtac.callsign.." JTAC\n"
                 if jtac.priority then toprint = toprint..'Priority: '..jtac.priority..'\n' end
-                
+
                 ---@type string
                 local target_name = jtac.target:getTypeName()
                 if target_name:sub(1,1) == "." then target_name = target_name:sub(2) end
 
                 toprint = toprint..'Target: '.. target_name ..'\n'
                 toprint = toprint..'Laser Code: '..jtac.laser_code..'\n'
-                
+
                 local lat,lon,alt = coord.LOtoLL(jtac.target:getPoint())
                 local mgrs = coord.LLtoMGRS(coord.LOtoLL(jtac.target:getPoint()))
                 toprint = toprint..'\nDDM:  '.. mist.tostringLL(lat,lon,3)
@@ -309,7 +311,8 @@ do
 
         missionCommands.addCommandForCoalition(self.side, "Intelligence Report", self.jtac_menu, function (jtac)
             local jtac_gr = Group.getByName(jtac.jtac_gr_name)
-            if jtac_gr and jtac_gr:getUnit(1):inAir() then
+            local u = jtac_gr and jtac_gr:getUnit(1)
+            if u and u:inAir() then
                 local zone = ZoneHandler.getFromName(jtac.to_zone.name)
                 if not zone then return end
 
@@ -362,18 +365,19 @@ do
 
         missionCommands.addCommandForCoalition(self.side, "Mark Target (Red)",self.jtac_menu, function (jtac)
             local jtac_gr = Group.getByName(jtac.jtac_gr_name)
-            if jtac_gr and jtac_gr:getUnit(1):inAir() then
+            local u = jtac_gr and jtac_gr:getUnit(1)
+            if u and u:inAir() then
                 if not (jtac.target and jtac.target:isExist()) then 
                     trigger.action.outSoundForCoalition(jtac.side, "radio_beep4.ogg")
                     return trigger.action.outTextForCoalition(jtac.side, jtac.callsign..' JTAC: No active target for smoke.', 5)
                 end
-                
+
                 if self.smoke_count <= 0 then
                     trigger.action.outSoundForCoalition(jtac.side, "radio_beep4.ogg")
                     return trigger.action.outTextForCoalition(jtac.side, jtac.callsign..' JTAC: Out of smoke canisters.', 5)
                 end
 
-                if mist.utils.get2DDist(jtac_gr:getUnit(1):getPoint(), jtac.target:getPoint()) < 20000 then
+                if u and mist.utils.get2DDist(u:getPoint(), jtac.target:getPoint()) < 20000 then
                     self.smoke_count = self.smoke_count -1
                     trigger.action.smoke(jtac.target:getPosition().p, trigger.smokeColor.Red)
                     trigger.action.outTextForCoalition(jtac.side, jtac.callsign.." JTAC: RED smoke marker in effect ("..self.smoke_count.." left)", 10)
@@ -398,7 +402,8 @@ do
         for category_name, _ in pairs(self.categories) do
             missionCommands.addCommandForCoalition(self.side, category_name, priority_menu, function(jtac)
                 local jtac_gr = Group.getByName(jtac.jtac_gr_name)
-                if jtac_gr and jtac_gr:getUnit(1):inAir() then
+                local u = jtac_gr and jtac_gr:getUnit(1)
+                if u and u:inAir() then
                     jtac.priority = category_name
                     jtac.search_index = 1 -- Reset index on priority switch
 
@@ -416,7 +421,8 @@ do
         end
         missionCommands.addCommandForCoalition(self.side, "Clear Priority", priority_menu, function(jtac)
             local jtac_gr = Group.getByName(jtac.jtac_gr_name)
-            if jtac_gr and jtac_gr:getUnit(1):inAir() then
+            local u = jtac_gr and jtac_gr:getUnit(1)
+            if u and u:inAir() then
                 jtac.priority = nil
                 jtac.search_index = 1 -- Reset index on priority switch
                 trigger.action.outTextForCoalition(jtac.side, jtac.callsign .. " JTAC priority cleared.", 5)

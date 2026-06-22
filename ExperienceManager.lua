@@ -29,10 +29,10 @@ do
             local initiator = event.initiator
             if target and initiator and initiator.getPlayerName and initiator:getPlayerName()
             and target.getCoalition and initiator:getCoalition() then
-                
+
                 local user = ExperienceManager:fetchUser(initiator)
                 if not user then return end
-
+                if not user.id then return end
                 -- Checks if target is not friendly
                 if target:getCoalition() == initiator:getCoalition() then
                     trigger.action.outTextForUnit(user.id,"Fatricide, hold fire!",10)
@@ -189,7 +189,7 @@ do
     ---@param amount number
     ---@return boolean
     function ExperienceManager:addXP(user, amount)
-        if user then
+        if user and user.id then
             user.xp = user.xp + amount
             -- check for rank up
             local new_rank = ExperienceManager:getRankfromXP(user.xp)
