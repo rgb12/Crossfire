@@ -1753,7 +1753,6 @@ Stocks.EquipmentData = {
         [Stocks.Equipment.LS_6_100                           ] = { stock_type = StockTypes.AIR_GROUND_GUIDED_BOMBS, base_qty = 22, eras = { Eras.MODERN } },
 
       -- AIR GROUND GUIDED MISSILES
-        [Stocks.Equipment.ADM_141_TALD                       ] = { stock_type = StockTypes.AIR_GROUND_GUIDED_MISSILES, base_qty = 60, eras = { Eras.LATECOLDWAR } },
         [Stocks.Equipment.AGM_122                            ] = { stock_type = StockTypes.AIR_GROUND_GUIDED_MISSILES, base_qty = 10, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
         [Stocks.Equipment.AGM_12B                            ] = { stock_type = StockTypes.AIR_GROUND_GUIDED_MISSILES, base_qty = 10, eras = { Eras.EARLYCOLDWAR, Eras.LATECOLDWAR } },
         [Stocks.Equipment.AGM_45A                            ] = { stock_type = StockTypes.AIR_GROUND_GUIDED_MISSILES, base_qty = 10, eras = { Eras.EARLYCOLDWAR, Eras.LATECOLDWAR, Eras.MODERN } },
@@ -1911,6 +1910,7 @@ Stocks.EquipmentData = {
         [Stocks.Equipment.KBPOD                              ] = { stock_type = StockTypes.MISC, base_qty = 6, eras = { Eras.LATECOLDWAR, Eras.MODERN } }, -- AJS37 recon pod
         [Stocks.Equipment.ANAWW_13                           ] = { stock_type = StockTypes.MISC, base_qty = 6, eras = { Eras.LATECOLDWAR, Eras.MODERN } }, -- AN/AWW-13 datalink pod
         [Stocks.Equipment.HB_F14_EXT_AN_APQ_167              ] = { stock_type = StockTypes.MISC, base_qty = 6, eras = { Eras.LATECOLDWAR, Eras.MODERN } }, -- F-14 TARPS pod
+        [Stocks.Equipment.ADM_141_TALD                       ] = { stock_type = StockTypes.MISC, base_qty = 60, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
 
 
       -- TGP
