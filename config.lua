@@ -833,6 +833,19 @@ Config = {
         -- (int) minimum aircraft to leave in stock so AI does not empty the warehouse
         warehouse_aircraft_reserve = 2,
 
+        -- (bool) Despawn AI fixed-wing task flights shortly after they RTB and
+        -- land, freeing parking so new tasks can spawn. Prevents ramp traffic
+        -- jams and helos landing on occupied spots. Helos / cargo are handled
+        -- separately and are not affected.
+        despawn_landed_ai_flights = true,
+        -- (int) (seconds) delay after a flight is detected stationary on the
+        -- ground before it is despawned. Lower = frees parking faster.
+        ai_landed_despawn_delay = 20,
+        -- (int) (seconds) despawn a flight that has sat on the ramp without ever
+        -- getting airborne (e.g. failed to taxi / blocked at spawn). Mirrors
+        -- Pretense's blocked-despawn timeout.
+        ai_stuck_despawn_delay = 10*60,
+
         -- (int)
         max_jtac_per_airbase = 2,
         -- (int)

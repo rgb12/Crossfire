@@ -423,6 +423,7 @@ do
         end
 
         EnrouteManager:checkAiHeloLandings()
+        EnrouteManager:checkAiFixedWingLandings()
     end
 
     -- This function starts the tick loop

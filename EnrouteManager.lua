@@ -13,7 +13,8 @@
 ---@field last_pos vec3|nil last observed position for landing checks
 ---@field last_pos_time number|nil timestamp of last observed position
 ---@field landed_candidate_since number|nil timestamp when landing conditions started
----@field has_been_airborne boolean|nil true after the heli has lifted off at least once
+---@field has_been_airborne boolean|nil true after the aircraft has lifted off at least once
+---@field tracked_since number|nil timestamp when fixed-wing landing tracking began
 
 ---@class EnrouteManager
 ---@field enroutes EnrouteObj[]
@@ -304,6 +305,99 @@ do
                 end
             end
         end
+    end
+
+    EnrouteManager.fixed_wing_despawn_types = {
+        [AITaskTypes.CAS]       = true,
+        [AITaskTypes.CAP]       = true,
+        [AITaskTypes.INTERCEPT] = true,
+        [AITaskTypes.SEAD]      = true,
+        [AITaskTypes.STRIKE]    = true,
+        [AITaskTypes.AWACS]     = true,
+        [AITaskTypes.RECON]     = true,
+    }
+
+    function EnrouteManager:checkAiFixedWingLandings()
+        if Config.tasking and Config.tasking.despawn_landed_ai_flights == false then return end
+
+        local enroutes = self.enroutes
+        if #enroutes == 0 then return end
+
+        local landed_delay = (Config.tasking and Config.tasking.ai_landed_despawn_delay) or 20
+        local stuck_delay  = (Config.tasking and Config.tasking.ai_stuck_despawn_delay) or (10 * 60)
+
+        local now = timer.getTime()
+        for i = #enroutes, 1, -1 do
+            local enroute = enroutes[i]
+            if enroute and self.fixed_wing_despawn_types[enroute.ai_task_type] then
+                local grp = Group.getByName(enroute.group_name)
+                if grp and grp.isExist and grp:isExist() then
+                    local unit = grp:getUnit(1)
+                    local is_player = unit and unit.getPlayerName and unit:getPlayerName()
+
+                    if unit and unit.isExist and unit:isExist()
+                    and not is_player
+                    and unit.getDesc and unit:getDesc().category == Unit.Category.AIRPLANE
+                    then
+                        enroute.tracked_since = enroute.tracked_since or now
+
+                        if not enroute.has_been_airborne then
+                            if unit:inAir() then
+                                enroute.has_been_airborne = true
+                            elseif (now - enroute.tracked_since) >= stuck_delay then
+
+                                MissionLogger:info("AI fixed-wing " .. enroute.group_name
+                                    .. " never got airborne, despawning (stuck on ramp)")
+                                self:despawnLandedFixedWing(enroute)
+                            end
+                        else
+                            local pos = unit:getPoint()
+                            if pos then
+                                local ground = land.getHeight({ x = pos.x, y = pos.z })
+                                local agl = pos.y - ground
+                                local last_pos = enroute.last_pos
+                                local stationary = false
+
+                                if last_pos then
+                                    local dx = pos.x - last_pos.x
+                                    local dz = pos.z - last_pos.z
+                                    if (dx * dx + dz * dz) <= (75 * 75) and agl <= 5 and not unit:inAir() then
+                                        stationary = true
+                                    end
+                                end
+
+                                if stationary then
+                                    enroute.landed_candidate_since = enroute.landed_candidate_since or now
+                                    if (now - enroute.landed_candidate_since) >= landed_delay then
+                                        MissionLogger:info("AI fixed-wing " .. enroute.group_name
+                                            .. " landed, despawning to free parking")
+                                        self:despawnLandedFixedWing(enroute)
+                                    end
+                                else
+                                    enroute.landed_candidate_since = nil
+                                end
+
+                                enroute.last_pos = { x = pos.x, y = pos.y, z = pos.z }
+                                enroute.last_pos_time = now
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end
+
+    ---Remove an enroute from tracking and destroy its group shortly after.
+    ---@param enroute EnrouteObj
+    function EnrouteManager:despawnLandedFixedWing(enroute)
+        local group_name = enroute.group_name
+        self:remove(group_name)
+        timer.scheduleFunction(function()
+            local g = Group.getByName(group_name)
+            if g and g.isExist and g:isExist() then
+                g:destroy()
+            end
+        end, {}, timer.getTime() + 5)
     end
 
 end
