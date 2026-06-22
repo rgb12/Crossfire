@@ -1,5 +1,6 @@
 ---@class Operation
 ---@field type OperationTypes
+---@field strike_type string | nil
 ---@field code number
 ---@field status OperationStatus
 ---@field target_zone_name string
@@ -8,20 +9,20 @@
 ---@field assigned_unit_name string | nil
 ---@field xp_reward number
 ---@field objectives table
----@field is_joint_op boolean -- Whether this operation supports joint operations
----@field joint_op_leader_id number | nil -- Unit ID of the player who created the operation
----@field joint_op_leader_name string | nil -- Name of the unit who created the operation
----@field joint_op_members table<number, string> -- Map of unit IDs to unit names
----@field joint_op_join_code number | nil -- Code for other players to join this joint operation
----@field pilot_position vec3 | nil -- For CSAR operations: position of downed pilot
----@field smoke_spawned boolean | nil -- For CSAR operations: whether smoke has been spawned
----@field load_zone_name string | nil -- For Strategic Airlift operations
----@field strategic_manifest table[] | nil -- Requested CTLD parts for Strategic Airlift
----@field strategic_manifest_text string | nil -- Human-readable manifest
----@field aircraft_category string | nil -- helicopter|fixed_wing selected at activation
----@field time_limit_seconds number | nil -- Mission timer for Strategic Airlift
----@field deadline_time number | nil -- Absolute mission deadline for Strategic Airlift
----@field operation_id string | nil -- Runtime unique id for temporary asset tracking
+---@field is_joint_op boolean
+---@field joint_op_leader_id number | nil
+---@field joint_op_leader_name string | nil
+---@field joint_op_members table<number, string>
+---@field joint_op_join_code number | nil
+---@field pilot_position vec3 | nil
+---@field smoke_spawned boolean | nil
+---@field load_zone_name string | nil
+---@field strategic_manifest table[] | nil
+---@field strategic_manifest_text string | nil
+---@field aircraft_category string | nil
+---@field time_limit_seconds number | nil
+---@field deadline_time number | nil 
+---@field operation_id string | nil 
 
 ---@class OperationManager
 ---@field side coalition.side
@@ -132,7 +133,27 @@ do
             return
         end
 
-        local lat, lon = coord.LOtoLL(zone_tgt.zone.point)
+        local target_point = zone_tgt.zone.point
+        if active_mission.type == OperationTypes.STRIKE then
+            if active_mission.strike_type == "COMMS" and zone_tgt.linked_comms_tower then
+                local comms_tower = StaticObject.getByName(zone_tgt.linked_comms_tower)
+                if comms_tower and comms_tower:isExist() then
+                    target_point = comms_tower:getPoint()
+                end
+            elseif active_mission.strike_type == "LOGISTICS" then
+                local supply_static = EraSystem.getSupplyStatic()
+                for _, static_name in pairs(zone_tgt.linked_statics or {}) do
+                    local static = StaticObject.getByName(static_name)
+                    if static and static:isExist()
+                    and static:getTypeName() == supply_static.type then
+                        target_point = static:getPoint()
+                        break
+                    end
+                end
+            end
+        end
+
+        local lat, lon = coord.LOtoLL(target_point)
         local mgrs = coord.LLtoMGRS(lat, lon)
 
         local outtxt = ""
@@ -1409,21 +1430,21 @@ do
         local target_desc = ""
         local check_func = function () end
         if strike_type == "COMMS" then
-            target_desc = "Communications Tower"
+            target_desc = "Communications tower"
             check_func = function()
                 local zone = ZoneHandler.getFromName(target_zone.name)
                 if not zone then return false end
                 return not zone.comms_tower_intact
             end
         elseif strike_type == "LOGISTICS" then
-            target_desc = "Ammunition Depot"
+            target_desc = "Ammunition depot"
             check_func = function()
                 local zone = ZoneHandler.getFromName(target_zone.name)
                 if not zone then return false end
                 return not zone.ammo_depot_intact
             end
         elseif strike_type == "FARP" then
-            target_desc = "FARP Assets"
+            target_desc = "FARP assets"
             check_func = function()
                 local zone = ZoneHandler.getFromName(target_zone.name)
                 if not zone then return false end
@@ -1441,6 +1462,7 @@ do
         ---@type Operation
         local op = {
             type = OperationTypes.STRIKE,
+            strike_type = strike_type,
             code = self:createOperationCode(),
             status = OperationStatus.AVAILABLE,
             target_zone_name = target_zone.name,
