@@ -1115,6 +1115,40 @@ do
         return nil
     end
 
+    ---@param to_zone ZoneHandler|nil
+    ---@param side coalition.side
+    ---@param ai_task_type AITaskTypes
+    ---@param required_supplies number
+    ---@param reference_point vec3|vec2|nil optional point to sort by instead of to_zone
+    ---@return ZoneHandler|nil
+    function TaskManager:findClosestAirbaseWithSupplies(to_zone, side, ai_task_type, required_supplies, reference_point)
+        local sort_point = reference_point or (to_zone and to_zone.zone.point)
+        if not sort_point then return nil end
+        local candidates = {}
+
+        for _,zone in ipairs(zones) do
+            if zone.zone_type == ZoneTypes.AIRBASE and zone.side == side and zone.airbase_name then
+                if self:isAirbaseRunwayOperational(zone)
+                and not self:checkIfMaxTasksReached(zone, side, ai_task_type)
+                and zone.ammo_depot_intact == true
+                and (zone.local_supplies or 0) >= required_supplies then
+                    table.insert(candidates,{
+                        zone = zone,
+                        dist = mist.utils.get2DDist(sort_point,zone.zone.point)
+                    })
+                end
+            end
+        end
+        table.sort(candidates, function(a, b)
+            return a.dist < b.dist
+        end)
+
+        if #candidates > 0 then
+            return candidates[1].zone
+        end
+        return nil
+    end
+
     ---@param to_zone ZoneHandler
     ---@param unit_attacking Unit
     function TaskManager:requestNavalStrike(to_zone,unit_attacking)

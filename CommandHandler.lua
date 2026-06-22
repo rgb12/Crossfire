@@ -696,7 +696,7 @@ do
                         end
 
                     end
-                    trigger.action.outTextForGroup(gr_id, "Restock aborted: No friendly airbase or FARP nearby.", 10)
+                    trigger.action.outTextForGroup(gr_id, "Restock aborted: No coalition airbase or FARP nearby.", 10)
                     trigger.action.outSoundForGroup(gr_id, "radio_beep3.ogg")
                 end, {}, timer.getTime() + 10)
             end, group_name)
@@ -884,7 +884,7 @@ do
             end
             local supply_zone = resolveAirbaseSupplyZone(to_zone, AITaskTypes.CAS)
             if not supply_zone then
-                trigger.action.outTextForGroup(gr_id, "CMD-HQ - Negative, no friendly airbase with available CAS assets in range of " .. to_zone.name .. ".", 10)
+                trigger.action.outTextForGroup(gr_id, "Request rejected, no coalition airbase has enough supplies to fulfill this request.", 10)
                 trigger.action.outSoundForGroup(gr_id, "Radio squelch.ogg")
                 return
             end
@@ -944,7 +944,7 @@ do
             end
             local supply_zone = TaskManager:findClosestAirbaseWithAircraftInStock(nil, side, AITaskTypes.AWACS, 2, AITaskTypes.AWACS, u:getPoint())
             if not supply_zone then
-                trigger.action.outTextForGroup(gr_id, "CMD-HQ - Negative, no friendly airbase with available AWACS assets.", 10)
+                trigger.action.outTextForGroup(gr_id, "Request rejected, no coalition airbase has enough supplies to fulfill this request.", 10)
                 trigger.action.outSoundForGroup(gr_id, "Radio squelch.ogg")
                 return
             end
@@ -955,7 +955,7 @@ do
                 trigger.action.outTextForCoalition(side, "Request accepted, AWACS dispatched from " .. supply_zone.name .. ", "..Config.supplies.tasking_costs.AWACS.." supplies used.", 10)
                 trigger.action.outSoundForCoalition(side, "Radio squelch.ogg")
             else
-                trigger.action.outTextForGroup(gr_id, "AWACS request failed (No assets available).", 10)
+                trigger.action.outTextForGroup(gr_id, "Request rejected, AWACS request failed (No assets available).", 10)
                 trigger.action.outSoundForGroup(gr_id, "Radio squelch.ogg")
             end
         end
@@ -963,14 +963,14 @@ do
         local function executeTankerRequest(u)
             local comms = getSideCommsTowers()
             if comms < Config.tasking_requirements.comms_zones_required_for_tanker then
-                trigger.action.outTextForGroup(gr_id, "CMD-HQ - Negative, TANKER tasking requires " .. comms .. "/"..Config.tasking_requirements.comms_zones_required_for_tanker.." active COMMS towers.", 10)
+                trigger.action.outTextForGroup(gr_id, "Request rejected, TANKER tasking requires " .. comms .. "/"..Config.tasking_requirements.comms_zones_required_for_tanker.." active COMMS towers.", 10)
                 trigger.action.outSoundForGroup(gr_id, "Radio squelch.ogg")
                 return
             end
 
-            local supply_zone = TaskManager:findClosestAirbaseWithAircraftInStock(nil, side, AITaskTypes.TANKER, 2, AITaskTypes.TANKER, u:getPoint())
+            local supply_zone = TaskManager:findClosestAirbaseWithSupplies(nil, side, AITaskTypes.TANKER, Config.supplies.tasking_costs.TANKER, u:getPoint())
             if not supply_zone then
-                trigger.action.outTextForGroup(gr_id, "CMD-HQ - Negative, no friendly airbase with available TANKER assets.", 10)
+                trigger.action.outTextForGroup(gr_id, "Request rejected, no coalition airbase has enough supplies to fulfill this request.", 10)
                 trigger.action.outSoundForGroup(gr_id, "Radio squelch.ogg")
                 return
             end
@@ -983,7 +983,7 @@ do
                 trigger.action.outTextForCoalition(side, "Request accepted, TANKER package dispatched from " .. supply_zone.name .. ", "..Config.supplies.tasking_costs.TANKER.." supplies used.", 10)
                 trigger.action.outSoundForCoalition(side, "Radio squelch.ogg")
             else
-                trigger.action.outTextForGroup(gr_id, "TANKER request failed.", 10)
+                trigger.action.outTextForGroup(gr_id, "Request rejected, TANKER request failed.", 10)
                 trigger.action.outSoundForGroup(gr_id, "Radio squelch.ogg")
             end
         end
@@ -991,13 +991,13 @@ do
         local function executeSEADRequest(u, to_zone)
             local comms = getSideCommsTowers()
             if comms < Config.tasking_requirements.comms_zones_required_for_sead then
-                trigger.action.outTextForGroup(gr_id, "CMD-HQ - Negative, SEAD tasking requires " .. comms .. "/"..Config.tasking_requirements.comms_zones_required_for_sead.." active COMMS towers.", 10)
+                trigger.action.outTextForGroup(gr_id, "Request rejected, SEAD tasking requires " .. comms .. "/"..Config.tasking_requirements.comms_zones_required_for_sead.." active COMMS towers.", 10)
                 trigger.action.outSoundForGroup(gr_id, "Radio squelch.ogg")
                 return
             end
             local supply_zone = resolveAirbaseSupplyZone(to_zone, AITaskTypes.SEAD)
             if not supply_zone then
-                trigger.action.outTextForGroup(gr_id, "CMD-HQ - Negative, no friendly airbase with available SEAD assets in range of " .. to_zone.name .. ".", 10)
+                trigger.action.outTextForGroup(gr_id, "Request rejected, no coalition airbase has enough supplies to fulfill this request.", 10)
                 trigger.action.outSoundForGroup(gr_id, "Radio squelch.ogg")
                 return
             end
@@ -1008,7 +1008,7 @@ do
                 trigger.action.outTextForCoalition(side, "Request accepted, SEAD dispatched to " .. to_zone.name .. ", "..Config.supplies.tasking_costs.SEAD.." supplies used.", 10)
                 trigger.action.outSoundForCoalition(side, "Radio squelch.ogg")
             else
-                trigger.action.outTextForGroup(gr_id, "SEAD request failed (No assets available).", 10)
+                trigger.action.outTextForGroup(gr_id, "Request rejected, SEAD request failed (No assets available).", 10)
                 trigger.action.outSoundForGroup(gr_id, "Radio squelch.ogg")
             end
         end
@@ -1027,7 +1027,7 @@ do
                 trigger.action.outTextForCoalition(side, "Request accepted, Helicopter capture dispatched to " .. to_zone.name .. ", " .. Config.supplies.tasking_costs.CAPTURE_HELO .. " supplies used.", 10)
                 trigger.action.outSoundForCoalition(side, "Radio squelch.ogg")
             else
-                trigger.action.outTextForGroup(gr_id, "Helicopter capture request failed (no assets available).", 10)
+                trigger.action.outTextForGroup(gr_id, "Request rejected, Helicopter capture request failed (no assets available).", 10)
                 trigger.action.outSoundForGroup(gr_id, "Radio squelch.ogg")
             end
         end
@@ -1076,7 +1076,7 @@ do
                 trigger.action.outTextForCoalition(side, "Request accepted, Reinforcement helicopter dispatched to " .. to_zone.name .. ", " .. required_supplies .. " supplies used.", 10)
                 trigger.action.outSoundForCoalition(side, "Radio squelch.ogg")
             else
-                trigger.action.outTextForGroup(gr_id, "Reinforcement helicopter request failed (no assets available).", 10)
+                trigger.action.outTextForGroup(gr_id, "Request rejected, Reinforcement helicopter request failed (no assets available).", 10)
                 trigger.action.outSoundForGroup(gr_id, "Radio squelch.ogg")
             end
         end
@@ -1084,13 +1084,13 @@ do
         local function executeJTACRequest(u, to_zone)
             local comms = getSideCommsTowers()
             if comms < Config.tasking_requirements.comms_zones_required_for_jtac then
-                trigger.action.outTextForGroup(gr_id, "CMD-HQ - Negative, JTAC tasking requires " .. comms .. "/"..Config.tasking_requirements.comms_zones_required_for_jtac.." active COMMS towers.", 10)
+                trigger.action.outTextForGroup(gr_id, "Request rejected, JTAC tasking requires " .. comms .. "/"..Config.tasking_requirements.comms_zones_required_for_jtac.." active COMMS towers.", 10)
                 trigger.action.outSoundForGroup(gr_id, "Radio squelch.ogg")
                 return
             end
-            local supply_zone = resolveAirbaseSupplyZone(to_zone, AITaskTypes.JTAC)
+            local supply_zone = TaskManager:findClosestAirbaseWithSupplies(to_zone, side, AITaskTypes.JTAC, Config.supplies.tasking_costs.JTAC)
             if not supply_zone then
-                trigger.action.outTextForGroup(gr_id, "CMD-HQ - Negative, no friendly airbase with available JTAC assets in range of " .. to_zone.name .. ".", 10)
+                trigger.action.outTextForGroup(gr_id, "Request rejected, no coalition airbase has enough supplies to fulfill this request.", 10)
                 trigger.action.outSoundForGroup(gr_id, "Radio squelch.ogg")
                 return
             end
@@ -1101,7 +1101,7 @@ do
                 trigger.action.outTextForCoalition(side, "Request accepted, JTAC dispatched to " .. to_zone.name .. ", "..Config.supplies.tasking_costs.JTAC.." supplies used.", 10)
                 trigger.action.outSoundForCoalition(side, "Radio squelch.ogg")
             else
-                trigger.action.outTextForGroup(gr_id, "JTAC request failed (No assets available).", 10)
+                trigger.action.outTextForGroup(gr_id, "Request rejected, JTAC request failed (No assets available).", 10)
                 trigger.action.outSoundForGroup(gr_id, "Radio squelch.ogg")
             end
         end
@@ -1109,13 +1109,13 @@ do
         local function executeCAPRequest(u, to_zone)
             local comms = getSideCommsTowers()
             if comms < Config.tasking_requirements.comms_zones_required_for_cap then
-                trigger.action.outTextForGroup(gr_id, "CMD-HQ - Negative, CAP tasking requires " .. comms .. "/"..Config.tasking_requirements.comms_zones_required_for_cap.." active COMMS towers.", 10)
+                trigger.action.outTextForGroup(gr_id, "Request rejected, CAP tasking requires " .. comms .. "/"..Config.tasking_requirements.comms_zones_required_for_cap.." active COMMS towers.", 10)
                 trigger.action.outSoundForGroup(gr_id, "Radio squelch.ogg")
                 return
             end
             local supply_zone = resolveAirbaseSupplyZone(to_zone, AITaskTypes.CAP)
             if not supply_zone then
-                trigger.action.outTextForGroup(gr_id, "CMD-HQ - Negative, no friendly airbase with available CAP assets in range of " .. to_zone.name .. ".", 10)
+                trigger.action.outTextForGroup(gr_id, "Request rejected, no coalition airbase has enough supplies to fulfill this request.", 10)
                 trigger.action.outSoundForGroup(gr_id, "Radio squelch.ogg")
                 return
             end
@@ -1126,7 +1126,7 @@ do
                 trigger.action.outTextForCoalition(side, "Request accepted, CAP dispatched to " .. to_zone.name .. ", "..Config.supplies.tasking_costs.CAP.." supplies used.", 10)
                 trigger.action.outSoundForCoalition(side, "Radio squelch.ogg")
             else
-                trigger.action.outTextForGroup(gr_id, "CAP request failed (No assets available).", 10)
+                trigger.action.outTextForGroup(gr_id, "Request rejected, CAP request failed (No assets available).", 10)
                 trigger.action.outSoundForGroup(gr_id, "Radio squelch.ogg")
             end
         end
@@ -1134,13 +1134,13 @@ do
         local function executeStrikeRequest(u, to_zone)
             local comms = getSideCommsTowers()
             if comms < Config.tasking_requirements.comms_zones_required_for_strike then
-                trigger.action.outTextForGroup(gr_id, "CMD-HQ - Negative, STRIKE tasking requires " .. comms .. "/"..Config.tasking_requirements.comms_zones_required_for_strike.." active COMMS towers.", 10)
+                trigger.action.outTextForGroup(gr_id, "Request rejected, STRIKE tasking requires " .. comms .. "/"..Config.tasking_requirements.comms_zones_required_for_strike.." active COMMS towers.", 10)
                 trigger.action.outSoundForGroup(gr_id, "Radio squelch.ogg")
                 return
             end
             local supply_zone = resolveAirbaseSupplyZone(to_zone, AITaskTypes.STRIKE)
             if not supply_zone then
-                trigger.action.outTextForGroup(gr_id, "CMD-HQ - Negative, no friendly airbase with available STRIKE assets in range of " .. to_zone.name .. ".", 10)
+                trigger.action.outTextForGroup(gr_id, "Request rejected, no coalition airbase has enough supplies to fulfill this request.", 10)
                 trigger.action.outSoundForGroup(gr_id, "Radio squelch.ogg")
                 return
             end
@@ -1151,7 +1151,7 @@ do
                 trigger.action.outTextForCoalition(side, "Request accepted, STRIKE dispatched to " .. to_zone.name .. ", "..Config.supplies.tasking_costs.STRIKE.." supplies used.", 10)
                 trigger.action.outSoundForCoalition(side, "Radio squelch.ogg")
             else
-                trigger.action.outTextForGroup(gr_id, "STRIKE request failed (No assets available).", 10)
+                trigger.action.outTextForGroup(gr_id, "Request rejected, STRIKE request failed (No assets available).", 10)
                 trigger.action.outSoundForGroup(gr_id, "Radio squelch.ogg")
             end
         end
