@@ -757,11 +757,10 @@ do
             return true
         elseif AITaskTypes.ATTACK_CONVOY == ai_task_type and from_zone then
             -- Ground convoy
-            
-            
+
             local convoy_template_gr_name_side
             local enemy_side
-            
+
             if side == coalition.side.BLUE then
                 convoy_template_gr_name_side = GroupData.COMMON_ASSETS.BLUE.attack_convoy
                 enemy_side = coalition.side.RED
