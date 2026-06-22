@@ -1680,11 +1680,11 @@ do
                             end
 
                             -- check for line of sight
-                            if not land.isVisible(player_pos, target_zone.zone.point) then
-                                trigger.action.outTextForUnit(player_unit:getID(),"Recon aerial imagery lost, maintain line of sight to target area", 5)
-                                self.start_time = nil
-                                return false
-                            end
+                            -- if not land.isVisible(player_pos, target_zone.zone.point) then
+                            --     trigger.action.outTextForUnit(player_unit:getID(),"Recon aerial imagery lost, maintain line of sight to target area", 5)
+                            --     self.start_time = nil
+                            --     return false
+                            -- end
 
                             if timer.getTime() - self.start_time < self.duration then
                                 trigger.action.outTextForUnit(player_unit:getID(), "Recon aerial imagery in progress: "..math.floor(((timer.getTime() - self.start_time)/self.duration)*100).."%", 5)
