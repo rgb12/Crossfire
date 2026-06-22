@@ -1623,12 +1623,12 @@ Stocks.EquipmentDataDefault = { stock_type = StockTypes.AIR_GROUND_BOMBS, base_q
 
 Stocks.EquipmentData = {
         -- AIR AIR LONG RANGE
-        [Stocks.Equipment.AIM_120B                   ] = { stock_type = StockTypes.AIR_AIR_LONG_RANGE, base_qty = 25, eras = { Eras.MODERN } },
-        [Stocks.Equipment.AIM_120C                   ] = { stock_type = StockTypes.AIR_AIR_LONG_RANGE, base_qty = 20, eras = { Eras.MODERN } },
-        [Stocks.Equipment.AIM_54A_MK47               ] = { stock_type = StockTypes.AIR_AIR_LONG_RANGE, base_qty = 12, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
-        [Stocks.Equipment.AIM_54A_MK60               ] = { stock_type = StockTypes.AIR_AIR_LONG_RANGE, base_qty = 12, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
-        [Stocks.Equipment.AIM_54C_MK47               ] = { stock_type = StockTypes.AIR_AIR_LONG_RANGE, base_qty = 10, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
-        [Stocks.Equipment.AIM_54C_MK60               ] = { stock_type = StockTypes.AIR_AIR_LONG_RANGE, base_qty = 10, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
+        [Stocks.Equipment.AIM_120B                   ] = { stock_type = StockTypes.AIR_AIR_LONG_RANGE, base_qty = 40, eras = { Eras.MODERN } },
+        [Stocks.Equipment.AIM_120C                   ] = { stock_type = StockTypes.AIR_AIR_LONG_RANGE, base_qty = 30, eras = { Eras.MODERN } },
+        [Stocks.Equipment.AIM_54A_MK47               ] = { stock_type = StockTypes.AIR_AIR_LONG_RANGE, base_qty = 25, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
+        [Stocks.Equipment.AIM_54A_MK60               ] = { stock_type = StockTypes.AIR_AIR_LONG_RANGE, base_qty = 20, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
+        [Stocks.Equipment.AIM_54C_MK47               ] = { stock_type = StockTypes.AIR_AIR_LONG_RANGE, base_qty = 20, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
+        [Stocks.Equipment.AIM_54C_MK60               ] = { stock_type = StockTypes.AIR_AIR_LONG_RANGE, base_qty = 20, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
         [Stocks.Equipment.AIM_7E                     ] = { stock_type = StockTypes.AIR_AIR_LONG_RANGE, base_qty = 12, eras = { Eras.EARLYCOLDWAR, Eras.LATECOLDWAR } },
         [Stocks.Equipment.AIM_7E_2                   ] = { stock_type = StockTypes.AIR_AIR_LONG_RANGE, base_qty = 12, eras = { Eras.EARLYCOLDWAR, Eras.LATECOLDWAR } },
         [Stocks.Equipment.AIM_7F                     ] = { stock_type = StockTypes.AIR_AIR_LONG_RANGE, base_qty = 22, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
@@ -3203,6 +3203,7 @@ Stocks.GroundUnits = {
     TANK_LECLERC = { type = "Leclerc", role = "TANK", countries = { 5, 80 }, era_min = Eras.MODERN, era_max = Eras.MODERN },
     TANK_SHERMAN = { type = "M4_Sherman", role = "TANK", countries = {2,80}, era_min = Eras.WW2,era_max = Eras.EARLYCOLDWAR},
     TANK_T90M = { type = "CHAP_T90M", role = "TANK", countries = {0,81}, era_min = Eras.MODERN,era_max = Eras.MODERN},
+    PZ_IV_H = { type = "Pz_IV_H", role = "TANK", countries = {6,81}, era_min = Eras.WW2,era_max = Eras.WW2},
     
     -- ===================== IFV =====================
     IFV_BMP1   = { type = "BMP-1",  role = "IFV", countries = { 0, 17, 81 }, era_min = Eras.EARLYCOLDWAR, era_max = Eras.EARLYCOLDWAR },
