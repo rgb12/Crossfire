@@ -921,6 +921,11 @@ do
             end
 
             local supply_zone = resolveAirbaseSupplyZone(to_zone, AITaskTypes.CAS)
+            if not supply_zone then
+                trigger.action.outTextForGroup(gr_id, "Request rejected, no coalition airbase has enough supplies to fulfill this request.", 10)
+                trigger.action.outSoundForGroup(gr_id, "Radio squelch.ogg")
+                return
+            end
             if not checkRankRequirement(u, AITaskTypes.CAS) then return end
             if not checkSupplies(u, Config.supplies.tasking_costs.NAVAL_STRIKE, supply_zone) then return end
 

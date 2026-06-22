@@ -724,6 +724,14 @@ do
             -- JTAC does not follow classic spawn from airbase, it instead spawns in the air near the target zone and orbits there
             -- Currently only works for blue
 
+            if side == coalition.side.RED then
+                if user_requested then
+                    trigger.action.outTextForCoalition(side,"JTAC tasking cannot be executed for this coalition.",5)
+                end
+                MissionLogger:info("[JTAC] JTAC tasking cannot be executed for the RED coalition, does not have a JTAC in ME.")
+                return false
+            end
+
             if EnrouteManager:findByToZone(to_zone,side,{AITaskTypes.JTAC}) then
                 if user_requested then
                     local txt="JTAC already tasked for "..to_zone.name
@@ -1217,10 +1225,14 @@ do
                 -- Some statics require big boom to go down
             end
         end
+        if #target_points == 0 then
+            MissionLogger:error("Naval strike failed: no valid targets in zone " .. to_zone.name)
+            return false
+        end
 
         utils.shuffleTable(target_points)
 
-        for i = 1, math.max(salvo_size, #target_points) do
+        for i = 1, math.min(salvo_size, #target_points) do
             timer.scheduleFunction(function()
                 local ship = Unit.getByName(ship_name)
                 if not (ship and ship:isExist()) then return end
@@ -1406,10 +1418,12 @@ do
         local targets = {}
 
         for _, un in ipairs(utils.getUnitsInZoneObj(to_zone, enemy_side)) do
-            targets[#targets + 1] = un:getPoint()
+            if un.isExist and un:isExist() then
+                targets[#targets + 1] = un:getPoint()
+            end
         end
         for _, st in ipairs(utils.getStaticsInZoneObj(to_zone)) do
-            if st:getCoalition() == enemy_side then
+            if st.isExist and st:isExist() and st:getCoalition() == enemy_side then
                 targets[#targets + 1] = st:getPoint()
             end
         end
@@ -1745,6 +1759,11 @@ do
                     end
                 end
             end
+            if not target_1_point then
+                MissionLogger:error("Could not send CAS: No valid target points found in zone "..enroute_data.to_zone.name)
+                return false
+            end
+
             if #viable_ids==0 then
                 MissionLogger:error("Could not send CAS: No linked enemy groups exist in zone "..enroute_data.to_zone.name)
                 return false
