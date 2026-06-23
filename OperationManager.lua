@@ -62,7 +62,10 @@ do
         }
         setmetatable(obj, self)
         table.insert(OperationManager.instances, obj)
-        world.addEventHandler(OperationManager.EventHandler)
+        if not OperationManager._handler_registered then
+            world.addEventHandler(OperationManager.EventHandler)
+            OperationManager._handler_registered = true
+        end
         return obj
     end
 
@@ -290,11 +293,11 @@ do
                                     op.assigned_player_id = member_id
                                     op.assigned_unit_name = member_unit_name
                                     op.joint_op_leader_id = member_id
-                                    op.joint_op_leader_name = member_unit_name
+                                    op.joint_op_leader_name = member_unit:getPlayerName() or member_unit_name
 
                                     -- Remove from members list
                                     op.joint_op_members[member_id] = nil
-                                    
+
                                     -- Notify remaining participants
                                     trigger.action.outTextForUnit(member_id, "You are now the operation leader!", 10)
                                     trigger.action.outSoundForUnit(member_id, "radio_txrx.ogg")
@@ -373,8 +376,7 @@ do
                         if is_participant then
                             for _, obj in ipairs(op.objectives) do
                                 if obj.onKill and not obj.completed then
-                                    -- Pass the actual killer unit instead of just the leader
-                                    obj:onKill(event, event.initiator, op.target_zone_name)
+                                    obj:onKill(event, event.initiator, op)
                                 end
                             end
                         end
@@ -476,11 +478,11 @@ do
                                     op.assigned_player_id = member_id
                                     op.assigned_unit_name = member_unit_name
                                     op.joint_op_leader_id = member_id
-                                    op.joint_op_leader_name = member_unit_name
+                                    op.joint_op_leader_name = member_unit:getPlayerName() or member_unit_name
 
                                     -- Remove from members list
                                     op.joint_op_members[member_id] = nil
-                                    
+
                                     -- Notify remaining participants
                                     trigger.action.outTextForUnit(member_id, "You are now the operation leader!", 10)
                                     trigger.action.outSoundForUnit(member_id, "radio_txrx.ogg")
@@ -809,6 +811,7 @@ do
             end
             for _, op in ipairs(self.active_operations) do
                 if op.code == code then return true end
+                if op.joint_op_join_code == code then return true end
             end
             return false
         end
@@ -1141,29 +1144,30 @@ do
                         return false
                     end,
                     ---@param event table
-                    onKill = function(self, event, player_unit, target_zone_name)
+                    onKill = function(self, event, player_unit, op)
                         -- Called by OperationManager when a kill event occurs
                         if not event.initiator or not event.target then return end
-                        
+
                         -- Check if killer is our assigned player
                         if event.initiator:getName() ~= player_unit:getName() then return end
-                        
+
                         -- Check if target is an aircraft or helicopter
                         local target = event.target
                         if not target.hasAttribute then return end
                         if not (target:hasAttribute("Planes") or target:hasAttribute("Helicopters")) then return end
-                        
+
                         -- Check if target is enemy
                         if target:getCoalition() == player_unit:getCoalition() then return end
-                        
-                        -- Check if kill is within operation radius of target zone
-                        local zone = ZoneHandler.getFromName(target_zone_name)
-                        if not zone then return end
-                        
-                        -- Valid kill - increment counter
+
+                        -- Valid kill - broadcast count to all participants
                         self.kills = self.kills + 1
-                        trigger.action.outTextForUnit(player_unit:getID(), 
-                            string.format("Intercept - Confirmed kill (%d/%d)", self.kills, self.required_kills), 10)
+                        local kill_msg = string.format("Intercept - Confirmed kill (%d/%d)", self.kills, self.required_kills)
+                        trigger.action.outTextForUnit(op.assigned_player_id, kill_msg, 10)
+                        if op.joint_op_members then
+                            for member_id, _ in pairs(op.joint_op_members) do
+                                trigger.action.outTextForUnit(member_id, kill_msg, 10)
+                            end
+                        end
                     end
                 }
             }
@@ -2025,9 +2029,12 @@ do
         -- Notify all participants
         local join_msg = string.format("%s has joined Operation %s", unit:getPlayerName(), target_op.operation_name)
         trigger.action.outTextForUnit(target_op.assigned_player_id, join_msg, 10)
+        trigger.action.outSoundForUnit(target_op.assigned_player_id, "radio_txrx.ogg")
         for member_id, _ in pairs(target_op.joint_op_members) do
-            trigger.action.outTextForUnit(member_id, join_msg, 10)
-            trigger.action.outSoundForUnit(member_id,"radio_txrx.ogg")
+            if member_id ~= unit_id then
+                trigger.action.outTextForUnit(member_id, join_msg, 10)
+                trigger.action.outSoundForUnit(member_id, "radio_txrx.ogg")
+            end
         end
         
         trigger.action.outSoundForUnit(unit_id,"chatter1.ogg")
@@ -2051,9 +2058,21 @@ do
             end
         end
         
-        if not target_op or not target_op.joint_op_members or not target_op.joint_op_members[unit_id] then
+        if not target_op then
             trigger.action.outTextForUnit(unit_id, "You are not in a joint operation.", 10)
-            trigger.action.outSoundForUnit(unit_id,"radio_txrx.ogg")
+            trigger.action.outSoundForUnit(unit_id, "radio_txrx.ogg")
+            return
+        end
+
+        if target_op.assigned_player_id == unit_id then
+            trigger.action.outTextForUnit(unit_id, "You are the operation leader. Use 'Cancel Operation' to abort.", 10)
+            trigger.action.outSoundForUnit(unit_id, "radio_txrx.ogg")
+            return
+        end
+
+        if not target_op.joint_op_members or not target_op.joint_op_members[unit_id] then
+            trigger.action.outTextForUnit(unit_id, "You are not in a joint operation.", 10)
+            trigger.action.outSoundForUnit(unit_id, "radio_txrx.ogg")
             return
         end
         
@@ -2067,12 +2086,13 @@ do
         local leader_unit = Unit.getByName(target_op.assigned_unit_name)
         if leader_unit and leader_unit:isExist() then
             trigger.action.outTextForUnit(target_op.assigned_player_id, leave_msg, 10)
+            trigger.action.outSoundForUnit(target_op.assigned_player_id, "radio_txrx.ogg")
         end
-        
+
         -- Notify remaining members
         for member_id, _ in pairs(target_op.joint_op_members) do
             trigger.action.outTextForUnit(member_id, leave_msg, 10)
-            trigger.action.outSoundForUnit(member_id,"radio_txrx.ogg")
+            trigger.action.outSoundForUnit(member_id, "radio_txrx.ogg")
         end
         
         trigger.action.outSoundForUnit(unit_id,"radio_txrx.ogg")
@@ -2174,10 +2194,11 @@ do
         if not unit then return end
         if not unit.getPlayerName then return end
         local unit_id = unit:getID()
-        -- Check if player already has a mission
+        -- Check if player already has a mission or is a member of a joint operation
         for _, active_op in ipairs(self.active_operations) do
-            if active_op.assigned_player_id == unit_id then
-                trigger.action.outTextForUnit(unit_id, "You are already on an operation: " .. active_op.operation_name, 10)
+            if active_op.assigned_player_id == unit_id or
+               (active_op.joint_op_members and active_op.joint_op_members[unit_id]) then
+                trigger.action.outTextForUnit(unit_id, "You are already in an operation: " .. active_op.operation_name, 10)
                 trigger.action.outSoundForUnit(unit_id,"radio_txrx.ogg")
                 return
             end
@@ -2340,7 +2361,7 @@ do
         -- Initialize joint operation fields if this is a joint operation
         if accepted_mission.is_joint_op then
             accepted_mission.joint_op_leader_id = unit_id
-            accepted_mission.joint_op_leader_name = unit:getName()
+            accepted_mission.joint_op_leader_name = unit:getPlayerName() or unit:getName()
             accepted_mission.joint_op_join_code = self:createOperationCode()
             if not accepted_mission.joint_op_members then
                 accepted_mission.joint_op_members = {}
