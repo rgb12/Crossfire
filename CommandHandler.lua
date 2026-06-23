@@ -934,9 +934,13 @@ do
         local function executeCaptureHeloRequest(u, to_zone)
             if not checkRankRequirement(u, AITaskTypes.CAPTURE_HELO) then return end
 
-            local from_zone = utils.findClosestCaptureHeloSource(to_zone, side, Config.capture_helicopter_max_range)
+            local from_zone = utils.findClosestCaptureHeloSource(to_zone, side, nil)
 
-            if not from_zone then return end
+            if not from_zone then
+                trigger.action.outTextForGroup(gr_id, "Request rejected, no friendly logistics zone with available helicopters to dispatch from.", 8)
+                trigger.action.outSoundForGroup(gr_id, "Radio squelch.ogg")
+                return
+            end
 
             if not checkSupplies(u, Config.supplies.tasking_costs.CAPTURE_HELO, from_zone) then return end
 

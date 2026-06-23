@@ -914,7 +914,11 @@ do
                 template_name_side = GroupData.COMMON_ASSETS.BLUE.capture_helicopter
             end
             local template_name = EraSystem.resolveTaskTemplateName(template_name_side)
-            if not template_name then return false end
+            if not template_name then
+                MissionLogger:info("[CAPTURE_HELO] No capture helicopter template available for "..utils.coalitionToString(side).." in current era")
+                sendText("Capture request failed, no capture helicopter template available (check late activation group / era).")
+                return false
+            end
 
             local helo_sent = mist.teleportToPoint({
                 groupName = template_name,
@@ -922,7 +926,11 @@ do
                 action = "clone"
             })
 
-            if not helo_sent then MissionLogger:info("Capture Heli spawn failed, no heli sent") return false end
+            if not helo_sent then
+                MissionLogger:info("Capture Heli spawn failed, no heli sent")
+                sendText("Capture request failed, helicopter could not be spawned from "..from_zone.name.." (template '"..tostring(template_name).."' missing or invalid).")
+                return false
+            end
 
             EnrouteManager:add({
                 group_name = helo_sent.name,
