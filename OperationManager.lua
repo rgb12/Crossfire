@@ -1161,11 +1161,23 @@ do
 
                         -- Valid kill - broadcast count to all participants
                         self.kills = self.kills + 1
-                        local kill_msg = string.format("Intercept - Confirmed kill (%d/%d)", self.kills, self.required_kills)
+                        local remaining = self.required_kills - self.kills
+                        local kill_msg
+                        if remaining > 0 then
+                            kill_msg = string.format(
+                                "SPLASH ONE. Bandit down. %d of %d kills confirmed, %d remaining.",
+                                self.kills, self.required_kills, remaining)
+                        else
+                            kill_msg = string.format(
+                                "SPLASH ONE. All %d bandits destroyed, objectives met.",
+                                self.required_kills)
+                        end
                         trigger.action.outTextForUnit(op.assigned_player_id, kill_msg, 10)
+                        trigger.action.outSoundForUnit(op.assigned_player_id, "chatter2.ogg")
                         if op.joint_op_members then
                             for member_id, _ in pairs(op.joint_op_members) do
                                 trigger.action.outTextForUnit(member_id, kill_msg, 10)
+                                trigger.action.outSoundForUnit(member_id, "chatter2.ogg")
                             end
                         end
                     end
