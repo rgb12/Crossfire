@@ -18,7 +18,7 @@
 -- (value)
 Config = {
     -- (int) config version should not be edited unless comprehensively understood
-    _config_file_version = 1,
+    _config_file_version = 2,
     -- (int) mission version should not be edited unless comprehensively understood
     _mission_version = 6,
     -- (bool) development setting, set to false to prevent the mission from loading
@@ -223,6 +223,15 @@ Config = {
 
         -- (int) (seconds) this is to set a cooldown for generating operations
         operation_refresh_time = 30,
+
+        -- (table) penalty applied to players who leave/cancel an operation. While
+        -- on timeout they cannot start or join another operation.
+        leave_timeout = {
+            -- (bool) enable the leave timeout penalty
+            enabled = true,
+            -- (int) (seconds) how long the player is blocked after leaving an operation
+            duration = 10*60,
+        },
 
 
         -- (table<enum,table<string>>)

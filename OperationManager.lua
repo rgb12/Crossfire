@@ -69,6 +69,56 @@ do
         return obj
     end
 
+    OperationManager.leave_timeouts = OperationManager.leave_timeouts or {}
+
+    ---@param unit Unit
+    ---@return string|nil
+    local function getTimeoutKey(unit)
+        if not unit or not unit.getPlayerName then return nil end
+        return unit:getPlayerName() or unit:getName()
+    end
+
+    --- Records a leave timeout for the player controlling the given unit.
+    ---@param unit Unit
+    function OperationManager:applyLeaveTimeout(unit)
+        if not Config.operations.leave_timeout.enabled then return end
+        local key = getTimeoutKey(unit)
+        if not key then return end
+        OperationManager.leave_timeouts[key] = timer.getTime() + (Config.operations.leave_timeout.duration or 600)
+    end
+
+    --- Returns the remaining timeout in seconds, or 0 if the player may act.
+    ---@param unit Unit
+    ---@return number
+    function OperationManager:getLeaveTimeoutRemaining(unit)
+        if Config.operations.leave_timeout.enabled then return 0 end
+        local key = getTimeoutKey(unit)
+        if not key then return 0 end
+        local expiry = OperationManager.leave_timeouts[key]
+        if not expiry then return 0 end
+        local remaining = expiry - timer.getTime()
+        if remaining <= 0 then
+            OperationManager.leave_timeouts[key] = nil
+            return 0
+        end
+        return remaining
+    end
+
+    --- Checks the timeout and notifies the player if blocked.
+    ---@param unit Unit
+    ---@return boolean blocked
+    function OperationManager:checkLeaveTimeout(unit)
+        local remaining = self:getLeaveTimeoutRemaining(unit)
+        if remaining <= 0 then return false end
+        local unit_id = unit:getID()
+        local minutes = math.floor(remaining / 60)
+        local seconds = math.floor(remaining % 60)
+        trigger.action.outTextForUnit(unit_id,
+            string.format("You left an operation recently. You can start or join another in %d:%02d.", minutes, seconds), 10)
+        trigger.action.outSoundForUnit(unit_id, "radio_txrx.ogg")
+        return true
+    end
+
 
     ---@param operation Operation
     ---@return vec3|nil
@@ -1955,6 +2005,7 @@ do
 
                 self:removeOperationMarker(active_op)
                 table.remove(self.active_operations, i)
+                self:applyLeaveTimeout(unit)
                 trigger.action.outSoundForUnit(unit_id,"chatter3.ogg")
                 trigger.action.outTextForUnit(unit_id, "Operation " .. active_op.operation_name .. " cancelled.", 10)
                 return
@@ -1976,6 +2027,9 @@ do
     function OperationManager:joinJointOperation(unit, join_code)
         if not unit or not unit.getPlayerName then return end
         local unit_id = unit:getID()
+
+        -- Block players who recently left an operation
+        if self:checkLeaveTimeout(unit) then return end
 
         -- Check if player already has an active operation
         for _, active_op in ipairs(self.active_operations) do
@@ -2107,6 +2161,7 @@ do
             trigger.action.outSoundForUnit(member_id, "radio_txrx.ogg")
         end
         
+        self:applyLeaveTimeout(unit)
         trigger.action.outSoundForUnit(unit_id,"radio_txrx.ogg")
         trigger.action.outTextForUnit(unit_id, "You have left the joint operation.", 10)
     end
@@ -2206,6 +2261,8 @@ do
         if not unit then return end
         if not unit.getPlayerName then return end
         local unit_id = unit:getID()
+        -- Block players who recently left an operation
+        if self:checkLeaveTimeout(unit) then return end
         -- Check if player already has a mission or is a member of a joint operation
         for _, active_op in ipairs(self.active_operations) do
             if active_op.assigned_player_id == unit_id or
