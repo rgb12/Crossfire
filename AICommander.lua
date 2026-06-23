@@ -410,8 +410,8 @@ do
                     local discovered = (side == coalition.side.BLUE and utils.tableContains(stats.blue_discovered_zones, zone.name)) or
                                        (side == coalition.side.RED and utils.tableContains(stats.red_discovered_zones, zone.name))
                     if discovered and not EnrouteManager:findByToZone(zone, side, {AITaskTypes.CAS}) then
-                        local dist = mist.utils.get2DDist(home_base.zone.point, zone.zone.point)
-                        if dist < Config.tasking.max_cas_range then
+                        if Frontline.distanceToFrontline(zone.zone.point) < Config.tasking.max_distance_to_frontline_for_offensive then
+                            local dist = mist.utils.get2DDist(home_base.zone.point, zone.zone.point)
                             table.insert(potential_zones, {distance=dist, zone=zone})
                         end
                     end
@@ -449,7 +449,7 @@ do
             for _, zone in ipairs(zones) do
                 if zone.side == enemy_side and zone.zone_type == ZoneTypes.SAMSITE
                 and not utils.tableContains(active_zones, zone.name)
-                and mist.utils.get2DDist(home_base.zone.point, zone.zone.point) < Config.tasking.max_sead_range then
+                and Frontline.distanceToFrontline(zone.zone.point) < Config.tasking.max_distance_to_frontline_for_offensive then
                     local discovered = (side == coalition.side.BLUE and utils.tableContains(stats.blue_discovered_zones, zone.name)) or
                                         (side == coalition.side.RED and utils.tableContains(stats.red_discovered_zones, zone.name))
 
@@ -533,7 +533,7 @@ do
                 for _, zone in ipairs(zones) do
                     if zone.side == enemy_side and utils.tableContains(valid_strike_targets, zone.zone_type)
                     and not utils.tableContains(active_zones, zone.name)
-                    and mist.utils.get2DDist(home_base.zone.point, zone.zone.point) < Config.tasking.max_strike_range then
+                    and Frontline.distanceToFrontline(zone.zone.point) < Config.tasking.max_distance_to_frontline_for_offensive then
 
                         -- Checks if statics are alive
                         if zone.linked_statics and #zone.linked_statics >= 1 then
@@ -669,7 +669,7 @@ do
         end
     end
 
-    ---Discovered enemy zones within range of home_base, closest first.
+    ---Discovered enemy zones within range of the frontline, closest to home_base first.
     ---@param side coalition.side
     ---@param home_base ZoneHandler
     ---@param zone_types ZoneTypes[]|nil restrict to these zone types
@@ -683,8 +683,8 @@ do
             if zone.side == enemy_side
             and (not zone_types or utils.tableContains(zone_types, zone.zone_type))
             and utils.tableContains(discovered, zone.name) then
-                local dist = mist.utils.get2DDist(home_base.zone.point, zone.zone.point)
-                if dist <= Config.major_offensive.max_target_range then
+                if Frontline.distanceToFrontline(zone.zone.point) <= Config.tasking.max_distance_to_frontline_for_offensive then
+                    local dist = mist.utils.get2DDist(home_base.zone.point, zone.zone.point)
                     table.insert(results, { zone = zone, dist = dist })
                 end
             end

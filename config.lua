@@ -904,12 +904,8 @@ Config = {
 
         -- (int) (meters)
         range_for_recon_to_discover_zone = 15*1000,
-        -- (int) (meters)
-        max_cas_range = 200*1000,
-        -- (int) (meters)
-        max_strike_range = 200*1000,
-        -- (int) (meters)
-        max_sead_range = 200*1000,
+        -- (int) (meters) a candidate enemy zone is only attackable if it lies within this distance of the current frontline.
+        max_distance_to_frontline_for_offensive = 150*1000,
         -- (int) (meters) from the nearest enemy zone
         min_cleareance_dist_for_awacs = 70*1000
     },
@@ -977,9 +973,6 @@ Config = {
             awacs = 0,
         },
 
-        -- (int) (meters) only target enemy zones within this range of the
-        -- launching coalition's home airbase
-        max_target_range = 250*1000,
 
         -- (bool) distribute the package across all friendly airbases that have
         -- stocks
