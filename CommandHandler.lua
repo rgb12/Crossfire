@@ -302,20 +302,6 @@ do
         if unit and unit:isExist() and unit.getCoalition then
             local side = unit:getCoalition()
 
-            --- returns true if aircraft is moving
-            ---@param u Unit
-            ---@return boolean
-            local function aircraftMoving(u)
-                if not u or not u.isExist or not u:isExist() then return false end
-                local speed = u:getVelocity()
-                local horizontal_speed = math.sqrt(speed.x^2 + speed.z^2)
-                if horizontal_speed > 1 then -- 1 m/s threshold
-                    return true
-                end
-                return false
-            end
-
-
             missionCommands.addCommandForGroup(gr_id, "List Supplies", logistics_main_submenu, function ()
                 ctld.listSupplies(unit)
             end)
@@ -629,93 +615,7 @@ do
             else
                 missionCommands.addCommandForGroup(gr_id, "No FARPs Available", logistics_main_submenu, function() end, nil)
             end
-
-            ---------------------------------------------------------------
-            -- Restock Aircraft
-            local restock_submenu = missionCommands.addSubMenuForGroup(gr_id, "Restock Aircraft", logistics_main_submenu)
-            missionCommands.addCommandForGroup(gr_id, "Confirm (destroy)", restock_submenu, function(gr_name)
-                local restock_gr = Group.getByName(gr_name)
-                if not (restock_gr and restock_gr:isExist()) then return end
-                
-                local restock_unit = restock_gr:getUnit(1)
-                if not (restock_unit and restock_unit:isExist()) then return end
-                if not CommandHandler.isGrounded(restock_unit,gr_id) then return end
-
-                local point = restock_unit:getPoint()
-
-                -- Checks if aircraft is not moving and on ground
-                local aircraft_on_carrier = false
-                local on_carrier = false
-
-                if land.getSurfaceType{ x = point.x, y = point.z } == land.SurfaceType.WATER and not restock_unit:inAir() then
-                    aircraft_on_carrier = true
-                end
-
-                if (not aircraft_on_carrier) and (aircraftMoving(restock_unit) or restock_unit:inAir()) then
-                    trigger.action.outTextForGroup(gr_id, "Restock aborted: Aircraft is not stationary.", 10)
-                    trigger.action.outSoundForGroup(gr_id, "radio_beep3.ogg")
-                    return
-                end
-
-                if aircraft_on_carrier then
-                    local carrier_unit = nil
-                    if Config.carrier_setup and Config.carrier_setup.carrier_unit_name then
-                        carrier_unit = Unit.getByName(Config.carrier_setup.carrier_unit_name)
-                    end
-
-                    if carrier_unit and carrier_unit:isExist() then
-                        local carrier_point = carrier_unit:getPoint()
-                        local dist_to_carrier = mist.utils.get2DDist(point, carrier_point)
-                        if dist_to_carrier <= 500 then
-                            on_carrier = true
-                        else
-                            trigger.action.outTextForGroup(gr_id, "Restock aborted: Aircraft is not on carrier deck.", 10)
-                            trigger.action.outSoundForGroup(gr_id, "radio_beep3.ogg")
-                            return
-                        end
-                    else
-                        trigger.action.outTextForGroup(gr_id, "Restock aborted: Carrier unit not found.", 10)
-                        trigger.action.outSoundForGroup(gr_id, "radio_beep3.ogg")
-                        return
-                    end
-                end
-
-                trigger.action.outTextForGroup(gr_id, "****************\n\nAircraft and loaded equipment will be restocked in 10 seconds…\n\n****************", 10)
-                trigger.action.outSoundForGroup(gr_id, "radio_beep3.ogg")
-                timer.scheduleFunction(function()
-
-                    local function restock_acft()
-                        MissionLogger:info("Attempting restock")
-                        if restock_gr and restock_gr:isExist() then
-                            MissionLogger:info("Executing restock for group")
-                            restock_gr:destroy()
-                        end
-                        MissionLogger:info("Completed restock")
-                    end
-
-                    -- Add the aircraft back to the warehouse
-                    if on_carrier then
-                        MissionLogger:info("Attempting restock on carrier")
-                        return restock_acft()
-                    else
-                        MissionLogger:info("Attempting restock on land")
-
-                        for _,zone in ipairs(zones) do
-                            if (zone.zone_type == ZoneTypes.AIRBASE or zone.zone_type == ZoneTypes.FARP) and zone.side == side
-                            and zone:isPointInsideZone(point)then
-                                MissionLogger:info("Restock airbase found")
-                                return restock_acft()
-                            end
-                        end
-
-                    end
-                    trigger.action.outTextForGroup(gr_id, "Restock aborted: No coalition airbase or FARP nearby.", 10)
-                    trigger.action.outSoundForGroup(gr_id, "radio_beep3.ogg")
-                end, {}, timer.getTime() + 10)
-            end, group_name)
-
         end
-
     end
 
     ---@param side coalition.side|nil
