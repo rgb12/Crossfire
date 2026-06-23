@@ -228,7 +228,7 @@ do
                     zone_coal_check:drawF10()
 
                     trigger.action.outTextForCoalition(enroute_heli.side,
-                        string.format("SITREP: %s has reached operational tier %d/4 ", zone_coal_check.name, zone_coal_check.level), 10)
+                        string.format("SITREP: %s has been reinforced.", zone_coal_check.name, zone_coal_check.level), 10)
                     trigger.action.outSoundForCoalition(enroute_heli.side, "radio_beep3.ogg")
                 end
 
