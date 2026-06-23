@@ -389,7 +389,7 @@ do
                             end
 
                             TheatreCommander.sendWarehouseResupply(side, false, stock, target_zone)
-                            trigger.action.outTextForGroup(gr_id,"RESUPPLY aircraft dispatched for " .. target_zone.name .. " - " .. args.stock_name,10)
+                            trigger.action.outTextForGroup(gr_id,"Request accepted. Aircraft dispatched for " .. target_zone.name .. " - " .. args.stock_name,10)
                             trigger.action.outSoundForGroup(gr_id, "radio_beep3.ogg")
                         end,
                         arg = {u = unit, target_zone = ab_zone, stock_types = stock_types, cost = cost, stock_name = stock_name}
@@ -407,7 +407,7 @@ do
             local aa_aircraft_airbases = buildAirbaseSubmenu({StockTypes.AA_AIRCRAFT}, Config.supplies.resupply_costs.AA_AIRCRAFT, "AA Aircraft")
             if #aa_aircraft_airbases > 0 then
                 table.insert(resupply_stock_list, {
-                    name = "AA Aircraft - " .. Config.supplies.resupply_costs.AA_AIRCRAFT .. " supplies",
+                    name = "AA Aircraft (" .. Config.supplies.resupply_costs.AA_AIRCRAFT .. ")",
                     submenu = aa_aircraft_airbases
                 })
             end
@@ -416,16 +416,16 @@ do
             local ag_aircraft_airbases = buildAirbaseSubmenu({StockTypes.AG_AIRCRAFT}, Config.supplies.resupply_costs.AG_AIRCRAFT, "AG Aircraft")
             if #ag_aircraft_airbases > 0 then
                 table.insert(resupply_stock_list, {
-                    name = "AG Aircraft - " .. Config.supplies.resupply_costs.AG_AIRCRAFT .. " supplies",
+                    name = "AG Aircraft (" .. Config.supplies.resupply_costs.AG_AIRCRAFT .. ")",
                     submenu = ag_aircraft_airbases
                 })
             end
-            
+
             -- Multirole Aircraft
             local multirole_aircraft_airbases = buildAirbaseSubmenu({StockTypes.MULTIROLE_AIRCRAFT}, Config.supplies.resupply_costs.MULTIROLE_AIRCRAFT, "Multirole Aircraft")
             if #multirole_aircraft_airbases > 0 then
                 table.insert(resupply_stock_list, {
-                    name = "Multirole Aircraft - " .. Config.supplies.resupply_costs.MULTIROLE_AIRCRAFT .. " supplies",
+                    name = "Multirole Aircraft (" .. Config.supplies.resupply_costs.MULTIROLE_AIRCRAFT .. ")",
                     submenu = multirole_aircraft_airbases
                 })
             end
@@ -434,7 +434,7 @@ do
             local recon_aircraft_airbases = buildAirbaseSubmenu({StockTypes.RECON_AIRCRAFT}, Config.supplies.resupply_costs.RECON_AIRCRAFT, "Recon Aircraft")
             if #recon_aircraft_airbases > 0 then
                 table.insert(resupply_stock_list, {
-                    name = "Recon Aircraft - " .. Config.supplies.resupply_costs.RECON_AIRCRAFT .. " supplies",
+                    name = "Recon Aircraft (" .. Config.supplies.resupply_costs.RECON_AIRCRAFT .. ")",
                     submenu = recon_aircraft_airbases
                 })
             end
@@ -443,56 +443,61 @@ do
             local cargo_aircraft_airbases = buildAirbaseSubmenu({StockTypes.CARGO_AIRCRAFT}, Config.supplies.resupply_costs.CARGO_AIRCRAFT, "Cargo Aircraft")
             if #cargo_aircraft_airbases > 0 then
                 table.insert(resupply_stock_list, {
-                    name = "Cargo Aircraft - " .. Config.supplies.resupply_costs.CARGO_AIRCRAFT .. " supplies",
+                    name = "Cargo Aircraft (" .. Config.supplies.resupply_costs.CARGO_AIRCRAFT .. ")",
                     submenu = cargo_aircraft_airbases
                 })
             end
 
-            -- Attack & Logistics helicopters are intentionally NOT offered here; they
-            -- are resupplied immediately through the FARP Resupply menu (part of the
-            -- StockTypes.FARP package), since helos operate from FARPs, not airbases.
+            -- Logistics Helicopter
+            local logistics_helicopter_airbases = buildAirbaseSubmenu({StockTypes.LOGISTICS_HELICOPTER}, Config.supplies.resupply_costs.LOGISTICS_HELICOPTER, "Logistics Helicopter")
+            if #logistics_helicopter_airbases > 0 then
+                table.insert(resupply_stock_list, {
+                    name = "Logistics Helicopter (" .. Config.supplies.resupply_costs.LOGISTICS_HELICOPTER .. ")",
+                    submenu = logistics_helicopter_airbases
+                })
+            end
 
             -- Long Range AA
             local aa_lr_airbases = buildAirbaseSubmenu({StockTypes.AIR_AIR_LONG_RANGE}, Config.supplies.resupply_costs.AIR_AIR_LONG_RANGE, "Long Range AA")
             if #aa_lr_airbases > 0 then
                 table.insert(resupply_stock_list, {
-                    name = "Long Range AA - " .. Config.supplies.resupply_costs.AIR_AIR_LONG_RANGE .. " supplies",
+                    name = "Long Range AA (" .. Config.supplies.resupply_costs.AIR_AIR_LONG_RANGE .. ")",
                     submenu = aa_lr_airbases
                 })
             end
-            
+
             -- Short Range AA
             local aa_sr_airbases = buildAirbaseSubmenu({StockTypes.AIR_AIR_SHORT_RANGE}, Config.supplies.resupply_costs.AIR_AIR_SHORT_RANGE, "Short Range AA")
             if #aa_sr_airbases > 0 then
                 table.insert(resupply_stock_list, {
-                    name = "Short Range AA - " .. Config.supplies.resupply_costs.AIR_AIR_SHORT_RANGE .. " supplies",
+                    name = "Short Range AA (" .. Config.supplies.resupply_costs.AIR_AIR_SHORT_RANGE .. ")",
                     submenu = aa_sr_airbases
                 })
             end
-            
+
             -- AG Bombs
             local ag_bombs_airbases = buildAirbaseSubmenu({StockTypes.AIR_GROUND_BOMBS}, Config.supplies.resupply_costs.AIR_GROUND_BOMBS, "AG Bombs")
             if #ag_bombs_airbases > 0 then
                 table.insert(resupply_stock_list, {
-                    name = "AG Bombs - " .. Config.supplies.resupply_costs.AIR_GROUND_BOMBS .. " supplies",
+                    name = "AG Bombs (" .. Config.supplies.resupply_costs.AIR_GROUND_BOMBS .. ")",
                     submenu = ag_bombs_airbases
                 })
             end
-            
+
             -- AG Rockets
             local ag_rockets_airbases = buildAirbaseSubmenu({StockTypes.AIR_GROUND_ROCKETS}, Config.supplies.resupply_costs.AIR_GROUND_ROCKETS, "AG Rockets")
             if #ag_rockets_airbases > 0 then
                 table.insert(resupply_stock_list, {
-                    name = "AG Rockets - " .. Config.supplies.resupply_costs.AIR_GROUND_ROCKETS .. " supplies",
+                    name = "AG Rockets (" .. Config.supplies.resupply_costs.AIR_GROUND_ROCKETS .. ")",
                     submenu = ag_rockets_airbases
                 })
             end
-            
+
             -- Fuel Tanks
             local fuel_tanks_airbases = buildAirbaseSubmenu({StockTypes.FUEL_TANKS}, Config.supplies.resupply_costs.FUEL_TANKS, "Fuel Tanks")
             if #fuel_tanks_airbases > 0 then
                 table.insert(resupply_stock_list, {
-                    name = "Fuel Tanks - " .. Config.supplies.resupply_costs.FUEL_TANKS .. " supplies",
+                    name = "Fuel Tanks (" .. Config.supplies.resupply_costs.FUEL_TANKS .. ")",
                     submenu = fuel_tanks_airbases
                 })
             end
@@ -501,55 +506,55 @@ do
             local ag_guided_bombs_airbases = buildAirbaseSubmenu({StockTypes.AIR_GROUND_GUIDED_BOMBS}, Config.supplies.resupply_costs.AIR_GROUND_GUIDED_BOMBS, "AG Guided Bombs")
             if #ag_guided_bombs_airbases > 0 then
                 table.insert(resupply_stock_list, {
-                    name = "AG Guided Bombs - " .. Config.supplies.resupply_costs.AIR_GROUND_GUIDED_BOMBS .. " supplies",
+                    name = "AG Guided Bombs (" .. Config.supplies.resupply_costs.AIR_GROUND_GUIDED_BOMBS .. ")",
                     submenu = ag_guided_bombs_airbases
                 })
             end
-            
+
             -- AG Missiles
             local ag_missiles_airbases = buildAirbaseSubmenu({StockTypes.AIR_GROUND_GUIDED_MISSILES}, Config.supplies.resupply_costs.AIR_GROUND_GUIDED_MISSILES, "AG Missiles")
             if #ag_missiles_airbases > 0 then
                 table.insert(resupply_stock_list, {
-                    name = "AG Missiles - " .. Config.supplies.resupply_costs.AIR_GROUND_GUIDED_MISSILES .. " supplies",
+                    name = "AG Missiles (" .. Config.supplies.resupply_costs.AIR_GROUND_GUIDED_MISSILES .. ")",
                     submenu = ag_missiles_airbases
                 })
             end
-            
+
             -- ECM
             local ecm_airbases = buildAirbaseSubmenu({StockTypes.ECM}, Config.supplies.resupply_costs.ECM, "ECM")
             if #ecm_airbases > 0 then
                 table.insert(resupply_stock_list, {
-                    name = "ECM - " .. Config.supplies.resupply_costs.ECM .. " supplies",
+                    name = "ECM (" .. Config.supplies.resupply_costs.ECM .. ")",
                     submenu = ecm_airbases
                 })
             end
-            
+
             -- TGP, Misc
             local tgp_misc_airbases = buildAirbaseSubmenu({StockTypes.TGP, StockTypes.MISC}, Config.supplies.resupply_costs.TGP_MISC, "TGP/Misc")
             if #tgp_misc_airbases > 0 then
                 table.insert(resupply_stock_list, {
-                    name = "TGP, Misc - " .. Config.supplies.resupply_costs.TGP_MISC .. " supplies",
+                    name = "TGP, Misc (" .. Config.supplies.resupply_costs.TGP_MISC .. ")",
                     submenu = tgp_misc_airbases
                 })
             end
-            
+
             -- Initial Stock
             local initial_airbases = buildAirbaseSubmenu({StockTypes.INITIAL}, Config.supplies.resupply_costs.INITIAL, "Initial Stock")
             if #initial_airbases > 0 then
                 table.insert(resupply_stock_list, {
-                    name = "Initial Stock - " .. Config.supplies.resupply_costs.INITIAL .. " supplies",
+                    name = "Initial Stock (" .. Config.supplies.resupply_costs.INITIAL .. ")",
                     submenu = initial_airbases
                 })
             end
-            
+
             if #resupply_stock_list > 0 then
                 CommandHandler.buildPagedMenuForGroup(gr_id, resupply_menu, resupply_stock_list, 1)
             else
                 missionCommands.addCommandForGroup(gr_id, "No Airbases Available", resupply_menu, function() end, nil)
             end
-            
-            
-            
+
+
+
             local farps_resupply_list = {}
             -- Add FARP zones
             for _,zone in ipairs(zones) do

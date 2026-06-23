@@ -225,14 +225,13 @@ do
             StockTypes.AIR_GROUND_BOMBS, StockTypes.AIR_GROUND_ROCKETS,
             StockTypes.ECM, StockTypes.TGP, StockTypes.MISC,
             StockTypes.AG_AIRCRAFT, StockTypes.AA_AIRCRAFT, StockTypes.MULTIROLE_AIRCRAFT,
-            StockTypes.RECON_AIRCRAFT, StockTypes.CARGO_AIRCRAFT,
+            StockTypes.RECON_AIRCRAFT, StockTypes.CARGO_AIRCRAFT, StockTypes.LOGISTICS_HELICOPTER
         },
         [StockTypes.CARRIER_INITAL] = {
             StockTypes.AIR_AIR_LONG_RANGE, StockTypes.AIR_AIR_SHORT_RANGE,
             StockTypes.AIR_GROUND_GUIDED_MISSILES, StockTypes.AIR_GROUND_GUIDED_BOMBS,
             StockTypes.AIR_GROUND_BOMBS, StockTypes.AIR_GROUND_ROCKETS, StockTypes.TGP,
             StockTypes.AG_AIRCRAFT, StockTypes.AA_AIRCRAFT, StockTypes.MULTIROLE_AIRCRAFT,
-            StockTypes.RECON_AIRCRAFT, StockTypes.CARGO_AIRCRAFT,
         },
         [StockTypes.LOGISTICS_CAPTURE] = {
             StockTypes.AIR_AIR_LONG_RANGE, StockTypes.AIR_AIR_SHORT_RANGE,

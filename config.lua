@@ -574,7 +574,7 @@ Config = {
             CARGO_AIRCRAFT = 500,
             -- (int) NOT YET ADDED. Attack helicopters
             ATTACK_HELICOPTER = 400,
-            -- (int) NOT YET ADDED. Transport/logistics helicopters
+            -- (int) Transport/logistics helicopters
             LOGISTICS_HELICOPTER = 200,
 
 
