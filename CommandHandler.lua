@@ -1222,7 +1222,8 @@ do
                 func = function()
                     local commands = buildZoneCommandList(function(zone, discovered)
                         return zone.side == enemy_side and utils.tableContains(discovered, zone.name)
-                            and (zone.zone_type == ZoneTypes.LOGISTICS or zone.zone_type == ZoneTypes.COMMS)
+                            and (zone.zone_type == ZoneTypes.LOGISTICS or zone.zone_type == ZoneTypes.COMMS
+                                or zone.zone_type == ZoneTypes.AIRBASE)
                     end, executeStrikeRequest)
                     createSelectAreaMenu(commands, "CMDHQ - No validated enemy infrastructure targets are available.")
                 end,
