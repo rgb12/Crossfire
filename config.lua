@@ -533,7 +533,7 @@ Config = {
     -- (int) (%) Every minute, subject to various checks and conditions
     retry_capture_chance = 50,
     -- (int) (%) for every minute
-    reinforcement_chance = 3,
+    reinforcement_chance = 2,
 
     -- (int) (seconds) periodic resupply aircraft time interval
     std_resupply_time = 45*60,
