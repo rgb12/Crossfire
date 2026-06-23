@@ -206,6 +206,14 @@ do
                     operation_manager:showActiveOperation(live_unit)
                 end
             end)
+
+            missionCommands.addCommandForGroup(group_id, "Request Marker", missions_submenu,function()
+                local live_unit = getCurrentPlayerUnit()
+                if live_unit then
+                    operation_manager:requestMarker(live_unit)
+                end
+            end)
+
             local cancel_op_menu = missionCommands.addSubMenuForGroup(group_id, "Cancel Active Operation",missions_submenu)
 
             missionCommands.addCommandForGroup(group_id, "Confirm (Cancel Active Operation)", cancel_op_menu,function()

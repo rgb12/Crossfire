@@ -22,7 +22,8 @@
 ---@field aircraft_category string | nil
 ---@field time_limit_seconds number | nil
 ---@field deadline_time number | nil 
----@field operation_id string | nil 
+---@field operation_id string | nil
+---@field marker_id number | nil
 
 ---@class OperationManager
 ---@field side coalition.side
@@ -65,6 +66,109 @@ do
         return obj
     end
 
+
+    ---@param operation Operation
+    ---@return vec3|nil
+    function OperationManager:getOperationTargetPoint(operation)
+        if not operation then return nil end
+
+        if operation.type == OperationTypes.CSAR then
+            return operation.pilot_position
+        end
+
+        local zone_tgt = ZoneHandler.getFromName(operation.target_zone_name)
+        if not zone_tgt or not zone_tgt.zone or not zone_tgt.zone.point then
+            return nil
+        end
+
+        local target_point = zone_tgt.zone.point
+        if operation.type == OperationTypes.STRIKE then
+            if operation.strike_type == "COMMS" and zone_tgt.linked_comms_tower then
+                local comms_tower = StaticObject.getByName(zone_tgt.linked_comms_tower)
+                if comms_tower and comms_tower:isExist() then
+                    target_point = comms_tower:getPoint()
+                end
+            elseif operation.strike_type == "LOGISTICS" then
+                local supply_static = EraSystem.getSupplyStatic()
+                for _, static_name in pairs(zone_tgt.linked_statics or {}) do
+                    local static = StaticObject.getByName(static_name)
+                    if static and static:isExist()
+                    and static:getTypeName() == supply_static.type then
+                        target_point = static:getPoint()
+                        break
+                    end
+                end
+            end
+        end
+
+        return target_point
+    end
+
+    ---@param operation Operation
+    function OperationManager:removeOperationMarker(operation)
+        if operation and operation.marker_id then
+            trigger.action.removeMark(operation.marker_id)
+            operation.marker_id = nil
+        end
+    end
+
+    ---@param unit Unit
+    function OperationManager:requestMarker(unit)
+        if not unit or not unit.getPlayerName then return end
+        local unit_id = unit:getID()
+
+        ---@type Operation|nil
+        local active_op = nil
+        for _, op in ipairs(self.active_operations) do
+            if op.assigned_player_id == unit_id then
+                active_op = op
+                break
+            end
+            if op.is_joint_op and op.joint_op_members and op.joint_op_members[unit_id] then
+                active_op = op
+                break
+            end
+        end
+
+        if not active_op then
+            trigger.action.outTextForUnit(unit_id, "No active operation.", 10)
+            trigger.action.outSoundForUnit(unit_id, "radio_txrx.ogg")
+            return
+        end
+
+        if active_op.type == OperationTypes.INTERCEPT then
+            trigger.action.outTextForUnit(unit_id, "No fixed target to mark for this operation.", 10)
+            trigger.action.outSoundForUnit(unit_id, "radio_txrx.ogg")
+            return
+        end
+
+        local target_point = self:getOperationTargetPoint(active_op)
+        if not target_point then
+            trigger.action.outTextForUnit(unit_id, "Target location not available for this operation.", 10)
+            trigger.action.outSoundForUnit(unit_id, "radio_txrx.ogg")
+            return
+        end
+
+        local group = unit:getGroup()
+        if not group or not group:isExist() then return end
+        local group_id = group:getID()
+
+        -- Refresh: drop any previously placed marker before adding a new one.
+        self:removeOperationMarker(active_op)
+
+        local label
+        if active_op.type == OperationTypes.CSAR then
+            label = string.format("%s - downed pilot", active_op.operation_name)
+        else
+            label = string.format("%s - %s", active_op.operation_name, active_op.type)
+        end
+
+        active_op.marker_id = nextMarkId()
+        trigger.action.markToGroup(active_op.marker_id, label, target_point, group_id, false)
+
+        trigger.action.outTextForUnit(unit_id, "Marker placed on the F10 map.", 10)
+        trigger.action.outSoundForUnit(unit_id, "radio_txrx.ogg")
+    end
 
     ---@param unit Unit
     function OperationManager:showActiveOperation(unit)
@@ -133,25 +237,7 @@ do
             return
         end
 
-        local target_point = zone_tgt.zone.point
-        if active_mission.type == OperationTypes.STRIKE then
-            if active_mission.strike_type == "COMMS" and zone_tgt.linked_comms_tower then
-                local comms_tower = StaticObject.getByName(zone_tgt.linked_comms_tower)
-                if comms_tower and comms_tower:isExist() then
-                    target_point = comms_tower:getPoint()
-                end
-            elseif active_mission.strike_type == "LOGISTICS" then
-                local supply_static = EraSystem.getSupplyStatic()
-                for _, static_name in pairs(zone_tgt.linked_statics or {}) do
-                    local static = StaticObject.getByName(static_name)
-                    if static and static:isExist()
-                    and static:getTypeName() == supply_static.type then
-                        target_point = static:getPoint()
-                        break
-                    end
-                end
-            end
-        end
+        local target_point = self:getOperationTargetPoint(active_mission) or zone_tgt.zone.point
 
         local lat, lon = coord.LOtoLL(target_point)
         local mgrs = coord.LLtoMGRS(lat, lon)
@@ -230,6 +316,7 @@ do
                                 if op.type == OperationTypes.STRATEGIC_AIRLIFT then
                                     self:cancelStrategicAirliftOperation(op, true)
                                 end
+                                self:removeOperationMarker(op)
                                 table.remove(self.active_operations, i)
                             end
                         else
@@ -239,6 +326,7 @@ do
                             if op.type == OperationTypes.STRATEGIC_AIRLIFT then
                                 self:cancelStrategicAirliftOperation(op, true)
                             end
+                            self:removeOperationMarker(op)
                             table.remove(self.active_operations, i)
                         end
                     else
@@ -414,6 +502,7 @@ do
                                 if op.type == OperationTypes.STRATEGIC_AIRLIFT then
                                     self:cancelStrategicAirliftOperation(op, true)
                                 end
+                                self:removeOperationMarker(op)
                                 table.remove(self.active_operations, i)
                             end
                         else
@@ -423,6 +512,7 @@ do
                             if op.type == OperationTypes.STRATEGIC_AIRLIFT then
                                 self:cancelStrategicAirliftOperation(op, true)
                             end
+                            self:removeOperationMarker(op)
                             table.remove(self.active_operations, i)
                         end
                     else
@@ -1846,7 +1936,8 @@ do
                 elseif active_op.operation_id then
                     ctld.clearOperationContextForOperation(active_op.operation_id)
                 end
-                
+
+                self:removeOperationMarker(active_op)
                 table.remove(self.active_operations, i)
                 trigger.action.outSoundForUnit(unit_id,"chatter3.ogg")
                 trigger.action.outTextForUnit(unit_id, "Operation " .. active_op.operation_name .. " cancelled.", 10)
@@ -2341,6 +2432,7 @@ do
                         trigger.action.outSoundForUnit(leader_unit:getID(), "chatter3.ogg")
                     end
                     self:cancelStrategicAirliftOperation(op, true)
+                    self:removeOperationMarker(op)
                     table.remove(self.active_operations, i)
                     skip_operation = true
                 end
@@ -2388,6 +2480,7 @@ do
 
                         -- If no participants are alive, operation fails silently
                         if joint_op_participant_count == 0 then
+                            self:removeOperationMarker(op)
                             table.remove(self.active_operations, i)
                         else
 
@@ -2471,6 +2564,7 @@ do
                                 end
                             end
 
+                            self:removeOperationMarker(op)
                             table.remove(self.active_operations, i)
                         end
 
