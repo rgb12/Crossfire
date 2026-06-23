@@ -173,7 +173,7 @@ do
         end
         for _,static_name in pairs(zone.linked_statics) do
             local static = StaticObject.getByName(static_name)
-            if static and static.isExist and static:isExist() and static:getLife() >= 1 then
+            if static and static.isExist and static:isExist() then
                 if static:getCoalition() ~= self.side then
                     table.insert(self.viable_targets,static)
                 end

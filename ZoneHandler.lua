@@ -800,7 +800,6 @@ do
             local static = StaticObject.getByName(static_name)
 
             if static and static.isExist and static:isExist()
-            and static:getLife() > 1
             then
                 statics_count = statics_count +1
             else

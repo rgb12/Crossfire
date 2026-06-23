@@ -119,80 +119,80 @@ do
     end
 
     function TheatreCommander:tick_1m()
- MissionLogger:info("1 minute")
+        MissionLogger:info("1 minute")
 
-            local capture_helicopter_sent = false
-            for _, zone in ipairs(zones) do
+        local capture_helicopter_sent = false
+        for _, zone in ipairs(zones) do
 
-                    capture_helicopter_sent = TheatreCommander.sendPotentialCapture(zone)
+            capture_helicopter_sent = TheatreCommander.sendPotentialCapture(zone)
 
-                    zone:checkSUPPLIES()
-                    zone:checkCOMMSZone()
-                    zone:checkRunwayStatus()
-                    zone:addAIAssets(5) -- Supply chance every minute
+            zone:checkSUPPLIES()
+            zone:checkCOMMSZone()
+            zone:checkRunwayStatus()
+            zone:addAIAssets(5) -- Supply chance every minute
 
-                    if not capture_helicopter_sent and zone.side ~=coalition.side.NEUTRAL
-                    and zone:checkIfEmpty() then
-                        local capturing_side = utils.getEnemyCoalition(zone.side)
-                        zone:capture(coalition.side.NEUTRAL)
-                        -- Send a capture helicopter+
-                        TheatreCommander.sendCapture(zone, capturing_side)
-                    end
+            if not capture_helicopter_sent and zone.side ~=coalition.side.NEUTRAL
+            and zone:checkIfEmpty() then
+                local capturing_side = utils.getEnemyCoalition(zone.side)
+                zone:capture(coalition.side.NEUTRAL)
+                -- Send a capture helicopter+
+                TheatreCommander.sendCapture(zone, capturing_side)
+            end
 
-                    -- this spawns an attack convoy from strongpoints
-                    if math.random(1,100) <= 15 and zone.zone_type == ZoneTypes.STRONGPOINT
-                    and zone.attack_convoy and zone.attack_convoy > 0
-                    and #EnrouteManager:findByTaskType(AITaskTypes.ATTACK_CONVOY,zone.side) < Config.tasking.max_attack_convoy_per_theatre
-                    and not EnrouteManager:findByToZone(zone,zone.side,{AITaskTypes.ATTACK_CONVOY})
-                    then
-                        TaskManager:initiateAITask(AITaskTypes.ATTACK_CONVOY,zone.side,true,nil,zone,false)
-                    end
+            -- this spawns an attack convoy from strongpoints
+            if math.random(1,100) <= 15 and zone.zone_type == ZoneTypes.STRONGPOINT
+            and zone.attack_convoy and zone.attack_convoy > 0
+            and #EnrouteManager:findByTaskType(AITaskTypes.ATTACK_CONVOY,zone.side) < Config.tasking.max_attack_convoy_per_theatre
+            and not EnrouteManager:findByToZone(zone,zone.side,{AITaskTypes.ATTACK_CONVOY})
+            then
+                TaskManager:initiateAITask(AITaskTypes.ATTACK_CONVOY,zone.side,true,nil,zone,false)
+            end
 
-                    if not EraSystem.isHelicopterEraCapable()
-                    and math.random(1,100) <= Config.retry_capture_chance
-                    and zone.side == coalition.side.NEUTRAL
-                    and not EnrouteManager:findByToZone(zone, nil, {AITaskTypes.CAPTURE_CONVOY, AITaskTypes.CAPTURE_HELO})
-                    then
-                        local from_zone = TheatreCommander.findNearestCaptureConvoySource(zone)
-                        if from_zone then
-                            TaskManager:initiateAITask(AITaskTypes.CAPTURE_CONVOY, from_zone.side, true, zone, from_zone, false)
-                        end
-                    end
-
-                    -- this spawns a reinforcement helicopter
-                    if math.random(1,100) <= Config.reinforcement_chance and zone.zone_type == ZoneTypes.LOGISTICS
-                    and zone.heli_avail > 0
-                    and (#EnrouteManager:findByTaskType(AITaskTypes.REINFORCEMENT_HELO,zone.side)
-                        + #EnrouteManager:findByTaskType(AITaskTypes.REINFORCEMENT_CONVOY,zone.side)) < 2
-                    and not EnrouteManager:findByFromZone(zone,zone.side,{AITaskTypes.REINFORCEMENT_HELO, AITaskTypes.REINFORCEMENT_CONVOY, AITaskTypes.CAPTURE_HELO})
-                    -- don't dispatch from a logistics zone that itself has a reinforcement/capture helo inbound
-                    and not EnrouteManager:findByToZone(zone,zone.side,{AITaskTypes.REINFORCEMENT_HELO, AITaskTypes.REINFORCEMENT_CONVOY, AITaskTypes.CAPTURE_HELO})
-                    then
-                        -- candidate targets include other LOGISTICS zones (any friendly discovered zone below tier 4)
-                        local zones_to_upgrade = zone:filterZonesByDistance(zone.side,{},{},true)
-                        local zone_to_upgrade = nil
-                        if #zones_to_upgrade > 0 then
-                            local max_dist_to_frontline = Config.operations.reinforcement_max_distance_to_frontline or math.huge
-                            for _,zone_t_u in ipairs(zones_to_upgrade) do
-                                if zone_t_u.level < 4
-                                and Frontline.distanceToFrontline(zone_t_u.zone.point) <= max_dist_to_frontline
-                                and not EnrouteManager:findByToZone(zone_t_u,zone.side,{AITaskTypes.REINFORCEMENT_HELO, AITaskTypes.REINFORCEMENT_CONVOY, AITaskTypes.CAPTURE_HELO}) then
-                                    zone_to_upgrade = zone_t_u
-                                    break
-                                end
-                            end
-                        end
-
-                        if zone_to_upgrade then
-                            TaskManager:initiateAITask(AITaskTypes.REINFORCEMENT_HELO,zone.side,true,zone_to_upgrade,zone,false)
-                        end
-                    end
-                    
+            if not EraSystem.isHelicopterEraCapable()
+            and math.random(1,100) <= Config.retry_capture_chance
+            and zone.side == coalition.side.NEUTRAL
+            and not EnrouteManager:findByToZone(zone, nil, {AITaskTypes.CAPTURE_CONVOY, AITaskTypes.CAPTURE_HELO})
+            then
+                local from_zone = TheatreCommander.findNearestCaptureConvoySource(zone)
+                if from_zone then
+                    TaskManager:initiateAITask(AITaskTypes.CAPTURE_CONVOY, from_zone.side, true, zone, from_zone, false)
                 end
-            EnrouteManager:checkEnroutes()
-            ctld.monitorFARPDestruction()
+            end
 
-            Frontline.drawFrontline()
+            -- this spawns a reinforcement helicopter
+            if math.random(1,100) <= Config.reinforcement_chance and zone.zone_type == ZoneTypes.LOGISTICS
+            and zone.heli_avail > 0
+            and (#EnrouteManager:findByTaskType(AITaskTypes.REINFORCEMENT_HELO,zone.side)
+                + #EnrouteManager:findByTaskType(AITaskTypes.REINFORCEMENT_CONVOY,zone.side)) < 2
+            and not EnrouteManager:findByFromZone(zone,zone.side,{AITaskTypes.REINFORCEMENT_HELO, AITaskTypes.REINFORCEMENT_CONVOY, AITaskTypes.CAPTURE_HELO})
+            -- don't dispatch from a logistics zone that itself has a reinforcement/capture helo inbound
+            and not EnrouteManager:findByToZone(zone,zone.side,{AITaskTypes.REINFORCEMENT_HELO, AITaskTypes.REINFORCEMENT_CONVOY, AITaskTypes.CAPTURE_HELO})
+            then
+                -- candidate targets include other LOGISTICS zones (any friendly discovered zone below tier 4)
+                local zones_to_upgrade = zone:filterZonesByDistance(zone.side,{},{},true)
+                local zone_to_upgrade = nil
+                if #zones_to_upgrade > 0 then
+                    local max_dist_to_frontline = Config.operations.reinforcement_max_distance_to_frontline or math.huge
+                    for _,zone_t_u in ipairs(zones_to_upgrade) do
+                        if zone_t_u.level < 4
+                        and Frontline.distanceToFrontline(zone_t_u.zone.point) <= max_dist_to_frontline
+                        and not EnrouteManager:findByToZone(zone_t_u,zone.side,{AITaskTypes.REINFORCEMENT_HELO, AITaskTypes.REINFORCEMENT_CONVOY, AITaskTypes.CAPTURE_HELO}) then
+                            zone_to_upgrade = zone_t_u
+                            break
+                        end
+                    end
+                end
+
+                if zone_to_upgrade then
+                    TaskManager:initiateAITask(AITaskTypes.REINFORCEMENT_HELO,zone.side,true,zone_to_upgrade,zone,false)
+                end
+            end
+
+        end
+        EnrouteManager:checkEnroutes()
+        ctld.monitorFARPDestruction()
+
+        Frontline.drawFrontline()
     end
 
     function TheatreCommander:tick_5m()
