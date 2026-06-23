@@ -155,10 +155,10 @@ do
     function UnitHandler.checkConvoyMoving(convoy_group)
             -- group must exist
             if not convoy_group or not convoy_group.isExist or not convoy_group:isExist() then return false end
-        
+
             local units = convoy_group.getUnits and convoy_group:getUnits() or {}
             if #units == 0 then return false end
-        
+
             for _, un in ipairs(units) do
                 if un and un.isExist and un:isExist() then
                     local vel = un.getVelocity and un:getVelocity()
@@ -278,7 +278,7 @@ do
 
         elseif zone.zone_type == ZoneTypes.COMMS then
             if zone.comms_tower_intact == false then return false end
-            local point = mist.getRandomPointInZone(zone.name,Config.spawn_inner_radius) or {x=zone.zone.point.x+25,y=zone.zone.point.z-19}
+            local point = UnitHandler.findClearPoint(zone, 30, 50)
 
             local comms_tower = mist.dynAddStatic({
                 type = "Comms tower M",
@@ -301,12 +301,6 @@ do
         return false
     end
 
-    --- Build a set of every LATE-ACTIVATED group name present in the mission,
-    --- using ONLY native DCS data (env.mission) -- no mist. The template groups
-    --- the framework clones (GroupData.COMMON_ASSETS) are late-activated ME
-    --- groups; this walk lets us verify they exist BEFORE anything tries to clone
-    --- them (mist.teleportToPoint indexes nil and hard-errors when the group is
-    --- missing -- see the UnitHandler.initFARP crash).
     ---@return table<string, boolean> set of late-activated group names -> true
     local function getLateActivatedGroupNames()
         local names = {}
@@ -317,8 +311,6 @@ do
             if type(coal) == "table" and coal.country then
                 for _, country in pairs(coal.country) do
                     if type(country) == "table" then
-                        -- Group categories: plane, helicopter, vehicle, ship,
-                        -- static. Each holds a .group array of ME templates.
                         for _, cat in pairs(country) do
                             if type(cat) == "table" and cat.group then
                                 for _, group in pairs(cat.group) do
@@ -336,11 +328,6 @@ do
         return names
     end
 
-    --- Logistics assets that are NOT flown in some eras (the capture/resupply
-    --- mechanics resolve INSTANTLY when no era-appropriate transport exists, e.g.
-    --- WW2). For those we must not validate a template that will never be cloned.
-    --- Maps the COMMON_ASSETS asset key -> a predicate that returns true when the
-    --- asset IS actually used for the active era.
     local function isLogisticsAssetUsed(asset_key)
         if asset_key == "capture_helicopter"
         or asset_key == "reinforcement_helicopter"
