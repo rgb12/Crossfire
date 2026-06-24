@@ -90,6 +90,25 @@ do
         return new_group
     end
 
+    -- Returns true if any enroute helo of the given task types is within min_dist metres of zone.
+    local function heloNearZone(zone, side, task_types, min_dist)
+        for _, enroute in ipairs(EnrouteManager.enroutes) do
+            if enroute.side == side and utils.tableContains(task_types, enroute.ai_task_type) then
+                local grp = Group.getByName(enroute.group_name)
+                if grp then
+                    for _, u in ipairs(grp:getUnits() or {}) do
+                        if u and u:isExist() then
+                            if mist.utils.get2DDist(u:getPoint(), zone.zone.point) < min_dist then
+                                return true
+                            end
+                        end
+                    end
+                end
+            end
+        end
+        return false
+    end
+    
     ---@param ai_task_type AITaskTypes
     ---@param side coalition.side
     ---@param prevent_duplicates boolean
@@ -920,6 +939,20 @@ do
                 return false
             end
 
+            if EnrouteManager:findByFromZone(from_zone, side, {AITaskTypes.CAPTURE_HELO, AITaskTypes.REINFORCEMENT_HELO}) then
+                if user_requested then
+                    trigger.action.outTextForCoalition(side, "Request rejected, helicopter already departing from " .. from_zone.name .. ".", 8)
+                end
+                return false
+            end
+
+            if heloNearZone(from_zone, side, {AITaskTypes.CAPTURE_HELO, AITaskTypes.REINFORCEMENT_HELO}, 15000) then
+                if user_requested then
+                    trigger.action.outTextForCoalition(side, "Request rejected, helicopter inbound to " .. from_zone.name .. " is not yet clear.", 8)
+                end
+                return false
+            end
+
             local helo_sent = mist.teleportToPoint({
                 groupName = template_name,
                 point = from_zone.zone.point,
@@ -983,6 +1016,20 @@ do
 
             if not template_name then
                 MissionLogger:info("Reinforcement Helo spawn failed: missing template name.")
+                return false
+            end
+
+            if EnrouteManager:findByFromZone(from_zone, side, {AITaskTypes.CAPTURE_HELO, AITaskTypes.REINFORCEMENT_HELO}) then
+                if user_requested then
+                    trigger.action.outTextForCoalition(side, "Request rejected, helicopter already departing from " .. from_zone.name .. ".", 8)
+                end
+                return false
+            end
+
+            if heloNearZone(from_zone, side, {AITaskTypes.CAPTURE_HELO, AITaskTypes.REINFORCEMENT_HELO}, 15000) then
+                if user_requested then
+                    trigger.action.outTextForCoalition(side, "Request rejected, helicopter inbound to " .. from_zone.name .. " is not yet clear.", 8)
+                end
                 return false
             end
 
