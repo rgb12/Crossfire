@@ -23,7 +23,7 @@ do
             if not group then return end
             local group_id = group:getID()
             if not group_id then return end
-    
+
             local sitmap_path = missionCommands.addCommandForGroup(group_id, "SITMAP", nil, function()
                 local out_text = "SITMAP\n\n"
                 out_text = out_text .. "REDFOR controls " .. stats.red_zones .. " areas.\n"
@@ -250,7 +250,7 @@ do
             local joint_op_submenu = missionCommands.addSubMenuForGroup(group_id, "Joint Operations", missions_submenu)
 
             local join_joint_op_menu = missionCommands.addSubMenuForGroup(group_id, "Join Joint Operation", joint_op_submenu)
-            
+
             for i1 = 1, 9 do
                 local digit1 = missionCommands.addSubMenuForGroup(group_id, i1 .. ' _ _', join_joint_op_menu)
                 for _, i2 in ipairs(digit_order) do
@@ -308,7 +308,7 @@ do
 
             -----------------------------------------------------------------------
             -- RESUPPLY REQUEST LOGIC
-            
+
             -- Build list of friendly airbases for resupply target selection
             local friendly_airbases = {}
             for _, zone in ipairs(zones) do
@@ -635,11 +635,11 @@ do
         -- Schedule the refresh for 5 seconds in the future
         refresh_timer = timer.scheduleFunction(function()
             MissionLogger:info("Executing pending menu refreshes...")
-            
+
             -- CHECK RED
             if pending_refresh_sides[coalition.side.RED] then
                 MissionLogger:info("Refreshing RED menus")
-                
+
                 local red_players = coalition.getPlayers(coalition.side.RED)
                 for _, unit in ipairs(red_players) do
                     if unit and unit:isExist() then
@@ -650,7 +650,7 @@ do
                         end
                     end
                 end
-                
+
                 -- Reset flag
                 pending_refresh_sides[coalition.side.RED] = false
             end
@@ -658,7 +658,7 @@ do
             -- CHECK BLUE
             if pending_refresh_sides[coalition.side.BLUE] then
                 MissionLogger:info("Refreshing BLUE menus")
-                
+
                 local blue_players = coalition.getPlayers(coalition.side.BLUE)
                 for _, unit in ipairs(blue_players) do
                     if unit and unit:isExist() then
@@ -669,7 +669,7 @@ do
                         end
                     end
                 end
-                
+
                 -- Reset flag
                 pending_refresh_sides[coalition.side.BLUE] = false
             end
@@ -725,13 +725,13 @@ do
         local function checkSupplies(requesting_unit, required_supplies, supplies_zone)
             supplies_zone = supplies_zone or utils.fetchSuppliesZoneFromUnit(requesting_unit)
             if not supplies_zone then
-                trigger.action.outTextForGroup(gr_id,"CMD-HQ - Negative, action cannot be executed from your position.",5)
+                trigger.action.outTextForGroup(gr_id,"Request rejected, action cannot be executed from your position.",5)
                 trigger.action.outSoundForGroup(gr_id, "Radio squelch.ogg")
                 return false
             end
 
             if not suppliesZoneHasAmmoDepot(supplies_zone) then
-                trigger.action.outTextForGroup(gr_id, "CMD-HQ - Negative, no operational Ammunition Depot in your current supply zone.", 8)
+                trigger.action.outTextForGroup(gr_id, "Request rejected, no operational Ammunition Depot in your current supply zone.", 8)
                 trigger.action.outSoundForGroup(gr_id, "radio_beep3.ogg")
                 return false
             end
@@ -741,7 +741,7 @@ do
                 return true
             end
 
-            trigger.action.outTextForGroup(gr_id,"CMD-HQ - Negative,  not enough supplies  (" .. local_supplies .. "/" .. required_supplies .. ")",5)
+            trigger.action.outTextForGroup(gr_id,"Request rejected, not enough supplies  (" .. local_supplies .. "/" .. required_supplies .. ")",5)
             trigger.action.outSoundForGroup(gr_id, "Radio squelch.ogg")
             return false
         end
@@ -771,7 +771,7 @@ do
                 return true
             else
                 local rankreq = ExperienceManager:getRankfromXP(required_xp) or "Unknown"
-                trigger.action.outTextForUnit(unit:getID(),"CMD-HQ - Negative, insufficient rank for this tasking request.\nRequired rank: "..rankreq..", ".. required_xp .." XP",5)
+                trigger.action.outTextForUnit(unit:getID(),"Request rejected, insufficient rank for this tasking request.\nRequired rank: "..rankreq..", ".. required_xp .." XP",5)
                 trigger.action.outSoundForGroup(gr_id, "Radio squelch.ogg")
                 return false
             end
@@ -816,7 +816,7 @@ do
         local function executeNavalStrikeRequest(u, to_zone)
             local attack_ship_name = Config.carrier_setup.tomahawk_launcher_unit_name
             if not (Config.carrier_setup.enabled and attack_ship_name) then
-                trigger.action.outTextForGroup(gr_id, "CMD-HQ - Negative, Naval strike unavailable.", 10)
+                trigger.action.outTextForGroup(gr_id, "Request rejected, Naval strike unavailable.", 10)
                 trigger.action.outSoundForGroup(gr_id, "Radio squelch.ogg")
                 return
             end
@@ -844,7 +844,7 @@ do
 
             local ship_unit = Unit.getByName(attack_ship_name)
             if not (ship_unit and ship_unit.isExist and ship_unit:isExist()) then
-                trigger.action.outTextForGroup(gr_id, "CMD-HQ - Negative, Naval capable asset unavailable.", 10)
+                trigger.action.outTextForGroup(gr_id, "Request rejected, Naval capable asset unavailable.", 10)
                 trigger.action.outSoundForGroup(gr_id, "Radio squelch.ogg")
                 return
             end
@@ -856,7 +856,7 @@ do
         local function executeAWACSRequest(u)
             local comms = getSideCommsTowers()
             if comms < Config.tasking_requirements.comms_zones_required_for_awacs then
-                trigger.action.outTextForGroup(gr_id, "CMD-HQ - Negative, AWACS tasking requires " .. comms .. "/"..Config.tasking_requirements.comms_zones_required_for_awacs.." active COMMS towers.", 10)
+                trigger.action.outTextForGroup(gr_id, "Request rejected, AWACS tasking requires " .. comms .. "/"..Config.tasking_requirements.comms_zones_required_for_awacs.." active COMMS towers.", 10)
                 trigger.action.outSoundForGroup(gr_id, "Radio squelch.ogg")
                 return
             end
@@ -937,7 +937,7 @@ do
             local from_zone = utils.findClosestCaptureHeloSource(to_zone, side, nil)
 
             if not from_zone then
-                trigger.action.outTextForGroup(gr_id, "Request rejected, no friendly logistics zone or airbase with available helicopters to dispatch from.", 8)
+                trigger.action.outTextForGroup(gr_id, "Request rejected, no coalition logistics zone or airbase with available helicopters to dispatch from.", 8)
                 trigger.action.outSoundForGroup(gr_id, "Radio squelch.ogg")
                 return
             end
@@ -985,9 +985,9 @@ do
 
             if not from_zone then
                 if #logistics_candidates == 0 then
-                    trigger.action.outTextForGroup(gr_id, "CMD-HQ - Negative, no logistics zones within 150 km of " .. to_zone.name .. ".", 10)
+                    trigger.action.outTextForGroup(gr_id, "Request rejected, no logistics zones within 150 km of " .. to_zone.name .. ".", 10)
                 else
-                    trigger.action.outTextForGroup(gr_id, "CMD-HQ - Negative, no logistics zones within 150 km have available helicopters and supplies.", 10)
+                    trigger.action.outTextForGroup(gr_id, "Request rejected, no logistics zones within 150 km have available helicopters and supplies.", 10)
                 end
                 trigger.action.outSoundForGroup(gr_id, "Radio squelch.ogg")
                 return
@@ -1111,7 +1111,7 @@ do
                 return
             end
 
-            trigger.action.outTextForGroup(gr_id, "CMD-HQ - Select target area with the F10 Radio Menu", 8)
+            trigger.action.outTextForGroup(gr_id, "Select target area with the F10 Radio Menu", 8)
             trigger.action.outSoundForGroup(gr_id, "Radio squelch.ogg")
 
             local temp_submenu = missionCommands.addSubMenuForGroup(gr_id, "(~) Select Area")
@@ -1138,7 +1138,7 @@ do
                     local commands = buildZoneCommandList(function(zone, discovered)
                         return zone.side == enemy_side and utils.tableContains(discovered, zone.name)
                     end, executeJTACRequest)
-                    createSelectAreaMenu(commands, "CMDHQ - No confirmed hostile sectors. Continue recon and standby.")
+                    createSelectAreaMenu(commands, "No confirmed hostile sectors. Recon required.")
                 end,
                 arg = nil
             },
@@ -1151,7 +1151,7 @@ do
                         end
                         return zone.side == enemy_side and utils.tableContains(discovered, zone.name)
                     end, executeNavalStrikeRequest)
-                    createSelectAreaMenu(commands, "CMDHQ - No launch asset available.")
+                    createSelectAreaMenu(commands, "No launch asset available.")
                 end,
                 arg = nil
             },
@@ -1161,7 +1161,7 @@ do
                     local commands = buildZoneCommandList(function(zone, discovered)
                         return zone.side == coalition.side.NEUTRAL and utils.tableContains(discovered, zone.name)
                     end, executeCaptureHeloRequest)
-                    createSelectAreaMenu(commands, "CMDHQ - No neutral zones are currently identified.")
+                    createSelectAreaMenu(commands, "No neutral zones are currently identified.")
                 end,
                 arg = nil
             },
@@ -1174,7 +1174,7 @@ do
                             and utils.tableContains(discovered, zone.name)
                             and not EnrouteManager:findByToZone(zone, zone.side, {AITaskTypes.REINFORCEMENT_HELO})
                     end, executeReinforcementHeloRequest)
-                    createSelectAreaMenu(commands, "CMDHQ - No eligible friendly sectors are currently identified.")
+                    createSelectAreaMenu(commands, "No eligible sectors are currently identified.")
                 end,
                 arg = nil
             },
@@ -1185,7 +1185,7 @@ do
                     local commands = buildZoneCommandList(function(zone, discovered)
                         return utils.tableContains(discovered, zone.name)
                     end, executeCAPRequest)
-                    createSelectAreaMenu(commands, "CMDHQ - No sectors available for patrol at this time.")
+                    createSelectAreaMenu(commands, "No sectors available for patrol at this time.")
                 end,
                 arg = nil
             },
@@ -1196,7 +1196,7 @@ do
                     local commands = buildZoneCommandList(function(zone, discovered)
                         return zone.side == enemy_side and utils.tableContains(discovered, zone.name)
                     end, executeCASRequest)
-                    createSelectAreaMenu(commands, "CMDHQ - No confirmed hostile zones available. Continue recon.")
+                    createSelectAreaMenu(commands, "No confirmed hostile zones available. Continue recon.")
                 end,
                 arg = nil
             },
@@ -1225,7 +1225,7 @@ do
                             and (zone.zone_type == ZoneTypes.LOGISTICS or zone.zone_type == ZoneTypes.COMMS
                                 or zone.zone_type == ZoneTypes.AIRBASE)
                     end, executeStrikeRequest)
-                    createSelectAreaMenu(commands, "CMDHQ - No validated enemy infrastructure targets are available.")
+                    createSelectAreaMenu(commands, "No validated enemy infrastructure targets are available.")
                 end,
                 arg = nil
             },
@@ -1237,7 +1237,7 @@ do
                         return zone.side == enemy_side and utils.tableContains(discovered, zone.name)
                             and zone.zone_type == ZoneTypes.SAMSITE
                     end, executeSEADRequest)
-                    createSelectAreaMenu(commands, "CMDHQ - No active enemy SAM sectors are currently identified.")
+                    createSelectAreaMenu(commands, "No active enemy SAM sectors are currently identified.")
                 end,
                 arg = nil
             },
@@ -1313,7 +1313,7 @@ do
                     trigger.action.outTextForUnit(unit_id, "Recon report\n Can only perform recon while airborne.",10)
                     return
                 end
-                
+
                 for i,p in ipairs(player_cooldowns) do
                     if p.id == unit_id and timer.getTime() < p.next_avail_report then
                         trigger.action.outSoundForUnit(unit_id, "radio click.ogg")
@@ -1350,7 +1350,7 @@ do
                         end
                     end
                 end
-                
+
                 if not found_zone then
                     trigger.action.outTextForUnit(unit_id, "Recon report\n Nothing in the vicinity. Next report available shortly.",10)
                     trigger.action.outSoundForUnit(unit_id, "radio click.ogg")
@@ -1363,7 +1363,7 @@ do
                     local user = ExperienceManager:fetchUser(u)
                     if user then
                         user.unclaimed_xp = user.unclaimed_xp + Config.reward_system.xp_per_intel_report
-                        
+
                         trigger.action.outTextForUnit(unit_id,"Intel report, +" .. Config.reward_system.xp_per_intel_report .. "XP",10)
                     end
                     trigger.action.outTextForCoalition(unit_coalition, "Recon report\n Newly detected ground targets displayed on your F10 map.",15)

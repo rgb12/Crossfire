@@ -515,7 +515,7 @@ do
                 groupName = EraSystem.resolveTaskTemplateName(GroupData.COMMON_ASSETS.BLUE.resupply_aircraft),
                 point = scenario.resupply.blue_point,
                 action = "clone",
-                radius = 10000
+                radius = 20000
             })
             if not cargo_sent_table or not cargo_sent_table.name then return MissionLogger:error("Could not send BLUE resupply.") end
             new_group_name = cargo_sent_table.name
@@ -531,7 +531,7 @@ do
                 groupName = EraSystem.resolveTaskTemplateName(GroupData.COMMON_ASSETS.RED.resupply_aircraft),
                 point = scenario.resupply.red_point,
                 action = "clone",
-                radius = 10000
+                radius = 20000
             })
             if not cargo_sent_table or not cargo_sent_table.name then return MissionLogger:error("Could not send RED resupply.") end
             new_group_name = cargo_sent_table.name

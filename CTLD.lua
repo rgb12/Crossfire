@@ -360,7 +360,7 @@ InfantrySquads = {} do
                     return true, zone, nil
                 end
             end
-            return false, nil, "Engineers must be deployed inside a friendly logistics zone."
+            return false, nil, "Engineers must be deployed inside a coalition logistics zone."
 
         elseif b == "sabotage" then
             -- Within configured range of an ENEMY zone
@@ -1660,7 +1660,7 @@ function ctld.listSupplies(unit)
     end
 
     if relevant_zones == 0 then
-        txt_body = txt_body .. "\nNo friendly zones currently have supplies or production."
+        txt_body = txt_body .. "\nNo coalition zones currently have supplies or production."
     else
         txt_heading = txt_heading .. string.format("%d supplies across %d zone(s).\n", coalition_supplies, relevant_zones)
     end
