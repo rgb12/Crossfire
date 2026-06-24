@@ -718,46 +718,46 @@ Config = {
         -- (table<int,table>)
         ranks = {
             -- (table)
-            [1]  = { name = "Airman Basic",      xp_required = 0 },
+            [1]  = { name = "R-1 Airman Basic",      xp_required = 0 },
             -- (table)
-            [2]  = { name = "Airman",            xp_required = 1000 },
+            [2]  = { name = "R-2 Airman",            xp_required = 1000 },
             -- (table)
-            [3]  = { name = "Airman First Class",xp_required = 2500 },
+            [3]  = { name = "R-3 Airman First Class",xp_required = 2500 },
             -- (table)
-            [4]  = { name = "Senior Airman",     xp_required = 5000 },
+            [4]  = { name = "R-4 Senior Airman",     xp_required = 5000 },
             -- (table)
-            [5]  = { name = "Staff Sergeant",    xp_required = 8000 },
+            [5]  = { name = "R-5 Staff Sergeant",    xp_required = 8000 },
             -- (table)
-            [6]  = { name = "Technical Sergeant",xp_required = 12000 },
+            [6]  = { name = "R-6 Technical Sergeant",xp_required = 12000 },
             -- (table)
-            [7]  = { name = "Master Sergeant",   xp_required = 16000 },
+            [7]  = { name = "R-7 Master Sergeant",   xp_required = 16000 },
             -- (table)
-            [8]  = { name = "Senior Master Sergeant", xp_required = 20000 },
+            [8]  = { name = "R-8 Senior Master Sergeant", xp_required = 20000 },
             -- (table)
-            [9]  = { name = "Chief Master Sergeant",  xp_required = 25000 },
+            [9]  = { name = "R-9 Chief Master Sergeant",  xp_required = 25000 },
 
             -- (table)
-            [10] = { name = "Second Lieutenant", xp_required = 32000 },
+            [10] = { name = "R-10 Second Lieutenant", xp_required = 32000 },
             -- (table)
-            [11] = { name = "First Lieutenant",  xp_required = 40000 },
+            [11] = { name = "R-11 First Lieutenant",  xp_required = 40000 },
             -- (table)
-            [12] = { name = "Captain",           xp_required = 48000 },
+            [12] = { name = "R-12 Captain",           xp_required = 48000 },
             -- (table)
-            [13] = { name = "Major",             xp_required = 58000 },
+            [13] = { name = "R-13 Major",             xp_required = 58000 },
             -- (table)
-            [14] = { name = "Lieutenant Colonel",xp_required = 68000 },
+            [14] = { name = "R-14 Lieutenant Colonel",xp_required = 68000 },
             -- (table)
-            [15] = { name = "Colonel",           xp_required = 78000 },
+            [15] = { name = "R-15 Colonel",           xp_required = 78000 },
             -- (table)
-            [16] = { name = "Brigadier General", xp_required = 85000 },
+            [16] = { name = "R-16 Brigadier General", xp_required = 85000 },
             -- (table)
-            [17] = { name = "Major General",     xp_required = 90000 },
+            [17] = { name = "R-17 Major General",     xp_required = 90000 },
             -- (table)
-            [18] = { name = "Lieutenant General",xp_required = 95000 },
+            [18] = { name = "R-18 Lieutenant General",xp_required = 95000 },
             -- (table)
-            [19] = { name = "General",           xp_required = 98000 },
+            [19] = { name = "R-19 General",           xp_required = 98000 },
             -- (table)
-            [20] = { name = "Commander",         xp_required = 100000 },
+            [20] = { name = "R-20 Commander",         xp_required = 100000 },
         }
 
     },
