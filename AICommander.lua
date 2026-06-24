@@ -132,7 +132,10 @@ do
         })
 
         -- Fallback to orbit near frontline
-        local closest_enemy_zone, closest_dist = red_airbase:getClosestZone(coalition.side.BLUE,nil,nil,false)
+        local hunter_home = self.hunting_side == coalition.side.BLUE and blue_airbase or red_airbase
+        local enemy_side_for_hunt = utils.getEnemyCoalition(self.hunting_side)
+        if not hunter_home then return false end
+        local closest_enemy_zone, _ = hunter_home:getClosestZone(enemy_side_for_hunt,nil,nil,false)
         local closest_friendly_zone_to_frontline = closest_enemy_zone and closest_enemy_zone:getClosestZone(self.hunting_side,nil,nil,false)
 
         if closest_friendly_zone_to_frontline then
@@ -213,19 +216,24 @@ do
         end
 
         EnrouteManager:add({
-            to_zone = source_airbase, -- loiters near target; home is the source
+            to_zone = source_airbase,
             side = side,
             from_zone = source_airbase,
             group_name = new_group.name,
             ai_task_type = AITaskTypes.CAP,
         })
+        self.active_hunts[new_group.name] = target_name
 
         timer.scheduleFunction(function()
             local hunter = Group.getByName(new_group.name)
             local tgt = Unit.getByName(target_unit:getName())
-            if not (hunter and hunter:isExist()) then return end
+            if not (hunter and hunter:isExist()) then
+                self.active_hunts[new_group.name] = nil
+                return
+            end
             if not (tgt and tgt:isExist()) then
                 -- Target gone (landed/died); leave the flight as a normal CAP.
+                self.active_hunts[new_group.name] = nil
                 MissionLogger:info("[HUNT] Target '" .. target_name .. "' gone before hunter ready; flight reverts to CAP.")
                 return
             end
@@ -429,7 +437,9 @@ do
 
             for _,p in ipairs(potential_zones) do
                 MissionLogger:info("[CAS]: Attempting to initiate CAS task to " .. p.zone.name)
-                return TaskManager:initiateAITask(AITaskTypes.CAS, side, true, p.zone, nil, false)
+                if TaskManager:initiateAITask(AITaskTypes.CAS, side, true, p.zone, nil, false) then
+                    return true
+                end
             end
             return false
         end)
@@ -473,7 +483,9 @@ do
 
             for _,p in ipairs(potential_zones) do
                 MissionLogger:info("[SEAD]: Attempting to initiate SEAD task to " .. p.zone.name)
-                return TaskManager:initiateAITask(AITaskTypes.SEAD, side, true, p.zone, nil, false)
+                if TaskManager:initiateAITask(AITaskTypes.SEAD, side, true, p.zone, nil, false) then
+                    return true
+                end
             end
             return false
         end)
@@ -511,7 +523,9 @@ do
             for _,p in ipairs(potential_zones) do
                 MissionLogger:info(string.format("[CAP] %s: Attempting to initiate CAP task to %s",
                         utils.coalitionToString(side), p.zone.name))
-                return TaskManager:initiateAITask(AITaskTypes.CAP, side, true, p.zone, nil, false)
+                if TaskManager:initiateAITask(AITaskTypes.CAP, side, true, p.zone, nil, false) then
+                    return true
+                end
             end
             return false
         end)
@@ -564,7 +578,9 @@ do
                 for _,p in ipairs(potential_zones) do
                     MissionLogger:info(string.format("[STRIKE] %s: Attempting to initiate STRIKE task to %s",
                         utils.coalitionToString(side), p.zone.name))
-                    return TaskManager:initiateAITask(AITaskTypes.STRIKE, side, true, p.zone, nil, false)
+                    if TaskManager:initiateAITask(AITaskTypes.STRIKE, side, true, p.zone, nil, false) then
+                        return true
+                    end
                 end
                 return false
 
@@ -575,9 +591,8 @@ do
                     MissionLogger:info(string.format("[STRIKE] %s: Not enough COMMS towers (%d < %d)",
                         utils.coalitionToString(side), side_comms_towers, Config.tasking_requirements.comms_zones_required_for_strike))
                 end
+                return false
             end
-            MissionLogger:info(string.format("[STRIKE] %s: No valid STRIKE targets found", utils.coalitionToString(side)))
-            return false
         end)
 
 
