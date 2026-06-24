@@ -919,7 +919,7 @@ Config = {
 
         -- (int) minimum unclaimed XP a player must hold before becoming a hunt
         -- target. Unclaimed XP is the in-mission XP not yet cashed in by landing.
-        unclaimed_xp_for_hunt = 3750,
+        unclaimed_xp_for_hunt = 4000,
 
         -- (int) (seconds) how often the hunt evaluator runs. Avoid multiples of
         -- 15 to reduce lag spikes.
