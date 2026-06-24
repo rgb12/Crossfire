@@ -630,22 +630,25 @@ do
             chosen_stocks = mist.utils.deepCopy(stock_types)
             local stock_descs = {
                 [StockTypes.AA_AIRCRAFT] = "AA Aircraft",
-                [StockTypes.AIR_AIR_LONG_RANGE] = "AA Long Range Missiles",
-                [StockTypes.AIR_AIR_SHORT_RANGE] = "AA Short Range Missiles",
+                [StockTypes.AIR_AIR_LONG_RANGE] = "A/A Long Range Missiles",
+                [StockTypes.AIR_AIR_SHORT_RANGE] = "A/A Short Range Missiles",
                 [StockTypes.CARGO_AIRCRAFT] = "Cargo Aircraft",
+                [StockTypes.LOGISTICS_HELICOPTER] = "Logistics Helicopters",
+                [StockTypes.ATTACK_HELICOPTER] = "Attack Helicopters",
+                [StockTypes.FUEL_TANKS] = "Fuel Tanks",
                 [StockTypes.AG_AIRCRAFT] = "AG Aircraft",
-                [StockTypes.AIR_GROUND_GUIDED_MISSILES] = "AG Missiles",
-                [StockTypes.AIR_GROUND_ROCKETS] = "AG Rockets",
-                [StockTypes.AIR_GROUND_BOMBS] = "AG Unguided Bombs",
-                [StockTypes.AIR_GROUND_GUIDED_BOMBS] = "AG Guided Bombs",
+                [StockTypes.AIR_GROUND_GUIDED_MISSILES] = "A/G Missiles",
+                [StockTypes.AIR_GROUND_ROCKETS] = "A/G Rockets",
+                [StockTypes.AIR_GROUND_BOMBS] = "A/G Unguided Bombs",
+                [StockTypes.AIR_GROUND_GUIDED_BOMBS] = "A/G Guided Bombs",
                 [StockTypes.ECM] = "ECM Equipment",
-                [StockTypes.TGP] = "TGPs",
+                [StockTypes.TGP] = "TGP",
                 [StockTypes.MISC] = "Misc Equipment",
                 [StockTypes.INITIAL] = "Initial Stock Package",
             }
             for _, stock in ipairs(chosen_stocks) do
                 if out_text ~= "" then out_text = out_text .. ", " end
-                out_text = out_text .. (stock_descs[stock] or "Unknown Stock Type")
+                out_text = out_text .. (stock_descs[stock] or "Misc equipment or aircraft")
             end
         end
         if #chosen_stocks ~= 0 then
