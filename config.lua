@@ -60,7 +60,7 @@ Config = {
         -- (bool) when a coalition wins, delete the mission
         -- progress save file (user XP/rank data is kept) and restart the mission.
         -- Intended for dedicated servers running the mission on a loop.
-        reset_on_mission_end = true,
+        reset_on_mission_end = false,
 
         -- (int) (seconds) delay between the win announcement and the restart, so
         -- players can read the result before the mission reloads
