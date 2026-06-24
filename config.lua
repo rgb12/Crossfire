@@ -130,7 +130,7 @@ Config = {
         },
         -- (int) number of ground units used for a level 1 airbase zone (overrides
         -- units_per_tier[1] for airbases)
-        airbase_tier1_units = 5,
+        airbase_tier1_units = 6,
         -- (number) fractional +/- variance applied to per-zone unit counts so groups
         -- are not identical every spawn (0.2 = +/-20%)
         composition_randomness = 0.2,
@@ -516,9 +516,8 @@ Config = {
     -- to match your custom loadouts.
     enable_ai_payload_checks = true,
 
-    -- (int) (meters) max distance a frontline segment may extend from the midpoint
-    -- between the two opposing zones that generate it
-    frontline_max_extent = 35000,
+    -- (int) (meters) a zone is on the forward edge only if its nearest enemy zone lies within this range
+    frontline_contact_range = 80000,
 
     -- (table) Auto scaling of warehouse weapon stocks to the number of human
     -- players. When enabled, generated weapon quantities are multiplied by the
@@ -1300,7 +1299,14 @@ Config = {
         -- (table<number>)
         frontline_color = {0.90, 0.90, 0.90, 0.85},
         -- (int)
-        frontline_linestyle = 1
+        frontline_linestyle = 1,
+        -- (table<number>) per-side forward-edge line colors (RGBA)
+        -- red line: solid white; blue line: dotted blue
+        frontline_red_color = {1.00, 1.00, 1.00, 0.95},
+        frontline_blue_color = {0.10, 0.35, 0.95, 0.95},
+        -- (int) per-side line styles (1=solid, 2=dashed, 3=dotted, see utils.LineStyle)
+        frontline_red_linestyle = 1,
+        frontline_blue_linestyle = 3
     }
 
 }
