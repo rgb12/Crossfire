@@ -1653,11 +1653,11 @@ Stocks.EquipmentData = {
         [Stocks.Equipment.RB_24                      ] = { stock_type = StockTypes.AIR_AIR_SHORT_RANGE, base_qty = 18, eras = { Eras.EARLYCOLDWAR, Eras.LATECOLDWAR } }, -- Swedish Rb 24 (AIM-9B)
         [Stocks.Equipment.AIM_9J                     ] = { stock_type = StockTypes.AIR_AIR_SHORT_RANGE, base_qty = 18, eras = { Eras.EARLYCOLDWAR, Eras.LATECOLDWAR } },
         [Stocks.Equipment.AIM_9B                     ] = { stock_type = StockTypes.AIR_AIR_SHORT_RANGE, base_qty = 18, eras = { Eras.EARLYCOLDWAR } },
-        [Stocks.Equipment.AIM_9L                     ] = { stock_type = StockTypes.AIR_AIR_SHORT_RANGE, base_qty = 30, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
+        [Stocks.Equipment.AIM_9L                     ] = { stock_type = StockTypes.AIR_AIR_SHORT_RANGE, base_qty = 30, eras = { Eras.LATECOLDWAR } },
         [Stocks.Equipment.AIM_9M                     ] = { stock_type = StockTypes.AIR_AIR_SHORT_RANGE, base_qty = 25, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
-        [Stocks.Equipment.AIM_9P                     ] = { stock_type = StockTypes.AIR_AIR_SHORT_RANGE, base_qty = 18, eras = { Eras.EARLYCOLDWAR, Eras.LATECOLDWAR, Eras.MODERN } },
-        [Stocks.Equipment.AIM_9P3                    ] = { stock_type = StockTypes.AIR_AIR_SHORT_RANGE, base_qty = 18, eras = { Eras.EARLYCOLDWAR, Eras.LATECOLDWAR, Eras.MODERN } },
-        [Stocks.Equipment.AIM_9P5                    ] = { stock_type = StockTypes.AIR_AIR_SHORT_RANGE, base_qty = 18, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
+        [Stocks.Equipment.AIM_9P                     ] = { stock_type = StockTypes.AIR_AIR_SHORT_RANGE, base_qty = 18, eras = { Eras.EARLYCOLDWAR, Eras.LATECOLDWAR } },
+        [Stocks.Equipment.AIM_9P3                    ] = { stock_type = StockTypes.AIR_AIR_SHORT_RANGE, base_qty = 18, eras = { Eras.EARLYCOLDWAR, Eras.LATECOLDWAR } },
+        [Stocks.Equipment.AIM_9P5                    ] = { stock_type = StockTypes.AIR_AIR_SHORT_RANGE, base_qty = 18, eras = { Eras.LATECOLDWAR } },
         [Stocks.Equipment.AIM_9X                     ] = { stock_type = StockTypes.AIR_AIR_SHORT_RANGE, base_qty = 18, eras = { Eras.MODERN } },
         [Stocks.Equipment.R_550                      ] = { stock_type = StockTypes.AIR_AIR_SHORT_RANGE, base_qty = 16, eras = { Eras.LATECOLDWAR, Eras.MODERN } }, -- Magic I
         [Stocks.Equipment.R_550_M1                   ] = { stock_type = StockTypes.AIR_AIR_SHORT_RANGE, base_qty = 16, eras = { Eras.LATECOLDWAR, Eras.MODERN } }, -- Magic I (M1)
