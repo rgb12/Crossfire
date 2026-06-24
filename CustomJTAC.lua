@@ -53,11 +53,11 @@ do
 
         setmetatable(obj, self)
         self.__index = self
-        
+
         used_jtac_callsign_index = (used_jtac_callsign_index % #JTAC.callsigns) + 1
         trigger.action.outSoundForCoalition(obj.side, "transmission1.ogg")
         trigger.action.outTextForCoalition(obj.side, obj.callsign.." JTAC on station at "..obj.to_zone.name..".", 10)
-        
+
         obj:setupCommands()
 
         -- Auto-start targeting after a short delay to allow unit to settle
@@ -123,7 +123,7 @@ do
 
             self.lasers.laser = Spot.createLaser(unit,{ x = 0, y = 1, z = 0 },self.target:getPoint(), self.laser_code)
             self.lasers.ir = Spot.createInfraRed(unit, { x = 0, y = 1, z = 0 }, self.target:getPoint())
-    
+
             ---@type string
             local target_name = self.target:getTypeName()
             if target_name:sub(1,1) == "." then target_name = target_name:sub(2) end
@@ -135,12 +135,12 @@ do
 
     function JTAC:clearTarget()
         self.target = nil
-    
+
         if self.lasers.laser then
             self.lasers.laser:destroy()
             self.lasers.laser = nil
         end
-        
+
         if self.lasers.ir then
             self.lasers.ir:destroy()
             self.lasers.ir = nil
@@ -155,7 +155,7 @@ do
 
         self.viable_targets = {}
         self.priority_targets = {}
-    
+
         local zone = ZoneHandler.getFromName(self.to_zone.name)
         if not zone then return end
         for _,gr_name in pairs(zone.linked_groups) do
@@ -191,10 +191,10 @@ do
                 end
             end
         end
-    
+
         -- Choose which list to use for targeting
         local target_list = self.viable_targets -- Default to all
-        
+
         if self.priority then
             if #self.priority_targets > 0 then
                 target_list = self.priority_targets
@@ -203,12 +203,12 @@ do
                 self.priority = nil
             end
         end
-    
+
         -- Set or wrap search_index
         if not self.search_index or self.search_index > #target_list then
             self.search_index = 1
         end
-    
+
         if #target_list == 0 then
             self.target = nil
             if not quiet then
@@ -318,10 +318,10 @@ do
 
                 local outtxt = jtac.callsign.." JTAC Intelligence Report\n"
                 outtxt = outtxt.."Zone: "..jtac.to_zone.name.."\n\n"
-                
+
                 local unit_count = 0
                 local unit_types = {}
-                
+
                 for _,gr_name in pairs(zone.linked_groups) do
                     local gr = Group.getByName(gr_name)
                     if gr and gr:isExist() then
@@ -341,7 +341,7 @@ do
                         unit_count = unit_count + 1
                     end
                 end
-                
+
                 if unit_count == 0 then
                     outtxt = outtxt.."Area appears clear. No enemy contacts."
                 else
@@ -355,7 +355,7 @@ do
                     end
                 end
 
-                trigger.action.outTextForCoalition(jtac.side, outtxt, 15)
+                trigger.action.outTextForCoalition(jtac.side, outtxt, 10)
                 trigger.action.outSoundForCoalition(jtac.side, "radio_beep4.ogg")
             else
                 missionCommands.removeItemForCoalition(jtac.side, jtac.jtac_menu)
@@ -380,7 +380,7 @@ do
                 if u and mist.utils.get2DDist(u:getPoint(), jtac.target:getPoint()) < 20000 then
                     self.smoke_count = self.smoke_count -1
                     trigger.action.smoke(jtac.target:getPosition().p, trigger.smokeColor.Red)
-                    trigger.action.outTextForCoalition(jtac.side, jtac.callsign.." JTAC: RED smoke marker in effect ("..self.smoke_count.." left)", 10)
+                    trigger.action.outTextForCoalition(jtac.side, jtac.callsign.." JTAC: Smoke marker in effect, "..self.smoke_count.." left in stock", 10)
                     trigger.action.outSoundForCoalition(jtac.side, "radio_beep4.ogg")
                 else
                     trigger.action.outTextForCoalition(jtac.side, jtac.callsign..' JTAC: Too far to deploy smoke accurately.', 10)
@@ -409,7 +409,7 @@ do
 
                     local out_text = jtac.callsign .. " JTAC priority updated: " .. category_name
                     trigger.action.outTextForCoalition(jtac.side, out_text, 5)
-               
+
                     jtac:clearTarget()
                     jtac:searchTarget(false)
                     jtac:startLasing(1688)
@@ -427,7 +427,7 @@ do
                 jtac.search_index = 1 -- Reset index on priority switch
                 trigger.action.outTextForCoalition(jtac.side, jtac.callsign .. " JTAC priority cleared.", 5)
                 trigger.action.outSoundForCoalition(jtac.side, "radio_beep4.ogg")
-           
+
                 jtac:clearTarget()
                 jtac:searchTarget(false)
                 jtac:startLasing(1688)
