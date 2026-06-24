@@ -567,35 +567,35 @@ Config = {
         resupply_costs = {
 
             -- (int) Full initial warehouse stock restoration
-            INITIAL = 5000,
+            INITIAL = 8000,
             -- (int) FARP complete resupply
-            FARP = 2500,
+            FARP = 3000,
 
             -- (int) Air-to-air focused aircraft
-            AA_AIRCRAFT = 900,
+            AA_AIRCRAFT = 1400,
             -- (int) Air-to-ground focused aircraft
-            AG_AIRCRAFT = 900,
+            AG_AIRCRAFT = 1400,
             -- (int) Multirole aircraft
-            MULTIROLE_AIRCRAFT = 1000,
+            MULTIROLE_AIRCRAFT = 1700,
             -- (int) Reconnaissance aircraft
-            RECON_AIRCRAFT = 500,
+            RECON_AIRCRAFT = 600,
             -- (int) Transport/utility aircraft
             CARGO_AIRCRAFT = 500,
             -- (int) NOT YET ADDED. Attack helicopters
-            ATTACK_HELICOPTER = 400,
+            ATTACK_HELICOPTER = 700,
             -- (int) Transport/logistics helicopters
-            LOGISTICS_HELICOPTER = 200,
+            LOGISTICS_HELICOPTER = 300,
 
 
             -- (int) AIM-120, AIM-54, etc.
-            AIR_AIR_LONG_RANGE = 700,
+            AIR_AIR_LONG_RANGE = 1600,
             -- (int) AIM-9, R-73, etc.
-            AIR_AIR_SHORT_RANGE = 500,
+            AIR_AIR_SHORT_RANGE = 600,
 
             -- (int) AGM-65, Hellfire, etc.
-            AIR_GROUND_GUIDED_MISSILES = 750,
+            AIR_GROUND_GUIDED_MISSILES = 1800,
             -- (int) GBU-12, GBU-38, etc.
-            AIR_GROUND_GUIDED_BOMBS = 600,
+            AIR_GROUND_GUIDED_BOMBS = 1400,
             -- (int) Mk-82, Mk-84, etc.
             AIR_GROUND_BOMBS = 250,
             -- (int) Hydra, S-8, etc.
@@ -605,32 +605,32 @@ Config = {
             FUEL_TANKS = 600,
 
             -- (int) Jamming pods, countermeasures
-            ECM = 2500,
+            ECM = 3500,
             -- (int) Targeting pods, misc equipment
-            TGP_MISC = 2000,
+            TGP_MISC = 3000,
         },
         -- (table)
         tasking_costs = {
             -- (int)
-            JTAC = 250,
+            JTAC = 300,
             -- (int)
-            CAS = 500,
+            CAS = 1200,
             -- (int)
-            SEAD = 600,
+            SEAD = 1500,
             -- (int)
-            STRIKE = 500,
+            STRIKE = 1300,
             -- (int)
-            CAP = 400,
+            CAP = 800,
             -- (int)
-            AWACS = 350,
+            AWACS = 500,
             -- (int)
-            TANKER = 400,
+            TANKER = 500,
             -- (int)
-            RECON = 300,
+            RECON = 350,
             -- (int)
-            CAPTURE_HELO = 250,
+            CAPTURE_HELO = 400,
             -- (int)
-            NAVAL_STRIKE = 3500
+            NAVAL_STRIKE = 4500
         },
         -- (table<int,int>)
         supplies_production = {
