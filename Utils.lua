@@ -233,6 +233,16 @@ function utils.findClosestCaptureHeloSource(to_zone, side, max_distance_m)
                     distance = distance,
                 })
             end
+        -- Airbases can also dispatch capture helos when the ME helo type is in stock.
+        elseif zone.side == side and zone.zone_type == ZoneTypes.AIRBASE and zone.airbase_name
+            and WarehouseManager:hasCaptureHeloInStock(zone.airbase_name, side) then
+            local distance = mist.utils.get2DDist(to_zone.zone.point, zone.zone.point)
+            if not max_distance_m or distance <= max_distance_m then
+                table.insert(candidates, {
+                    source = zone,
+                    distance = distance,
+                })
+            end
         end
     end
 

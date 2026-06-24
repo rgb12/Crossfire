@@ -986,6 +986,64 @@ do
         return Config.tasking.warehouse_aircraft_reserve or 2
     end
 
+    -- Resolve the unit type name of the era-appropriate capture helicopter template
+    -- (the late-activated group placed in the ME) for the given side.
+    ---@param side coalition.side
+    ---@return string|nil
+    function WarehouseManager:getCaptureHeloType(side)
+        local side_assets = (side == coalition.side.BLUE)
+            and GroupData.COMMON_ASSETS.BLUE
+            or  GroupData.COMMON_ASSETS.RED
+        if not side_assets then return nil end
+
+        local template_name = EraSystem.resolveTaskTemplateName(side_assets.capture_helicopter)
+        if not template_name then return nil end
+
+        local group = Group.getByName(template_name)
+        if not group then return nil end
+
+        local units = group:getUnits()
+        if not units or not units[1] then return nil end
+
+        return units[1]:getTypeName()
+    end
+
+    -- True if the airbase has at least one capture helicopter of the ME template type in stock.
+    ---@param airbase_name string
+    ---@param side coalition.side
+    ---@return boolean
+    function WarehouseManager:hasCaptureHeloInStock(airbase_name, side)
+        local airbase = Airbase.getByName(airbase_name)
+        if not airbase then return false end
+        local warehouse = airbase:getWarehouse()
+        if not warehouse then return false end
+
+        local heli_type = self:getCaptureHeloType(side)
+        if not heli_type then return false end
+
+        return warehouse:getItemCount(heli_type) > 0
+    end
+
+    -- Decrement one capture helicopter from the airbase warehouse. Returns true on success.
+    ---@param airbase_name string
+    ---@param side coalition.side
+    ---@return boolean
+    function WarehouseManager:consumeCaptureHelo(airbase_name, side)
+        local airbase = Airbase.getByName(airbase_name)
+        if not airbase then return false end
+        local warehouse = airbase:getWarehouse()
+        if not warehouse then return false end
+
+        local heli_type = self:getCaptureHeloType(side)
+        if not heli_type then return false end
+
+        local count = warehouse:getItemCount(heli_type)
+        if count <= 0 then return false end
+
+        warehouse:setItem(heli_type, count - 1)
+        return true
+    end
+
     ---@param airbase_name string
     ---@param ai_task_type AITaskTypes
     ---@return boolean

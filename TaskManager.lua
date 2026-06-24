@@ -976,7 +976,9 @@ do
 
             self:setCAPTUREHELITask(helo_sent.name,side,to_zone,from_zone)
 
-            if not (from_zone and from_zone.lha_source) then
+            if from_zone.zone_type == ZoneTypes.AIRBASE then
+                WarehouseManager:consumeCaptureHelo(from_zone.airbase_name, side)
+            elseif not from_zone.lha_source then
                 from_zone.heli_avail = (from_zone.heli_avail or 0) - 1
                 if from_zone and type(from_zone.drawF10) == "function" then
                     from_zone:drawF10()

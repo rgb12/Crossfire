@@ -937,7 +937,7 @@ do
             local from_zone = utils.findClosestCaptureHeloSource(to_zone, side, nil)
 
             if not from_zone then
-                trigger.action.outTextForGroup(gr_id, "Request rejected, no friendly logistics zone with available helicopters to dispatch from.", 8)
+                trigger.action.outTextForGroup(gr_id, "Request rejected, no friendly logistics zone or airbase with available helicopters to dispatch from.", 8)
                 trigger.action.outSoundForGroup(gr_id, "Radio squelch.ogg")
                 return
             end
