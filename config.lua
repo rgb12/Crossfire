@@ -1296,17 +1296,10 @@ Config = {
                 {0.2, 0.2, 0.2, 0.6}   -- Text background: Dark grey to frame the text
             },
 
-        -- (table<number>)
-        frontline_color = {0.90, 0.90, 0.90, 0.85},
-        -- (int)
-        frontline_linestyle = 1,
-        -- (table<number>) per-side forward-edge line colors (RGBA)
-        -- red line: solid white; blue line: dotted blue
-        frontline_red_color = {1.00, 1.00, 1.00, 0.95},
-        frontline_blue_color = {0.10, 0.35, 0.95, 0.95},
-        -- (int) per-side line styles (1=solid, 2=dashed, 3=dotted, see utils.LineStyle)
-        frontline_red_linestyle = 1,
-        frontline_blue_linestyle = 3
+        -- (table<number>) dividing frontline color (RGBA): solid white
+        frontline_color = {1.00, 1.00, 1.00, 0.95},
+        -- (int) line style (1=solid, 2=dashed, 3=dotted, see utils.LineStyle)
+        frontline_linestyle = 1
     }
 
 }

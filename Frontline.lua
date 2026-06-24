@@ -1,11 +1,7 @@
 Frontline = {}
 do
     function Frontline.computeFrontline()
-        local empty_result = {
-            red_segments = {},
-            blue_segments = {},
-            frontline_segments = {}
-        }
+        local empty_result = { frontline_segments = {} }
 
         -- Split owned zones by side.
         local red_pts, blue_pts = {}, {}
@@ -40,7 +36,6 @@ do
 
         local red_c = centroid(red_pts)
         local blue_c = centroid(blue_pts)
-
         local adx = blue_c.x - red_c.x
         local ady = blue_c.y - red_c.y
         local alen = math.sqrt(adx * adx + ady * ady)
@@ -51,55 +46,56 @@ do
             tx, ty = 1, 0 -- centroids coincide; arbitrary tangent
         end
 
-        local function buildSideLine(own, enemy)
-            -- Score every owned zone by distance to its nearest enemy zone.
-            local scored = {}
+        local boundary = {}
+        local function addContacts(own, enemy)
             for _, p in ipairs(own) do
-                local best = math.huge
+                local best, best_e = math.huge, nil
                 for _, e in ipairs(enemy) do
                     local d = dist2(p, e)
-                    if d < best then best = d end
+                    if d < best then best, best_e = d, e end
                 end
-                scored[#scored + 1] = {p = p, near = best, proj = p.x * tx + p.y * ty}
-            end
-
-            -- Forward-edge zones: nearest enemy within contact range.
-            local front = {}
-            for _, s in ipairs(scored) do
-                if s.near <= CONTACT_RANGE_SQ then
-                    front[#front + 1] = s
+                if best_e and best <= CONTACT_RANGE_SQ then
+                    local mx = (p.x + best_e.x) * 0.5
+                    local my = (p.y + best_e.y) * 0.5
+                    boundary[#boundary + 1] = {x = mx, y = my, proj = mx * tx + my * ty}
                 end
             end
+        end
+        addContacts(red_pts, blue_pts)
+        addContacts(blue_pts, red_pts)
 
-            if #front < 2 and #scored >= 2 then
-                table.sort(scored, function(u, v) return u.near < v.near end)
-                front = {scored[1], scored[2]}
-            end
-
-            table.sort(front, function(u, v) return u.proj < v.proj end)
-
-            local segments = {}
-            for i = 1, #front - 1 do
-                segments[#segments + 1] = {
-                    {x = front[i].p.x,     y = front[i].p.y},
-                    {x = front[i + 1].p.x, y = front[i + 1].p.y}
-                }
-            end
-            return segments
+        if #boundary == 0 then
+            return empty_result
         end
 
-        local red_segments = buildSideLine(red_pts, blue_pts)
-        local blue_segments = buildSideLine(blue_pts, red_pts)
+        -- Order across the front.
+        table.sort(boundary, function(u, v) return u.proj < v.proj end)
+
+        -- Collapse near-duplicate / out-of-order points: keep monotone progress
+        -- along the front and drop points closer than MIN_SPACING so smoothing
+        -- isn't dominated by clustered midpoints.
+        local MIN_SPACING_SQ = 1000 * 1000
+        local pts = {}
+        for _, b in ipairs(boundary) do
+            local prev = pts[#pts]
+            if not prev or dist2(prev, b) >= MIN_SPACING_SQ then
+                pts[#pts + 1] = {x = b.x, y = b.y}
+            end
+        end
+
+        if #pts < 2 then
+            return empty_result
+        end
 
         local frontline_segments = {}
-        for _, s in ipairs(red_segments) do frontline_segments[#frontline_segments + 1] = s end
-        for _, s in ipairs(blue_segments) do frontline_segments[#frontline_segments + 1] = s end
+        for i = 1, #pts - 1 do
+            frontline_segments[#frontline_segments + 1] = {
+                {x = pts[i].x,     y = pts[i].y},
+                {x = pts[i + 1].x, y = pts[i + 1].y}
+            }
+        end
 
-        return {
-            red_segments = red_segments,
-            blue_segments = blue_segments,
-            frontline_segments = frontline_segments
-        }
+        return { frontline_segments = frontline_segments }
     end
 
     Frontline.mark_id = nil
@@ -159,21 +155,14 @@ do
         Frontline.clearFrontline()
 
         local palette = Config.draw_color_palette
-        local red_color = palette.frontline_red_color or palette.frontline_color
-        local blue_color = palette.frontline_blue_color or palette.frontline_color
-        local red_linestyle = palette.frontline_red_linestyle or palette.frontline_linestyle
-        local blue_linestyle = palette.frontline_blue_linestyle or palette.frontline_linestyle
+        local color = palette.frontline_color
+        local linestyle = palette.frontline_linestyle
 
-        local function drawSide(segments, color, linestyle)
-            for _, segment in ipairs(segments) do
-                local mark_id = nextMarkId()
-                trigger.action.lineToAll(-1, mark_id, utils.toVec3(segment[1]), utils.toVec3(segment[2]), color, linestyle, true)
-                table.insert(Frontline.mark_ids, mark_id)
-            end
+        for _, segment in ipairs(frontline_data.frontline_segments) do
+            local mark_id = nextMarkId()
+            trigger.action.lineToAll(-1, mark_id, utils.toVec3(segment[1]), utils.toVec3(segment[2]), color, linestyle, true)
+            table.insert(Frontline.mark_ids, mark_id)
         end
-
-        drawSide(frontline_data.red_segments, red_color, red_linestyle)
-        drawSide(frontline_data.blue_segments, blue_color, blue_linestyle)
 
         Frontline.mark_id = Frontline.mark_ids[#Frontline.mark_ids]
         MissionLogger:info("FRONTLINE: Frontline drawn")
