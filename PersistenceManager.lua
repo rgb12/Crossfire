@@ -272,7 +272,8 @@ do
 
             trigger.action.outText(
                 "config.json is from an older mission version and was ignored.\n"
-                .. "Delete it to regenerate a compatible config (back up your edits first).", 45)
+                .. "Move or delete it to regenerate a compatible config (back up your edits first).\n"
+                .."You can safely ignore this message if you have made no changes to the config file.", 45)
 
             return false
         end
