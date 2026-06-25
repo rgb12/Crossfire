@@ -17,8 +17,6 @@ do
     local AIRSPAWN_ALT_FT   = 8000  -- altitude (ft AGL) for the rescue air-spawn
     local AIRSPAWN_SPEED    = 130   -- m/s cruise for the rescue air-spawn
 
-    -- Builds a fresh, deep-copied group_data from a template with unique group/unit
-    -- names.  Caller is responsible for setting route.points[1].  Returns nil on error.
     ---@param template_name string
     ---@return table|nil
     local function buildSpawnGroupData(template_name)

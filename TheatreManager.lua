@@ -458,11 +458,30 @@ do
         end 
         sendMessage(true)
     end
+    ---@param airbase_pool ZoneHandler[]
+    ---@return ZoneHandler|nil
+    local function pickResupplyDestination(airbase_pool)
+        if #airbase_pool == 0 then return nil end
+
+        local best_zone, best_dist = nil, math.huge
+        for _, zone in ipairs(airbase_pool) do
+            local dist = Frontline.distanceToFrontline(zone.zone.point)
+            if dist and dist < best_dist then
+                best_dist = dist
+                best_zone = zone
+            end
+        end
+
+        if not best_zone or best_dist == math.huge then
+            return airbase_pool[math.random(#airbase_pool)]
+        end
+        return best_zone
+    end
 
     ---@param side coalition.side
     ---@param repeat_tasking boolean|nil
     ---@param stock_types StockTypes[]|nil
-    ---@param target_airbase ZoneHandler|nil Optional target airbase zone, defaults to home airbase
+    ---@param target_airbase ZoneHandler|nil Optional target airbase zone, defaults to the base closest to the frontline
     function TheatreCommander.sendWarehouseResupply(side, repeat_tasking, stock_types, target_airbase)
         local cargo_sent_table
         local new_group_name
@@ -492,7 +511,7 @@ do
             end
 
             local airbase_pool = (side == coalition.side.BLUE) and blue_airbases or red_airbases
-            destination_airbase = target_airbase or (airbase_pool[1] and airbase_pool[math.random(#airbase_pool)])
+            destination_airbase = target_airbase or pickResupplyDestination(airbase_pool)
             if destination_airbase and destination_airbase.side == side and destination_airbase.airbase_name then
                 UnitHandler.simulateResupply(nil, destination_airbase.airbase_name, side, {allowed_stock_types[math.random(1, #allowed_stock_types)]})
             end
@@ -506,7 +525,7 @@ do
 
         if side == coalition.side.BLUE and scenario.resupply.blue_point then
             if #blue_airbases == 0 then return end
-            destination_airbase = target_airbase or blue_airbases[math.random(#blue_airbases)]
+            destination_airbase = target_airbase or pickResupplyDestination(blue_airbases)
 
             if not destination_airbase or destination_airbase.side ~= side then
                 return MissionLogger:warn("Invalid BLUE resupply destination airbase")
@@ -522,7 +541,7 @@ do
 
         elseif side == coalition.side.RED and scenario.resupply.red_point then
             if #red_airbases == 0 then return end
-            destination_airbase = target_airbase or red_airbases[math.random(#red_airbases)]
+            destination_airbase = target_airbase or pickResupplyDestination(red_airbases)
 
             if not destination_airbase or destination_airbase.side ~= side then
                 return MissionLogger:warn("Invalid RED resupply destination airbase")
