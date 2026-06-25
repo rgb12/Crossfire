@@ -3,7 +3,8 @@ do
     function Frontline.computeFrontline()
         local empty_result = { frontline_segments = {} }
 
-        -- Split owned zones by side.
+        -- Split owned zones by side. Neutral zones are excluded (they have no
+        -- owner, so no contact line passes through them).
         local red_pts, blue_pts = {}, {}
         for _, zone in ipairs(zones) do
             local p = {x = zone.zone.point.x, y = zone.zone.point.z}
@@ -28,70 +29,80 @@ do
             return dx * dx + dy * dy
         end
 
-        local function centroid(pts)
-            local sx, sy = 0, 0
-            for _, p in ipairs(pts) do sx = sx + p.x; sy = sy + p.y end
-            return {x = sx / #pts, y = sy / #pts}
-        end
-
-        local red_c = centroid(red_pts)
-        local blue_c = centroid(blue_pts)
-        local adx = blue_c.x - red_c.x
-        local ady = blue_c.y - red_c.y
-        local alen = math.sqrt(adx * adx + ady * ady)
-        local tx, ty
-        if alen > 1 then
-            tx, ty = -ady / alen, adx / alen
-        else
-            tx, ty = 1, 0 -- centroids coincide; arbitrary tangent
-        end
-
         local boundary = {}
-        local function addContacts(own, enemy)
-            for _, p in ipairs(own) do
-                local best, best_e = math.huge, nil
-                for _, e in ipairs(enemy) do
-                    local d = dist2(p, e)
-                    if d < best then best, best_e = d, e end
-                end
-                if best_e and best <= CONTACT_RANGE_SQ then
-                    local mx = (p.x + best_e.x) * 0.5
-                    local my = (p.y + best_e.y) * 0.5
-                    boundary[#boundary + 1] = {x = mx, y = my, proj = mx * tx + my * ty}
+        for _, r in ipairs(red_pts) do
+            for _, b in ipairs(blue_pts) do
+                local d = dist2(r, b)
+                if d <= CONTACT_RANGE_SQ then
+                    boundary[#boundary + 1] = {
+                        x = (r.x + b.x) * 0.5,
+                        y = (r.y + b.y) * 0.5
+                    }
                 end
             end
         end
-        addContacts(red_pts, blue_pts)
-        addContacts(blue_pts, red_pts)
+
+        if #boundary == 0 then
+            local best, br, bb = math.huge, nil, nil
+            for _, r in ipairs(red_pts) do
+                for _, b in ipairs(blue_pts) do
+                    local d = dist2(r, b)
+                    if d < best then best, br, bb = d, r, b end
+                end
+            end
+            if br and bb then
+                boundary[1] = {x = (br.x + bb.x) * 0.5, y = (br.y + bb.y) * 0.5}
+            end
+        end
 
         if #boundary == 0 then
             return empty_result
         end
 
-        -- Order across the front.
-        table.sort(boundary, function(u, v) return u.proj < v.proj end)
-
-        -- Collapse near-duplicate / out-of-order points: keep monotone progress
-        -- along the front and drop points closer than MIN_SPACING so smoothing
-        -- isn't dominated by clustered midpoints.
         local MIN_SPACING_SQ = 1000 * 1000
-        local pts = {}
-        for _, b in ipairs(boundary) do
-            local prev = pts[#pts]
-            if not prev or dist2(prev, b) >= MIN_SPACING_SQ then
-                pts[#pts + 1] = {x = b.x, y = b.y}
+        local nodes = {}
+        for _, m in ipairs(boundary) do
+            local dup = false
+            for _, n in ipairs(nodes) do
+                if dist2(m, n) < MIN_SPACING_SQ then dup = true; break end
             end
+            if not dup then nodes[#nodes + 1] = {x = m.x, y = m.y} end
+        end
+        if #nodes == 1 then
+            local n = nodes[1]
+            return { frontline_segments = {
+                { {x = n.x, y = n.y - 8000}, {x = n.x, y = n.y + 8000} }
+            } }
         end
 
-        if #pts < 2 then
-            return empty_result
+        local start_i = 1
+        for i = 2, #nodes do
+            local n, s = nodes[i], nodes[start_i]
+            if n.x < s.x or (n.x == s.x and n.y < s.y) then start_i = i end
+        end
+
+        local used = {}
+        local path = { nodes[start_i] }
+        used[start_i] = true
+        for _ = 2, #nodes do
+            local last = path[#path]
+            local best, best_i = math.huge, nil
+            for i = 1, #nodes do
+                if not used[i] then
+                    local d = dist2(last, nodes[i])
+                    if d < best then best, best_i = d, i end
+                end
+            end
+            if not best_i then break end
+            used[best_i] = true
+            path[#path + 1] = nodes[best_i]
         end
 
         local frontline_segments = {}
-        for i = 1, #pts - 1 do
+        for i = 1, #path - 1 do
             frontline_segments[#frontline_segments + 1] = {
-                {x = pts[i].x,     y = pts[i].y},
-                {x = pts[i + 1].x, y = pts[i + 1].y}
+                {x = path[i].x,     y = path[i].y},
+                {x = path[i + 1].x, y = path[i + 1].y}
             }
         end
 
