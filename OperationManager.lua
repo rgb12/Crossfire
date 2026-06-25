@@ -91,7 +91,7 @@ do
     ---@param unit Unit
     ---@return number
     function OperationManager:getLeaveTimeoutRemaining(unit)
-        if Config.operations.leave_timeout.enabled then return 0 end
+        if not Config.operations.leave_timeout.enabled then return 0 end
         local key = getTimeoutKey(unit)
         if not key then return 0 end
         local expiry = OperationManager.leave_timeouts[key]
