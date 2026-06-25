@@ -619,6 +619,12 @@ do
             if vol then
                 world.removeJunk(vol)
             end
+            if self.attack_convoy then
+                self.attack_convoy = 0
+            end
+            if self.heli_avail then
+                self.heli_avail = 0
+            end
         end
 
         local function addSupplies(supply_side)
