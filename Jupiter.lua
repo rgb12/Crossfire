@@ -251,16 +251,6 @@ function Jupiter:onEvent(event)
                     end
                 end
             end
-        elseif command == "-seed" then
-            local seed = tonumber(param1)
-            if seed then
-               
-                trigger.action.outText("Jupiter: seed set to "..seed.. ". Restarting mission...", 5)
-                TheatreCommander:restartMission()
-                cmd_executed = true
-            else
-                trigger.action.outText("Jupiter: Invalid seed value.", 5)
-            end
         elseif command == "-tick" then
             TheatreCommander:tick_15s(false)
             TheatreCommander:tick_1m()
