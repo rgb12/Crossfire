@@ -1745,7 +1745,7 @@ Stocks.EquipmentData = {
         [Stocks.Equipment.GBU_24                             ] = { stock_type = StockTypes.AIR_GROUND_GUIDED_BOMBS, base_qty = 16, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
         [Stocks.Equipment.GBU_31_V_3B                        ] = { stock_type = StockTypes.AIR_GROUND_GUIDED_BOMBS, base_qty = 16, eras = { Eras.MODERN } },
         [Stocks.Equipment.GBU_32_V_2B                        ] = { stock_type = StockTypes.AIR_GROUND_GUIDED_BOMBS, base_qty = 16, eras = { Eras.MODERN } },
-        [Stocks.Equipment.GBU_38                             ] = { stock_type = StockTypes.AIR_GROUND_GUIDED_BOMBS, base_qty = 25, eras = { Eras.MODERN } },
+        [Stocks.Equipment.GBU_38                             ] = { stock_type = StockTypes.AIR_GROUND_GUIDED_BOMBS, base_qty = 40, eras = { Eras.MODERN } },
         [Stocks.Equipment.GBU_54_V_1B                        ] = { stock_type = StockTypes.AIR_GROUND_GUIDED_BOMBS, base_qty = 20, eras = { Eras.MODERN } },
         [Stocks.Equipment.KAB_500KR                          ] = { stock_type = StockTypes.AIR_GROUND_GUIDED_BOMBS, base_qty = 18, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
         [Stocks.Equipment.KAB_500KR_NEW                      ] = { stock_type = StockTypes.AIR_GROUND_GUIDED_BOMBS, base_qty = 22, eras = { Eras.MODERN } },
