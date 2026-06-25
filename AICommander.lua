@@ -505,18 +505,20 @@ do
                 if zone.side == side and zone.zone_type ~= ZoneTypes.AIRBASE then
                     local discovered = (side == coalition.side.BLUE and utils.tableContains(stats.blue_discovered_zones, zone.name)) or
                                         (side == coalition.side.RED and utils.tableContains(stats.red_discovered_zones, zone.name))
-                    local dist = mist.utils.get2DDist(home_base.zone.point, zone.zone.point)
+                    local front_dist = Frontline.distanceToFrontline(zone.zone.point)
 
-                    if discovered and not EnrouteManager:findByToZone(zone, side, {AITaskTypes.CAP}) then
-                        table.insert(potential_zones, {distance=dist, zone=zone})
+                    if discovered
+                    and front_dist < Config.tasking.max_distance_to_frontline_for_offensive
+                    and not EnrouteManager:findByToZone(zone, side, {AITaskTypes.CAP}) then
+                        table.insert(potential_zones, {distance=front_dist, zone=zone})
 
                     end
                 end
             end
 
-            -- Sort zones by distance, reverse order for CAP
+            -- Sort friendly zones by proximity to the frontline
             table.sort(potential_zones, function(a,b)
-                return a.distance > b.distance
+                return a.distance < b.distance
             end)
             if #potential_zones == 0 then return false end
 
