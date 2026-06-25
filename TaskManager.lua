@@ -12,16 +12,20 @@ do
     ---@type table<number, boolean>
     TaskManager.assignedTACANS = {}
 
-    ---@param template_name string
-    ---@param airbase Airbase
-    ---@return table|boolean
-    function TaskManager:spawnAIFlightFromParking(template_name, airbase)
-        if not airbase then return false end
+    local STUCK_CHECK_DELAY = 300   -- seconds (5 min) after spawn to test movement
+    local STUCK_MOVE_THRESH = 25    -- metres; moved less than this == stuck
+    local AIRSPAWN_ALT_FT   = 8000  -- altitude (ft AGL) for the rescue air-spawn
+    local AIRSPAWN_SPEED    = 130   -- m/s cruise for the rescue air-spawn
 
+    -- Builds a fresh, deep-copied group_data from a template with unique group/unit
+    -- names.  Caller is responsible for setting route.points[1].  Returns nil on error.
+    ---@param template_name string
+    ---@return table|nil
+    local function buildSpawnGroupData(template_name)
         local group_data = mist.getGroupData(template_name)
         if not group_data then
             MissionLogger:info("[Spawn] ERROR: Template group '" .. template_name .. "' not found in mission.")
-            return false
+            return nil
         end
         -- Deep-copy so we never mutate the MIST database entry
         group_data = mist.utils.deepCopy(group_data)
@@ -36,11 +40,65 @@ do
         group_data.lateActivation = false
         group_data.uncontrolled   = false
 
-        -- Air-spawn groups have no route table; initialise safely
         if not group_data.route        then group_data.route        = {} end
         if not group_data.route.points then group_data.route.points = {} end
 
-        -- Replace first waypoint with a cold-start parking point at the target airbase
+        -- Unique names prevent collisions on repeat / simultaneous spawns
+        local stamp    = string.format("%d_%d", math.floor(timer.getTime()), math.random(100, 999))
+        group_data.name = template_name .. "_" .. stamp
+        for i, unit in ipairs(group_data.units) do
+            unit.name = group_data.name .. "_u" .. i
+        end
+
+        return group_data
+    end
+
+    ---@param template_name string
+    ---@param airbase Airbase
+    ---@param stuck_name string         name of the wedged group to remove
+    ---@param on_respawn fun(new_group:table)|nil   re-register + re-task callback
+    local function airSpawnOverAirbase(template_name, airbase, stuck_name, on_respawn)
+        EnrouteManager:remove(stuck_name)
+        local stuck = Group.getByName(stuck_name)
+        if stuck and stuck:isExist() then
+            stuck:destroy()
+        end
+
+        local group_data = buildSpawnGroupData(template_name)
+        if not group_data then return end
+
+        local base_pt = airbase:getPoint()
+        group_data.route.points[1] = {
+            alt                = mist.utils.feetToMeters(AIRSPAWN_ALT_FT),
+            alt_type           = "RADIO",
+            type               = "Turning Point",
+            action             = "Turning Point",
+            x                  = base_pt.x,
+            y                  = base_pt.z,
+            speed              = AIRSPAWN_SPEED,
+        }
+        local new_group = mist.dynAdd(group_data)
+        if new_group then
+            MissionLogger:info("[AI Spawn] Rescued '" .. stuck_name .. "' at " .. airbase:getName()
+                .. " via air-spawn (was stuck on parking) as '" .. new_group.name .. "'.")
+            if on_respawn then on_respawn(new_group) end
+        else
+            MissionLogger:info("[AI Spawn] Air-spawn rescue FAILED for '" .. stuck_name
+                .. "' at " .. airbase:getName())
+        end
+    end
+
+    ---@param template_name string
+    ---@param airbase Airbase
+    ---@param on_respawn fun(new_group:table)|nil 
+    ---@return table|boolean
+    function TaskManager:spawnAIFlightFromParking(template_name, airbase, on_respawn)
+        if not airbase then return false end
+
+        local group_data = buildSpawnGroupData(template_name)
+        if not group_data then return false end
+
+        -- First waypoint: cold-start parking point at the target airbase
         local base_pt = airbase:getPoint()
         group_data.route.points[1] = {
             alt                = 0,           -- ground level; DCS fills real terrain elevation
@@ -56,36 +114,52 @@ do
             name               = "Spawn " .. airbase:getName(),
         }
 
-        -- Unique names prevent collisions on repeat / simultaneous spawns
-        local stamp    = string.format("%d_%d", math.floor(timer.getTime()), math.random(100, 999))
-        group_data.name = template_name .. "_" .. stamp
-        for i, unit in ipairs(group_data.units) do
-            unit.name = group_data.name .. "_u" .. i
-        end
-
         local new_group = mist.dynAdd(group_data)
         if not new_group then
             MissionLogger:info("[AI SPAWN] mist.dynAdd returned nil for '" .. template_name .. "' at " .. airbase:getName())
             return false
         end
 
-        -- Post-spawn sanity check: DCS schedules group creation for the next simulation frame,
-        -- so verify after 3 s that the group appeared.  A missing or empty group means the
-        -- airbase had no parking spot compatible with this aircraft type (e.g. AWACS at a
-        -- small airbase).
         local spawned_name = new_group.name
         local airbase_name = airbase:getName()
         local side         = airbase:getCoalition()
+
         timer.scheduleFunction(function()
             local grp = Group.getByName(spawned_name)
             if not grp or not grp:isExist() or grp:getSize() == 0 then
-                MissionLogger:info("[AI Spawn] '" .. spawned_name .. "' failed at " .. airbase_name
-                    .. " - no suitable parking spot (airbase may be too small for " .. template_name .. ").")
+                MissionLogger:info("[AI Spawn] '" .. spawned_name .. "' failed to appear at " .. airbase_name
+                    .. " - no compatible parking spot.  Falling back to air-spawn.")
                 trigger.action.outTextForCoalition(side,
-                    "[AI Spawn] Spawn failed at " .. airbase_name .. ": no suitable parking for this aircraft type.", 8)
+                    "[AI Spawn] No parking at " .. airbase_name .. " for this type; spawning airborne instead.", 8)
                 if grp then grp:destroy() end
+                airSpawnOverAirbase(template_name, airbase, spawned_name, on_respawn)
             end
         end, {}, timer.getTime() + 3)
+
+        local function captureSpawnPos()
+            local grp = Group.getByName(spawned_name)
+            if not grp or not grp:isExist() then return end
+            local u = grp:getUnit(1)
+            if not u or not u:isExist() then return end
+            local spawn_pos = u:getPoint()
+
+            timer.scheduleFunction(function()
+                local g = Group.getByName(spawned_name)
+                if not g or not g:isExist() or g:getSize() == 0 then return end
+                local unit = g:getUnit(1)
+                if not unit or not unit:isExist() then return end
+
+                if mist.utils.get2DDist(unit:getPoint(), spawn_pos) < STUCK_MOVE_THRESH then
+                    MissionLogger:info("[AI Spawn] '" .. spawned_name .. "' stuck at " .. airbase_name
+                        .. " (hasn't moved in " .. STUCK_CHECK_DELAY .. "s).  Air-spawning replacement.")
+                    trigger.action.outTextForCoalition(side,
+                        "[AI Spawn] Aircraft stuck on parking at " .. airbase_name .. "; re-spawning airborne.", 8)
+                    airSpawnOverAirbase(template_name, airbase, spawned_name, on_respawn)
+                end
+            end, {}, timer.getTime() + STUCK_CHECK_DELAY)
+        end
+        -- Wait until after the 3 s appearance check so we record a real spawn position.
+        timer.scheduleFunction(captureSpawnPos, {}, timer.getTime() + 5)
 
         return new_group
     end
@@ -287,21 +361,24 @@ do
             if not template_name then return false end
 
             local airbase = Airbase.getByName(from_zone.airbase_name)
-            local new_group = airbase and self:spawnAIFlightFromParking(template_name, airbase)
+            local function register(grp)
+                local ai_enroute_data = EnrouteManager:add({
+                    to_zone = from_zone,
+                    side=side,
+                    from_zone=from_zone,
+                    group_name=grp.name,
+                    ai_task_type=ai_task_type
+                })
+                self:setAWACSTask(grp.name,ai_enroute_data)
+            end
+            local new_group = airbase and self:spawnAIFlightFromParking(template_name, airbase, register)
             if not new_group then
                 MissionLogger:info("[AWACS] Failed to spawn AWACS flight from "..from_zone.name.." (possibly airbase parking too small).")
                 sendText("CAS failed to spawn (possibly airbase "..from_zone.name.." parking too small).")
                 return false
             end
 
-            local ai_enroute_data = EnrouteManager:add({
-                to_zone = from_zone,
-                side=side,
-                from_zone=from_zone,
-                group_name=new_group.name,
-                ai_task_type=ai_task_type
-            })
-            self:setAWACSTask(new_group.name,ai_enroute_data)
+            register(new_group)
             return true
         elseif AITaskTypes.TANKER == ai_task_type and from_zone and from_zone.zone_type == ZoneTypes.AIRBASE then
 
