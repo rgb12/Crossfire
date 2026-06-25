@@ -133,7 +133,7 @@ Config = {
         airbase_tier1_units = 6,
         -- (number) fractional +/- variance applied to per-zone unit counts so groups
         -- are not identical every spawn (0.2 = +/-20%)
-        composition_randomness = 0.2,
+        composition_randomness = 0.1,
     },
     -- (table)
     operations = {
