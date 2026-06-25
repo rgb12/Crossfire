@@ -1109,8 +1109,17 @@ do
                     check = function(self, player_unit)
                         local zone = ZoneHandler.getFromName(target_zone.name)
                         if not zone then return false end
-                        return zone.side == player_unit:getCoalition()
-                        or zone.side == coalition.side.NEUTRAL
+                        if zone.side == player_unit:getCoalition()
+                        or zone.side == coalition.side.NEUTRAL then
+                            return true
+                        end
+                        for _, group_name in ipairs(zone.linked_groups) do
+                            local group = Group.getByName(group_name)
+                            if group and group:isExist() and group:getSize() > 0 then
+                                return false
+                            end
+                        end
+                        return true
                     end
                 }
             }
