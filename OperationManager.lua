@@ -739,6 +739,11 @@ do
                             local runway_op = self:createRunwayBombingOperation(zone)
                             table.insert(self.available_operations, runway_op)
                         end
+
+                        if zone.ammo_depot_intact then
+                            local strike_op = self:createStrikeOperation(zone, "LOGISTICS")
+                            table.insert(self.available_operations, strike_op)
+                        end
                     end
                     -- STRIKE against COMMS or LOGISTICS
                     if zone.zone_type == ZoneTypes.COMMS then
