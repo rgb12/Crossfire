@@ -1,91 +1,205 @@
 Frontline = {}
 do
+    local function circumcentre(a, b, c)
+        local ax, ay, bx, by, cx, cy = a.x, a.y, b.x, b.y, c.x, c.y
+        local d = 2 * (ax * (by - cy) + bx * (cy - ay) + cx * (ay - by))
+        if d > -1e-6 and d < 1e-6 then return nil end
+        local a2 = ax * ax + ay * ay
+        local b2 = bx * bx + by * by
+        local c2 = cx * cx + cy * cy
+        local ux = (a2 * (by - cy) + b2 * (cy - ay) + c2 * (ay - by)) / d
+        local uy = (a2 * (cx - bx) + b2 * (ax - cx) + c2 * (bx - ax)) / d
+        return ux, uy
+    end
+
+    local function triangulate(pts)
+        local n = #pts
+        if n < 3 then return {} end
+
+        -- Super-triangle large enough to contain every point.
+        local minx, miny, maxx, maxy = math.huge, math.huge, -math.huge, -math.huge
+        for _, p in ipairs(pts) do
+            if p.x < minx then minx = p.x end
+            if p.y < miny then miny = p.y end
+            if p.x > maxx then maxx = p.x end
+            if p.y > maxy then maxy = p.y end
+        end
+        local dx, dy = maxx - minx, maxy - miny
+        local dmax = (dx > dy and dx or dy)
+        if dmax <= 0 then dmax = 1 end
+        local midx, midy = (minx + maxx) * 0.5, (miny + maxy) * 0.5
+        -- Super-triangle vertices appended to a working copy of pts.
+        local work = {}
+        for i = 1, n do work[i] = pts[i] end
+        work[n + 1] = {x = midx - 20 * dmax, y = midy - dmax}
+        work[n + 2] = {x = midx,             y = midy + 20 * dmax}
+        work[n + 3] = {x = midx + 20 * dmax, y = midy - dmax}
+
+        local function makeTri(i1, i2, i3)
+            local cx, cy = circumcentre(work[i1], work[i2], work[i3])
+            if not cx then return nil end
+            local ddx, ddy = work[i1].x - cx, work[i1].y - cy
+            return {i1, i2, i3, cx = cx, cy = cy, r2 = ddx * ddx + ddy * ddy}
+        end
+
+        local super = makeTri(n + 1, n + 2, n + 3)
+        if not super then return {} end
+        local tris = { super }
+
+        for i = 1, n do
+            local p = work[i]
+            local bad = {}
+            for ti = #tris, 1, -1 do
+                local t = tris[ti]
+                local ex, ey = p.x - t.cx, p.y - t.cy
+                if ex * ex + ey * ey <= t.r2 then
+                    bad[#bad + 1] = t
+                    table.remove(tris, ti)
+                end
+            end
+            local edge_count = {}
+            local edge_list = {}
+            local function addEdge(u, v)
+                local lo, hi = u, v
+                if lo > hi then lo, hi = hi, lo end
+                local key = lo * 1000000 + hi
+                if edge_count[key] then
+                    edge_count[key] = edge_count[key] + 1
+                else
+                    edge_count[key] = 1
+                    edge_list[#edge_list + 1] = {lo, hi, key}
+                end
+            end
+            for _, t in ipairs(bad) do
+                addEdge(t[1], t[2]); addEdge(t[2], t[3]); addEdge(t[3], t[1])
+            end
+            for _, e in ipairs(edge_list) do
+                if edge_count[e[3]] == 1 then
+                    local nt = makeTri(e[1], e[2], i)
+                    if nt then tris[#tris + 1] = nt end
+                end
+            end
+        end
+
+        -- Drop any triangle still touching a super-triangle vertex.
+        local result = {}
+        for _, t in ipairs(tris) do
+            if t[1] <= n and t[2] <= n and t[3] <= n then
+                result[#result + 1] = t
+            end
+        end
+        return result
+    end
+
     function Frontline.computeFrontline()
         local empty_result = { frontline_segments = {} }
 
-        local red_pts, blue_pts = {}, {}
+        local pts, sides = {}, {}
         for _, zone in ipairs(zones) do
-            local p = {x = zone.zone.point.x, y = zone.zone.point.z}
-            if zone.side == coalition.side.RED then
-                red_pts[#red_pts + 1] = p
-            elseif zone.side == coalition.side.BLUE then
-                blue_pts[#blue_pts + 1] = p
+            local s = zone.side
+            if s == coalition.side.RED or s == coalition.side.BLUE then
+                pts[#pts + 1] = {x = zone.zone.point.x, y = zone.zone.point.z}
+                sides[#pts] = s
             end
         end
 
         -- A frontline only exists if both coalitions are present.
-        if #red_pts == 0 or #blue_pts == 0 then
+        local n_red, n_blue = 0, 0
+        for _, s in ipairs(sides) do
+            if s == coalition.side.RED then n_red = n_red + 1 else n_blue = n_blue + 1 end
+        end
+        if n_red == 0 or n_blue == 0 then
             return empty_result
         end
 
         local CONTACT_RANGE = Config.frontline_contact_range or 80000
         local CONTACT_RANGE_SQ = CONTACT_RANGE * CONTACT_RANGE
-
         local function dist2(a, b)
-            local dx = a.x - b.x
-            local dy = a.y - b.y
-            return dx * dx + dy * dy
-        end
-        local function isContactPair(r, b)
-            local cx, cy = (r.x + b.x) * 0.5, (r.y + b.y) * 0.5
-            local rad_sq = dist2(r, b) * 0.25
-            for _, q in ipairs(red_pts) do
-                if q ~= r and q ~= b then
-                    local dx, dy = q.x - cx, q.y - cy
-                    if dx * dx + dy * dy < rad_sq then return false end
-                end
-            end
-            for _, q in ipairs(blue_pts) do
-                if q ~= r and q ~= b then
-                    local dx, dy = q.x - cx, q.y - cy
-                    if dx * dx + dy * dy < rad_sq then return false end
-                end
-            end
-            return true
+            local ddx, ddy = a.x - b.x, a.y - b.y
+            return ddx * ddx + ddy * ddy
         end
 
-        local MIN_HALF = 6000
-        local MAX_HALF = 30000
         local frontline_segments = {}
-        local closest_d, closest_r, closest_b = math.huge, nil, nil
-        for _, r in ipairs(red_pts) do
-            for _, b in ipairs(blue_pts) do
-                local d = dist2(r, b)
-                if d < closest_d then closest_d, closest_r, closest_b = d, r, b end
-                if d <= CONTACT_RANGE_SQ and isContactPair(r, b) then
-                    local mx, my = (r.x + b.x) * 0.5, (r.y + b.y) * 0.5
-                    -- Perpendicular to (b - r), normalised.
-                    local dirx, diry = b.x - r.x, b.y - r.y
-                    local len = math.sqrt(dirx * dirx + diry * diry)
-                    if len > 1 then
-                        local nx, ny = -diry / len, dirx / len
-                        local half = len * 0.5
-                        if half < MIN_HALF then half = MIN_HALF end
-                        if half > MAX_HALF then half = MAX_HALF end
-                        frontline_segments[#frontline_segments + 1] = {
-                            {x = mx - nx * half, y = my - ny * half},
-                            {x = mx + nx * half, y = my + ny * half}
-                        }
+
+        if #pts < 3 then
+            local best, br, bb = math.huge, nil, nil
+            for i = 1, #pts do
+                for j = i + 1, #pts do
+                    if sides[i] ~= sides[j] then
+                        local d = dist2(pts[i], pts[j])
+                        if d < best then best, br, bb = d, pts[i], pts[j] end
                     end
                 end
             end
+            if br and bb then
+                local mx, my = (br.x + bb.x) * 0.5, (br.y + bb.y) * 0.5
+                local vx, vy = bb.x - br.x, bb.y - br.y
+                local len = math.sqrt(vx * vx + vy * vy)
+                if len > 1 then
+                    local nx, ny = -vy / len, vx / len
+                    frontline_segments[1] = {
+                        {x = mx - nx * 8000, y = my - ny * 8000},
+                        {x = mx + nx * 8000, y = my + ny * 8000}
+                    }
+                end
+            end
+            if #frontline_segments == 0 then return empty_result end
+            return { frontline_segments = frontline_segments }
         end
 
-        if #frontline_segments == 0 and closest_r and closest_b then
-            local r, b = closest_r, closest_b
-            local mx, my = (r.x + b.x) * 0.5, (r.y + b.y) * 0.5
-            local dirx, diry = b.x - r.x, b.y - r.y
-            local len = math.sqrt(dirx * dirx + diry * diry)
-            if len > 1 then
-                local nx, ny = -diry / len, dirx / len
-                frontline_segments[1] = {
-                    {x = mx - nx * 8000, y = my - ny * 8000},
-                    {x = mx + nx * 8000, y = my + ny * 8000}
-                }
+        local tris = triangulate(pts)
+
+        local edge_tris = {}
+        local function edgeKey(u, v)
+            if u > v then u, v = v, u end
+            return u * 1000000 + v, u, v
+        end
+        local function recordEdge(u, v, cx, cy, apex)
+            local key, lo, hi = edgeKey(u, v)
+            local e = edge_tris[key]
+            if not e then
+                e = {lo, hi, {x = cx, y = cy}}
+                e[5] = apex
+                edge_tris[key] = e
             else
-                frontline_segments[1] = {
-                    {x = mx, y = my - 8000}, {x = mx, y = my + 8000}
-                }
+                e[4] = {x = cx, y = cy}
+            end
+        end
+        for _, t in ipairs(tris) do
+            recordEdge(t[1], t[2], t.cx, t.cy, t[3])
+            recordEdge(t[2], t[3], t.cx, t.cy, t[1])
+            recordEdge(t[3], t[1], t.cx, t.cy, t[2])
+        end
+
+        for _, e in pairs(edge_tris) do
+            local u, v = e[1], e[2]
+            if sides[u] ~= sides[v] and dist2(pts[u], pts[v]) <= CONTACT_RANGE_SQ then
+                local c1, c2 = e[3], e[4]
+                if c2 then
+                    -- Interior edge: full Voronoi segment between both circumcentres.
+                    frontline_segments[#frontline_segments + 1] = {
+                        {x = c1.x, y = c1.y}, {x = c2.x, y = c2.y}
+                    }
+                else
+                    local a, b = pts[u], pts[v]
+                    local apex = pts[e[5]]
+                    -- Unit normal to edge (a,b).
+                    local nx, ny = -(b.y - a.y), (b.x - a.x)
+                    local nlen = math.sqrt(nx * nx + ny * ny)
+                    if nlen > 1 then
+                        nx, ny = nx / nlen, ny / nlen
+                        -- Flip to point away from the apex (the interior side).
+                        local mx, my = (a.x + b.x) * 0.5, (a.y + b.y) * 0.5
+                        if (apex.x - mx) * nx + (apex.y - my) * ny > 0 then
+                            nx, ny = -nx, -ny
+                        end
+                        local ext = 20000
+                        frontline_segments[#frontline_segments + 1] = {
+                            {x = c1.x, y = c1.y},
+                            {x = c1.x + nx * ext, y = c1.y + ny * ext}
+                        }
+                    end
+                end
             end
         end
 
