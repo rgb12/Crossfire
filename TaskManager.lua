@@ -65,24 +65,31 @@ do
         local group_data = buildSpawnGroupData(template_name)
         if not group_data then return end
 
-        local base_pt = airbase:getPoint()
+        local base_pt    = airbase:getPoint()
+        local spawn_alt  = mist.utils.feetToMeters(AIRSPAWN_ALT_FT)
         group_data.route.points[1] = {
-            alt                = mist.utils.feetToMeters(AIRSPAWN_ALT_FT),
-            alt_type           = "RADIO",
-            type               = "Turning Point",
-            action             = "Turning Point",
+            alt                = spawn_alt,
+            alt_type           = AI.Task.AltitudeType.RADIO,
+            type               = AI.Task.WaypointType.TURNING_POINT,
+            action             = AI.Task.WaypointType.TURNING_POINT,
             x                  = base_pt.x,
             y                  = base_pt.z,
             speed              = AIRSPAWN_SPEED,
         }
+        for i, unit in ipairs(group_data.units or {}) do
+            local offset = (i - 1) * 50  -- metres
+            unit.x        = base_pt.x + offset
+            unit.y        = base_pt.z + offset
+            unit.alt      = spawn_alt
+            unit.alt_type = AI.Task.AltitudeType.RADIO
+            unit.speed    = AIRSPAWN_SPEED
+        end
         local new_group = mist.dynAdd(group_data)
         if new_group then
-            MissionLogger:info("[AI Spawn] Rescued '" .. stuck_name .. "' at " .. airbase:getName()
-                .. " via air-spawn (was stuck on parking) as '" .. new_group.name .. "'.")
+            MissionLogger:info("AI Rescued " .. stuck_name .. "' at " .. airbase:getName().. " via air-spawn (was stuck on parking) as '" .. new_group.name .. "'.")
             if on_respawn then on_respawn(new_group) end
         else
-            MissionLogger:info("[AI Spawn] Air-spawn rescue FAILED for '" .. stuck_name
-                .. "' at " .. airbase:getName())
+            MissionLogger:info("Air-spawn rescue FAILED for '" .. stuck_name.. "' at " .. airbase:getName())
         end
     end
 
@@ -102,19 +109,19 @@ do
             alt                = 0,           -- ground level; DCS fills real terrain elevation
             alt_type           = "BARO",
             type               = "TakeOffParking",
-            action             = "From Parking Area",  -- cold & dark (engines OFF)
+            action             = "From Parking Area",  -- cold & dark
             airdromeId         = airbase:getID(),
             x                  = base_pt.x,
-            y                  = base_pt.z,   -- DCS world Z -> mission Y (2-D map)
+            y                  = base_pt.z,
             speed              = 0,
             formation_template = "",
             properties         = {},
-            name               = "Spawn " .. airbase:getName(),
+            name               = "Startup " .. airbase:getName(),
         }
 
         local new_group = mist.dynAdd(group_data)
         if not new_group then
-            MissionLogger:info("[AI SPAWN] mist.dynAdd returned nil for '" .. template_name .. "' at " .. airbase:getName())
+            MissionLogger:info("AI spawn failed for '" .. template_name .. "' at " .. airbase:getName())
             return false
         end
 
@@ -125,10 +132,7 @@ do
         timer.scheduleFunction(function()
             local grp = Group.getByName(spawned_name)
             if not grp or not grp:isExist() or grp:getSize() == 0 then
-                MissionLogger:info("[AI Spawn] '" .. spawned_name .. "' failed to appear at " .. airbase_name
-                    .. " - no compatible parking spot.  Falling back to air-spawn.")
-                trigger.action.outTextForCoalition(side,
-                    "[AI Spawn] No parking at " .. airbase_name .. " for this type; spawning airborne instead.", 8)
+                MissionLogger:info("AI " .. spawned_name .. "' failed to appear at " .. airbase_name.. " - no compatible parking spot.  Falling back to air-spawn.")
                 if grp then grp:destroy() end
                 airSpawnOverAirbase(template_name, airbase, spawned_name, on_respawn)
             end
@@ -148,10 +152,7 @@ do
                 if not unit or not unit:isExist() then return end
 
                 if mist.utils.get2DDist(unit:getPoint(), spawn_pos) < STUCK_MOVE_THRESH then
-                    MissionLogger:info("[AI Spawn] '" .. spawned_name .. "' stuck at " .. airbase_name
-                        .. " (hasn't moved in " .. STUCK_CHECK_DELAY .. "s).  Air-spawning replacement.")
-                    trigger.action.outTextForCoalition(side,
-                        "[AI Spawn] Aircraft stuck on parking at " .. airbase_name .. "; re-spawning airborne.", 8)
+                    MissionLogger:info("[AI Spawn] '" .. spawned_name .. "' stuck at " .. airbase_name.. " (hasn't moved in " .. STUCK_CHECK_DELAY .. "s).  Air-spawning replacement.")
                     airSpawnOverAirbase(template_name, airbase, spawned_name, on_respawn)
                 end
             end, {}, timer.getTime() + STUCK_CHECK_DELAY)
