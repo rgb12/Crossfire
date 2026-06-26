@@ -3,15 +3,13 @@ do
     function Frontline.computeFrontline()
         local empty_result = { frontline_segments = {} }
 
-        -- Split owned zones by side. Neutral zones are excluded (they have no
-        -- owner, so no contact line passes through them).
         local red_pts, blue_pts = {}, {}
         for _, zone in ipairs(zones) do
             local p = {x = zone.zone.point.x, y = zone.zone.point.z}
             if zone.side == coalition.side.RED then
-                table.insert(red_pts, p)
+                red_pts[#red_pts + 1] = p
             elseif zone.side == coalition.side.BLUE then
-                table.insert(blue_pts, p)
+                blue_pts[#blue_pts + 1] = p
             end
         end
 
@@ -28,82 +26,71 @@ do
             local dy = a.y - b.y
             return dx * dx + dy * dy
         end
+        local function isContactPair(r, b)
+            local cx, cy = (r.x + b.x) * 0.5, (r.y + b.y) * 0.5
+            local rad_sq = dist2(r, b) * 0.25
+            for _, q in ipairs(red_pts) do
+                if q ~= r and q ~= b then
+                    local dx, dy = q.x - cx, q.y - cy
+                    if dx * dx + dy * dy < rad_sq then return false end
+                end
+            end
+            for _, q in ipairs(blue_pts) do
+                if q ~= r and q ~= b then
+                    local dx, dy = q.x - cx, q.y - cy
+                    if dx * dx + dy * dy < rad_sq then return false end
+                end
+            end
+            return true
+        end
 
-        local boundary = {}
+        local MIN_HALF = 6000
+        local MAX_HALF = 30000
+        local frontline_segments = {}
+        local closest_d, closest_r, closest_b = math.huge, nil, nil
         for _, r in ipairs(red_pts) do
             for _, b in ipairs(blue_pts) do
                 local d = dist2(r, b)
-                if d <= CONTACT_RANGE_SQ then
-                    boundary[#boundary + 1] = {
-                        x = (r.x + b.x) * 0.5,
-                        y = (r.y + b.y) * 0.5
-                    }
+                if d < closest_d then closest_d, closest_r, closest_b = d, r, b end
+                if d <= CONTACT_RANGE_SQ and isContactPair(r, b) then
+                    local mx, my = (r.x + b.x) * 0.5, (r.y + b.y) * 0.5
+                    -- Perpendicular to (b - r), normalised.
+                    local dirx, diry = b.x - r.x, b.y - r.y
+                    local len = math.sqrt(dirx * dirx + diry * diry)
+                    if len > 1 then
+                        local nx, ny = -diry / len, dirx / len
+                        local half = len * 0.5
+                        if half < MIN_HALF then half = MIN_HALF end
+                        if half > MAX_HALF then half = MAX_HALF end
+                        frontline_segments[#frontline_segments + 1] = {
+                            {x = mx - nx * half, y = my - ny * half},
+                            {x = mx + nx * half, y = my + ny * half}
+                        }
+                    end
                 end
             end
         end
 
-        if #boundary == 0 then
-            local best, br, bb = math.huge, nil, nil
-            for _, r in ipairs(red_pts) do
-                for _, b in ipairs(blue_pts) do
-                    local d = dist2(r, b)
-                    if d < best then best, br, bb = d, r, b end
-                end
-            end
-            if br and bb then
-                boundary[1] = {x = (br.x + bb.x) * 0.5, y = (br.y + bb.y) * 0.5}
+        if #frontline_segments == 0 and closest_r and closest_b then
+            local r, b = closest_r, closest_b
+            local mx, my = (r.x + b.x) * 0.5, (r.y + b.y) * 0.5
+            local dirx, diry = b.x - r.x, b.y - r.y
+            local len = math.sqrt(dirx * dirx + diry * diry)
+            if len > 1 then
+                local nx, ny = -diry / len, dirx / len
+                frontline_segments[1] = {
+                    {x = mx - nx * 8000, y = my - ny * 8000},
+                    {x = mx + nx * 8000, y = my + ny * 8000}
+                }
+            else
+                frontline_segments[1] = {
+                    {x = mx, y = my - 8000}, {x = mx, y = my + 8000}
+                }
             end
         end
 
-        if #boundary == 0 then
+        if #frontline_segments == 0 then
             return empty_result
-        end
-
-        local MIN_SPACING_SQ = 1000 * 1000
-        local nodes = {}
-        for _, m in ipairs(boundary) do
-            local dup = false
-            for _, n in ipairs(nodes) do
-                if dist2(m, n) < MIN_SPACING_SQ then dup = true; break end
-            end
-            if not dup then nodes[#nodes + 1] = {x = m.x, y = m.y} end
-        end
-        if #nodes == 1 then
-            local n = nodes[1]
-            return { frontline_segments = {
-                { {x = n.x, y = n.y - 8000}, {x = n.x, y = n.y + 8000} }
-            } }
-        end
-
-        local start_i = 1
-        for i = 2, #nodes do
-            local n, s = nodes[i], nodes[start_i]
-            if n.x < s.x or (n.x == s.x and n.y < s.y) then start_i = i end
-        end
-
-        local used = {}
-        local path = { nodes[start_i] }
-        used[start_i] = true
-        for _ = 2, #nodes do
-            local last = path[#path]
-            local best, best_i = math.huge, nil
-            for i = 1, #nodes do
-                if not used[i] then
-                    local d = dist2(last, nodes[i])
-                    if d < best then best, best_i = d, i end
-                end
-            end
-            if not best_i then break end
-            used[best_i] = true
-            path[#path + 1] = nodes[best_i]
-        end
-
-        local frontline_segments = {}
-        for i = 1, #path - 1 do
-            frontline_segments[#frontline_segments + 1] = {
-                {x = path[i].x,     y = path[i].y},
-                {x = path[i + 1].x, y = path[i + 1].y}
-            }
         end
 
         return { frontline_segments = frontline_segments }
