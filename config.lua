@@ -1183,7 +1183,7 @@ Config = {
     supply_static = {
         [Eras.WW2]          = { type = "Building08_PBR", category = "Fortification" },
         [Eras.EARLYCOLDWAR] = { type = "Building08_PBR", category = "Fortification" },
-        [Eras.LATECOLDWAR]  = { type = ".Ammunition depot", category = "Warehouses" },
+        [Eras.LATECOLDWAR]  = { type = "Building08_PBR", category = "Fortification" },
         [Eras.MODERN]       = { type = ".Ammunition depot", category = "Warehouses" },
     },
     -- (int) (seconds)

@@ -215,7 +215,7 @@ do
     Frontline.cached_segments = {}
 
     -- Shortest distance (meters) from a world point to the current frontline.
-    ---@param point table
+    ---@param point vec2|vec3
     ---@return number
     function Frontline.distanceToFrontline(point)
         local segments = Frontline.cached_segments
