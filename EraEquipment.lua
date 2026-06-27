@@ -169,6 +169,28 @@ Stocks.Aircraft = {
     UH_60L = "UH-60L"
 }
 
+-- Not comfirmed
+Stocks.UserAircraft = {
+    Stocks.Aircraft.FA18C_HORNET,
+    Stocks.Aircraft.F16C_BL52D,
+    Stocks.Aircraft.A10C_TANK_KILLER_II,
+    Stocks.Aircraft.F15C,
+    Stocks.Aircraft.F15E_SE,
+    Stocks.Aircraft.F100D,
+    Stocks.Aircraft.LA7,
+    Stocks.Aircraft.JF17,
+    Stocks.Aircraft.M2000C,
+    Stocks.Aircraft.MIG29_FULCRUM,
+    Stocks.Aircraft.SU27,
+    Stocks.Aircraft.SU25,
+    Stocks.Aircraft.SU25T,
+    Stocks.Aircraft.MIG21BIS,
+    Stocks.Aircraft.MIG19P,
+    Stocks.Aircraft.F14A_95_GR,
+    Stocks.Aircraft.F14B,
+    Stocks.Aircraft.F14A_EARLY,
+}
+
 Stocks.AircraftEras = {
     [Eras.WW2] = {
         Stocks.Aircraft.I16,
