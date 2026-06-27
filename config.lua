@@ -76,7 +76,7 @@ Config = {
         -- "Early Cold War" 1947-1969
         -- "Late Cold War" 1969-1989
         -- "Modern" 1989-
-        eras_selected = { Eras.MODERN},
+        eras_selected = {Eras.MODERN},
 
         -- (table<...>) When this is empty, the script considers all modules flyable.
         -- To restrict to a specific set of aircraft, list them
@@ -781,7 +781,7 @@ Config = {
             [ZoneTypes.EWSITE]      = 5,
         },
         -- (int) REQUIRES MISSION RESTART. seed determines scenario selection, zone types and levels. Use -1 for random seed
-        seed = 2025,
+        seed = -1,
         -- (table)  REQUIRES MISSION RESTART
         sam_classification_thresholds = {
             -- (int) (%) rolls below this : SHORT RANGE SAM
@@ -839,7 +839,7 @@ Config = {
         -- (int) maximum number of concurrent tasks per airbase
         max_tasks_per_airbase = 4,
         -- (int) minimum aircraft to leave in stock so AI does not empty the warehouse
-        warehouse_aircraft_reserve = 2,
+        warehouse_aircraft_reserve = 1,
 
         -- (bool) Despawn AI fixed-wing task flights shortly after they RTB and
         -- land, freeing parking so new tasks can spawn. Prevents ramp traffic

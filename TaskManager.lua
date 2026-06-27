@@ -182,6 +182,30 @@ do
         return false
     end
     
+        ---@param ai_task_type AITaskTypes
+        ---@param side coalition.side
+        ---@return string|nil
+        function TaskManager.findGroupName(ai_task_type,side)
+            local side_assets = side == coalition.side.BLUE and GroupData.COMMON_ASSETS.BLUE or GroupData.COMMON_ASSETS.RED
+            if not side_assets then return nil end
+
+            local base_name = nil
+            if ai_task_type == AITaskTypes.CAS then
+                base_name = side_assets.cas
+            elseif ai_task_type == AITaskTypes.CAP then
+                base_name = side_assets.cap
+            elseif ai_task_type == AITaskTypes.SEAD then
+                base_name = side_assets.sead
+            elseif ai_task_type == AITaskTypes.STRIKE then
+                base_name = side_assets.strike
+            elseif ai_task_type == AITaskTypes.AWACS then
+                base_name = side_assets.awacs
+            elseif ai_task_type == AITaskTypes.RECON then
+                base_name = side_assets.recon
+            end
+            return EraSystem.resolveTaskTemplateName(base_name)
+        end
+
     ---@param ai_task_type AITaskTypes
     ---@param side coalition.side
     ---@param prevent_duplicates boolean
@@ -210,29 +234,6 @@ do
             if user_requested then
                 trigger.action.outTextForCoalition(side,txt,5)
             end
-        end
-
-        ---@param ai_task_type AITaskTypes
-        ---@return string|nil
-        local function findGroupName(ai_task_type)
-            local side_assets = side == coalition.side.BLUE and GroupData.COMMON_ASSETS.BLUE or GroupData.COMMON_ASSETS.RED
-            if not side_assets then return nil end
-
-            local base_name = nil
-            if ai_task_type == AITaskTypes.CAS then
-                base_name = side_assets.cas
-            elseif ai_task_type == AITaskTypes.CAP then
-                base_name = side_assets.cap
-            elseif ai_task_type == AITaskTypes.SEAD then
-                base_name = side_assets.sead
-            elseif ai_task_type == AITaskTypes.STRIKE then
-                base_name = side_assets.strike
-            elseif ai_task_type == AITaskTypes.AWACS then
-                base_name = side_assets.awacs
-            elseif ai_task_type == AITaskTypes.RECON then
-                base_name = side_assets.recon
-            end
-            return EraSystem.resolveTaskTemplateName(base_name)
         end
 
         ---@param task_label string
@@ -302,7 +303,7 @@ do
                 return false
             end
 
-            local template_name = findGroupName(ai_task_type)
+            local template_name = TaskManager.findGroupName(ai_task_type, side)
             if not template_name then return false end
 
             local new_group = self:spawnAIFlightFromParking(template_name, airbase)
@@ -356,7 +357,7 @@ do
             end
 
 
-            local template_name = findGroupName(ai_task_type)
+            local template_name = TaskManager.findGroupName(ai_task_type,side)
             if not template_name then return false end
 
             local airbase = Airbase.getByName(from_zone.airbase_name)
@@ -628,7 +629,7 @@ do
             if airbase and not WarehouseManager:checkIfAIPayloadInStock(airbase,ai_task_type)
             then sendText("CAP required payload/armement not in warehouse.") return false end
 
-            local template_name = findGroupName(ai_task_type)
+            local template_name = TaskManager.findGroupName(ai_task_type,side)
             if not template_name then return false end
 
             local new_group = self:spawnAIFlightFromParking(template_name, airbase)
@@ -676,7 +677,7 @@ do
             if airbase and not WarehouseManager:checkIfAIPayloadInStock(airbase,ai_task_type)
             then sendText("SEAD required payload/armement not in warehouse.") return false end
 
-            local template_name = findGroupName(ai_task_type)
+            local template_name = TaskManager.findGroupName(ai_task_type, side)
             if not template_name then return false end
 
             local new_group = self:spawnAIFlightFromParking(template_name, airbase)
@@ -723,7 +724,7 @@ do
             if airbase and not WarehouseManager:checkIfAIPayloadInStock(airbase,ai_task_type)
             then sendText("STRIKE required payload/armement not in warehouse.") return false end
 
-            local template_name = findGroupName(ai_task_type)
+            local template_name = TaskManager.findGroupName(ai_task_type, side)
             if not template_name then return false end
 
             local new_group = self:spawnAIFlightFromParking(template_name, airbase)
@@ -795,7 +796,7 @@ do
             if airbase and not WarehouseManager:checkIfAIPayloadInStock(airbase,ai_task_type)
             then sendText("RECON required payload/armement not in warehouse.") return false end
 
-            local template_name = findGroupName(ai_task_type)
+            local template_name = TaskManager.findGroupName(ai_task_type, side)
             if not template_name then return false end
 
             local new_group = self:spawnAIFlightFromParking(template_name, airbase)

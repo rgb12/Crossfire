@@ -983,7 +983,7 @@ do
     end
 
     function WarehouseManager:getAircraftReserveThreshold()
-        return Config.tasking.warehouse_aircraft_reserve or 2
+        return Config.tasking.warehouse_aircraft_reserve or 0
     end
 
     -- Resolve the unit type name of the era-appropriate capture helicopter template
@@ -1056,15 +1056,16 @@ do
         if not warehouse then return false end
 
         if not airbase:getCoalition() then return false end
-        local side = airbase:getCoalition()
 
-        local acft_name = self:getAircraftTypeForTask(side, ai_task_type)
-        if acft_name then
-            if warehouse:getItemCount(acft_name) > self:getAircraftReserveThreshold() then
-                return true
-            else
-                return false
-            end
+        local gr_name = TaskManager.findGroupName(ai_task_type, airbase:getCoalition())
+        if not gr_name then return false end
+
+        local gr = Group.getByName(gr_name)
+        if not gr then return false end
+        local unit_name = gr:getUnit(1):getTypeName()
+
+        if warehouse:getItemCount(unit_name) > 1 then --self:getAircraftReserveThreshold() then
+            return true
         end
         return false
     end
