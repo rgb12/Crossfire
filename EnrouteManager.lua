@@ -265,6 +265,8 @@ do
                             if not enroute.has_been_airborne then
                                 if unit:inAir() then
                                     enroute.has_been_airborne = true
+                                    enroute.last_pos = { x = pos.x, y = pos.y, z = pos.z }
+                                    enroute.last_pos_time = now
                                 else
                                     enroute.landed_candidate_since = nil
                                     enroute.last_pos = { x = pos.x, y = pos.y, z = pos.z }
@@ -275,30 +277,24 @@ do
                             if enroute.has_been_airborne then
                                 local ground = land.getHeight({x = pos.x, y = pos.z})
                                 local agl = pos.y - ground
-                                local last_pos = enroute.last_pos
-                                local handled = false
 
-                                if last_pos then
-                                    local dx = pos.x - last_pos.x
-                                    local dz = pos.z - last_pos.z
-                                    local dist_sq = (dx * dx) + (dz * dz)
+                                local vel = (unit.getVelocity and unit:getVelocity()) or { x = 0, y = 0, z = 0 }
+                                local h_speed = math.sqrt((vel.x * vel.x) + (vel.z * vel.z))
 
-                                    if dist_sq <= 100 and agl <= 5 then
-                                        enroute.landed_candidate_since = enroute.landed_candidate_since or now
-                                        if (now - enroute.landed_candidate_since) >= 15 then
-                                            MissionLogger:info("AI Helicopter " .. enroute.group_name .. " considered landed")
-                                            self:handleHeloLanding(enroute, unit, pos)
-                                            handled = true
-                                        end
-                                    else
-                                        enroute.landed_candidate_since = nil
+                                if agl <= 20 and h_speed < 3 then
+                                    enroute.landed_candidate_since = enroute.landed_candidate_since or now
+                                    if (now - enroute.landed_candidate_since) >= 15 then
+                                        MissionLogger:info("AI Helicopter " .. enroute.group_name
+                                            .. " considered landed (agl=" .. string.format("%.1f", agl)
+                                            .. ", spd=" .. string.format("%.1f", h_speed) .. ")")
+                                        self:handleHeloLanding(enroute, unit, pos)
                                     end
+                                else
+                                    enroute.landed_candidate_since = nil
                                 end
 
-                                if not handled then
-                                    enroute.last_pos = { x = pos.x, y = pos.y, z = pos.z }
-                                    enroute.last_pos_time = now
-                                end
+                                enroute.last_pos = { x = pos.x, y = pos.y, z = pos.z }
+                                enroute.last_pos_time = now
                             end
                         end
                     end
