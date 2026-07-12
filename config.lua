@@ -1258,6 +1258,8 @@ Config = {
     lha_setup = {
         -- (string)
         lha_unit_name = "LHA",
+        -- (string) display/zone name for the LHA pseudo-zone (defaults to lha_unit_name)
+        name = "LHA",
         -- (bool)
         enabled = true,
     },

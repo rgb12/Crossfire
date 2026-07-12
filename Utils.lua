@@ -259,7 +259,7 @@ function utils.findClosestCaptureHeloSource(to_zone, side, max_distance_m)
                 Config.lha_setup.lha_source = true
                 table.insert(candidates, {
                     source = {
-                        name = Config.lha_setup.name,
+                        name = Config.lha_setup.name or Config.lha_setup.lha_unit_name,
                         side = side,
                         zone_type = ZoneTypes.LOGISTICS,
                         zone = {
