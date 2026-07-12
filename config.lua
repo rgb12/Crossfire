@@ -1137,7 +1137,7 @@ Config = {
     },
 
     -- (int) (meters)
-    capture_helicopter_max_range = 100*1000 ,
+    capture_helicopter_max_range = 150*1000 ,
 
     -- (int) (meters) the range at which enemy zones will be discovered from
     -- friendly zones
