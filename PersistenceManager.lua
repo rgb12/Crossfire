@@ -374,13 +374,18 @@ do
             end
         end
 
-        -- Save carrier warehouse
         if Config.carrier_setup.enabled and Config.carrier_setup.carrier_unit_name then
-            local carrier = Airbase.getByName(Config.carrier_setup.carrier_unit_name)
-            if carrier then
-                local warehouse = carrier:getWarehouse()
-                if warehouse then
-                    PersistenceManager.data.warehouses[Config.carrier_setup.carrier_unit_name] = warehouse:getInventory()
+            local carrier_names = { Config.carrier_setup.carrier_unit_name }
+            if Config.carrier_setup.supercarrier_unit_name then
+                table.insert(carrier_names, Config.carrier_setup.supercarrier_unit_name)
+            end
+            for _, carrier_name in ipairs(carrier_names) do
+                local carrier = Airbase.getByName(carrier_name)
+                if carrier then
+                    local warehouse = carrier:getWarehouse()
+                    if warehouse then
+                        PersistenceManager.data.warehouses[carrier_name] = warehouse:getInventory()
+                    end
                 end
             end
         end

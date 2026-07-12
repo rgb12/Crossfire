@@ -1241,6 +1241,10 @@ do
             if Config.carrier_setup.enabled
             and Config.carrier_setup.carrier_unit_name then
                 WarehouseManager:attributeAirbaseStock(Config.carrier_setup.carrier_unit_name, coalition.side.BLUE, {StockTypes.CARRIER_INITAL})
+                local supercarrier_name = Config.carrier_setup.supercarrier_unit_name
+                if supercarrier_name and Airbase.getByName(supercarrier_name) then
+                    WarehouseManager:attributeAirbaseStock(supercarrier_name, coalition.side.BLUE, {StockTypes.CARRIER_INITAL})
+                end
                 ---@type table
                 local carrier_setup = Config.carrier_setup
                 carrier_setup.name = carrier_setup.carrier_unit_name
