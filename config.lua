@@ -781,7 +781,7 @@ Config = {
             [ZoneTypes.EWSITE]      = 5,
         },
         -- (int) REQUIRES MISSION RESTART. seed determines scenario selection, zone types and levels. Use -1 for random seed
-        seed = -1,
+        seed = 2025,
         -- (table)  REQUIRES MISSION RESTART
         sam_classification_thresholds = {
             -- (int) (%) rolls below this : SHORT RANGE SAM
@@ -1246,6 +1246,8 @@ Config = {
     carrier_setup = {
         -- (string)
         carrier_unit_name = "Carrier",
+        -- (string) only for warehouse attribution
+        supercarrier_unit_name = "Supercarrier",
         -- (string) set to nil if no Tomahawk launcher in the mission
         tomahawk_launcher_unit_name = "Naval Launcher",
         -- (bool)
