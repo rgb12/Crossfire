@@ -553,6 +553,40 @@ scenarios = {
         name        = "North Syria",
         description = "Conflict in northern Syria.",
     },
+    {
+        theater      = Theatres.SYRIA,
+        blue_airbase = "RAMAT DAVID", -- trigger zone name
+        red_airbase  = "NEVATIM", -- trigger zone name
+        map_setup = {
+            width_factor = 1.3,
+            corridor_half_width = 0.20,
+            airbase_influence = 40000,
+            red_distribution = 0.75,
+        },
+        resupply = {
+            blue_point = { x = -441361,  y = 6096, z = 152387 },
+            red_point  = { x = -179163, y = 6096, z = -57428 },
+        },
+        name        = "South Syria",
+        description = "Conflict in southern Syria.",
+    },
+    {
+        theater      = Theatres.SYRIA,
+        blue_airbase = "AKROTIRI", -- trigger zone name
+        red_airbase  = "ERCAN", -- trigger zone name
+        map_setup = {
+            width_factor = 1.8,
+            corridor_half_width = 0.20,
+            airbase_influence = 40000,
+            red_distribution = 0.75,
+        },
+        resupply = {
+            blue_point = { x = -441361,  y = 6096, z = 152387 },
+            red_point  = { x = -179163, y = 6096, z = -57428 },
+        },
+        name        = "South Syria",
+        description = "Conflict in southern Syria.",
+    },
 }
 
 
