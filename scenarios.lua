@@ -558,8 +558,8 @@ scenarios = {
         blue_airbase = "RAMAT DAVID", -- trigger zone name
         red_airbase  = "NEVATIM", -- trigger zone name
         map_setup = {
-            width_factor = 1.3,
-            corridor_half_width = 0.20,
+            width_factor = 1.6,
+            corridor_half_width = 0.5,
             airbase_influence = 40000,
             red_distribution = 0.75,
         },
