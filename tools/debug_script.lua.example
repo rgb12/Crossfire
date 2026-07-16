@@ -1,0 +1,39 @@
+--[[
+    debug script
+
+    Assumes MIST is already loaded.
+    Loads each source module individually from disk, prevents manually loading the script every time a change is made
+
+    Set SRC below to the absolute path of this repo's src/active-scripts folder on the machine running DCS. DCS requires absolute paths for loadfile.
+    See example below
+]]
+
+local SRC = "C:\\Users\\Radient\\Documents\\Crossfire\\src\\active-scripts"
+
+local function loadModule(name)
+    assert(loadfile(SRC .. "\\" .. name))()
+end
+
+loadModule("Enums.lua")
+loadModule("config.lua")
+loadModule("Utils.lua")
+loadModule("EraEquipment.lua")
+loadModule("CTLD.lua")
+loadModule("CommandHandler.lua")
+loadModule("AICommander.lua")
+loadModule("CustomJTAC.lua")
+loadModule("EnrouteManager.lua")
+loadModule("EventHandler.lua")
+loadModule("PersistenceManager.lua")
+loadModule("TaskManager.lua")
+loadModule("TheatreManager.lua")
+loadModule("OperationManager.lua")
+loadModule("ExperienceManager.lua")
+loadModule("Frontline.lua")
+loadModule("EWRS.lua")
+loadModule("Jupiter.lua")
+loadModule("UnitHandler.lua")
+loadModule("WarehouseManager.lua")
+loadModule("ZoneHandler.lua")
+loadModule("UnitComposer.lua")
+loadModule("scenarios.lua")

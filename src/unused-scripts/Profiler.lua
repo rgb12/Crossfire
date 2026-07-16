@@ -102,7 +102,6 @@ do
         end
         return table.concat(lines, "\n")
     end
-
     --- Zero all counters.
     function Profiler.reset()
         stats = {}

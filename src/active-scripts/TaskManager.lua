@@ -1416,16 +1416,16 @@ do
                 MissionLogger:error("CAP task failed: could not get group position.")
                 return false
             end
-            
+
             -- 2. Define the CAP/Intercept tasks
-            
+
             -- Task to engage any enemy aircraft
             local engageTask = {
                 id = 'EngageTargets',
                 params = {
                     targetTypes = {'Planes', 'Helicopters'},
                     -- Search in a 100km radius around the orbit point
-                    maxDist = 100000 
+                    maxDist = 100000
                 }
             }
 
@@ -1443,7 +1443,6 @@ do
                 }
             }
 
-            -- Combine them so the AI orbits AND engages
             local comboTask = {
                 id = 'ComboTask',
                 params = {
@@ -1451,7 +1450,6 @@ do
                 }
             }
 
-            -- 3. Build the full 'Mission' wrapper
             local missionTask = {
                 id = 'Mission',
                 params = {
@@ -1462,7 +1460,6 @@ do
                 }
             }
 
-            -- Waypoint 1: TAKEOFF (from current position)
             table.insert(missionTask.params.route.points, {
                 type = AI.Task.WaypointType.TAKEOFF,
                 x = startPos.x,
@@ -1471,7 +1468,6 @@ do
                 alt_type = AI.Task.AltitudeType.RADIO
             })
 
-            -- Waypoint 2: CAP ORBIT (Fly to target zone and execute the ComboTask)
             table.insert(missionTask.params.route.points, {
                 type = AI.Task.WaypointType.TURNING_POINT,
                 x = enroute_data.to_zone.zone.point.x,
@@ -1483,7 +1479,6 @@ do
                 task = comboTask -- Attach the CAP/Engage task
             })
 
-            -- Waypoint 3: LAND (Return to the starting position)
             table.insert(missionTask.params.route.points, {
                 type = AI.Task.WaypointType.LAND,
                 x = startPos.x,
@@ -1491,11 +1486,9 @@ do
                 action = AI.Task.TurnMethod.FIN_POINT,
                 alt_type = AI.Task.AltitudeType.RADIO
             })
-            
-            -- 4. Set the complete mission
+
             ctrl:setTask(missionTask)
 
-            -- 5. Set the correct AI options (based on Pretense 'setDefaultAA')
             ctrl:setOption(AI.Option.Air.id.PROHIBIT_AG, true)
             ctrl:setOption(AI.Option.Air.id.ROE, AI.Option.Air.val.ROE.WEAPON_FREE)
 

@@ -7,8 +7,7 @@ edit every value in a simple browser UI and download a config.json.
 
 Run it again after every config.lua change to rebuild the wizard:
 
-    python3 build_wizard.py                 # config.lua -> config_wizard.html
-    python3 build_wizard.py myconf.lua out.html
+    python3 build_wizard.py or python build_wizard.py
 """
 
 import sys

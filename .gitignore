@@ -1,1 +1,10 @@
 .vscode/
+.DS_Store
+__pycache__/
+*.pyc
+tools/crossfire_script.lua
+tools/Release Scripts/
+tools/debug_script.lua
+.claude/settings.local.json
+src/release-scripts/*.lua
+dcs-lua-definitions-master/
