@@ -21,7 +21,7 @@ src/
   unused-scripts/    
   release-scripts/   Compiled per-era output (git-ignored)
   mist_4_5_126_modified.lua   Modified MIST
-tools/               Build scripts and the config wizard
+tools/               Release scripts and config wizard
 assets/              Sound files, images, ATIS audio
 briefing/            Per-theatre briefings
 docs/                Release checklist and notes
@@ -29,8 +29,9 @@ docs/                Release checklist and notes
 
 ## Environment setup
 
-Instead of recompiling after every change, you can load the modules straight from
-disk while you work. Copy the `tools/debug_script.lua.example` file and rename it to `tools/debug_script.lua`. 
+In the mission editor after uploading a script, if changes are made to this script the mission will still use the old version. Uploading the script again is necessary to take into account these changes. To get around this a debug script loads files directly and simply restarting the mission will apply the changes; very useful for development.
+
+Copy the `tools/debug_script.lua.example` file and rename it to `tools/debug_script.lua`. 
 Ensure that you have the right path inside the file.
 Head into the DCS mission editor, inside the triggers menu (three large columns), select the first row and replace the `crossfire_.lua` script with this debug script
 
@@ -42,16 +43,15 @@ For autocomplete and error checking in VS Code, I recommend https://github.com/o
 
 ## Guidelines
 
-
 - Edit only the modules under `src/active-scripts/`
 - Adding a module requires registering it in
   [`tools/insertion_order.py`](tools/insertion_order.py) and `debug_script.lua`
-- Reuse the existing helper functions where you can.
-- Avoid tight loops with short refresh intervals.
+- Reuse existing helper functions where you can
+- Avoid tight loops with short refresh intervals
 - New features should be performance-aware, avoid hundreds of units and other ways scripting could affect performance
-- Add config options if possible.
-- MIST is modified, DBs and some other functions will not work.
+- Add config options if possible
+- MIST is modified, DBs and some other functions will not work
 
 ## Reporting issues
 
-Found a bug you can't fix? Report it in the discord server or open an issue here. Include the `dcs.log` if you can.
+Report it in the [discord server](https://discord.gg/QgRRqwNegE) or open an issue in the issues section. Include the `dcs.log` if you can.
