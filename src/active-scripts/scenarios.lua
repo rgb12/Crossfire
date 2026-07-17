@@ -624,6 +624,23 @@ scenarios = {
         name        = "South Syria",
         description = "Conflict in southern Syria.",
     },
+        {
+        theater      = Theatres.CWGERMANY,
+        blue_airbase = "RAMSTEIN", -- trigger zone name
+        red_airbase  = "NORVENICH", -- trigger zone name
+        map_setup = {
+            width_factor = 1.8,
+            corridor_half_width = 0.20,
+            airbase_influence = 40000,
+            red_distribution = 0.75,
+        },
+        resupply = {
+            blue_point = { x = -00555483,  y = 6096, z = -00753314 },
+            red_point  = { x = -00216419, y = 6096, z = -00924065 },
+        },
+        name        = "Ramstein expansion",
+        description = "Conflict in south-west Germany.",
+    },
 }
 
 
