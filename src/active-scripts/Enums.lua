@@ -478,11 +478,8 @@ MissionLogger = mist.Logger:new("MissionLogger", 3)
 --        local info = {}
 --        table.insert(myBaseTbl, Airbase.getTypeName(base[i]))
 --    end
---    local zone_names = {}
 --    for i = 1, #env.mission.triggers.zones do
---     table.insert(zone_names, env.mission.triggers.zones[i].name)
+--     env.info(env.mission.triggers.zones[i].name)
 -- end
-
--- MissionLogger:info(zone_names)
 -- -- MissionLogger:info(env.mission.triggers.zones)
 -- MissionLogger:info(myBaseTbl)
