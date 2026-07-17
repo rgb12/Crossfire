@@ -10,9 +10,8 @@ Areas/zones are added via trigger zones. The name must match exactly the one ins
 1. Make sure the center of every zone is clear of any objects, this is to prevent helis from blowing up on spawn and landing.
 2. Leave at least a 150m radius clear for FARP zones
 3. Airbases should use a quad-point trigger zone and normal zones circles
-4. Make sure the area is (relatively) flat, you can see the elevation of an area by hovering over it+
-5. Head into `scenarios.lua`
-6. Add the zone, if the zone is an airbase, use a quad-point trigger zone
+4. Make sure the area is (relatively) flat, you can see the elevation of an area by hovering over it
+5. Add the zone in `scenarios.lua`; if the zone is an airbase, assign the airbase name and airbase zone type
 
 If a theatre is missing refer to new terrain details
 
