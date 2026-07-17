@@ -414,6 +414,43 @@ available_zones = {
         ZoneHandler:new({name = "R5"}),
         ZoneHandler:new({name = "R6"})
     ), -- [Theaters.SYRIA]
+    [Theatres.CWGERMANY] = passUnknown(
+        ZoneHandler:new({name = "NORDHOLZ", zone_type = ZoneTypes.AIRBASE, airbase_name = Airbases.GermanyCW.Nordholz}),
+        ZoneHandler:new({name = "KIEL", zone_type = ZoneTypes.AIRBASE, airbase_name = Airbases.GermanyCW.Kiel}),
+        ZoneHandler:new({name = "LUBECK", zone_type = ZoneTypes.AIRBASE, airbase_name = Airbases.GermanyCW.Lubeck}),
+        ZoneHandler:new({name = "LAAGE", zone_type = ZoneTypes.AIRBASE, airbase_name = Airbases.GermanyCW.Laage}),
+        ZoneHandler:new({name = "PARCHIM", zone_type = ZoneTypes.AIRBASE, airbase_name = Airbases.GermanyCW.Parchim}),
+        ZoneHandler:new({name = "DAMGARTEN", zone_type = ZoneTypes.AIRBASE, airbase_name = Airbases.GermanyCW.Damgarten}),
+        ZoneHandler:new({name = "GARZ", zone_type = ZoneTypes.AIRBASE, airbase_name = Airbases.GermanyCW.Garz}),
+        ZoneHandler:new({name = "NEUBRANDENBURG", zone_type = ZoneTypes.AIRBASE, airbase_name = Airbases.GermanyCW.Neubrandenburg}),
+        ZoneHandler:new({name = "LARZ", zone_type = ZoneTypes.AIRBASE, airbase_name = Airbases.GermanyCW.Larz}),
+        ZoneHandler:new({name = "WITTSTOCK", zone_type = ZoneTypes.AIRBASE, airbase_name = Airbases.GermanyCW.Wittstock}),
+        ZoneHandler:new({name = "NEURUPPIN", zone_type = ZoneTypes.AIRBASE, airbase_name = Airbases.GermanyCW.Neuruppin}),
+        ZoneHandler:new({name = "TEMPLIN", zone_type = ZoneTypes.AIRBASE, airbase_name = Airbases.GermanyCW.Templin}),
+        ZoneHandler:new({name = "CHOJNA", zone_type = ZoneTypes.AIRBASE, airbase_name = Airbases.GermanyCW.Chojna}),
+        ZoneHandler:new({name = "FASSBERG", zone_type = ZoneTypes.AIRBASE, airbase_name = Airbases.GermanyCW.Fassberg}),
+        ZoneHandler:new({name = "WUNSTORF", zone_type = ZoneTypes.AIRBASE, airbase_name = Airbases.GermanyCW.Wunstorf}),
+        ZoneHandler:new({name = "GUTERSLOH", zone_type = ZoneTypes.AIRBASE, airbase_name = Airbases.GermanyCW.Gutersloh}),
+        ZoneHandler:new({name = "NORVENICH", zone_type = ZoneTypes.AIRBASE, airbase_name = Airbases.GermanyCW.Norvenich}),
+        ZoneHandler:new({name = "BITBURG", zone_type = ZoneTypes.AIRBASE, airbase_name = Airbases.GermanyCW.Bitburg}),
+        ZoneHandler:new({name = "WIESBADEN", zone_type = ZoneTypes.AIRBASE, airbase_name = Airbases.GermanyCW.Wiesbaden}),
+        ZoneHandler:new({name = "RAMSTEIN", zone_type = ZoneTypes.AIRBASE, airbase_name = Airbases.GermanyCW.Ramstein}),
+        ZoneHandler:new({name = "SPANGDAHLEM", zone_type = ZoneTypes.AIRBASE, airbase_name = Airbases.GermanyCW.Spangdahlem}),
+        ZoneHandler:new({name = "A1"}),
+        ZoneHandler:new({name = "A2"}),
+        ZoneHandler:new({name = "A3"}),
+        ZoneHandler:new({name = "A4"}),
+        ZoneHandler:new({name = "B1"}),
+        ZoneHandler:new({name = "B2"}),
+        ZoneHandler:new({name = "B3"}),
+        ZoneHandler:new({name = "B4"}),
+        ZoneHandler:new({name = "B5"}),
+        ZoneHandler:new({name = "C1"}),
+        ZoneHandler:new({name = "C2"}),
+        ZoneHandler:new({name = "C3"}),
+        ZoneHandler:new({name = "C4"}),
+        ZoneHandler:new({name = "C5"})
+    ), -- [Theatres.CWGERMANY]
 }
 
 
