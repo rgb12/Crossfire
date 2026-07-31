@@ -529,11 +529,47 @@ scenarios = {
         theater      = Theatres.CAUCASUS,
         blue_airbase = "VAZIANI", -- trigger zone name
         red_airbase  = "ANAPA", -- trigger zone name
-        map_setup = {
-            width_factor = 1.3,
-            corridor_half_width = 0.20,
-            airbase_influence = 20*1000,
-            red_distribution = 0.90,
+        -- Hand-authored layout
+        assigned_zones = {
+            blue = {
+                "SOCHI", "GUDAUTA", "SUKHUMI", "SENAKI", "KUTAISI", "KOBULETI", "BATUMI",
+                "SOCHI-CENTER", "GAGRA", "SEASIDE",
+                "GALI", "LABRA", "ARADU", "TKVARCHELI", "KOKI", "HEVSHA",
+                "GRIGOLISHI", "AHALSOPELI", "DEHVIRI", "ABANOETI", "LEDGEBE",
+                "FIELDS", "FARM", "AIRFIELD", "TRAINING-AIRFIELD",
+                "SACHHERE", "EDISA", "GVERKI", "GLOLA", "KEVIN", "ONI",
+                "STRONGHOLD-CHARLIE", "STRONGHOLD-ALPHA", "STRONGHOLD-BRAVO",
+                "CHECKPOINT-SOUTH", "CHECKPOINT-QUEBEC",
+                "OUTPOST-INDIA", "OUTPOST-SEPTEMBER", "OUTPOST-NOVEMBER", "OUTPOST-DECEMBER",
+                "NOVEMBER", "UNIFORM", "YANKEE", "QUEBEC", "PAPA", "VICTOR",
+                "HOTEL", "INDIA", "GOLF", "OSCAR", "DELTA", "CHARLIE",
+                "VALLEY", "OUTPOST", "BRAVO","ALPHA", "FOXTROT","ROMEO", "JULIETT", "SUBURBS","CHECKPOINT-PAPA","OUTPOST-OSCAR",
+            },
+            red = {
+                "NOVOROSSIYSK", "GELENDZHIK", "KRYMSK", "KRASNODAR", "MAYKOP", "COAST", "BAY", "PORT", "MOUNTAIN","CHECKPOINT-OSCAR",
+                "MINERALNYE-VODY", "MOZDOK", "NALCHIK", "BESLAN",
+                "SUPSEH", "NORTH-BAY", "NORTH-FIELDS", "LONDON",
+                "ABINSK", "ASSOKOLAY", "LESOGORSKAYA", "GUBSKAYA", "PSEBAY", "TOWN",
+                "HOUSES", "ESTO", "VARDANE", "LOO", "OBSERVATORY", "REFUGE",
+                "KARACHAEVSK", "TEBERDA", "HURZUK", "BYLYM", "ALAGIR", "SADON", "BURON",
+                "ACE", "JOKER", "JACK", "QUEEN", "KING", "HEART", "CLUB", "SPADE", "DIAMOND",
+                 "ECHO", "XRAY", "MIKE", "ZULU", "LIMA",
+                 "WHISKEY", "TANGO", "KILO", "STRONGHOLD",
+                "CHECKPOINT-NORTH", "CHECKPOINT-EAST", "CHECKPOINT-WEST",
+                "CHECKPOINT-ALPHA", "CHECKPOINT-BRAVO", "CHECKPOINT-CHARLIE",
+                "CHECKPOINT-DELTA", "CHECKPOINT-ECHO", "CHECKPOINT-FOXTROT",
+                "CHECKPOINT-GOLF", "CHECKPOINT-HOTEL", "CHECKPOINT-INDIA",
+                "CHECKPOINT-JULIETT", "CHECKPOINT-ROMEO", "CHECKPOINT-KILO",
+                "CHECKPOINT-LIMA", "CHECKPOINT-MIKE", "CHECKPOINT-NOVEMBER",
+                  "CHECKPOINT-SIERRA",
+                "CHECKPOINT-ZULU", "CHECKPOINT-XRAY", "CHECKPOINT-VICTOR",
+                "CHECKPOINT-WHISKEY", "CHECKPOINT-UNIFORM", "CHECKPOINT-TANGO",
+                "CHECKPOINT-YANKEE",
+                "OUTPOST-ALPHA", "OUTPOST-BRAVO", "OUTPOST-CHARLIE", "OUTPOST-DELTA",
+                "OUTPOST-ECHO", "OUTPOST-FOXTROT", "OUTPOST-GOLF", "OUTPOST-HOTEL",
+                "OUTPOST-JULIETT", "OUTPOST-KILO", "OUTPOST-LIMA", "OUTPOST-MIKE",
+                 "OUTPOST-ZULU",
+            },
         },
         resupply = {
             blue_point = { x = -00391799, y = 6096, z = 01040738 }, --Metric: X-00391799 Z+01040738
@@ -560,74 +596,6 @@ scenarios = {
         },
         name        = "Sochi Liberation",
         description = "Liberate Sochi and invading forces.",
-    },
-    {
-        theater      = Theatres.CAUCASUS,
-        blue_airbase = "VAZIANI", -- trigger zone name
-        red_airbase  = "ANAPA", -- trigger zone name
-        -- Hand-authored layout
-        assigned_zones = {
-            blue = {
-                -- Coastal airbases south of the ridge
-                "SOCHI", "GUDAUTA", "SUKHUMI", "SENAKI", "KUTAISI", "KOBULETI", "BATUMI",
-                -- Black Sea coast, Sochi south to Abkhazia
-                "SOCHI-CENTER", "GAGRA", "COAST", "SEASIDE", "PORT", "BAY",
-                -- Abkhazia
-                "GALI", "LABRA", "ARADU", "TKVARCHELI", "KOKI", "HEVSHA",
-                -- Western Georgia / Kolkheti lowlands
-                "GRIGOLISHI", "AHALSOPELI", "DEHVIRI", "ABANOETI", "LEDGEBE",
-                "FIELDS", "FARM", "AIRFIELD", "TRAINING-AIRFIELD",
-                -- Central and eastern Georgia
-                "SACHHERE", "EDISA", "GVERKI", "GLOLA", "KEVIN", "ONI",
-                "STRONGHOLD-CHARLIE", "STRONGHOLD-ALPHA", "STRONGHOLD-BRAVO",
-                -- Georgian checkpoints and outposts
-                "CHECKPOINT-SOUTH", "CHECKPOINT-QUEBEC",
-                "OUTPOST-INDIA", "OUTPOST-SEPTEMBER", "OUTPOST-NOVEMBER", "OUTPOST-DECEMBER",
-                -- Generic zones inside the blue hull
-                "NOVEMBER", "UNIFORM", "YANKEE", "QUEBEC", "PAPA", "VICTOR",
-                "HOTEL", "INDIA", "GOLF", "OSCAR", "DELTA", "CHARLIE",
-                "VALLEY", "MOUNTAIN", "OUTPOST",
-            },
-            red = {
-                -- Kuban and North Caucasus airbases
-                "NOVOROSSIYSK", "GELENDZHIK", "KRYMSK", "KRASNODAR", "MAYKOP",
-                "MINERALNYE-VODY", "MOZDOK", "NALCHIK", "BESLAN",
-                -- Anapa surroundings (home airbase excluded)
-                "SUPSEH", "NORTH-BAY", "NORTH-FIELDS", "SUBURBS", "LONDON",
-                -- Kuban plain
-                "ABINSK", "ASSOKOLAY", "LESOGORSKAYA", "GUBSKAYA", "PSEBAY", "TOWN",
-                "HOUSES", "ESTO", "VARDANE", "LOO", "OBSERVATORY", "REFUGE",
-                -- North Caucasus interior
-                "KARACHAEVSK", "TEBERDA", "HURZUK", "BYLYM", "ALAGIR", "SADON", "BURON",
-                -- Card-named zones on the Kuban plain
-                "ACE", "JOKER", "JACK", "QUEEN", "KING", "HEART", "CLUB", "SPADE", "DIAMOND",
-                -- Northern generic zones
-                "ALPHA", "BRAVO", "ECHO", "FOXTROT", "XRAY", "MIKE", "ZULU", "LIMA",
-                "ROMEO", "JULIETT", "WHISKEY", "TANGO", "KILO", "STRONGHOLD",
-                -- Northern checkpoints
-                "CHECKPOINT-NORTH", "CHECKPOINT-EAST", "CHECKPOINT-WEST",
-                "CHECKPOINT-ALPHA", "CHECKPOINT-BRAVO", "CHECKPOINT-CHARLIE",
-                "CHECKPOINT-DELTA", "CHECKPOINT-ECHO", "CHECKPOINT-FOXTROT",
-                "CHECKPOINT-GOLF", "CHECKPOINT-HOTEL", "CHECKPOINT-INDIA",
-                "CHECKPOINT-JULIETT", "CHECKPOINT-ROMEO", "CHECKPOINT-KILO",
-                "CHECKPOINT-LIMA", "CHECKPOINT-MIKE", "CHECKPOINT-NOVEMBER",
-                "CHECKPOINT-OSCAR", "CHECKPOINT-PAPA", "CHECKPOINT-SIERRA",
-                "CHECKPOINT-ZULU", "CHECKPOINT-XRAY", "CHECKPOINT-VICTOR",
-                "CHECKPOINT-WHISKEY", "CHECKPOINT-UNIFORM", "CHECKPOINT-TANGO",
-                "CHECKPOINT-YANKEE",
-                -- Northern outposts
-                "OUTPOST-ALPHA", "OUTPOST-BRAVO", "OUTPOST-CHARLIE", "OUTPOST-DELTA",
-                "OUTPOST-ECHO", "OUTPOST-FOXTROT", "OUTPOST-GOLF", "OUTPOST-HOTEL",
-                "OUTPOST-JULIETT", "OUTPOST-KILO", "OUTPOST-LIMA", "OUTPOST-MIKE",
-                "OUTPOST-OSCAR", "OUTPOST-ZULU",
-            },
-        },
-        resupply = {
-            blue_point = { x = -00391799, y = 6096, z = 01040738 }, --Metric: X-00391799 Z+01040738
-            red_point  = { x = 00014496, y = 6096, z = 00119373 }, --  Metric: X+00014496 Z+00119373
-        },
-        name        = "Caucasus Divide",
-        description = "Full-map war across the Caucasus ridge: Russia holds the Kuban, Georgia holds the south.",
     },
     {
         theater      = Theatres.SYRIA,
