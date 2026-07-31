@@ -853,7 +853,7 @@ do
         scenario = eligible_scenarios[rng_int(1, #eligible_scenarios)]
 
         
-        local theatre_config = scenario.map_setup
+        local theatre_config = scenario.map_setup or {}
 
         MissionLogger:info("Selected scenario: " .. scenario.name)
         MissionLogger:info(scenario.blue_airbase .. " (BLUE), " .. scenario.red_airbase .. " (RED)")
@@ -893,14 +893,60 @@ do
 
         local distance_main = math.sqrt((blue_x - red_x)^2 + (blue_z - red_z)^2)
 
+        ---@type ZoneHandler[]
+        local active_zones = {}
+        ---@type ZoneHandler[]
+        local blue_pool = {}
+        ---@type ZoneHandler[]
+        local red_pool = {}
+
+        stats.blue_zones = 1 -- counting the blue airbase
+        stats.red_zones = 1 -- counting the red airbase
+
+        if scenario.assigned_zones then
+        -- Explicit zone override. Zones not listed are left out of the theatre entirely,
+        ---@type table<string, number>
+        local assigned_side = {}
+        for _, zone_name in ipairs(scenario.assigned_zones.blue or {}) do
+            assigned_side[zone_name] = coalition.side.BLUE
+        end
+        for _, zone_name in ipairs(scenario.assigned_zones.red or {}) do
+            assigned_side[zone_name] = coalition.side.RED
+        end
+
+        for _, zone in ipairs(all_other_zones) do
+            local side = assigned_side[zone.name]
+            if side then
+                zone.side = side
+                table.insert(active_zones, zone)
+
+                if side == coalition.side.BLUE then
+                    stats.blue_zones = stats.blue_zones + 1
+                    if not zone.zone_type then table.insert(blue_pool, zone) end
+                else
+                    stats.red_zones = stats.red_zones + 1
+                    if not zone.zone_type then table.insert(red_pool, zone) end
+                end
+
+                -- Consume the entry so anything left over is a name that does not exist
+                assigned_side[zone.name] = nil
+            end
+        end
+
+        for zone_name, _ in pairs(assigned_side) do
+            MissionLogger:warn("assigned_zones references a zone that is not in the theatre pool: " .. zone_name)
+        end
+
+        MissionLogger:info(string.format("Explicit zone assignment complete. %d zones activated out of %d (%d BLUE, %d RED).",
+            #active_zones, #all_other_zones, stats.blue_zones - 1, stats.red_zones - 1))
+
+        else
+
         local width_factor = theatre_config.width_factor or 1.3 -- legacy parameter
         local max_allowed_sum = distance_main * width_factor
         local corridor_half_width_frac = theatre_config.corridor_half_width  or 0.20
         local corridor_half_width = distance_main * corridor_half_width_frac
         local airbase_padding = theatre_config.airbase_influence or 20000
-
-        ---@type ZoneHandler[]
-        local active_zones = {}
 
         for _, zone in ipairs(all_other_zones) do
             local zx = zone.zone.point.x
@@ -952,13 +998,6 @@ do
         local frontline_radius = distance_main * frontline_distribution
         MissionLogger:info(string.format("Frontline radius set to %.1f%% of main airbase distance: %.0f meters", frontline_distribution*100, frontline_radius))
 
-        stats.blue_zones = 1 -- counting the blue airbase
-        stats.red_zones = 1 -- counting the red airbase
-        ---@type ZoneHandler[]
-        local blue_pool = {}
-        ---@type ZoneHandler[]
-        local red_pool = {}
-
         for _, zone in ipairs(active_zones) do
             local dist_to_red = mist.utils.get2DDist(zone.zone.point, red_airbase.zone.point)
             local dist_to_blue = mist.utils.get2DDist(zone.zone.point, blue_airbase.zone.point)
@@ -986,6 +1025,8 @@ do
                 if not zone.zone_type then table.insert(blue_pool, zone) end
             end
         end
+
+        end -- scenario.assigned_zones branch
 
         -- Assign zone types (Logistics & Randoms)
         local function assignTypesToPool(pool, home)
