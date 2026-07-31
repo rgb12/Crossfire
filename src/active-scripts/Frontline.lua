@@ -261,6 +261,7 @@ do
     end
 
     function Frontline.drawFrontline()
+        if not Config.enable_frontline then return end
         MissionLogger:info("FRONTLINE: Computing frontline...")
         local frontline_data = Frontline.computeFrontline()
         Frontline.cached_segments = frontline_data.frontline_segments
