@@ -1676,7 +1676,7 @@ Stocks.EquipmentData = {
 
       -- AIR AIR SHORT RANGE
         [Stocks.Equipment.AIM_9JULI                  ] = { stock_type = StockTypes.AIR_AIR_SHORT_RANGE, base_qty = 18, eras = { Eras.EARLYCOLDWAR, Eras.LATECOLDWAR } }, -- AIM-9J/JULI (German upgrade)
-        [Stocks.Equipment.RB_24                      ] = { stock_type = StockTypes.AIR_AIR_SHORT_RANGE, base_qty = 18, eras = { Eras.EARLYCOLDWAR, Eras.LATECOLDWAR } }, -- Swedish Rb 24 (AIM-9B)
+        [Stocks.Equipment.RB_24                      ] = { stock_type = StockTypes.AIR_AIR_SHORT_RANGE, base_qty = 18, eras = { Eras.EARLYCOLDWAR, Eras.LATECOLDWAR, Eras.MODERN } }, -- Swedish Rb 24 (AIM-9B)
         [Stocks.Equipment.AIM_9J                     ] = { stock_type = StockTypes.AIR_AIR_SHORT_RANGE, base_qty = 18, eras = { Eras.EARLYCOLDWAR, Eras.LATECOLDWAR } },
         [Stocks.Equipment.AIM_9B                     ] = { stock_type = StockTypes.AIR_AIR_SHORT_RANGE, base_qty = 18, eras = { Eras.EARLYCOLDWAR } },
         [Stocks.Equipment.AIM_9L                     ] = { stock_type = StockTypes.AIR_AIR_SHORT_RANGE, base_qty = 30, eras = { Eras.LATECOLDWAR } },
@@ -1693,7 +1693,7 @@ Stocks.EquipmentData = {
         [Stocks.Equipment.PL_8B                      ] = { stock_type = StockTypes.AIR_AIR_SHORT_RANGE, base_qty = 18, eras = { Eras.MODERN } },
         [Stocks.Equipment.R_60M                      ] = { stock_type = StockTypes.AIR_AIR_SHORT_RANGE, base_qty = 31, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
         [Stocks.Equipment.R73_AA_11_ARCHER           ] = { stock_type = StockTypes.AIR_AIR_SHORT_RANGE, base_qty = 9, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
-        [Stocks.Equipment.RB_24J                     ] = { stock_type = StockTypes.AIR_AIR_SHORT_RANGE, base_qty = 18, eras = { Eras.EARLYCOLDWAR, Eras.LATECOLDWAR } },
+        [Stocks.Equipment.RB_24J                     ] = { stock_type = StockTypes.AIR_AIR_SHORT_RANGE, base_qty = 18, eras = { Eras.EARLYCOLDWAR, Eras.LATECOLDWAR, Eras.MODERN } },
         [Stocks.Equipment.RB_74                      ] = { stock_type = StockTypes.AIR_AIR_SHORT_RANGE, base_qty = 18, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
         [Stocks.Equipment.RS2US                      ] = { stock_type = StockTypes.AIR_AIR_SHORT_RANGE, base_qty = 18, eras = { Eras.EARLYCOLDWAR, Eras.LATECOLDWAR } },
         [Stocks.Equipment.R_13M                      ] = { stock_type = StockTypes.AIR_AIR_SHORT_RANGE, base_qty = 18, eras = { Eras.EARLYCOLDWAR, Eras.LATECOLDWAR } },
@@ -1731,7 +1731,7 @@ Stocks.EquipmentData = {
         [Stocks.Equipment.FAB_500                    ] = { stock_type = StockTypes.AIR_GROUND_BOMBS, base_qty = 24, eras = { Eras.EARLYCOLDWAR, Eras.LATECOLDWAR, Eras.MODERN } },
         [Stocks.Equipment.GBU_43                     ] = { stock_type = StockTypes.AIR_GROUND_BOMBS, base_qty = 5, eras = { Eras.MODERN } },
         [Stocks.Equipment.LUU_2B                     ] = { stock_type = StockTypes.AIR_GROUND_BOMBS, base_qty = 15, eras = { Eras.EARLYCOLDWAR, Eras.LATECOLDWAR, Eras.MODERN } },
-        [Stocks.Equipment.LYSBOMB_11086              ] = { stock_type = StockTypes.AIR_GROUND_BOMBS, base_qty = 15, eras = { Eras.LATECOLDWAR } },
+        [Stocks.Equipment.LYSBOMB_11086              ] = { stock_type = StockTypes.AIR_GROUND_BOMBS, base_qty = 15, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
         [Stocks.Equipment.MK_20_ROCKEYE              ] = { stock_type = StockTypes.AIR_GROUND_BOMBS, base_qty = 40, eras = { Eras.EARLYCOLDWAR, Eras.LATECOLDWAR, Eras.MODERN } },
         [Stocks.Equipment.MK_81                      ] = { stock_type = StockTypes.AIR_GROUND_BOMBS, base_qty = 70, eras = { Eras.EARLYCOLDWAR, Eras.LATECOLDWAR, Eras.MODERN } },
         [Stocks.Equipment.MK_82                      ] = { stock_type = StockTypes.AIR_GROUND_BOMBS, base_qty = 110, eras = { Eras.EARLYCOLDWAR, Eras.LATECOLDWAR, Eras.MODERN } },
