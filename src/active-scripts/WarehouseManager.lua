@@ -360,6 +360,7 @@ do
 
             [Stocks.Aircraft.F15C]                 = StockTypes.AA_AIRCRAFT,
             [Stocks.Aircraft.F14B]                 = StockTypes.AA_AIRCRAFT,
+            [Stocks.Aircraft.F_14BU]               = StockTypes.AA_AIRCRAFT,
             [Stocks.Aircraft.F_14A_135_GR]         = StockTypes.AA_AIRCRAFT,
             [Stocks.Aircraft.F14A_EARLY]           = StockTypes.AA_AIRCRAFT,
             [Stocks.Aircraft.F14A]                 = StockTypes.AA_AIRCRAFT,
@@ -892,11 +893,6 @@ do
         MissionLogger:info("HandleIncomingSupplies: Supply distribution complete for " .. (utils.coalitionToString(side) or "Unknown Side"))
     end
 
-    --- Resolve the declared payload for a coalition + task, honouring per-era
-    --- overrides. For the ACTIVE era, an [coalition][Eras.X][task] entry wins;
-    --- otherwise we fall back to the plain [coalition][task] entry. Mirrors
-    --- EraSystem.resolveTaskTemplateName so the stock gate matches the flight
-    --- that TaskManager actually spawns.
     ---@param airbase_coalition coalition.side
     ---@param ai_task_type AITaskTypes
     ---@return table|nil payload  { [weapon_clsid] = amount } or nil if none declared
@@ -962,10 +958,6 @@ do
 
         -- Check each weapon requirement
         for wpn_id,amount in pairs(payload) do
-            -- Skip weapons the warehouse API cannot hold/count (unguided rockets,
-            -- gun shells, drop tanks, ...). getItemCount stays 0 for these forever,
-            -- so requiring them would block the task PERMANENTLY. They are not
-            -- warehouse-limited, so treat them as always available.
             if isWarehouseTrackable(wpn_id) then
                 local current_count = warehouse:getItemCount(wpn_id)
                 if current_count < amount then

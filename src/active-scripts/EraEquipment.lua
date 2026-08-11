@@ -12,6 +12,7 @@ Stocks.Aircraft = {
     M2000C = "M-2000C",
     FA18C_HORNET = "FA-18C_hornet",
     F_14A_135_GR = "F-14A-135-GR",
+    F_14BU = "F-14BU",
     F14B = "F-14B",
     A10C_TANK_KILLER_II = "A-10C_2",
     F15C = "F-15C",
@@ -188,6 +189,7 @@ Stocks.UserAircraft = {
     Stocks.Aircraft.MIG19P,
     Stocks.Aircraft.F14A_95_GR,
     Stocks.Aircraft.F14B,
+    Stocks.Aircraft.F_14BU,
     Stocks.Aircraft.F14A_EARLY,
 }
 
@@ -249,6 +251,7 @@ Stocks.AircraftEras = {
         Stocks.Aircraft.F14A_EARLY,
         Stocks.Aircraft.F14A,
         Stocks.Aircraft.F14B,
+        Stocks.Aircraft.F_14BU,
         Stocks.Aircraft.F15C,
         Stocks.Aircraft.A10A,
         Stocks.Aircraft.A6E,
@@ -380,6 +383,7 @@ Stocks.AircraftEras = {
         Stocks.Aircraft.MIG21BIS,
         Stocks.Aircraft.F14A,
         Stocks.Aircraft.F14B,
+        Stocks.Aircraft.F_14BU,
         Stocks.Aircraft.F_14A_135_GR,
         Stocks.Aircraft.F14A_EARLY,
         Stocks.Aircraft.F14A_95_GR,
@@ -2411,6 +2415,7 @@ Stocks.AircraftLoads = {
     [Stocks.Aircraft.F14A]         = F14_STORES,
     [Stocks.Aircraft.F14A_EARLY]   = F14_STORES,
     [Stocks.Aircraft.F14B]         = F14_STORES,
+    [Stocks.Aircraft.F_14BU]       = F14_STORES,
     [Stocks.Aircraft.F15C] = {
         Stocks.Equipment.AIM_7F,
         Stocks.Equipment.AIM_7M,
