@@ -249,7 +249,8 @@ do
         end
 
         TaskManager:checkTankerSectors()
-        
+        TaskManager:checkAWACSStations()
+
         for i = #EnrouteManager.enroutes, 1, -1 do
             local enroute = EnrouteManager.enroutes[i]
             if enroute then -- Check if enroute object is valid

@@ -18,7 +18,7 @@
 -- (value)
 Config = {
     -- (int) config version should not be edited unless comprehensively understood
-    _config_file_version = 2,
+    _config_file_version = 3,
     -- (int) mission version should not be edited unless comprehensively understood
     _mission_version = 6,
     -- (bool) development setting, set to false to prevent the mission from loading
@@ -1041,7 +1041,33 @@ Config = {
             max_ch = 80
         } -- __X, the Y channel cannot be set via script (DCS Core issue)
     },
-    
+
+    -- (table)
+    awacs = {
+        -- (int) feet, on-station orbit altitude
+        altitude_ft = 24000,
+        -- (int) knots, on-station orbit speed
+        speed_kts = 450,
+        -- (int) (meters) racetrack half-length (distance from center to each orbit point)
+        leg_half_length = 5000,
+        -- (int) (meters) how close to the orbit the AWACS must get before it is
+        -- considered on station and the frequency text box is drawn
+        on_station_radius = 4000,
+
+        -- (string) ex in this case: AWACS 281 AM
+        text_title = "AWACS",
+        -- (table<number>)
+        text_color = {1,1,1,1},
+        -- (table<number>)
+        text_background = {189/255,154/255,15/255,0.6},
+
+        -- (table<coalition.side,table>) AM frequency band assigned per side
+        frequencies = {
+            [coalition.side.RED]  = { min_MHz = 271, max_MHz = 276 }, -- Red AWACS/GCI
+            [coalition.side.BLUE] = { min_MHz = 277, max_MHz = 282 }, -- Blue AWACS/GCI
+        },
+    },
+
     -- (table)
     ctld = {
         -- (string)
@@ -1304,7 +1330,7 @@ Config = {
         frontline_color = {1.00, 1.00, 1.00, 0.95},
         -- (int) line style (1=solid, 2=dashed, 3=dotted, see utils.LineStyle)
         frontline_linestyle = 1,
-        enable_frontline = true,
+        enable_frontline = false,
     }
 
 }

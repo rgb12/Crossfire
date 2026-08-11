@@ -1764,16 +1764,19 @@ do
 
             -- 3. Calculate the two racetrack points (10km separation)
             local leg_angle = math.random() * 2 * math.pi -- Random orientation for the racetrack
-            local distFromCenter = 5000 -- 10km / 2
+            local distFromCenter = Config.awacs.leg_half_length or 5000
             local dx = distFromCenter * math.cos(leg_angle)
             local dz = distFromCenter * math.sin(leg_angle)
 
             local pos1 = { x = racetrack_center.x + dx, y = racetrack_center.z + dz }
             local pos2 = { x = racetrack_center.x - dx, y = racetrack_center.z - dz }
 
+            local station_altitude = mist.utils.feetToMeters(Config.awacs.altitude_ft or 24000)
+            local station_speed = mist.utils.knotsToMps(Config.awacs.speed_kts or 450)
+
             -- 4. Define the AWACS tasks
             local awacsTask = { id = 'AWACS' }
-            
+
             local eplrsTask = {
                 id = "WrappedAction",
                 params = {
@@ -1790,8 +1793,8 @@ do
                     pattern = 'Race-Track',
                     point = pos1,
                     point2 = pos2,
-                    speed = 180, -- m/s (~350 kts)
-                    altitude = 9144 -- 30k ft
+                    speed = station_speed,
+                    altitude = station_altitude
                 }
             }
             
@@ -1830,7 +1833,7 @@ do
                 y = pos1.y,
                 speed = 257, -- m/s (approx 500 kts)
                 action = AI.Task.TurnMethod.FLY_OVER_POINT,
-                alt = 9144, -- 30k ft
+                alt = station_altitude,
                 alt_type = AI.Task.AltitudeType.BARO,
                 task = comboTask -- Attach the AWACS/Orbit/EPLRS combo task
             })
@@ -1843,11 +1846,9 @@ do
                 action = AI.Task.TurnMethod.FIN_POINT,
                 alt_type = AI.Task.AltitudeType.RADIO
             })
-            
-            -- 6. Set the complete mission
+
             ctrl:setTask(missionTask)
 
-            -- 7. Set AI options for AWACS
             ctrl:setOption(AI.Option.Air.id.PROHIBIT_AG, true)
             ctrl:setOption(AI.Option.Air.id.PROHIBIT_AA, true)
             ctrl:setOption(AI.Option.Air.id.REACTION_ON_THREAT, AI.Option.Air.val.REACTION_ON_THREAT.PASSIVE_DEFENCE)
@@ -1855,10 +1856,87 @@ do
             ctrl:setOption(AI.Option.Air.id.JETT_TANKS_IF_EMPTY, true)
             ctrl:setOption(AI.Option.Air.id.PROHIBIT_JETT, true)
 
+            local freq_band = Config.awacs.frequencies[enroute_data.side]
+            local frequency = freq_band and self:createFrequency(freq_band.min_MHz, freq_band.max_MHz) or nil
+
+            if frequency then
+                ctrl:setCommand({
+                    id = 'SetFrequency',
+                    params = {
+                        frequency = frequency * 1e6, -- MHz to Hz
+                        modulation = radio.modulation.AM,
+                        power = 50,
+                    }
+                })
+            end
+
+            self.AWACSOrbitArea[awacs_group_name] = {
+                group_name = awacs_group_name,
+                side = enroute_data.side,
+                center_point = {
+                    x = racetrack_center.x,
+                    y = land.getHeight({ x = racetrack_center.x, y = racetrack_center.z }),
+                    z = racetrack_center.z
+                },
+                orbit_point_1 = pos1,
+                frequency = frequency,
+                mark_id = nil,
+                on_station = false,
+                active = true,
+            }
+
             trigger.action.outTextForCoalition(enroute_data.side, "AWACS mission tasked, enroute to station.", 10)
             trigger.action.outSoundForCoalition(enroute_data.side, "transmission1.ogg")
             MissionLogger:info("AWACS mission tasked, establishing orbit.")
         end, {}, timer.getTime() + 12)
+    end
+
+    ---@param orbit table
+    function TaskManager:drawAWACSStation(orbit)
+        if not orbit then return end
+
+        if orbit.mark_id then
+            trigger.action.removeMark(orbit.mark_id)
+            orbit.mark_id = nil
+        end
+
+        local text_display = string.format(
+            "%s %s AM",
+            Config.awacs.text_title or "AWACS",
+            tostring(orbit.frequency or "---")
+        )
+
+        orbit.mark_id = nextMarkId()
+        trigger.action.textToAll(orbit.side, orbit.mark_id, orbit.center_point, Config.awacs.text_color, Config.awacs.text_background, 13, true, text_display)
+    end
+
+    function TaskManager:checkAWACSStations()
+        local orbits_to_cleanup = {}
+
+        for group_name, orbit in pairs(self.AWACSOrbitArea) do
+            local grp = Group.getByName(group_name)
+            if not grp or not grp:isExist() then
+                table.insert(orbits_to_cleanup, group_name)
+            elseif not orbit.on_station then
+                local pos = mist.getLeadPos(grp)
+                if pos then
+                    local dist = mist.utils.get2DDist(pos, orbit.orbit_point_1)
+                    if dist <= (Config.awacs.on_station_radius or 4000) then
+                        orbit.on_station = true
+                        self:drawAWACSStation(orbit)
+                        trigger.action.outTextForCoalition(orbit.side, "AWACS on station, frequency "..tostring(orbit.frequency).." AM.", 10)
+                    end
+                end
+            end
+        end
+
+        for _, group_name in ipairs(orbits_to_cleanup) do
+            local orbit = self.AWACSOrbitArea[group_name]
+            if orbit and orbit.mark_id then
+                trigger.action.removeMark(orbit.mark_id)
+            end
+            self.AWACSOrbitArea[group_name] = nil
+        end
     end
 
 
