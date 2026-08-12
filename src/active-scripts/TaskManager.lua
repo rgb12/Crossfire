@@ -818,15 +818,6 @@ do
 
         elseif AITaskTypes.JTAC == ai_task_type and to_zone then
             -- JTAC does not follow classic spawn from airbase, it instead spawns in the air near the target zone and orbits there
-            -- Currently only works for blue
-
-            if side == coalition.side.RED then
-                if user_requested then
-                    trigger.action.outTextForCoalition(side,"JTAC tasking cannot be executed for this coalition.",5)
-                end
-                MissionLogger:info("[JTAC] JTAC tasking cannot be executed for the RED coalition, does not have a JTAC in ME.")
-                return false
-            end
 
             if EnrouteManager:findByToZone(to_zone,side,{AITaskTypes.JTAC}) then
                 if user_requested then
@@ -841,10 +832,13 @@ do
                 y = mist.utils.feetToMeters(25000),               -- y is ALTITUDE
                 z = to_zone.zone.point.z + math.random(-5000, 5000)
             }
-            if not blue_airbase then return false end
+
+            local side_assets = side == coalition.side.BLUE and GroupData.COMMON_ASSETS.BLUE or GroupData.COMMON_ASSETS.RED
+            local home_airbase = side == coalition.side.BLUE and blue_airbase or red_airbase
+            if not home_airbase then return false end
 
             local new_group = mist.teleportToPoint({
-                groupName = EraSystem.resolveTaskTemplateName(GroupData.COMMON_ASSETS.BLUE.jtac),
+                groupName = EraSystem.resolveTaskTemplateName(side_assets.jtac),
                 point = spawn_point,
                 action = "clone"
             })
@@ -853,7 +847,7 @@ do
             local ai_enroute_data = EnrouteManager:add({
                 to_zone = to_zone,
                 side=side,
-                from_zone=blue_airbase,
+                from_zone=home_airbase,
                 group_name=new_group.name,
                 ai_task_type=ai_task_type
             })
