@@ -426,15 +426,21 @@ do
             stats.red_farp_zones = stats.red_farp_zones +1
         end
 
-        -- Base coordinates for the zone center (where Invisible FARP goes)
+        -- Base coordinates for the zone center (where the FARP pad goes)
         local base_x = zone.zone.point.x
         local base_y = zone.zone.point.z -- DCS world Z coordinate is Lua's Y
+
+        -- Unique callsign/frequency per FARP zone so pads don't collide on ATC.
+        local heliport_callsign_id = ((zone.zone.id - 1) % 10) + 1
+        local heliport_frequency = string.format("%.1f", 127.5 + (heliport_callsign_id - 1))
 
         -- List of Statics to spawn with their estimated offsets (X, Y)
         local farp_statics_to_spawn = {
             -- Invisible FARP (Center Point)
-            { type = "Invisible FARP", category = "Heliports", shape_name = "invisiblefarp", offset_x = 0, offset_y = 0 },
-            -- { type = "FARP", category = "Heliports", shape_name = "FARPS", offset_x = 0, offset_y = 0 },
+            -- { type = "Invisible FARP", category = "Heliports", shape_name = "invisiblefarp", offset_x = 0, offset_y = 0 },
+
+            -- Classic FARP (Center Point)
+            { type = "FARP", category = "Heliports", shape_name = "FARPS", offset_x = 0, offset_y = 0 },
 
             -- Tents (clustered NE of the pad)
             { type = "FARP Tent", category = "Fortifications", offset_x = 90, offset_y = 95 },
@@ -457,12 +463,10 @@ do
                 y = base_y + static_data.offset_y
             }
 
-            -- some dcs quirks with invisible farps .. that makes it work
+            -- Skip re-spawning the pad if this zone already has one linked (e.g. on restock).
+            if not (zone.linked_farp and static_data.type == "FARP") then
 
-            if not (zone.side == coalition.side.RED and static_data.type == "Invisible FARP")
-            and not (zone.linked_farp and static_data.type == "Invisible FARP") then
- 
-                if static_data.type ~= "Invisible FARP" then
+                if static_data.type ~= "FARP" then
                     local new_static = mist.dynAddStatic({
                             type = static_data.type,
                             shape_name = static_data.shape_name,
@@ -487,7 +491,10 @@ do
                         ["heading"] = 0,
                         ["dead"] = false,
                         ["dynamicSpawn"] = true,
-                        ["allowHotStart"] = true
+                        ["allowHotStart"] = true,
+                        ["heliport_frequency"] = heliport_frequency,
+                        ["heliport_modulation"] = 0,
+                        ["heliport_callsign_id"] = heliport_callsign_id
                     })
 
                     if new_static and new_static.getName then

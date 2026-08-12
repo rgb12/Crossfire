@@ -1861,10 +1861,23 @@ function ctld.spawnFARPAssets(side, center_point, farp_name)
     local base_x = center_point.x
     local base_y = center_point.z
 
+    -- Unique callsign/frequency per FARP so constructed pads don't collide on ATC.
+    local heliport_callsign_id = 1
+    for i, candidate in ipairs(Config.ctld.FARP_names) do
+        if farp_name == "FARP " .. candidate then
+            heliport_callsign_id = i
+            break
+        end
+    end
+    local heliport_frequency = string.format("%.1f", 127.5 + (heliport_callsign_id - 1))
+
     -- Static layout mirrors UnitHandler.initFARP (zone FARPs) for consistency.
     local farp_statics_to_spawn = {
         -- Invisible FARP (Center Point)
-        { type = "Invisible FARP", category = "Heliports", shape_name = "invisiblefarp", offset_x = 0, offset_y = 0 },
+        -- { type = "Invisible FARP", category = "Heliports", shape_name = "invisiblefarp", offset_x = 0, offset_y = 0 },
+
+        -- Classic FARP (Center Point)
+        { type = "FARP", category = "Heliports", shape_name = "FARPS", offset_x = 0, offset_y = 0 },
 
         -- Tents (clustered NE of the pad)
         { type = "FARP Tent", category = "Fortifications", offset_x = 90, offset_y = 95 },
@@ -1887,7 +1900,7 @@ function ctld.spawnFARPAssets(side, center_point, farp_name)
             y = base_y + static_data.offset_y
         }
 
-        if static_data.type == "Invisible FARP" then
+        if static_data.type == "FARP" or static_data.type == "Invisible FARP" then
             local new_static = coalition.addStaticObject(country_name_id, {
                 ["category"] = static_data.category,
                 ["shape_name"] = static_data.shape_name,
@@ -1899,7 +1912,10 @@ function ctld.spawnFARPAssets(side, center_point, farp_name)
                 ["heading"] = 0,
                 ["dead"] = false,
                 ["dynamicSpawn"] = true,
-                ["allowHotStart"] = true
+                ["allowHotStart"] = true,
+                ["heliport_frequency"] = heliport_frequency,
+                ["heliport_modulation"] = 0,
+                ["heliport_callsign_id"] = heliport_callsign_id
             })
             if new_static and new_static.getName then
                 spawned_pad = new_static:getName()
@@ -1919,7 +1935,7 @@ function ctld.spawnFARPAssets(side, center_point, farp_name)
     end
 
     if not spawned_pad then
-        MissionLogger:error("CTLD: Failed to construct FARP, no Invisible FARP spawned.")
+        MissionLogger:error("CTLD: Failed to construct FARP, no FARP pad spawned.")
         return nil, nil
     end
 
