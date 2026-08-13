@@ -16,6 +16,11 @@ local used_jtac_callsign_index = 1
 ---@field lasers JTACLasers|nil
 ---@field smoke_count number
 ---@field viable_targets Unit[]|nil
+---@field priority_targets Unit[]|nil
+---@field target Unit|StaticObject|nil
+---@field laser_code number|nil
+---@field search_index number|nil
+---@field is_destroyed boolean true once the JTAC has been torn down
 ---@field jtac_main_submenu table|nil
 ---@field jtac_menu table|nil
 JTAC = {}
@@ -44,10 +49,12 @@ do
     function JTAC:new(obj)
         obj = obj or {}
         obj.callsign = obj.callsign or JTAC.callsigns[used_jtac_callsign_index]
-        obj.smoke_count = Config.jtac_smoke_stock
+        obj.smoke_count = obj.smoke_count or Config.jtac_smoke_stock
         ---@type JTACLasers
         obj.lasers = {}
         obj.viable_targets = {}
+        obj.priority_targets = {}
+        obj.is_destroyed = false
         obj.jtac_main_submenu = CommandHandler.jtac_main_submenu
         if not obj.to_zone or not obj.side then return MissionLogger:error("Missing field(s) for JTAC") end
 
@@ -62,30 +69,49 @@ do
 
         -- Auto-start targeting after a short delay to allow unit to settle
         timer.scheduleFunction(function(jtac_obj)
-            if jtac_obj and jtac_obj.searchTarget then
-                jtac_obj:searchTarget(false) -- Allow first search to speak if empty
-                jtac_obj:startLasing(1688)
-                jtac_obj:startAutoLoop() -- Start the status monitor
-            end
+            if jtac_obj.is_destroyed then return end
+            jtac_obj:searchTarget(false) -- Allow first search to speak if empty
+            jtac_obj:startLasing(1688)
+            jtac_obj:startAutoLoop() -- Start the status monitor
         end, obj, timer.getTime() + 50)
 
         return obj
     end
 
+    --- The JTAC aircraft, or nil once it no longer exists (shot down, crashed, despawned)
+    ---@return Unit|nil
+    function JTAC:getUnit()
+        if self.is_destroyed or not self.jtac_gr_name then return nil end
+        local jtac_gr = Group.getByName(self.jtac_gr_name)
+        if not (jtac_gr and jtac_gr:isExist()) then return nil end
+        local unit = jtac_gr:getUnit(1)
+        if not (unit and unit.isExist and unit:isExist()) then return nil end
+        return unit
+    end
+
+    --- The JTAC aircraft, but only while it is airborne and able to work
+    ---@return Unit|nil
+    function JTAC:getAirborneUnit()
+        local unit = self:getUnit()
+        if unit and unit:inAir() then return unit end
+        return nil
+    end
+
     function JTAC:startAutoLoop()
         timer.scheduleFunction(function(jtac_obj)
-            local jtac_gr = Group.getByName(jtac_obj.jtac_gr_name)
-            if not jtac_gr or not jtac_gr:isExist() then return end
+            if jtac_obj.is_destroyed then return end
+
+            if not jtac_obj:getUnit() then
+                -- Aircraft is gone without a death event having reached us
+                jtac_obj:reportLost()
+                return
+            end
 
             local zone = ZoneHandler.getFromName(jtac_obj.to_zone.name)
-            if not zone then return end
+            if not zone then return timer.getTime() + 10 end
             if zone.side == jtac_obj.side or zone.side == coalition.side.NEUTRAL then
-                EnrouteManager:remove(jtac_obj.jtac_gr_name)
-                jtac_obj:destroy()
-                timer.scheduleFunction(function ()
-                    trigger.action.outTextForCoalition(jtac_obj.side, jtac_obj.callsign.." JTAC: RTB", 10)
-                    trigger.action.outSoundForCoalition(jtac_obj.side,"radio_beep4.ogg")
-                end, {}, timer.getTime() + 10)
+                -- Nothing left to work on: recall the JTAC and hand the tasking supplies back
+                jtac_obj:rtb(10)
                 return
             end
 
@@ -109,42 +135,37 @@ do
     end
 
     function JTAC:startLasing(code)
-        local jtac_gr = Group.getByName(self.jtac_gr_name)
-        if not (jtac_gr and jtac_gr:isExist() and self.to_zone) then return end
-        local unit = jtac_gr:getUnit(1)
+        local unit = self:getAirborneUnit()
+        if not (unit and self.to_zone and self.target) then return end
 
-        if unit and unit.isExist and unit:isExist() and unit:inAir() then
-            if not self.target then return end
+        self.laser_code = code or 1688
 
-            self.laser_code = code or 1688
+        self:destroyLasers()
 
-            if self.lasers.laser then self.lasers.laser:destroy() end
-            if self.lasers.ir then self.lasers.ir:destroy() end
+        self.lasers.laser = Spot.createLaser(unit,{ x = 0, y = 1, z = 0 },self.target:getPoint(), self.laser_code)
+        self.lasers.ir = Spot.createInfraRed(unit, { x = 0, y = 1, z = 0 }, self.target:getPoint())
 
-            self.lasers.laser = Spot.createLaser(unit,{ x = 0, y = 1, z = 0 },self.target:getPoint(), self.laser_code)
-            self.lasers.ir = Spot.createInfraRed(unit, { x = 0, y = 1, z = 0 }, self.target:getPoint())
+        ---@type string
+        local target_name = self.target:getTypeName()
+        if target_name:sub(1,1) == "." then target_name = target_name:sub(2) end
 
-            ---@type string
-            local target_name = self.target:getTypeName()
-            if target_name:sub(1,1) == "." then target_name = target_name:sub(2) end
+        trigger.action.outTextForCoalition(self.side, self.callsign.." JTAC targeting ".. target_name .."\nLaser Code: "..self.laser_code, 10)
+        trigger.action.outSoundForCoalition(self.side, "radio_beep4.ogg")
+    end
 
-            trigger.action.outTextForCoalition(self.side, self.callsign.." JTAC targeting ".. target_name .."\nLaser Code: "..self.laser_code, 10)
-            trigger.action.outSoundForCoalition(self.side, "radio_beep4.ogg")
+    --- Shut down the laser and IR spots. Wrapped in pcall so a spot whose emitting
+    --- unit already died can never break the rest of the teardown.
+    function JTAC:destroyLasers()
+        self.lasers = self.lasers or {}
+        for key, spot in pairs(self.lasers) do
+            if spot then pcall(function() spot:destroy() end) end
+            self.lasers[key] = nil
         end
     end
 
     function JTAC:clearTarget()
         self.target = nil
-
-        if self.lasers.laser then
-            self.lasers.laser:destroy()
-            self.lasers.laser = nil
-        end
-
-        if self.lasers.ir then
-            self.lasers.ir:destroy()
-            self.lasers.ir = nil
-        end
+        self:destroyLasers()
     end
 
     function JTAC:setTarget(unit)
@@ -152,6 +173,7 @@ do
         self.target = unit
     end
     function JTAC:searchTarget(quiet)
+        if self.is_destroyed then return end
 
         self.viable_targets = {}
         self.priority_targets = {}
@@ -219,22 +241,121 @@ do
         end
     end
 
+    --- Is any JTAC still on station for that coalition? Used to know when the
+    --- coalition JTAC root menu can go away.
+    ---@param side coalition.side
+    ---@return boolean
+    function JTAC.anyActiveForSide(side)
+        for _, enroute in ipairs(EnrouteManager.enroutes) do
+            if enroute.ai_task_type == AITaskTypes.JTAC and enroute.jtac
+            and enroute.jtac.side == side and not enroute.jtac.is_destroyed then
+                return true
+            end
+        end
+        return false
+    end
+
+    --- Remove this JTAC's F10 menu, and the coalition JTAC root menu once the last
+    --- JTAC of that side is gone. Safe to call more than once.
+    function JTAC:removeCommands()
+        if self.jtac_menu then
+            missionCommands.removeItemForCoalition(self.side, self.jtac_menu)
+            self.jtac_menu = nil
+        end
+
+        if CommandHandler.jtac_submenu[self.side] and not JTAC.anyActiveForSide(self.side) then
+            missionCommands.removeItemForCoalition(self.side, CommandHandler.jtac_submenu[self.side])
+            CommandHandler.jtac_submenu[self.side] = nil
+        end
+    end
+
     function JTAC:destroy()
+        if self.is_destroyed then return end
+        self.is_destroyed = true -- every scheduled callback bails out on this flag
+
+        self:clearTarget()
+        self:removeCommands()
+
         if self.jtac_gr_name then
+            -- Cannot recurse back into destroy(): is_destroyed is already set
+            EnrouteManager:remove(self.jtac_gr_name)
+
             local jtac_gr = Group.getByName(self.jtac_gr_name)
             if jtac_gr and jtac_gr:isExist() then
                 jtac_gr:destroy()
             end
         end
 
-        self:clearTarget()
-
-        if self.jtac_menu then
-            missionCommands.removeItemForCoalition(self.side, self.jtac_menu)
-            self.jtac_menu = nil
-        end
-        self.target = nil
         self.viable_targets = {}
+        self.priority_targets = {}
+
+        MissionLogger:info("JTAC "..tostring(self.callsign).." removed from "..tostring(self.to_zone and self.to_zone.name))
+    end
+
+    --- A recalled JTAC hands its tasking cost to the closest friendly airbase that can
+    --- store it, which is also where a replacement would be tasked from.
+    ---@return number refunded supplies actually credited back
+    ---@return ZoneHandler|nil airbase that received them
+    function JTAC:refundSupplies()
+        local cost = Config.supplies.tasking_costs.JTAC or 0
+        if cost <= 0 or not self.to_zone then return 0, nil end
+
+        local airbase = self.to_zone:getClosestZone(self.side, nil, {ZoneTypes.AIRBASE})
+        if not airbase or airbase.ammo_depot_intact ~= true then return 0, nil end
+
+        local cap = (Config.supplies.supplies_cap and Config.supplies.supplies_cap[airbase.level or 1]) or 0
+        local before = airbase.local_supplies or 0
+        airbase.local_supplies = math.min(before + cost, cap)
+
+        return airbase.local_supplies - before, airbase
+    end
+
+    --- Recall the JTAC: refund the tasking supplies and stand it down.
+    ---@param message_delay number|nil seconds before the RTB call goes out (default: at once)
+    function JTAC:rtb(message_delay)
+        if self.is_destroyed then return end -- also keeps the refund to a single payout
+        local side, callsign = self.side, self.callsign
+        local refunded, refund_airbase = self:refundSupplies()
+
+        self:destroy()
+
+        local out_text = callsign.." JTAC: RTB"
+        if refunded > 0 and refund_airbase then
+            out_text = out_text.."\n Supplies returned to "..refund_airbase.name.."."
+        end
+
+        local function callRTB()
+            trigger.action.outTextForCoalition(side, out_text, 10)
+            trigger.action.outSoundForCoalition(side, "radio_beep4.ogg")
+        end
+
+        if message_delay and message_delay > 0 then
+            timer.scheduleFunction(callRTB, {}, timer.getTime() + message_delay)
+        else
+            callRTB()
+        end
+    end
+
+    --- A lost JTAC never comes home, so its tasking supplies are not refunded
+    function JTAC:reportLost()
+        if self.is_destroyed then return end
+        local side, callsign = self.side, self.callsign
+
+        self:destroy()
+
+        trigger.action.outTextForCoalition(side, "SITREP: Lost contact with JTAC "..callsign, 10)
+        trigger.action.outSoundForCoalition(side, "radio_beep3.ogg")
+    end
+
+
+    ---@param group_name string|nil
+    ---@return boolean handled true when the group was a tracked JTAC
+    function JTAC.reportLostByGroup(group_name)
+        if not group_name then return false end
+        local enroute = EnrouteManager:findByGroup(group_name)
+        if not (enroute and enroute.ai_task_type == AITaskTypes.JTAC and enroute.jtac) then return false end
+        enroute.jtac:reportLost()
+        return true
     end
 
     function JTAC:setupCommands()
@@ -244,9 +365,7 @@ do
         self.jtac_menu = missionCommands.addSubMenuForCoalition(self.side, self.callsign..' JTAC '..self.to_zone.name,CommandHandler.jtac_submenu[self.side])
 
         missionCommands.addCommandForCoalition(self.side, "Next Target", self.jtac_menu, function (jtac)
-            local jtac_gr = Group.getByName(jtac.jtac_gr_name)
-            local u = jtac_gr and jtac_gr:getUnit(1)
-            if u and u:inAir() then
+            if jtac:getAirborneUnit() then
 
                 jtac:searchTarget(false)
 
@@ -266,15 +385,12 @@ do
                     trigger.action.outTextForCoalition(jtac.side, jtac.callsign..' JTAC: No targets available', 10)
                 end
             else
-                missionCommands.removeItemForCoalition(jtac.side, jtac.jtac_menu)
-                jtac.jtac_menu = nil
+                jtac:destroy()
             end
         end, self)
 
         missionCommands.addCommandForCoalition(self.side,"Request 9-Line",self.jtac_menu, function (jtac)
-            local jtac_gr = Group.getByName(jtac.jtac_gr_name)
-            local u = jtac_gr and jtac_gr:getUnit(1)
-            if u and u:inAir() then
+            if jtac:getAirborneUnit() then
                 if not jtac.target or not jtac.target:isExist() then
                     jtac:searchTarget(false)
                     if jtac.target then jtac:startLasing(1688) end
@@ -304,15 +420,12 @@ do
                 trigger.action.outTextForCoalition(jtac.side, toprint, 20)
 
             else
-                missionCommands.removeItemForCoalition(jtac.side, jtac.jtac_menu)
-                jtac.jtac_menu = nil
+                jtac:destroy()
             end
         end,self)
 
         missionCommands.addCommandForCoalition(self.side, "Intelligence Report", self.jtac_menu, function (jtac)
-            local jtac_gr = Group.getByName(jtac.jtac_gr_name)
-            local u = jtac_gr and jtac_gr:getUnit(1)
-            if u and u:inAir() then
+            if jtac:getAirborneUnit() then
                 local zone = ZoneHandler.getFromName(jtac.to_zone.name)
                 if not zone then return end
 
@@ -358,52 +471,46 @@ do
                 trigger.action.outTextForCoalition(jtac.side, outtxt, 10)
                 trigger.action.outSoundForCoalition(jtac.side, "radio_beep4.ogg")
             else
-                missionCommands.removeItemForCoalition(jtac.side, jtac.jtac_menu)
-                jtac.jtac_menu = nil
+                jtac:destroy()
             end
         end,self)
 
         missionCommands.addCommandForCoalition(self.side, "Mark Target (Red)",self.jtac_menu, function (jtac)
-            local jtac_gr = Group.getByName(jtac.jtac_gr_name)
-            local u = jtac_gr and jtac_gr:getUnit(1)
-            if u and u:inAir() then
-                if not (jtac.target and jtac.target:isExist()) then 
+            local u = jtac:getAirborneUnit()
+            if u then
+                if not (jtac.target and jtac.target:isExist()) then
                     trigger.action.outSoundForCoalition(jtac.side, "radio_beep4.ogg")
                     return trigger.action.outTextForCoalition(jtac.side, jtac.callsign..' JTAC: No active target for smoke.', 5)
                 end
 
-                if self.smoke_count <= 0 then
+                if jtac.smoke_count <= 0 then
                     trigger.action.outSoundForCoalition(jtac.side, "radio_beep4.ogg")
                     return trigger.action.outTextForCoalition(jtac.side, jtac.callsign..' JTAC: Out of smoke canisters.', 5)
                 end
 
-                if u and mist.utils.get2DDist(u:getPoint(), jtac.target:getPoint()) < 20000 then
-                    self.smoke_count = self.smoke_count -1
+                if mist.utils.get2DDist(u:getPoint(), jtac.target:getPoint()) < 20000 then
+                    jtac.smoke_count = jtac.smoke_count -1
                     trigger.action.smoke(jtac.target:getPosition().p, trigger.smokeColor.Red)
-                    trigger.action.outTextForCoalition(jtac.side, jtac.callsign.." JTAC: Smoke marker in effect, "..self.smoke_count.." left in stock", 10)
+                    trigger.action.outTextForCoalition(jtac.side, jtac.callsign.." JTAC: Smoke marker in effect, "..jtac.smoke_count.." left in stock", 10)
                     trigger.action.outSoundForCoalition(jtac.side, "radio_beep4.ogg")
                 else
                     trigger.action.outTextForCoalition(jtac.side, jtac.callsign..' JTAC: Too far to deploy smoke accurately.', 10)
                     trigger.action.outSoundForCoalition(jtac.side, "radio_beep4.ogg")
                 end
             else
-                missionCommands.removeItemForCoalition(jtac.side, jtac.jtac_menu)
-                jtac.jtac_menu = nil
+                jtac:destroy()
             end
         end,self)
 
         missionCommands.addCommandForCoalition(self.side, "RTB",self.jtac_menu, function (jtac)
-            EnrouteManager:remove(jtac.jtac_gr_name)
-            jtac:destroy()
+            jtac:rtb()
         end,self)
 
         -- enables the player to designate a category as priority
         local priority_menu = missionCommands.addSubMenuForCoalition(self.side, "Set Priority", self.jtac_menu)
         for category_name, _ in pairs(self.categories) do
             missionCommands.addCommandForCoalition(self.side, category_name, priority_menu, function(jtac)
-                local jtac_gr = Group.getByName(jtac.jtac_gr_name)
-                local u = jtac_gr and jtac_gr:getUnit(1)
-                if u and u:inAir() then
+                if jtac:getAirborneUnit() then
                     jtac.priority = category_name
                     jtac.search_index = 1 -- Reset index on priority switch
 
@@ -414,15 +521,12 @@ do
                     jtac:searchTarget(false)
                     jtac:startLasing(1688)
                 else
-                    missionCommands.removeItemForCoalition(jtac.side, jtac.jtac_menu)
-                    jtac.jtac_menu = nil
+                    jtac:destroy()
                 end
             end,self)
         end
         missionCommands.addCommandForCoalition(self.side, "Clear Priority", priority_menu, function(jtac)
-            local jtac_gr = Group.getByName(jtac.jtac_gr_name)
-            local u = jtac_gr and jtac_gr:getUnit(1)
-            if u and u:inAir() then
+            if jtac:getAirborneUnit() then
                 jtac.priority = nil
                 jtac.search_index = 1 -- Reset index on priority switch
                 trigger.action.outTextForCoalition(jtac.side, jtac.callsign .. " JTAC priority cleared.", 5)
@@ -432,8 +536,7 @@ do
                 jtac:searchTarget(false)
                 jtac:startLasing(1688)
             else
-                missionCommands.removeItemForCoalition(jtac.side, jtac.jtac_menu)
-                jtac.jtac_menu = nil
+                jtac:destroy()
             end
         end,self)
     end

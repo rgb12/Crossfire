@@ -183,11 +183,17 @@ function ev:onEvent(event)
 
     if event.id == world.event.S_EVENT_CRASH and event.initiator then
         if event.initiator.getGroup then
-            local enroute_crash = EnrouteManager:findByGroup(event.initiator:getGroup():getName())
-            if enroute_crash then
-                EnrouteManager:remove(enroute_crash.group_name)
-                MissionLogger:info("Removed CRASHED" ..enroute_crash.ai_task_type.." from enroutes: " .. enroute_crash.group_name)
-            
+            local crashed_gr = event.initiator:getGroup()
+            local crashed_gr_name = crashed_gr and crashed_gr.getName and crashed_gr:getName()
+
+            -- A lost JTAC is reported to its coalition and torn down by JTAC:reportLost(),
+            -- which also de-registers the enroute
+            if crashed_gr_name and not JTAC.reportLostByGroup(crashed_gr_name) then
+                local enroute_crash = EnrouteManager:findByGroup(crashed_gr_name)
+                if enroute_crash then
+                    EnrouteManager:remove(enroute_crash.group_name)
+                    MissionLogger:info("Removed CRASHED " ..enroute_crash.ai_task_type.." from enroutes: " .. enroute_crash.group_name)
+                end
             end
         end
     end
@@ -273,7 +279,7 @@ function ev:onEvent(event)
     elseif event.id == world.event.S_EVENT_DEAD and event.initiator then
 
         local unit = event.initiator
-        
+
         -- Check if the dead unit was a radar (ground or air)
         if unit.hasAttribute and (unit:hasAttribute("SAM SR") or unit:hasAttribute("EWR") or unit:hasAttribute("AWACS"))
         and unit.getCoalition then

@@ -580,8 +580,10 @@ do
         -- remove potential jtacs
 
         -- remove potential attack convoys in zone
-        for _,enroute in ipairs(EnrouteManager.enroutes) do
-            if self.name == enroute.to_zone.name then
+        -- iterated backwards: the branches below de-register enroutes as they go
+        for i = #EnrouteManager.enroutes, 1, -1 do
+            local enroute = EnrouteManager.enroutes[i]
+            if enroute and self.name == enroute.to_zone.name then
                 if enroute.ai_task_type == AITaskTypes.ATTACK_CONVOY then
                     local convoy_group = Group.getByName(enroute.group_name)
                     if convoy_group and convoy_group:isExist() then
@@ -594,9 +596,8 @@ do
                 elseif enroute.ai_task_type == AITaskTypes.JTAC then
                     if enroute.jtac then
                         timer.scheduleFunction(function ()
-                            enroute.jtac:destroy() -- this uses the custom destroy function that also removes commands
+                            enroute.jtac:rtb() -- recalls the JTAC, refunds its tasking supplies and removes its commands
                         end, {}, timer.getTime() + math.random(5, 10))
-                        EnrouteManager:remove(enroute.group_name)
                     end
                 elseif enroute.ai_task_type == AITaskTypes.RESUPPLY_CARGO then
                     local cargo_group = Group.getByName(enroute.group_name)

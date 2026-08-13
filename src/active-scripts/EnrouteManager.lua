@@ -35,10 +35,10 @@ do
     function EnrouteManager:remove(group_name)
         for i, enroute in ipairs(self.enroutes) do
             if enroute.group_name == group_name then
-                
+
                 if enroute.ai_task_type == AITaskTypes.JTAC and enroute.jtac then
-                    missionCommands.removeItemForCoalition(enroute.jtac.side, enroute.jtac.jtac_menu)
-                    enroute.jtac.jtac_menu = nil
+                    -- An untracked JTAC can no longer be controlled: drop its F10 menu
+                    enroute.jtac:removeCommands()
                 end
 
                 table.remove(self.enroutes, i)
@@ -158,12 +158,12 @@ do
                 local grp = Group.getByName(enroute.group_name)
                 if not grp or not grp:isExist() then
                     if enroute.ai_task_type == AITaskTypes.JTAC and enroute.jtac then
-                        missionCommands.removeItemForCoalition(enroute.jtac.side, enroute.jtac.jtac_menu)
-                        enroute.jtac.jtac_menu = nil
+                        -- reportLost() announces the loss and de-registers the enroute itself
+                        enroute.jtac:reportLost()
+                    else
+                        table.remove(enroutes, i)
+                        MissionLogger:info("EnrouteManager: Removed "..enroute.ai_task_type.." from enroutes: " .. enroute.group_name)
                     end
-
-                    table.remove(enroutes, i)
-                    MissionLogger:info("EnrouteManager: Removed "..enroute.ai_task_type.." from enroutes: " .. enroute.group_name)
                 end
             end
         end
