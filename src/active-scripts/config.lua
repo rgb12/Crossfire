@@ -1330,9 +1330,9 @@ Config = {
         frontline_color = {1.00, 1.00, 1.00, 0.95},
         -- (int) line style (1=solid, 2=dashed, 3=dotted, see utils.LineStyle)
         frontline_linestyle = 1,
-        enable_frontline = false,
-    }
-
+    },
+    enable_frontline = true,
+    
 }
 
 -- (ignore)
