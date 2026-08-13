@@ -10,7 +10,7 @@ do
         clear_radius = clear_radius or 50
         local last
         for i = 1, max_tries do
-            local candidate = mist.getRandomPointInZone(zone.name,Config.spawn_inner_radius)
+            local candidate = mist.getRandomPointInZone(zone.name,Config.unit_spawn_inner_radius)
 
             if candidate and mist.isTerrainValid(candidate,{"LAND"}) then
                 last = candidate

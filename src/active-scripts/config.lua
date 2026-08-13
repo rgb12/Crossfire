@@ -1199,7 +1199,7 @@ Config = {
 
     -- (int) - (meters) minimum distance from zone center for spawned units and
     -- statics
-    spawn_inner_radius = 100,
+    unit_spawn_inner_radius = 200,
 
     -- (int) (seconds) time it takes for an ammo depot to respawn after being destroyed
     ammo_depot_respawn_time = 45*60,
