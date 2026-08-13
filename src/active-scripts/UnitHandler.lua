@@ -433,27 +433,8 @@ do
         local heliport_callsign_id = ((zone.zone.id - 1) % 10) + 1
         local heliport_frequency = string.format("%.1f", 127.5 + (heliport_callsign_id - 1))
 
-        -- List of Statics to spawn with their estimated offsets (X, Y)
-        local farp_statics_to_spawn = {
-            -- Invisible FARP (Center Point)
-            -- { type = "Invisible FARP", category = "Heliports", shape_name = "invisiblefarp", offset_x = 0, offset_y = 0 },
-
-            -- Classic FARP (Center Point)
-            { type = "FARP", category = "Heliports", shape_name = "FARPS", offset_x = 0, offset_y = 0 },
-
-            -- Tents (clustered NE of the pad)
-            { type = "FARP Tent", category = "Fortifications", offset_x = 90, offset_y = 95 },
-            { type = "FARP Tent", category = "Fortifications", offset_x = 110, offset_y = 95 },
-
-            -- Ammo Storage (NW corner)
-            { type = "FARP Ammo Dump Coating", category = "Fortifications", offset_x = -95, offset_y = 90 },
-            { type = "FARP Ammo Dump Coating", category = "Fortifications", offset_x = -95, offset_y = 100 },
-
-
-            -- Fuel Depots (SE corner)
-            { type = "FARP Fuel Depot", category = "Fortifications", offset_x = 90, offset_y = -95 },
-            { type = "FARP Fuel Depot", category = "Fortifications", offset_x = 100, offset_y = -95 },
-        }
+        -- Statics to spawn, laid out on the pad itself
+        local farp_statics_to_spawn = Config.farp_assets.statics
 
         -- Spawn the Statics
         for _, static_data in ipairs(farp_statics_to_spawn) do
@@ -514,11 +495,9 @@ do
             WarehouseManager:addLiquids(zone.linked_farp)
         end
 
-        local group_offset_x = -95
-        local group_offset_y = -95
         local group_spawn_point = {
-            x = base_x + group_offset_x,
-            y = base_y + group_offset_y
+            x = base_x + Config.farp_assets.vehicles.offset_x,
+            y = base_y + Config.farp_assets.vehicles.offset_y
         }
         
         -- Vehicle group

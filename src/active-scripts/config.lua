@@ -1212,6 +1212,30 @@ Config = {
         [Eras.LATECOLDWAR]  = { type = "Building08_PBR", category = "Fortification" },
         [Eras.MODERN]       = { type = ".Ammunition depot", category = "Warehouses" },
     },
+
+    -- (table)
+    farp_assets = {
+        -- (table) offsets for the FARP statics and vehicles, relative to the FARP zone center
+        statics = {
+            -- Pad (centre point)
+            { type = "FARP", category = "Heliports", shape_name = "FARPS", offset_x = 0, offset_y = 0 },
+
+            -- Fuel depots (inner column, north end - closest to the pads for refuelling)
+            { type = "FARP Fuel Depot", category = "Fortifications", offset_x = 38, offset_y = -45 },
+            { type = "FARP Fuel Depot", category = "Fortifications", offset_x = 15, offset_y = -45 },
+
+            -- Tents (outer column, north end)
+            { type = "FARP Tent", category = "Fortifications", offset_x = 20, offset_y = -76 },
+            { type = "FARP Tent", category = "Fortifications", offset_x = 0, offset_y = -76 },
+
+            -- Ammo storage (outer column, south end - away from the fuel)
+            { type = "FARP Ammo Dump Coating", category = "Fortifications", offset_x = -25, offset_y = -76 },
+            { type = "FARP Ammo Dump Coating", category = "Fortifications", offset_x = -50, offset_y = -76 },
+        },
+        -- (table) offsets for the FARP vehicles, relative to the FARP zone center
+        vehicles = { offset_x = -30, offset_y = -45 },
+    },
+
     -- (int) (seconds)
     comms_tower_respawn_time = 55*60,
 

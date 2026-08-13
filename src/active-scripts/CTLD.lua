@@ -1871,26 +1871,8 @@ function ctld.spawnFARPAssets(side, center_point, farp_name)
     end
     local heliport_frequency = string.format("%.1f", 127.5 + (heliport_callsign_id - 1))
 
-    -- Static layout mirrors UnitHandler.initFARP (zone FARPs) for consistency.
-    local farp_statics_to_spawn = {
-        -- Invisible FARP (Center Point)
-        -- { type = "Invisible FARP", category = "Heliports", shape_name = "invisiblefarp", offset_x = 0, offset_y = 0 },
-
-        -- Classic FARP (Center Point)
-        { type = "FARP", category = "Heliports", shape_name = "FARPS", offset_x = 0, offset_y = 0 },
-
-        -- Tents (clustered NE of the pad)
-        { type = "FARP Tent", category = "Fortifications", offset_x = 90, offset_y = 95 },
-        { type = "FARP Tent", category = "Fortifications", offset_x = 110, offset_y = 95 },
-
-        -- Ammo Storage (NW corner)
-        { type = "FARP Ammo Dump Coating", category = "Fortifications", offset_x = -95, offset_y = 90 },
-        { type = "FARP Ammo Dump Coating", category = "Fortifications", offset_x = -95, offset_y = 100 },
-
-        -- Fuel Depots (SE corner)
-        { type = "FARP Fuel Depot", category = "Fortifications", offset_x = 90, offset_y = -95 },
-        { type = "FARP Fuel Depot", category = "Fortifications", offset_x = 100, offset_y = -95 },
-    }
+    -- Static layout is shared with UnitHandler.initFARP (zone FARPs).
+    local farp_statics_to_spawn = Config.farp_assets.statics
 
     local spawned_pad = nil
 
@@ -1944,8 +1926,8 @@ function ctld.spawnFARPAssets(side, center_point, farp_name)
 
     -- Spawn the FARP vehicle group, mirroring UnitHandler.initFARP.
     local group_spawn_point = {
-        x = base_x - 95,
-        y = base_y - 95
+        x = base_x + Config.farp_assets.vehicles.offset_x,
+        y = base_y + Config.farp_assets.vehicles.offset_y
     }
     local linked_group_name = nil
     local group_template_name_side
