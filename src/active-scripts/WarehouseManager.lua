@@ -11,7 +11,6 @@ do
         if not item_name then return false end
         return utils.tableContains(Stocks.Aircraft, item_name)
     end
-   
 
     --- Resolves the aircraft type name (warehouse key) for a given side+task
     --- by reading the first unit of the in-mission template group via native DCS API.
@@ -112,7 +111,6 @@ do
                 [AITaskTypes.CAS] = {
                     [Stocks.Equipment.AGM_12A] = 2 *2,
                     [Stocks.Equipment.MK_82] = 6 *2,
-                    
                 },
                 [AITaskTypes.CAP] = {
                     [Stocks.Equipment.AIM_9B] = 2 *2
@@ -150,7 +148,7 @@ do
                     [Stocks.Equipment.R_60M] = 1 *2,
                 },
                 [AITaskTypes.RECON] = {},
-    
+
                 [AITaskTypes.AWACS] = {},
             },
             [Eras.EARLYCOLDWAR] = {
@@ -644,7 +642,7 @@ do
         return expanded
     end
 
---- Warning: ensure the side is correctly set before execution
+    --- Warning: ensure the side is correctly set before execution
     ---@param airbase_name string
     ---@param side coalition.side
     ---@param stock_types StockTypes[]
@@ -732,12 +730,12 @@ do
         local count_l2 = #level_2_bases
         local count_l3 = #level_3_bases
         local count_l4 = #level_4_bases
-        
+
         local mult_l1 = 0
         local mult_l2 = 0
         local mult_l3 = 0
         local mult_l4 = 0
-        
+
         -- Get distribution percentages from config
         local share_l1 = Config.warehouse_supply_distribution.tier_1 or 0.15
         local share_l2 = Config.warehouse_supply_distribution.tier_2 or 0.25
@@ -747,32 +745,32 @@ do
         -- 2. Calculate supply multipliers based on distribution logic
         -- Calculate total available share and redistribute if any level has no bases
         local total_bases = count_l1 + count_l2 + count_l3 + count_l4
-        
+
         if total_bases == 0 then
             MissionLogger:info("WarehouseManager:handleIncomingSupplies: No airbases found for " .. (utils.coalitionToString(side) or "Unknown Side"))
             return
         end
-        
+
         -- Redistribute shares proportionally if any level is missing
         local available_share = 1.0
         local levels_with_bases = {}
-        
+
         if count_l1 > 0 then table.insert(levels_with_bases, {count = count_l1, share = share_l1, level = 1}) else available_share = available_share - share_l1 end
         if count_l2 > 0 then table.insert(levels_with_bases, {count = count_l2, share = share_l2, level = 2}) else available_share = available_share - share_l2 end
         if count_l3 > 0 then table.insert(levels_with_bases, {count = count_l3, share = share_l3, level = 3}) else available_share = available_share - share_l3 end
         if count_l4 > 0 then table.insert(levels_with_bases, {count = count_l4, share = share_l4, level = 4}) else available_share = available_share - share_l4 end
-        
+
         -- Calculate base share sum for redistribution
         local base_share_sum = 0
         for _, level_info in ipairs(levels_with_bases) do
             base_share_sum = base_share_sum + level_info.share
         end
-        
+
         -- Distribute supplies
         for _, level_info in ipairs(levels_with_bases) do
             local adjusted_share = (level_info.share / base_share_sum) * (1.0)
             local multiplier = adjusted_share / level_info.count
-            
+
             if level_info.level == 1 then
                 mult_l1 = multiplier
             elseif level_info.level == 2 then
@@ -869,7 +867,7 @@ do
                 end
             end
         end
-        
+
         -- Add to tier 4 bases
         if mult_l4 > 0 then
             for _, warehouse in ipairs(level_4_bases) do
@@ -887,7 +885,7 @@ do
                 end
             end
         end
-        
+
         trigger.action.outTextForCoalition(side, "Arriving supplies distributed to airbases.", 10)
 
         MissionLogger:info("HandleIncomingSupplies: Supply distribution complete for " .. (utils.coalitionToString(side) or "Unknown Side"))
@@ -968,7 +966,7 @@ do
                 MissionLogger:info("[PAYLOAD CHECK] "..ai_task_type.." skipping untrackable weapon "..wpn_id.." (not warehouse-manageable)")
             end
         end
-        
+
         MissionLogger:info("[PAYLOAD CHECK] "..ai_task_type.." payload OK at "..airbase:getName())
         return true
 
@@ -1061,5 +1059,4 @@ do
         end
         return false
     end
-
 end

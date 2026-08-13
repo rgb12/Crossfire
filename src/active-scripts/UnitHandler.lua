@@ -236,8 +236,7 @@ do
                     table.insert(zone.linked_groups, gt.name)
                     spawned_any = true
                 else
-                    MissionLogger:error("[UnitHandler] addGroup failed for "
-                        .. tostring(gt.name) .. " (" .. tostring(comp.country) .. ")")
+                    MissionLogger:error("[UnitHandler] addGroup failed for ".. tostring(gt.name) .. " (" .. tostring(comp.country) .. ")")
                 end
             end
         end

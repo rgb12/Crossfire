@@ -85,7 +85,7 @@ do
 
         -- Loop through all coalitions
         for _, coalition_id in ipairs({coalition.side.RED, coalition.side.BLUE, coalition.side.NEUTRAL}) do
-            
+
             local groups = coalition.getGroups(coalition_id)
             for _, group in ipairs(groups) do
 
@@ -103,8 +103,6 @@ do
                 end
             end
         end
-        
-        
     end
 
     function EWRS:searchTheatre()
@@ -128,9 +126,7 @@ do
                             self.picture[target.object:getName()] = target.object
                         end
                     end
-            
                 end
-
             end
         end
         -- MissionLogger:info("Picture")
@@ -148,20 +144,20 @@ do
             local deg = math.deg(rad)
             return (deg % 360 + 360) % 360
         end
-    
+
         -- bearing from target to user
         local dx = user_point.x - target_point.x
         local dz = user_point.z - target_point.z
         ---@diagnostic disable-next-line: deprecated
         local bearing = rad2deg(math.atan2(dx, dz))
-    
+
         -- for lack of real heading data, assume target heading = north (0°)
         ---@diagnostic disable-next-line: deprecated
         local target_heading = math.deg(math.atan2(target_velocity.x, target_velocity.z)) % 360
-    
+
         -- difference between assumed heading and bearing to user
         local diff = math.abs(((target_heading - bearing + 180) % 360) - 180)
-    
+
         if diff <= 30 then
             return "Hot"
         elseif diff <= 60 then
@@ -177,14 +173,14 @@ do
         for name,data in pairs(self.users) do
             if data.unit and data.unit:isExist() then
                 local nearby_units = {}
-                
+
                 for _,detected_target in pairs(self.picture) do
                     if detected_target:isExist() then
                         local user_point = data.unit:getPoint()
                         local target_point = detected_target:getPoint()
                         local range = mist.utils.get2DDist(user_point,target_point)
                         if range <= data.view_radius then
-                            
+
 
                             ---@diagnostic disable-next-line: deprecated
                             local bearing = math.deg(math.atan2(target_point.z - user_point.z, target_point.x - user_point.x))
@@ -238,7 +234,7 @@ do
     function EWRS:startSearch()
         timer.scheduleFunction(function ()
             if MISSION_ENDED then return end
-            
+
             self:searchTheatre()
             self:displayForUsers()
 

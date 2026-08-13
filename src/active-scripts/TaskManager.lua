@@ -181,7 +181,7 @@ do
         end
         return false
     end
-    
+
         ---@param ai_task_type AITaskTypes
         ---@param side coalition.side
         ---@return string|nil
@@ -1632,7 +1632,6 @@ do
                 end
             end,{},timer.getTime()+120)
 
-        
         end,{},timer.getTime()+5)
     end
 
@@ -1713,7 +1712,6 @@ do
                     groupId = jtac_gr:getID(),
                 }})
 
-            
             ctrl:setTask({
                 id = 'Orbit',
                 params = {
@@ -1791,7 +1789,7 @@ do
                     altitude = station_altitude
                 }
             }
-            
+
             -- Combine them so the AI orbits, enables AWACS, and enables EPLRS
             local comboTask = {
                 id = 'ComboTask',

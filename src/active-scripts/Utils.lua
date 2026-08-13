@@ -73,7 +73,7 @@ function utils.getUnitsInZoneObj(zone, coalition_filter)
                 elseif zone:isQuad() then
                     inside = mist.pointInPolygon(pos, zone.zone.vertices)
                 end
-                
+
                 if inside then
                     -- MissionLogger:info("Unit inside zone "..zone.name ..": "..obj:getName())
                     table.insert(units_in_zone, obj)
@@ -191,7 +191,7 @@ end
 function utils.fetchSuppliesZoneFromPoint(point, coalition_side)
     for _,zone in pairs(zones) do
         if zone.zone_type == ZoneTypes.AIRBASE or zone.zone_type == ZoneTypes.FARP or zone.zone_type == ZoneTypes.LOGISTICS then
-            
+
             if (not coalition_side or zone.side == coalition_side) and zone:isPointInsideZone(point) then
                 return zone
             end
