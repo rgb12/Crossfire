@@ -1900,6 +1900,59 @@ Stocks.EquipmentData = {
         [Stocks.Equipment.GIAT_M621_HEAP                     ] = { stock_type = StockTypes.FARP_GUNS, base_qty = 30, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
         [Stocks.Equipment.GIAT_M621_SAPHEI                   ] = { stock_type = StockTypes.FARP_GUNS, base_qty = 30, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
         [Stocks.Equipment.HMP400                             ] = { stock_type = StockTypes.FARP_GUNS, base_qty = 12, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
+        [Stocks.Equipment.SA342_M134_SIDE_R_CONT             ] = { stock_type = StockTypes.FARP_GUNS, base_qty = 30, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
+        [Stocks.Equipment.SA342_M134_SIDE_R_GUN              ] = { stock_type = StockTypes.FARP_GUNS, base_qty = 30, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
+        [Stocks.Equipment.M60_SIDE_L_CONT                    ] = { stock_type = StockTypes.FARP_GUNS, base_qty = 30, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
+        [Stocks.Equipment.M60_SIDE_L_GUN                     ] = { stock_type = StockTypes.FARP_GUNS, base_qty = 30, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
+        [Stocks.Equipment.M60_SIDE_R_CONT                    ] = { stock_type = StockTypes.FARP_GUNS, base_qty = 30, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
+        [Stocks.Equipment.M60_SIDE_R_GUN                     ] = { stock_type = StockTypes.FARP_GUNS, base_qty = 30, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
+        [Stocks.Equipment.CH47_AFT_M240H_CONT                ] = { stock_type = StockTypes.FARP_GUNS, base_qty = 30, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
+        [Stocks.Equipment.CH47_AFT_M240H_GUN                 ] = { stock_type = StockTypes.FARP_GUNS, base_qty = 30, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
+        [Stocks.Equipment.CH47_AFT_M3M_CONT                  ] = { stock_type = StockTypes.FARP_GUNS, base_qty = 30, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
+        [Stocks.Equipment.CH47_AFT_M3M_GUN                   ] = { stock_type = StockTypes.FARP_GUNS, base_qty = 30, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
+        [Stocks.Equipment.CH47_AFT_M60D_CONT                 ] = { stock_type = StockTypes.FARP_GUNS, base_qty = 30, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
+        [Stocks.Equipment.CH47_AFT_M60D_GUN                  ] = { stock_type = StockTypes.FARP_GUNS, base_qty = 30, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
+        [Stocks.Equipment.CH47_PORT_M134D_CONT               ] = { stock_type = StockTypes.FARP_GUNS, base_qty = 30, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
+        [Stocks.Equipment.CH47_PORT_M134D_GUN                ] = { stock_type = StockTypes.FARP_GUNS, base_qty = 30, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
+        [Stocks.Equipment.CH47_PORT_M240H_CONT               ] = { stock_type = StockTypes.FARP_GUNS, base_qty = 30, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
+        [Stocks.Equipment.CH47_PORT_M240H_GUN                ] = { stock_type = StockTypes.FARP_GUNS, base_qty = 30, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
+        [Stocks.Equipment.CH47_PORT_M60D_CONT                ] = { stock_type = StockTypes.FARP_GUNS, base_qty = 30, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
+        [Stocks.Equipment.CH47_PORT_M60D_GUN                 ] = { stock_type = StockTypes.FARP_GUNS, base_qty = 30, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
+        [Stocks.Equipment.CH47_STBD_M134D_CONT               ] = { stock_type = StockTypes.FARP_GUNS, base_qty = 30, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
+        [Stocks.Equipment.CH47_STBD_M134D_GUN                ] = { stock_type = StockTypes.FARP_GUNS, base_qty = 30, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
+        [Stocks.Equipment.CH47_STBD_M240H_CONT               ] = { stock_type = StockTypes.FARP_GUNS, base_qty = 30, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
+        [Stocks.Equipment.CH47_STBD_M240H_GUN                ] = { stock_type = StockTypes.FARP_GUNS, base_qty = 30, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
+        [Stocks.Equipment.CH47_STBD_M60D_CONT                ] = { stock_type = StockTypes.FARP_GUNS, base_qty = 30, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
+        [Stocks.Equipment.CH47_STBD_M60D_GUN                 ] = { stock_type = StockTypes.FARP_GUNS, base_qty = 30, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
+        [Stocks.Equipment.M134_L_CONT                        ] = { stock_type = StockTypes.FARP_GUNS, base_qty = 30, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
+        [Stocks.Equipment.M134_L_GUN                         ] = { stock_type = StockTypes.FARP_GUNS, base_qty = 30, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
+        [Stocks.Equipment.M134_R_CONT                        ] = { stock_type = StockTypes.FARP_GUNS, base_qty = 30, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
+        [Stocks.Equipment.M134_R_GUN                         ] = { stock_type = StockTypes.FARP_GUNS, base_qty = 30, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
+        [Stocks.Equipment.M134_SIDE_L_CONT                   ] = { stock_type = StockTypes.FARP_GUNS, base_qty = 30, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
+        [Stocks.Equipment.M134_SIDE_L_GUN                    ] = { stock_type = StockTypes.FARP_GUNS, base_qty = 30, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
+        [Stocks.Equipment.M134_SIDE_R_CONT                   ] = { stock_type = StockTypes.FARP_GUNS, base_qty = 30, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
+        [Stocks.Equipment.M134_SIDE_R_GUN                    ] = { stock_type = StockTypes.FARP_GUNS, base_qty = 30, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
+        [Stocks.Equipment.UH60_M134                          ] = { stock_type = StockTypes.FARP_GUNS, base_qty = 30, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
+        [Stocks.Equipment.UH60L_M134_GUNNER_CONT             ] = { stock_type = StockTypes.FARP_GUNS, base_qty = 30, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
+        [Stocks.Equipment.UH60L_M134_GUNNER_GUN              ] = { stock_type = StockTypes.FARP_GUNS, base_qty = 30, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
+        [Stocks.Equipment.UH60L_M2_GUNNER_CONT               ] = { stock_type = StockTypes.FARP_GUNS, base_qty = 30, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
+        [Stocks.Equipment.UH60L_M2_GUNNER_GUN                ] = { stock_type = StockTypes.FARP_GUNS, base_qty = 30, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
+        [Stocks.Equipment.UH60L_M60_GUNNER_CONT              ] = { stock_type = StockTypes.FARP_GUNS, base_qty = 30, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
+        [Stocks.Equipment.UH60L_M60_GUNNER_GUN               ] = { stock_type = StockTypes.FARP_GUNS, base_qty = 30, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
+        [Stocks.Equipment.UH60_GAU19_LEFT_CONT               ] = { stock_type = StockTypes.FARP_GUNS, base_qty = 30, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
+        [Stocks.Equipment.UH60_GAU19_LEFT_GUN                ] = { stock_type = StockTypes.FARP_GUNS, base_qty = 30, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
+        [Stocks.Equipment.UH60_GAU19_RIGHT_CONT              ] = { stock_type = StockTypes.FARP_GUNS, base_qty = 30, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
+        [Stocks.Equipment.UH60_GAU19_RIGHT_GUN               ] = { stock_type = StockTypes.FARP_GUNS, base_qty = 30, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
+        [Stocks.Equipment.UH60_M134                          ] = { stock_type = StockTypes.FARP_GUNS, base_qty = 30, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
+        [Stocks.Equipment.UH60_M134_LEFT_CONT                ] = { stock_type = StockTypes.FARP_GUNS, base_qty = 30, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
+        [Stocks.Equipment.UH60_M134_LEFT_GUN                 ] = { stock_type = StockTypes.FARP_GUNS, base_qty = 30, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
+        [Stocks.Equipment.UH60_M134_RIGHT_CONT               ] = { stock_type = StockTypes.FARP_GUNS, base_qty = 30, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
+        [Stocks.Equipment.UH60_M134_RIGHT_GUN                ] = { stock_type = StockTypes.FARP_GUNS, base_qty = 30, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
+        [Stocks.Equipment.UH60_M230_LEFT_CONT                ] = { stock_type = StockTypes.FARP_GUNS, base_qty = 30, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
+        [Stocks.Equipment.UH60_M230_LEFT_GUN                 ] = { stock_type = StockTypes.FARP_GUNS, base_qty = 30, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
+        [Stocks.Equipment.UH60_M230_RIGHT_CONT               ] = { stock_type = StockTypes.FARP_GUNS, base_qty = 30, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
+        [Stocks.Equipment.UH60_M230_RIGHT_GUN                ] = { stock_type = StockTypes.FARP_GUNS, base_qty = 30, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
+
 
       -- FARP MISC
         [Stocks.Equipment.AN_APG_78_APACHE_RADAR             ] = { stock_type = StockTypes.FARP_MISC, base_qty = 2, eras = { Eras.MODERN } },
@@ -2319,6 +2372,11 @@ local OH58D_STORES = {
     Stocks.Equipment.HYDRA_70_MK1,
 }
 
+--[[
+This table references most weapons and stores that can be loaded onto an aircraft.
+If you are planning to implement an aircraft whitelist, you must update this table.
+This table only works if **Config.era_system.enabled_aircraft** is NOT empty.
+]]
 Stocks.AircraftLoads = {
     -- ===== Helicopters (FARP rearm) =====
     [Stocks.Aircraft.AH64A]        = AH64_STORES,

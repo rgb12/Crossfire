@@ -467,6 +467,7 @@ do
             [Stocks.Aircraft.AH64A]                = StockTypes.ATTACK_HELICOPTER,
             [Stocks.Aircraft.AH64D]                = StockTypes.ATTACK_HELICOPTER,
             [Stocks.Aircraft.UH_60L]                = StockTypes.LOGISTICS_HELICOPTER,
+            [Stocks.Aircraft.UH60A]                = StockTypes.LOGISTICS_HELICOPTER,
         }
         if cached_types[dcs_type] then return cached_types[dcs_type] end
 
