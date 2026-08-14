@@ -1670,7 +1670,7 @@ do
             joint_op_join_code = nil,
             objectives = {
                 {
-                    description = "Release bombs or rockets above any " .. target_zone.name .. " runway to render it inoperable",
+                    description = "Execute a low-level high-speed attack to drop bombs directly above the runway at " .. target_zone.name .. " to render it inoperable",
                     completed = false,
                     check = function()
                         local zone = ZoneHandler.getFromName(target_zone.name)
