@@ -90,11 +90,6 @@ Config = {
             "weapons.bombs.RN-28"
         },
 
-        -- (table<enum>)
-        carrier_eras_allowed = { Eras.LATECOLDWAR, Eras.MODERN},
-        -- (table<enum>) LHA capture helicopter will not work in Early Cold War and WW2
-        lha_eras_allowed = { Eras.LATECOLDWAR, Eras.MODERN},
-
         -- (table<enum,table<enum>>) Country composition used when
         -- generating ground units for each coalition. The values are country ids (https://wiki.hoggitworld.com/view/DCS_enum_country)
         coalition_selector = {

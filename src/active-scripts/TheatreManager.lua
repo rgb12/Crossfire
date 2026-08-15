@@ -1333,8 +1333,6 @@ do
 
         UnitHandler.validateGroupTemplates()
 
-        UnitHandler.checkCarrierEra()
-        UnitHandler.checkLHAEra()
         world.addEventHandler(ev)
         local persistence_enabled = PersistenceManager:isEnabled()
 
