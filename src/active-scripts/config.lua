@@ -612,7 +612,7 @@ Config = {
         -- (table)
         tasking_costs = {
             -- (int)
-            JTAC = 300,
+            JTAC = 400,
             -- (int)
             CAS = 1200,
             -- (int)
