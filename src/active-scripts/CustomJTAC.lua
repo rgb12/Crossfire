@@ -22,7 +22,7 @@ local used_jtac_callsign_index = 1
 ---@field search_index number|nil
 ---@field is_destroyed boolean true once the JTAC has been torn down
 ---@field jtac_main_submenu table|nil
----@field jtac_menu table|nil
+---@field group_menus table<number, table> this JTAC's F10 menu path, per player group id
 JTAC = {}
 do
     JTAC.callsigns = {
@@ -55,6 +55,7 @@ do
         obj.viable_targets = {}
         obj.priority_targets = {}
         obj.is_destroyed = false
+        obj.group_menus = {}
         obj.jtac_main_submenu = CommandHandler.jtac_main_submenu
         if not obj.to_zone or not obj.side then return MissionLogger:error("Missing field(s) for JTAC") end
 
@@ -242,12 +243,13 @@ do
     end
 
     --- Is any JTAC still on station for that coalition? Used to know when the
-    --- coalition JTAC root menu can go away.
+    --- JTAC root menu can go away.
     ---@param side coalition.side
+    ---@param ignored JTAC|nil JTAC left out of the count, typically one being torn down
     ---@return boolean
-    function JTAC.anyActiveForSide(side)
+    function JTAC.anyActiveForSide(side, ignored)
         for _, enroute in ipairs(EnrouteManager.enroutes) do
-            if enroute.ai_task_type == AITaskTypes.JTAC and enroute.jtac
+            if enroute.ai_task_type == AITaskTypes.JTAC and enroute.jtac and enroute.jtac ~= ignored
             and enroute.jtac.side == side and not enroute.jtac.is_destroyed then
                 return true
             end
@@ -255,17 +257,53 @@ do
         return false
     end
 
-    --- Remove this JTAC's F10 menu, and the coalition JTAC root menu once the last
-    --- JTAC of that side is gone. Safe to call more than once.
+    --- Every group of that coalition currently occupied by a player
+    ---@param side coalition.side
+    ---@return Group[]
+    function JTAC.getPlayerGroups(side)
+        local groups = {}
+        local seen = {}
+        for _, unit in pairs(coalition.getPlayers(side) or {}) do
+            if unit and unit.isExist and unit:isExist() and unit.getGroup then
+                local gr = unit:getGroup()
+                if gr and gr.isExist and gr:isExist() then
+                    local gr_id = gr:getID()
+                    if gr_id and not seen[gr_id] then
+                        seen[gr_id] = true
+                        table.insert(groups, gr)
+                    end
+                end
+            end
+        end
+        return groups
+    end
+
+    ---@param gr_id number
+    function JTAC.forgetGroupMenus(gr_id)
+        if not gr_id then return end
+        for _, roots_by_group in pairs(CommandHandler.jtac_submenu) do
+            roots_by_group[gr_id] = nil
+        end
+        for _, enroute in ipairs(EnrouteManager.enroutes) do
+            if enroute.ai_task_type == AITaskTypes.JTAC and enroute.jtac and enroute.jtac.group_menus then
+                enroute.jtac.group_menus[gr_id] = nil
+            end
+        end
+    end
+
     function JTAC:removeCommands()
-        if self.jtac_menu then
-            missionCommands.removeItemForCoalition(self.side, self.jtac_menu)
-            self.jtac_menu = nil
+        self.group_menus = self.group_menus or {}
+        for gr_id, menu_path in pairs(self.group_menus) do
+            missionCommands.removeItemForGroup(gr_id, menu_path)
+            self.group_menus[gr_id] = nil
         end
 
-        if CommandHandler.jtac_submenu[self.side] and not JTAC.anyActiveForSide(self.side) then
-            missionCommands.removeItemForCoalition(self.side, CommandHandler.jtac_submenu[self.side])
-            CommandHandler.jtac_submenu[self.side] = nil
+        if JTAC.anyActiveForSide(self.side, self) then return end
+
+        for gr_id, root_menu in pairs(CommandHandler.jtac_submenu[self.side] or {}) do
+            missionCommands.removeItemForGroup(gr_id, root_menu)
+            CommandHandler.removeTrackedMenuPath(gr_id, root_menu)
+            CommandHandler.jtac_submenu[self.side][gr_id] = nil
         end
     end
 
@@ -358,13 +396,42 @@ do
         return true
     end
 
-    function JTAC:setupCommands()
-        if CommandHandler.jtac_submenu[self.side] == nil then
-            CommandHandler.jtac_submenu[self.side] = missionCommands.addSubMenuForCoalition(self.side,"JTAC", nil)
+    ---@param side coalition.side
+    ---@param gr_id number
+    ---@return table menu path
+    local function groupRootMenu(side, gr_id)
+        local roots_by_group = CommandHandler.jtac_submenu[side]
+        if not roots_by_group then
+            roots_by_group = {}
+            CommandHandler.jtac_submenu[side] = roots_by_group
         end
-        self.jtac_menu = missionCommands.addSubMenuForCoalition(self.side, self.callsign..' JTAC '..self.to_zone.name,CommandHandler.jtac_submenu[self.side])
 
-        missionCommands.addCommandForCoalition(self.side, "Next Target", self.jtac_menu, function (jtac)
+        if not roots_by_group[gr_id] then
+            roots_by_group[gr_id] = missionCommands.addSubMenuForGroup(gr_id, "JTAC", nil)
+            -- Tracked so the group teardown on slot change takes it down with the rest
+            CommandHandler.addToMenuTracking(gr_id, roots_by_group[gr_id], "jtac")
+        end
+        return roots_by_group[gr_id]
+    end
+
+    ---@param gr Group
+    ---@param side coalition.side|nil the group's coalition, read from the group when omitted
+    function JTAC:setupCommandsForGroup(gr, side)
+        if self.is_destroyed then return end
+        if not gr or not gr.isExist or not gr:isExist() then return end
+
+        local gr_id = gr:getID()
+        if not gr_id then return end
+        if (side or gr:getCoalition()) ~= self.side then return end
+
+        self.group_menus = self.group_menus or {}
+        if self.group_menus[gr_id] then return end -- already built for that group
+
+        local jtac_menu = missionCommands.addSubMenuForGroup(gr_id, self.callsign..' JTAC '..self.to_zone.name, groupRootMenu(self.side, gr_id))
+        self.group_menus[gr_id] = jtac_menu
+        MissionLogger:info("JTAC "..tostring(self.callsign).." menu built for group "..tostring(gr:getName()).." ("..gr_id..")")
+
+        missionCommands.addCommandForGroup(gr_id, "Next Target", jtac_menu, function (jtac)
             if jtac:getAirborneUnit() then
 
                 jtac:searchTarget(false)
@@ -389,7 +456,7 @@ do
             end
         end, self)
 
-        missionCommands.addCommandForCoalition(self.side,"Request 9-Line",self.jtac_menu, function (jtac)
+        missionCommands.addCommandForGroup(gr_id, "Request 9-Line", jtac_menu, function (jtac)
             if jtac:getAirborneUnit() then
                 if not jtac.target or not jtac.target:isExist() then
                     jtac:searchTarget(false)
@@ -424,7 +491,7 @@ do
             end
         end,self)
 
-        missionCommands.addCommandForCoalition(self.side, "Intelligence Report", self.jtac_menu, function (jtac)
+        missionCommands.addCommandForGroup(gr_id, "Intelligence Report", jtac_menu, function (jtac)
             if jtac:getAirborneUnit() then
                 local zone = ZoneHandler.getFromName(jtac.to_zone.name)
                 if not zone then return end
@@ -475,7 +542,7 @@ do
             end
         end,self)
 
-        missionCommands.addCommandForCoalition(self.side, "Mark Target (Red)",self.jtac_menu, function (jtac)
+        missionCommands.addCommandForGroup(gr_id, "Mark Target (Red)", jtac_menu, function (jtac)
             local u = jtac:getAirborneUnit()
             if u then
                 if not (jtac.target and jtac.target:isExist()) then
@@ -502,14 +569,14 @@ do
             end
         end,self)
 
-        missionCommands.addCommandForCoalition(self.side, "RTB",self.jtac_menu, function (jtac)
+        missionCommands.addCommandForGroup(gr_id, "RTB", jtac_menu, function (jtac)
             jtac:rtb()
         end,self)
 
         -- enables the player to designate a category as priority
-        local priority_menu = missionCommands.addSubMenuForCoalition(self.side, "Set Priority", self.jtac_menu)
+        local priority_menu = missionCommands.addSubMenuForGroup(gr_id, "Set Priority", jtac_menu)
         for category_name, _ in pairs(self.categories) do
-            missionCommands.addCommandForCoalition(self.side, category_name, priority_menu, function(jtac)
+            missionCommands.addCommandForGroup(gr_id, category_name, priority_menu, function(jtac)
                 if jtac:getAirborneUnit() then
                     jtac.priority = category_name
                     jtac.search_index = 1 -- Reset index on priority switch
@@ -525,7 +592,7 @@ do
                 end
             end,self)
         end
-        missionCommands.addCommandForCoalition(self.side, "Clear Priority", priority_menu, function(jtac)
+        missionCommands.addCommandForGroup(gr_id, "Clear Priority", priority_menu, function(jtac)
             if jtac:getAirborneUnit() then
                 jtac.priority = nil
                 jtac.search_index = 1 -- Reset index on priority switch
@@ -539,5 +606,29 @@ do
                 jtac:destroy()
             end
         end,self)
+    end
+
+    function JTAC:setupCommands()
+        for _, gr in ipairs(JTAC.getPlayerGroups(self.side)) do
+            self:setupCommandsForGroup(gr, self.side)
+        end
+    end
+
+    ---@param gr Group
+    ---@param side coalition.side
+    function JTAC.buildMenusForGroup(gr, side)
+        if not gr or not gr.isExist or not gr:isExist() then return end
+
+        local built = 0
+        for _, enroute in ipairs(EnrouteManager.enroutes) do
+            local jtac = enroute.jtac
+            if enroute.ai_task_type == AITaskTypes.JTAC and jtac
+            and jtac.side == side and not jtac.is_destroyed then
+                jtac:setupCommandsForGroup(gr, side)
+                built = built + 1
+            end
+        end
+
+        MissionLogger:info("JTAC menus rebuilt for group "..tostring(gr:getName())..": "..built.." JTAC(s) on station")
     end
 end

@@ -12,8 +12,8 @@ do
     CommandHandler.destroy_page = 1
 
     CommandHandler.jtac_submenu = {
-        [coalition.side.RED] = nil,
-        [coalition.side.BLUE] = nil
+        [coalition.side.RED] = {},
+        [coalition.side.BLUE] = {}
     }
     ---@param unit Unit
     function CommandHandler.init(unit)
@@ -61,6 +61,10 @@ do
             CommandHandler.destroySelectMenu(gr_id)
         end
 
+        if type == "jtac" then
+            JTAC.forgetGroupMenus(gr_id)
+        end
+
         if CommandHandler.group_menus[gr_id] then
             -- Remove existing menus. 
             for i = #CommandHandler.group_menus[gr_id], 1, -1 do
@@ -78,6 +82,7 @@ do
         local gr_id = gr:getID()
 
         CommandHandler.destroySelectMenu(gr_id)
+        JTAC.forgetGroupMenus(gr_id)
 
         if CommandHandler.group_menus[gr_id] then
             -- Remove existing menus. 

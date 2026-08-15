@@ -148,12 +148,13 @@ function ev:onEvent(event)
                         end
                     end)
                     CommandHandler.addToMenuTracking(group_id, xprank_root, "xp_rank_menu")
-                  
                     CommandHandler.init(unit)
                     CommandHandler.resourcesRequests(group)
                     CommandHandler.initTaskingRequests(group)
                     CommandHandler.operationsMenu(group,unit)
                     CommandHandler.tallyZone(unit)
+
+                    JTAC.buildMenusForGroup(group, unit_coalition)
 
                     local ew = EWRS_coalition[unit_coalition]
                     ew:addRadioMenuForUser(unit)
