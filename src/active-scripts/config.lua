@@ -78,11 +78,17 @@ Config = {
         -- "Modern" 1989-
         eras_selected = {Eras.MODERN},
 
-        -- (table<...>) When this is empty, the script considers all modules flyable.
-        -- To restrict to a specific set of aircraft, list them
-        -- explicitly by type name for example: enabled_aircraft = { "FA-18C_hornet", "F-15ESE",
-        -- "F-16C_50", "A-10C_2", }. This affects AI too, be careful.
-        enabled_aircraft = {},
+        -- (table<string,table<string>>) Per coalition aircraft whitelist. When a
+        -- coalition list is empty, that coalition considers all era-appropriate
+        -- modules flyable. To restrict a coalition to a specific set of aircraft,
+        -- list them explicitly by type name. This affects AI too, be careful.
+        -- Only aircraft valid in the selected era(s) are kept.
+        enabled_aircraft = {
+            -- (table<string>) example: { "MiG-29S", "Su-27", "Su-25T", "Mi-24P", }
+            red_coalition = {},
+            -- (table<string>) example: { "FA-18C_hornet", "F-15ESE", "F-16C_50", "A-10C_2", }
+            blue_coalition = {},
+        },
 
         -- (table<string>)
         restricted_weapons = {

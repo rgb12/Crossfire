@@ -481,7 +481,6 @@ do
     ---@return table<string, integer>
     function WarehouseManager:generateStock(stock_type, side)
         local stock = {}
-        local _ = side  -- reserved (see note above)
 
         local contained_stock_types = weaponStockTypesFor(stock_type) -- INITIAL -> {AIR_AIR_LONG_RANGE, AIR_GROUND_BOMBS, ...}
         if #contained_stock_types == 0 then return stock end
@@ -516,7 +515,7 @@ do
             end
 
 
-            if stock_type_matched and isWarehouseTrackable(clsid) and EraSystem.isWeaponEnabled(clsid) then
+            if stock_type_matched and isWarehouseTrackable(clsid) and EraSystem.isWeaponEnabled(clsid, side) then
                 local base_qty
                 if type(equipment_data.base_qty) == "number" then
                     base_qty = equipment_data.base_qty or 0
@@ -547,7 +546,6 @@ do
     ---@return table<string, integer>
     function WarehouseManager:generateAircraftStock(stock_type, side)
         local stock = {}
-        local _ = side  -- reserved (see note above)
         if not utils.tableContains(WarehouseManager.AircraftStockTypes, stock_type) then
             return stock
         end
@@ -565,7 +563,7 @@ do
         }
         local qty = role_qty[stock_type] or {min=2, max=4}
 
-        for aircraft_type in pairs(EraSystem.getEnabledAircraft()) do
+        for aircraft_type in pairs(EraSystem.getEnabledAircraft(side)) do
             if WarehouseManager:classifyAircraftRole(aircraft_type) == stock_type then
                 stock[aircraft_type] = math.random(qty.min,qty.max)
             end

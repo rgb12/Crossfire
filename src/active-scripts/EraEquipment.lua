@@ -2375,7 +2375,8 @@ local OH58D_STORES = {
 --[[
 This table references most weapons and stores that can be loaded onto an aircraft.
 If you are planning to implement an aircraft whitelist, you must update this table.
-This table only works if **Config.era_system.enabled_aircraft** is NOT empty.
+This table only works if the coalition list in **Config.era_system.enabled_aircraft**
+(red_coalition / blue_coalition) is NOT empty.
 ]]
 Stocks.AircraftLoads = {
     -- ===== Helicopters (FARP rearm) =====
@@ -3397,32 +3398,48 @@ EraSystem = {} do
         return set
     end
 
-    local acft_err_warned = false
-    ---@return table<string, boolean> set keyed by DCS type string
-    function EraSystem.getEnabledAircraft()
-        local era_aircraft = EraSystem.getEraAircraft()
+    ---@param side coalition.side|nil
+    ---@return string[] list
+    local function getAircraftWhitelist(side)
         local enabled = Config.era_system.enabled_aircraft
-        if type(enabled) ~= "table" or #enabled == 0 then
+        if not side or type(enabled) ~= "table" then return {} end
+        local list
+        if side == coalition.side.BLUE then
+            list = enabled.blue_coalition
+        elseif side == coalition.side.RED then
+            list = enabled.red_coalition
+        end
+        if type(list) ~= "table" then return {} end
+        return list
+    end
+
+    local acft_err_warned = {}
+    ---@param side coalition.side|nil nil is unrestricted (all era aircraft)
+    ---@return table<string, boolean> set keyed by DCS type string
+    function EraSystem.getEnabledAircraft(side)
+        local era_aircraft = EraSystem.getEraAircraft()
+        local enabled = getAircraftWhitelist(side)
+        if #enabled == 0 then
             return era_aircraft
         end
         local set = {}
         for _, aircraft in ipairs(enabled) do
             if era_aircraft[aircraft] then
                 set[aircraft] = true
-            elseif not acft_err_warned then
-                acft_err_warned = true
-                env.error("CONFIG ERROR: Enabled aircraft '" .. tostring(aircraft)
-                    .. "' is not valid in the selected era(s); dropping.",true)
+            elseif not acft_err_warned[aircraft] then
+                acft_err_warned[aircraft] = true
+                env.error("CONFIG ERROR: Enabled aircraft '" .. tostring(aircraft).. "' is not valid in the selected era(s); dropping.",true)
             end
         end
         return set
     end
 
     ---@param dcs_type_string string DCS aircraft type string
+    ---@param side coalition.side|nil nil is unrestricted
     ---@return boolean enabled
-    function EraSystem.isAircraftEnabled(dcs_type_string)
+    function EraSystem.isAircraftEnabled(dcs_type_string, side)
         if not dcs_type_string then return false end
-        return EraSystem.getEnabledAircraft()[dcs_type_string] == true
+        return EraSystem.getEnabledAircraft(side)[dcs_type_string] == true
     end
 
     ---@return table<string, boolean> set keyed by weapon clsid
@@ -3457,19 +3474,20 @@ EraSystem = {} do
     end
 
     -- for caching
-    local enabled_weapons
-    --- Set of weapons that are (a) usable by at least one enabled aircraft
-    --- (b) not restricted (c) era-appropriate.
+    local enabled_weapons = {}
+    --- Set of weapons that are (a) usable by at least one aircraft enabled for
+    --- that coalition (b) not restricted (c) era-appropriate.
+    ---@param side coalition.side|nil nil is unrestricted (all era weapons)
     ---@return table<string, boolean> set keyed by weapon clsid
-    function EraSystem.getEnabledWeapons()
-        if enabled_weapons then return enabled_weapons end
-        local enabled_aircraft = EraSystem.getEnabledAircraft()
+    function EraSystem.getEnabledWeapons(side)
+        local cache_key = side or "all"
+        if enabled_weapons[cache_key] then return enabled_weapons[cache_key] end
+        local enabled_aircraft = EraSystem.getEnabledAircraft(side)
         local restricted = getRestrictedWeapons()
         local set = {}
         local any_mapping = false
 
-        local enabled = Config and Config.era_system and Config.era_system.enabled_aircraft
-        local has_user_aircraft = (type(enabled) == "table" and #enabled > 0)
+        local has_user_aircraft = (#getAircraftWhitelist(side) > 0)
 
         if has_user_aircraft then
             for aircraft in pairs(enabled_aircraft) do
@@ -3493,20 +3511,16 @@ EraSystem = {} do
             end
         end
 
-        if not enabled_weapons then
-            enabled_weapons = set
-        end
+        enabled_weapons[cache_key] = set
         return set
     end
 
     ---@param weapon_clsid string weapon clsid
+    ---@param side coalition.side|nil nil is unrestricted
     ---@return boolean enabled
-    function EraSystem.isWeaponEnabled(weapon_clsid)
+    function EraSystem.isWeaponEnabled(weapon_clsid, side)
         if not weapon_clsid then return false end
-        if not enabled_weapons then
-            enabled_weapons = EraSystem.getEnabledWeapons()
-        end
-        return enabled_weapons[weapon_clsid] == true
+        return EraSystem.getEnabledWeapons(side)[weapon_clsid] == true
     end
 
     --- Check whether an AI task type is allowed for the selected era(s).
