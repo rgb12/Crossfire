@@ -86,8 +86,9 @@ end
 
 --- Get all alive statics inside a ZoneHandler zone (circle or quad)
 ---@param zone ZoneHandler Zone object
+---@param excluded_statics string[]|nil Name of a static to ignore
 ---@return StaticObject[]
-function utils.getStaticsInZoneObj(zone)
+function utils.getStaticsInZoneObj(zone, excluded_statics)
     if not zone or not zone.zone then return {} end
 
     local statics_in_zone = {}
@@ -96,7 +97,7 @@ function utils.getStaticsInZoneObj(zone)
     if not vol then return {} end
 
     world.searchObjects(Object.Category.STATIC, vol, function(obj)
-        if obj and obj:isExist() then
+        if obj and obj:isExist() and (not excluded_statics or not utils.tableContains(excluded_statics,obj:getName())) then
             local pos = obj:getPoint()
             local inside = false
 

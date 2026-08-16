@@ -427,9 +427,6 @@ do
         if self.side == side then return end
         if MISSION_ENDED then return end
 
-        -- Remember who held the zone before this capture so the per-zone-type
-        -- stat counters can be decremented for the OLD side. The +1 for the new
-        -- side is applied by UnitHandler.updateZoneUnits -> initZoneUnits.
         local previous_side = self.side
 
         if self.side == coalition.side.NEUTRAL then
@@ -463,7 +460,6 @@ do
             UnitHandler.updateZoneUnits(self)
 
         elseif self.zone_type == ZoneTypes.LOGISTICS and self.side ~= coalition.side.NEUTRAL then
-            --TO CHANGE add looting capture logic
             if previous_side == coalition.side.RED then
                 stats.red_logistics_zone = stats.red_logistics_zone - 1
             elseif previous_side == coalition.side.BLUE then
@@ -471,11 +467,15 @@ do
             end
             WarehouseManager:handleIncomingSupplies(self.side,{StockTypes.LOGISTICS_CAPTURE})
             self.heli_avail = 0
-            -- Mark static as dead, this prevents the check function from flagging it as dead
-            self.linked_ammo_depot = nil
-            self.ammo_depot_intact = false
-            self.ammo_depot_last_destroyed = timer.getTime()
-            self.linked_statics = {}
+            -- Depot spawns neutral, if it survived a neutral changeover intact, keep it
+            -- running for the new owner instead of destroying and rebuilding it
+            local depot_survived_neutral = previous_side == coalition.side.NEUTRAL and self.ammo_depot_intact
+            if not depot_survived_neutral then
+                self.linked_ammo_depot = nil
+                self.ammo_depot_intact = false
+                self.ammo_depot_last_destroyed = timer.getTime()
+                self.linked_statics = {}
+            end
             UnitHandler.updateZoneUnits(self)
         elseif self.zone_type == ZoneTypes.COMMS and self.side ~= coalition.side.NEUTRAL then
             if previous_side == coalition.side.RED then
@@ -483,11 +483,16 @@ do
             elseif previous_side == coalition.side.BLUE then
                 stats.blue_comms_zones = stats.blue_comms_zones - 1
             end
-            -- Mark static as dead, this prevents the check function from flagging it as dead
-            self.linked_comms_tower = nil
-            self.comms_tower_intact = false
-            self.comms_tower_last_destroyed = timer.getTime()
-            self.linked_statics = {}
+            -- Tower spawns neutral; if it survived a neutral changeover intact, keep it
+            -- standing for the new owner instead of destroying and rebuilding it.
+            local tower_survived_neutral = previous_side == coalition.side.NEUTRAL and self.comms_tower_intact
+            if not tower_survived_neutral then
+                -- Mark static as dead, this prevents the check function from flagging it as dead
+                self.linked_comms_tower = nil
+                self.comms_tower_intact = false
+                self.comms_tower_last_destroyed = timer.getTime()
+                self.linked_statics = {}
+            end
             UnitHandler.updateZoneUnits(self)
         elseif self.zone_type == ZoneTypes.EWSITE and self.side ~= coalition.side.NEUTRAL then
             if previous_side == coalition.side.RED then
@@ -502,10 +507,15 @@ do
             elseif previous_side == coalition.side.BLUE then
                 stats.blue_farp_zones = stats.blue_farp_zones - 1
             end
-            self.linked_ammo_depot = nil
-            self.ammo_depot_intact = false
-            self.ammo_depot_last_destroyed = timer.getTime()
-            self.linked_statics = {}
+            -- Depot spawns neutral, if it survived a neutral changeover intact, keep it
+            -- running for the new owner instead of destroying and rebuilding it
+            local depot_survived_neutral = previous_side == coalition.side.NEUTRAL and self.ammo_depot_intact
+            if not depot_survived_neutral then
+                self.linked_ammo_depot = nil
+                self.ammo_depot_intact = false
+                self.ammo_depot_last_destroyed = timer.getTime()
+                self.linked_statics = {}
+            end
             timer.scheduleFunction(function ()
                 if self.linked_farp then
                     WarehouseManager:clearWarehouse(self.linked_farp)
@@ -554,11 +564,15 @@ do
                 end
             end
 
-            -- Mark static as dead, this prevents the check function from flagging it as dead
-            self.linked_ammo_depot = nil
-            self.ammo_depot_intact = false
-            self.ammo_depot_last_destroyed = timer.getTime()
-            self.linked_statics = {}
+            -- Depot spawns neutral, if it survived a neutral changeover intact, keep it
+            -- running for the new owner instead of destroying and rebuilding it
+            local depot_survived_neutral = self.ammo_depot_intact and (self.side == coalition.side.NEUTRAL or previous_side == coalition.side.NEUTRAL)
+            if not depot_survived_neutral then
+                self.linked_ammo_depot = nil
+                self.ammo_depot_intact = false
+                self.ammo_depot_last_destroyed = timer.getTime()
+                self.linked_statics = {}
+            end
 
             if red_airbase and self.airbase_name == red_airbase.airbase_name then
                 red_airbase.side = self.side
@@ -806,16 +820,18 @@ do
             local static_name = self.linked_statics[i]
             local static = StaticObject.getByName(static_name)
 
-            if static and static.isExist and static:isExist()
-            then
-                statics_count = statics_count +1
+            if static and static.isExist and static:isExist() then
+                -- The ammo depot and comms tower spawn neutral and should not count
+                -- as an occupying presence blocking the zone from turning neutral.
+                if static_name ~= self.linked_ammo_depot and static_name ~= self.linked_comms_tower then
+                    statics_count = statics_count +1
+                end
             else
                 table.remove(self.linked_statics, i)
             end
         end
 
         if units_count + statics_count == 0 then
-            self.linked_statics = {}
             self.linked_groups = {}
             return true
         else
@@ -826,13 +842,12 @@ do
     function ZoneHandler:checkIfEmptyAndCapture()
         if self.side == coalition.side.NEUTRAL then return false end
         local units_in_zone = utils.getUnitsInZoneObj(self)
-        local static_in_zone = utils.getStaticsInZoneObj(self)
 
-        
-        -- local units_in_zone = TheatreCommander.fetchUnitsInZone(self.zone.name, true, false,utils.getEnemyCoalition(self.side))
-        -- MissionLogger:info(#units_in_zone .. " units in zone " .. self.zone.name)
+
+        local static_in_zone = utils.getStaticsInZoneObj(self, {self.linked_ammo_depot,self.linked_comms_tower})
+
         MissionLogger:info("Checking if zone "..self.name.." is empty, units found " .. (#units_in_zone or 0)..", statics found "..(#static_in_zone or 0))
-        
+
         --check if all units are not airborne, remove them
         for i = #units_in_zone, 1, -1 do
             local unit = units_in_zone[i]
@@ -851,8 +866,6 @@ do
         self:capture(coalition.side.NEUTRAL)
         return true
 
-
-        -- [ if zone empty then make it neutral]
     end
 
     function ZoneHandler:isPointClearOfUnits(vec3_point, min_clearance)
@@ -896,10 +909,10 @@ do
         if self.linked_comms_tower then
             comms_tower = StaticObject.getByName(self.linked_comms_tower)
         end
-        
+
         -- First, check the actual status of the tower
         local is_alive = comms_tower and comms_tower:isExist() and comms_tower:getLife() >= 1
-        
+
         if not self.comms_tower_intact and not self.comms_tower_last_destroyed then
             -- tower was destroyed but time not recorded, record it now
             self.comms_tower_last_destroyed = timer.getTime()
@@ -945,10 +958,9 @@ do
             -- Respawn the tower
             MissionLogger:info(self.name .." comms tower respawn")
 
-            local country_name
-            if self.side == coalition.side.BLUE then country_name = country.id.CJTF_BLUE
-            else country_name = country.id.CJTF_RED end
-            
+            -- respawn the comms tower (spawned neutral so it never blocks the zone from turning neutral)
+            local country_name = 82 -- UN Peace Keepers
+
             local pnt= mist.getRandomPointInZone(self.zone.name,40) or {x=self.zone.point.x-67, y=self.zone.point.z+42}
 
             local comms_tower_gr = mist.dynAddStatic({
@@ -957,18 +969,18 @@ do
                 category = "Fortifications",
                 x = pnt.x,
                 y = pnt.y})
-            
+
             if comms_tower_gr then
                 self.comms_tower_intact = true
                 self.linked_comms_tower = comms_tower_gr.name
                 self.comms_tower_last_destroyed = nil
-                
+
                 utils.editCommsAntennasCount(self.side, 1)
                 self:drawF10()
                 -- Every level reduces the respawn time by 10%
                 local level_modifier = 1 - (((self.level or 1) -1) * 0.1)
                 Config.comms_tower_respawn_time = math.floor(Config.comms_tower_respawn_time * level_modifier)
-           
+
                 trigger.action.outSoundForCoalition(self.side,"chatter3.ogg")
                 trigger.action.outTextForCoalition(self.side, "SITREP: COMMS "..self.name.." has rebuilt its communications tower.",10)
             else
@@ -999,7 +1011,6 @@ do
                 if static:getTypeName() == supply_static.type then
                     table.insert(depots, static)
                 end
-            
             else
                 -- Remove from tracking
                 for i = #self.linked_statics, 1, -1 do
@@ -1008,7 +1019,6 @@ do
                         break
                     end
                 end
-                
             end
 
         end
@@ -1056,9 +1066,7 @@ do
 
 
             -- respawn the ammo depot
-            local country_name
-            if self.side == coalition.side.BLUE then country_name = country.id.CJTF_BLUE
-            else country_name = country.id.CJTF_RED end
+            local country_name = 82 -- UN Peace Keepers
 
             local pnt = mist.getRandomPointInZone(self.zone.name,40) or {x=self.zone.point.x-67, y=self.zone.point.z+42}
 
@@ -1070,6 +1078,7 @@ do
                 y = pnt.y})
                 if ammo_depot_gr then
                     self.ammo_depot_intact = true
+                    self.linked_ammo_depot = ammo_depot_gr.name
                     table.insert(self.linked_statics, ammo_depot_gr.name)
                     self.ammo_depot_last_destroyed = nil
                     utils.editAmmoDepotsCount(self.side, 1)

@@ -248,9 +248,7 @@ do
     ---@return boolean
     function UnitHandler.initStatics(zone)
         if zone.side == coalition.side.NEUTRAL then return false end
-        local country_name
-        if zone.side == coalition.side.BLUE then country_name = country.id.CJTF_BLUE
-        else country_name = country.id.CJTF_RED end
+        local country_name = 82 -- UN Peace Keepers
 
         if zone.zone_type == ZoneTypes.LOGISTICS or zone.zone_type == ZoneTypes.AIRBASE
         or zone.zone_type == ZoneTypes.FARP then
@@ -288,9 +286,9 @@ do
             if comms_tower then
                 zone.comms_tower_intact = true
                 zone.linked_comms_tower = comms_tower.name
-                
+
                 utils.editCommsAntennasCount(zone.side, 1)
-               
+
                 table.insert(zone.linked_statics, comms_tower.name)
                 return true
             else

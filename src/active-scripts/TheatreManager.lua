@@ -208,7 +208,7 @@ do
                         end
                     end
                 end
-                
+
             end,{}, timer.getTime() + 8)
     end
 
@@ -227,7 +227,7 @@ do
             if ticks % 60 == 0 then
                 ticks1m = ticks1m + 1
                 self:tick_1m()
-        
+
                 if ticks1m % 5 == 0 then
                     ticks5m = ticks5m + 1
                     self:tick_5m()
@@ -775,12 +775,12 @@ do
             }
             table.insert(smoke_points, mist.utils.makeVec3GL(point))
         end
-        
+
         for _, point in ipairs(smoke_points) do
             smoke_id = smoke_id + 1
             local smoke_string = "TheatreSmoke" .. smoke_id
-            local duration = math.random(8*60, 16*60) -- 8-16 minutes
-            trigger.action.effectSmokeBig(point,math.random(5,8),1,smoke_string)
+            local duration = math.random(7*60, 16*60) -- 8-16 minutes
+            trigger.action.effectSmokeBig(point,math.random(7,9),1,smoke_string)
 
                 timer.scheduleFunction(function ()
                     trigger.action.effectSmokeStop(smoke_string)
