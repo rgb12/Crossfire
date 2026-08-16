@@ -248,7 +248,6 @@ Config = {
                 "SA342Mistral",
                 "SA342Minigun",
                 "UH-60L",
-                "AH-64D_BLK_II"
             },
             -- (table<string>)
             [OperationTypes.AIRDROP] = {
@@ -759,6 +758,14 @@ Config = {
             [19] = { name = "R-19 General",           xp_required = 98000 },
             -- (table)
             [20] = { name = "R-20 Commander",         xp_required = 100000 },
+        },
+        -- (table<string,number>) XP multiplier applied for the following airframes. Default is 1.0
+        airframe_multiplier = {
+            ["SA342L"] = 2.0,
+            ["SA342M"] = 1.8,
+            ["SA342Minigun"] = 2.2,
+            ["FA-18C_hornet"] = 0.8,
+            ["UH-1H"] = 1.2
         }
 
     },

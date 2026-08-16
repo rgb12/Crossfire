@@ -20,6 +20,18 @@ do
     ---@type number
     ExperienceManager.xp_multiplier = 1
 
+    ---@param user_airframe string
+    ---@return number mult
+    local function fetchAirframeMultiplier(user_airframe)
+        -- Airframe xp multiplier
+        for airframe,mult in pairs(Config.reward_system.airframe_multiplier) do
+            if user_airframe == airframe then
+                return mult
+            end
+        end
+        return 1.0
+    end
+
     function ExperienceManager.EventHandler:onEvent(event)
         if not Config.reward_system.enable then return end
 
@@ -113,9 +125,13 @@ do
                         if user.unclaimed_xp>0 or airtime_xp_bonus>0 then
                             local u_id = unit_check:getID()
                             local claimed_xp = (user.unclaimed_xp+airtime_xp_bonus)*ExperienceManager.xp_multiplier
+
+                            -- Airframe xp multiplier
+                            local airframe_mult = fetchAirframeMultiplier(unit_check:getTypeName())
+                            claimed_xp = math.floor(claimed_xp * airframe_mult)
+
                             trigger.action.outTextForUnit(u_id, "Post-Flight Debrief: +".. claimed_xp .. " XP",10)
                             trigger.action.outSoundForUnit(u_id,"radio click.ogg")
-
                             ExperienceManager:addXP(user, claimed_xp) -- checks for rank up
                             user.unclaimed_xp = 0
                         end
@@ -132,17 +148,25 @@ do
             end
         elseif event.id == world.event.S_EVENT_EJECTION then
             local payout = Config.reward_system.eject_xp_payout or 0
-            if payout > 0 and event.initiator and event.initiator.getPlayerName and event.initiator:getPlayerName() then
+            if payout > 0 and event.initiator and event.initiator.getPlayerName and event.initiator:getPlayerName()
+            and event.initiator.getTypeName then
                 local player_name = event.initiator:getPlayerName()
                 local player_coalition = event.initiator:getCoalition()
+                local user_airframe = event.initiator:getTypeName()
+
                 ExperienceManager.airbone_users[player_name] = nil -- no landing reward after eject
                 local user = ExperienceManager:fetchUser(event.initiator)
                 if user and user.unclaimed_xp > 0 then
+
                     local awarded = math.floor(user.unclaimed_xp * payout * ExperienceManager.xp_multiplier)
+                    local airframe_mult = fetchAirframeMultiplier(user_airframe)
+                    awarded = math.floor(awarded * airframe_mult)
+
                     MissionLogger:info("USER: "..player_name.." ejected, awarding "..payout*100 .."% of unclaimed XP: "..awarded)
                     trigger.action.outTextForCoalition(player_coalition, player_name .. " ejected! +" .. awarded .. " XP (" .. math.floor(payout*100) .. "% of XP)", 10)
                     ExperienceManager:addXP(user, awarded)
                     user.unclaimed_xp = 0
+
                 end
             end
         end
