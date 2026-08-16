@@ -17,7 +17,7 @@ function ev:onEvent(event)
 
         if unit and unit.getCategory and unit:getCategory() == Object.Category.UNIT and unit.getCoalition and unit.isExist
         and unit:isExist() and unit.getPlayerName and unit:getPlayerName() then
-  
+
             local function checkSpawnAllowed() -- Slot blocker
                 if not unit or not unit.isExist or not unit:isExist() or not unit.getCoalition then return end
                 MissionLogger:info("Slot blocker checking for ".. unit:getName())
@@ -98,7 +98,7 @@ function ev:onEvent(event)
                     -- not allowed, destroy the unit
                     trigger.action.outSoundForUnit(unit_id, "error.ogg")
                     trigger.action.outTextForUnit(unit_id, "****************\n\nThis slot is not allowed! Consult F10 map and warehouse stocks.\n\n****************", 20)
-            
+
                     timer.scheduleFunction(function ()
                         if unit and unit:isExist() then
                             unit:destroy()
@@ -257,6 +257,7 @@ function ev:onEvent(event)
                         timer.scheduleFunction(function ()
                             zone:capture(unit_coalition)
                         end, {}, timer.getTime() + math.random(10,30))
+                        break
                     end
                 end
 

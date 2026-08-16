@@ -99,6 +99,12 @@ do
 
                     local unit_check = Unit.getByName(unit_name)
                     if unit_check and unit_check:isExist() and unit_check:getLife() > 0 and unit_check.getCoalition then
+
+                        -- Check if the player is inside a zone
+                        local landed_zone = utils.getZoneOfUnitFromPosition(unit_check:getPoint())
+                        if landed_zone and landed_zone.side == unit_check:getCoalition() then return end
+
+
                         local user = ExperienceManager:fetchUser(unit_check)
                         if not user then return end
 
