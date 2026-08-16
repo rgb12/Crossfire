@@ -1137,7 +1137,7 @@ Config = {
             troop_slots = 5,
             soldiers = 5,
             -- (int) (meters) max range a mortar team will engage enemy units within
-            range = 5000,
+            range = 6000,
             -- (int) (seconds) interval between mortar shots
             fire_interval = 30,
             -- (int) total rounds the team can fire before going dry
@@ -1162,7 +1162,7 @@ Config = {
             range = 2000,
             -- (number) supply production multiplier applied to the sabotaged enemy
             -- zone
-            production_ration = 0.25,
+            production_ration = 0.10,
             -- (int) (seconds) how long the production reduction lasts
             duration = 60*60,
             -- (bool) allow the squad to destroy the target zone's COMMS tower
