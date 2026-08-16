@@ -198,7 +198,9 @@ do
                 EnrouteManager:remove(group_name)
                 MissionLogger:info("Removed LANDED aborted heli from enroutes: " .. group_name)
                 timer.scheduleFunction(function ()
-                    unit:getGroup():destroy()
+                    if unit and unit.isExist and unit:isExist() then
+                        unit:getGroup():destroy()
+                    end
                 end, {}, timer.getTime() + 10)
 
                 if enroute_heli.from_zone.heli_avail and enroute_heli.side == unit:getCoalition() and not enroute_heli.from_zone.lha_source then
@@ -237,7 +239,9 @@ do
         end
 
         timer.scheduleFunction(function ()
-            unit:getGroup():destroy()
+            if unit and unit.isExist and unit:isExist() then
+                unit:getGroup():destroy()
+            end
         end, {}, timer.getTime() + 10)
     end
 
