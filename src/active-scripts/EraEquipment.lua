@@ -335,7 +335,6 @@ Stocks.AircraftEras = {
         Stocks.Aircraft.CHRISTEN_EAGLE_II,
     },
     [Eras.MODERN] = { -- 1989 - present
-        -- Strictly Modern / Upgraded Platforms
         Stocks.Aircraft.F16C_BL50,
         Stocks.Aircraft.F16C_BL52D,
         Stocks.Aircraft.FA18C,
