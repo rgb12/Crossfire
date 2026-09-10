@@ -453,7 +453,26 @@ available_zones = {
         ZoneHandler:new({name = "C2"}),
         ZoneHandler:new({name = "C3"}),
         ZoneHandler:new({name = "C4"}),
-        ZoneHandler:new({name = "C5"})
+        ZoneHandler:new({name = "C5"}),
+        ZoneHandler:new({name = "BRAUNSCHWEIG", zone_type = ZoneTypes.AIRBASE, airbase_name = Airbases.GermanyCW.Braunschweig}),
+        ZoneHandler:new({name = "MAHLWINKEL", zone_type = ZoneTypes.AIRBASE, airbase_name = Airbases.GermanyCW.Mahlwinkel}),
+        ZoneHandler:new({name = "D1"}),
+        ZoneHandler:new({name = "D2"}),
+        ZoneHandler:new({name = "E1"}),
+        ZoneHandler:new({name = "E2"}),
+        ZoneHandler:new({name = "E3"}),
+        ZoneHandler:new({name = "E4"}),
+        ZoneHandler:new({name = "HELMSTEDT"}),
+        ZoneHandler:new({name = "F2"}),
+        ZoneHandler:new({name = "WOLFSBURG"}),
+        ZoneHandler:new({name = "F4"}),
+        ZoneHandler:new({name = "G1"}),
+        ZoneHandler:new({name = "UMMERN"}),
+        ZoneHandler:new({name = "HILDESCHEIM"}),
+        ZoneHandler:new({name = "F3"}),
+        ZoneHandler:new({name = "G2"}),
+        ZoneHandler:new({name = "G3"}),
+        ZoneHandler:new({name = "CELLE"})
     ), -- [Theatres.CWGERMANY]
 }
 
@@ -665,7 +684,7 @@ scenarios = {
         name        = "South Syria",
         description = "Conflict in southern Syria.",
     },
-        {
+    {
         theater      = Theatres.CWGERMANY,
         blue_airbase = "RAMSTEIN", -- trigger zone name
         red_airbase  = "NORVENICH", -- trigger zone name
@@ -681,6 +700,24 @@ scenarios = {
         },
         name        = "Ramstein expansion",
         description = "Conflict in south-west Germany.",
+    },
+    {
+        theater      = Theatres.CWGERMANY,
+        blue_airbase = "MAHLWINKEL", -- trigger zone name
+        red_airbase  = "WUNSTORF", -- trigger zone name
+        map_setup = {
+            width_factor = 1.8,
+            corridor_half_width = 0.20,
+            airbase_influence = 30000,
+            red_distribution = 0.75,
+        },
+        resupply = {
+            blue_point = { x = -00254895,  y = 6096, z = -00485961 }, --Metric: X-00254895 Z-00485961
+            red_point  = { x = -00114761, y = 6096, z = -00831396 }, --Metric: X-00114761 Z-00831396
+
+        },
+        name        = "Mahlwinkel - WUNSTORF",
+        description = "Conflict in central Germany.",
     },
 }
 
