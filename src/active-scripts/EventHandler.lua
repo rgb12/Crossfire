@@ -251,7 +251,7 @@ function ev:onEvent(event)
                 -- check if heli landed in neutral zone
                 for _,zone in ipairs(zones) do
                     if zone.side == coalition.side.NEUTRAL and zone:isPointInsideZone(unit:getPoint()) then
-                        trigger.action.outTextForUnit(u_id, "Allied forces deployed at ".. zone.name..".", 15)
+                        trigger.action.outTextForUnit(u_id, "Allied forces deployed at ".. zone.name..". Hold position.", 15)
                         trigger.action.outSoundForUnit(u_id, "radio click.ogg")
 
                         timer.scheduleFunction(function ()
