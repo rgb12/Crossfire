@@ -65,31 +65,6 @@ do
     end
 
     ---@param group_name string
-    ---@param zone ZoneHandler
-    ---@param disperse boolean|nil
-    ---@param max_disperse_disperse number|nil
-    ---@param inner_radius number|nil
-    ---@return string|nil -- group name
-    function UnitHandler.clone(group_name, zone, disperse,max_disperse_disperse, inner_radius)
-        local clear_point = UnitHandler.findClearPoint(zone)
-        local new_group
-        new_group = mist.teleportToPoint({
-            groupName = group_name,
-            point = clear_point,
-            action = 'clone',
-            disperse = disperse or false,
-            maxDisperse = max_disperse_disperse or nil,
-            innerRadius = inner_radius or nil,
-            initTasks = true
-        })
-        if not new_group or not new_group.name then
-            return nil
-        end
-        table.insert(zone.linked_groups, new_group.name)
-        if new_group and new_group.name then return new_group.name end
-    end
-
-    ---@param group_name string
     ---@param from_zone ZoneHandler
     function UnitHandler.abortHeliCapture(group_name, from_zone)
         local group = Group.getByName(group_name)
