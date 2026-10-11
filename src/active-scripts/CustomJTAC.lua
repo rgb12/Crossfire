@@ -484,7 +484,7 @@ do
                 toprint = toprint..'\nMGRS: '.. mist.tostringMGRS(mgrs, 5)
                 toprint = toprint..'\nAlt: '..math.floor(alt)..'m'..' | '..math.floor(alt*3.280839895)..'ft'
 
-                trigger.action.outTextForCoalition(jtac.side, toprint, 20)
+                trigger.action.outTextForCoalition(jtac.side, toprint, 30)
 
             else
                 jtac:destroy()
