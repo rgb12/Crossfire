@@ -76,9 +76,12 @@ do
         elseif event.id == world.event.S_EVENT_TAKEOFF then
             if event.initiator and event.initiator.getPlayerName and event.initiator:getPlayerName() then
                 local player_name=event.initiator:getPlayerName()
-                ExperienceManager.airbone_users[player_name] = {
-                    take_off_time = timer.getTime()
-                }
+                -- keep take off time if the sortie hasnt ended at a friendly base
+                if not ExperienceManager.airbone_users[player_name] then
+                    ExperienceManager.airbone_users[player_name] = {
+                        take_off_time = timer.getTime()
+                    }
+                end
                 MissionLogger:info("USER: "..player_name .. " took off")
             end
         elseif event.id == world.event.S_EVENT_LAND then
@@ -91,8 +94,12 @@ do
                 local airtime = 0
                 if airborne_user then
                     airtime = now - (airborne_user.take_off_time or now)
-                    ExperienceManager.airbone_users[player_name] = nil
                 end
+
+                local landed_zone = utils.getZoneOfUnitFromPosition(event.initiator:getPoint())
+                if not landed_zone or landed_zone.side ~= event.initiator:getCoalition()
+                or (landed_zone.zone_type ~= ZoneTypes.AIRBASE and landed_zone.zone_type ~= ZoneTypes.FARP) then return end
+
                 local airtime_xp_bonus = 0
                 if airtime > 20*60 then
                     if airtime < 30*60 then
@@ -112,13 +119,16 @@ do
                     local unit_check = Unit.getByName(unit_name)
                     if unit_check and unit_check:isExist() and unit_check:getLife() > 0 and unit_check.getCoalition then
 
-                        -- Check if the player is inside a zone
-                        local landed_zone = utils.getZoneOfUnitFromPosition(unit_check:getPoint())
-                        if landed_zone and landed_zone.side == unit_check:getCoalition() then return end
+                        if unit_check:inAir() then return end
 
+                        if not landed_zone:isPointInsideZone(unit_check:getPoint())
+                        or landed_zone.side ~= unit_check:getCoalition() then return end
 
                         local user = ExperienceManager:fetchUser(unit_check)
                         if not user then return end
+
+                        -- next takeoff starts a new airtime count
+                        ExperienceManager.airbone_users[player_name] = nil
 
                         MissionLogger:info("USER: "..player_name .. " landed, time airborne: "..airtime..",    mission XP: "..user.unclaimed_xp .. "     , airtime bonus XP: "..airtime_xp_bonus)
 
@@ -196,6 +206,9 @@ do
             -- Update runtime ID when player rejoins
             ExperienceManager.user_data[user_name].id = user_id
         end
+
+        -- new spawn starts a new sortie
+        ExperienceManager.airbone_users[user_name] = nil
     end
 
     ---@param unit Unit
