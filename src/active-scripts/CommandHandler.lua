@@ -1229,7 +1229,7 @@ do
                         return zone.side == enemy_side and utils.tableContains(discovered, zone.name)
                             and (zone.zone_type == ZoneTypes.LOGISTICS or zone.zone_type == ZoneTypes.COMMS
                                 or zone.zone_type == ZoneTypes.AIRBASE)
-                            and #TaskManager.getStrikeTargets(zone, side) > 0
+                            and #TaskManager.getStrikeTargets(zone, side, true) > 0
                     end, executeStrikeRequest)
                     createSelectAreaMenu(commands, "No validated enemy infrastructure targets are available.")
                 end,

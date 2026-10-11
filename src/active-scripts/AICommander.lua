@@ -534,6 +534,7 @@ do
 
         -- [TASK: STRIKE]
         addTask(AITaskTypes.STRIKE, function()
+            if not Config.tasking.enable_auto_strike then return false end
             local strike_enroute = EnrouteManager:findByTaskType(AITaskTypes.STRIKE, side)
             MissionLogger:info(string.format("[STRIKE] %s checking STRIKE tasks. Current enroute: %d, max: %d",
                 utils.coalitionToString(side), strike_enroute and #strike_enroute or 0, Config.tasking.max_strike_theatre))
@@ -884,7 +885,6 @@ do
 
         -- SEAD first (clear the way), then strike, CAS, CAP escort, AWACS support.
         queue(pkg.sead,   AITaskTypes.SEAD,   sead_targets,   false)
-        queue(pkg.strike, AITaskTypes.STRIKE, strike_targets, false)
         queue(pkg.cas,    AITaskTypes.CAS,    cas_targets,    false)
         queue(pkg.cap,    AITaskTypes.CAP,    cap_targets,    false)
         queue(pkg.awacs,  AITaskTypes.AWACS,  nil,            true)

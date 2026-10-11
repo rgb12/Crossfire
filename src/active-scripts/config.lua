@@ -887,6 +887,8 @@ Config = {
         max_sead_theatre = 4,
         -- (int) per coalition, only for AI auto tasking
         max_strike_theatre = 4,
+        -- (bool) AI dispatches STRIKE missions on its own. May cause issues as most structures are neutral.
+        enable_auto_strike = false,
         -- (int) per coalition, only for AI auto tasking
         max_cap_theatre = 6,
         -- (int) per coalition, only for AI auto tasking

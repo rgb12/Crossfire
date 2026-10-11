@@ -206,14 +206,17 @@ do
             return EraSystem.resolveTaskTemplateName(base_name)
         end
 
-    --- Nuetral statics ignored by AI
+    --- Neutral statics are only valid when a player requests a strike on an enemy zone
     ---@param to_zone ZoneHandler
     ---@param side coalition.side side sending the strike
+    ---@param include_neutral boolean|nil include neutral statics (enemy zones only)
     ---@return StaticObject[]
-    function TaskManager.getStrikeTargets(to_zone, side)
+    function TaskManager.getStrikeTargets(to_zone, side, include_neutral)
+        local allow_neutral = include_neutral and to_zone.side == utils.getEnemyCoalition(side)
         local function isValidTarget(static_obj)
             local static_side = static_obj:getCoalition()
-            return static_side ~= side and static_side ~= coalition.side.NEUTRAL
+            if static_side == side then return false end
+            return static_side ~= coalition.side.NEUTRAL or allow_neutral
         end
 
         local targets = {}
@@ -728,10 +731,10 @@ do
             end
 
             -- Check targets before spawning so a failed check never leaves an untasked flight
-            local strike_targets = TaskManager.getStrikeTargets(to_zone, side)
+            local strike_targets = TaskManager.getStrikeTargets(to_zone, side, user_requested)
             if #strike_targets == 0 then
                 if user_requested then
-                    local txt="STRIKE unavailable for "..to_zone.name..", no valid structures (neutral depots/comms towers are not AI targets)."
+                    local txt="STRIKE unavailable for "..to_zone.name..", no valid structures in zone."
                     trigger.action.outTextForCoalition(side,txt,5)
                 end
                 return false
