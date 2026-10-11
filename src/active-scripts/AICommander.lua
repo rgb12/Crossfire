@@ -551,8 +551,8 @@ do
                     and not utils.tableContains(active_zones, zone.name)
                     and Frontline.distanceToFrontline(zone.zone.point) < Config.tasking.max_distance_to_frontline_for_offensive then
 
-                        -- Checks if statics are alive
-                        if zone.linked_statics and #zone.linked_statics >= 1 then
+                        -- Checks non-neutral structures (neutral depots/comms towers are left to players)
+                        if #TaskManager.getStrikeTargets(zone, side) >= 1 then
 
                             local discovered = (side == coalition.side.BLUE and utils.tableContains(stats.blue_discovered_zones, zone.name)) or
                                             (side == coalition.side.RED and utils.tableContains(stats.red_discovered_zones, zone.name))

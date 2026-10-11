@@ -206,6 +206,25 @@ do
             return EraSystem.resolveTaskTemplateName(base_name)
         end
 
+    --- Nuetral statics ignored by AI
+    ---@param to_zone ZoneHandler
+    ---@param side coalition.side side sending the strike
+    ---@return StaticObject[]
+    function TaskManager.getStrikeTargets(to_zone, side)
+        local function isValidTarget(static_obj)
+            local static_side = static_obj:getCoalition()
+            return static_side ~= side and static_side ~= coalition.side.NEUTRAL
+        end
+
+        local targets = {}
+        for _, static_obj in ipairs(utils.getStaticsInZoneObj(to_zone)) do
+            if isValidTarget(static_obj) then
+                table.insert(targets, static_obj)
+            end
+        end
+        return targets
+    end
+
     ---@param ai_task_type AITaskTypes
     ---@param side coalition.side
     ---@param prevent_duplicates boolean
@@ -708,6 +727,16 @@ do
                 return false
             end
 
+            -- Check targets before spawning so a failed check never leaves an untasked flight
+            local strike_targets = TaskManager.getStrikeTargets(to_zone, side)
+            if #strike_targets == 0 then
+                if user_requested then
+                    local txt="STRIKE unavailable for "..to_zone.name..", no valid structures (neutral depots/comms towers are not AI targets)."
+                    trigger.action.outTextForCoalition(side,txt,5)
+                end
+                return false
+            end
+
             local airbase = Airbase.getByName(source_airbase.airbase_name)
             if not airbase then return false end
 
@@ -740,25 +769,7 @@ do
                 group_name=new_group.name,
                 ai_task_type=ai_task_type
             })
-            local statics_in_zone = utils.getStaticsInZoneObj(to_zone)
-            --Backup check
-            if #statics_in_zone == 0 then
-                for _,static_name in pairs(to_zone.linked_statics) do
-                    local static_obj = StaticObject.getByName(static_name)
-                    if static_obj and static_obj:isExist() then
-                        table.insert(statics_in_zone,static_obj)
-                    end
-                end
-            end
-
-            if #statics_in_zone == 0 then
-                if user_requested then
-                    local txt="STRIKE tasks can only be tasked to zones with structures/buildings."
-                    trigger.action.outTextForCoalition(side,txt,5)
-                end
-                return false
-            end
-            local strike_point = statics_in_zone[math.random(1,#statics_in_zone)]:getPoint()
+            local strike_point = strike_targets[math.random(1,#strike_targets)]:getPoint()
 
             self:setSTRIKETask(new_group.name,ai_enroute_data,strike_point)
             return true
@@ -1344,10 +1355,11 @@ do
                 end
             end
         end
-        -- Statics
+        -- Statics non neutral only
         for _,static_name in pairs(to_zone.linked_statics) do
             local static = StaticObject.getByName(static_name)
-            if static and static.isExist and static:isExist() then
+            if static and static.isExist and static:isExist()
+            and static:getCoalition() ~= coalition_side and static:getCoalition() ~= coalition.side.NEUTRAL then
                 table.insert(target_points, mist.utils.makeVec2(static:getPoint()))
                 table.insert(target_points, mist.utils.makeVec2(static:getPoint()))
                 -- Some statics require big boom to go down
