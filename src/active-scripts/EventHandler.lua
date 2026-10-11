@@ -256,7 +256,7 @@ function ev:onEvent(event)
 
                         timer.scheduleFunction(function ()
                             zone:capture(unit_coalition)
-                        end, {}, timer.getTime() + math.random(10,30))
+                        end, {}, timer.getTime() + math.random(50,60))
                         break
                     end
                 end
