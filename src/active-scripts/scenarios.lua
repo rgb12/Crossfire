@@ -703,8 +703,8 @@ scenarios = {
     },
     {
         theater      = Theatres.CWGERMANY,
-        blue_airbase = "MAHLWINKEL", -- trigger zone name
-        red_airbase  = "WUNSTORF", -- trigger zone name
+        blue_airbase = "WUNSTORF", -- trigger zone name
+        red_airbase  = "MAHLWINKEL", -- trigger zone name
         map_setup = {
             width_factor = 1.8,
             corridor_half_width = 0.20,
