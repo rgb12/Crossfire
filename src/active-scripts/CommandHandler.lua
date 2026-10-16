@@ -290,6 +290,84 @@ do
     end
 
 
+    -- unit names of player airplanes with a capture in progress, prevents repeated requests
+    local airplane_captures = {}
+
+    ---@param unit Unit
+    ---@return boolean
+    local function isStopped(unit)
+        local v = unit:getVelocity()
+        return math.sqrt(v.x*v.x + v.z*v.z) <= Config.airplane_capture.max_stopped_speed
+    end
+
+    --- "Capture Area" logistics command for airplanes: when stopped on the ground in a neutral zone,
+    --- forces deploy and the zone is captured if the aircraft is still there once they are in place
+    ---@param unit Unit|nil
+    function CommandHandler.requestAirplaneCapture(unit)
+        if not (unit and unit:isExist() and unit.getPlayerName and unit:getPlayerName()) then return end
+        local u_id = unit:getID()
+        local unit_name = unit:getName()
+        local player_name = unit:getPlayerName()
+        local unit_coalition = unit:getCoalition()
+
+        if airplane_captures[unit_name] then
+            trigger.action.outTextForUnit(u_id, "Capture already in progress. Hold position.", 10)
+            return
+        end
+
+        if unit:inAir() then
+            trigger.action.outTextForUnit(u_id, "Unable while airborne.", 10)
+            trigger.action.outSoundForUnit(u_id, "transmission1.ogg")
+            return
+        end
+
+        if not isStopped(unit) then
+            trigger.action.outTextForUnit(u_id, "Full stop on the ground required to capture.", 10)
+            trigger.action.outSoundForUnit(u_id, "transmission1.ogg")
+            return
+        end
+
+        local zone = utils.getZoneOfUnitFromPosition(unit:getPoint())
+        if not zone or zone.side ~= coalition.side.NEUTRAL then
+            trigger.action.outTextForUnit(u_id, "Unable, no neutral area to capture here.", 10)
+            trigger.action.outSoundForUnit(u_id, "transmission1.ogg")
+            return
+        end
+
+        local hold_time = Config.airplane_capture.hold_time
+        airplane_captures[unit_name] = true
+        trigger.action.outTextForUnit(u_id, "Allied forces deploying at ".. zone.name ..". Hold position for ".. hold_time .."s.", 15)
+        trigger.action.outSoundForUnit(u_id, "radio click.ogg")
+
+        timer.scheduleFunction(function ()
+            airplane_captures[unit_name] = nil
+
+            local unit_check = Unit.getByName(unit_name)
+            if not (unit_check and unit_check:isExist() and unit_check:getLife() > 0) then return end
+            if unit_check:getPlayerName() ~= player_name then return end
+            if unit_check:inAir() or not isStopped(unit_check) or not zone:isPointInsideZone(unit_check:getPoint())
+            or zone.side ~= coalition.side.NEUTRAL then
+                trigger.action.outTextForUnit(u_id, "Capture of ".. zone.name .." failed, position not held.", 10)
+                trigger.action.outSoundForUnit(u_id, "transmission1.ogg")
+                return
+            end
+
+            zone:capture(unit_coalition)
+            MissionLogger:info(player_name .. " captured " .. zone.name .. " with " .. unit_check:getTypeName())
+
+            local user = ExperienceManager:fetchUser(unit_check)
+            if not user then return end
+            local capture_xp = Config.reward_system.xp_per_zone_captured or 0
+            if capture_xp > 0 then
+                trigger.action.outTextForUnit(u_id, "Captured, +" .. capture_xp .. "XP", 5)
+                user.unclaimed_xp = user.unclaimed_xp + capture_xp
+            end
+            if zone.zone_type == ZoneTypes.AIRBASE or zone.zone_type == ZoneTypes.FARP then
+                ExperienceManager:debrief(unit_check, ExperienceManager:getAirtime(player_name, timer.getTime()))
+            end
+        end, {}, timer.getTime() + hold_time)
+    end
+
     ---@param gr Group
     function CommandHandler.resourcesRequests(gr)
 
@@ -310,6 +388,13 @@ do
             missionCommands.addCommandForGroup(gr_id, "List Supplies", logistics_main_submenu, function ()
                 ctld.listSupplies(unit)
             end)
+
+            if Config.airplane_capture and utils.tableContains(Config.airplane_capture.aircraft_types, unit:getTypeName()) then
+                local unit_name = unit:getName()
+                missionCommands.addCommandForGroup(gr_id, "Capture Area", logistics_main_submenu, function ()
+                    CommandHandler.requestAirplaneCapture(Unit.getByName(unit_name))
+                end)
+            end
 
             -----------------------------------------------------------------------
             -- RESUPPLY REQUEST LOGIC

@@ -23,7 +23,7 @@ Config = {
     _mission_version = 6,
     -- (bool) development setting, set to false to prevent the mission from loading
     -- this config (will use default values instead)
-    _enable_external_config = true,
+    _enable_external_config = false,
 
     -- (table)
     persistence = {
@@ -1176,6 +1176,20 @@ Config = {
 
     -- (int) (meters)
     capture_helicopter_max_range = 150*1000 ,
+
+    -- "Capture Area" logistics command: player airplanes stopped in a neutral zone capture it
+    -- by holding position
+    airplane_capture = {
+        -- (table<string>) airframes given the command
+        aircraft_types = {
+            "C-130J-30",
+            "AV8BNA",
+        },
+        -- (int) (seconds) time the aircraft must hold position once stopped
+        hold_time = 60,
+        -- (number) (m/s) ground speed under which the aircraft is considered stopped
+        max_stopped_speed = 1,
+    },
 
     -- (int) (meters) the range at which enemy zones will be discovered from
     -- friendly zones
