@@ -151,10 +151,25 @@ do
                         break
                     end
                 end
+            elseif operation.strike_type == "FARP" then
+                for _, static_name in pairs(zone_tgt.linked_statics or {}) do
+                    local static = StaticObject.getByName(static_name)
+                    if static and static:isExist() then
+                        target_point = static:getPoint()
+                        break
+                    end
+                end
             end
         end
 
         return target_point
+    end
+
+    ---@param point vec3
+    ---@return string
+    function OperationManager:formatElevation(point)
+        local elev = land.getHeight({ x = point.x, y = point.z })
+        return string.format("Elevation: %dm | %dft", math.floor(elev), math.floor(elev * 3.280839895))
     end
 
     ---@param operation Operation
@@ -306,8 +321,9 @@ do
         end
         
         if active_mission.type ~= OperationTypes.INTERCEPT then
-            outtxt = outtxt .. string.format("\n\nCoordinates:\n%s\n%s\nMGRS: %s",
-                mist.tostringLL(lat, lon, 5), mist.tostringLL(lat, lon, 5, true), mist.tostringMGRS(mgrs, 5))
+            outtxt = outtxt .. string.format("\n\nCoordinates:\n%s\n%s\nMGRS: %s\n%s",
+                mist.tostringLL(lat, lon, 5), mist.tostringLL(lat, lon, 5, true), mist.tostringMGRS(mgrs, 5),
+                self:formatElevation(target_point))
         end
 
         outtxt = outtxt .. "\n\nObjectives:"
@@ -2496,15 +2512,24 @@ do
                 trigger.action.outTextForUnit(unit_id, "Target zone not found for this operation.", 10)
                 return
             end
-            local lat, lon = coord.LOtoLL(zone_tgt.zone.point)
-            local mgrs = coord.LLtoMGRS(lat, lon)
-
             if not utils.tableContains({OperationTypes.RECON, OperationTypes.DEEP_RECON, OperationTypes.INTERCEPT}, accepted_mission.type) then
                 outtxt = outtxt .. "\n\nArea: " .. accepted_mission.target_zone_name
             end
 
-            if accepted_mission.type ~= OperationTypes.INTERCEPT then
-                outtxt = outtxt .. string.format("\n\nApproximate location coordinates:\n%s\n%s\nMGRS: %s", mist.tostringLL(lat, lon, 4), mist.tostringLL(lat, lon, 4, true), mist.tostringMGRS(mgrs, 4))
+            if accepted_mission.type == OperationTypes.STRIKE then
+                -- Strike targets are fixed statics: give the exact position
+                local target_point = self:getOperationTargetPoint(accepted_mission) or zone_tgt.zone.point
+                local lat, lon = coord.LOtoLL(target_point)
+                local mgrs = coord.LLtoMGRS(lat, lon)
+                outtxt = outtxt .. string.format("\n\nExact coordinates:\n%s\n%s\nMGRS: %s\n%s",
+                    mist.tostringLL(lat, lon, 5), mist.tostringLL(lat, lon, 5, true), mist.tostringMGRS(mgrs, 5),
+                    self:formatElevation(target_point))
+            elseif accepted_mission.type ~= OperationTypes.INTERCEPT then
+                local lat, lon = coord.LOtoLL(zone_tgt.zone.point)
+                local mgrs = coord.LLtoMGRS(lat, lon)
+                outtxt = outtxt .. string.format("\n\nApproximate location coordinates:\n%s\n%s\nMGRS: %s\n%s",
+                    mist.tostringLL(lat, lon, 4), mist.tostringLL(lat, lon, 4, true), mist.tostringMGRS(mgrs, 4),
+                    self:formatElevation(zone_tgt.zone.point))
             end
         end
 
