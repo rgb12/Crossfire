@@ -675,6 +675,8 @@ Config = {
         xp_per_ship_sunk = 300,
         -- (int)
         xp_per_intel_report = 50,
+        -- (int) awarded to the helicopter player who captures a neutral zone by landing in it
+        xp_per_zone_captured = 800,
         -- (int) (seconds) the time the player has to stay on the ground to be rewarded
         landing_time = 15,
         -- (number) (fraction) portion of unclaimed XP awarded on ejection (0.20 =

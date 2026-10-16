@@ -32,6 +32,67 @@ do
         return 1.0
     end
 
+    ---@param airtime number (seconds)
+    ---@return number bonus
+    local function fetchAirtimeBonus(airtime)
+        if airtime <= 20*60 then return 0 end
+        if airtime < 30*60 then
+            return 200
+        elseif airtime < 40*60 then
+            return 400
+        elseif airtime < 50*60 then
+            return 600
+        elseif airtime < 60*60 then
+            return 900
+        end
+        return 200 * math.floor(airtime/(600))
+    end
+
+    ---@param player_name string
+    ---@param at_time number
+    ---@return number
+    function ExperienceManager:getAirtime(player_name, at_time)
+        local airborne_user = ExperienceManager.airbone_users[player_name]
+        if not airborne_user then return 0 end
+        return at_time - (airborne_user.take_off_time or at_time)
+    end
+
+
+    ---@param unit Unit
+    ---@param airtime number (seconds)
+    function ExperienceManager:debrief(unit, airtime)
+        local user = ExperienceManager:fetchUser(unit)
+        if not user then return end
+
+        local player_name = unit:getPlayerName()
+        local airtime_xp_bonus = fetchAirtimeBonus(airtime)
+
+        -- next takeoff starts a new airtime count
+        ExperienceManager.airbone_users[player_name] = nil
+
+        MissionLogger:info("USER: "..player_name .. " landed, time airborne: "..airtime..",    mission XP: "..user.unclaimed_xp .. "     , airtime bonus XP: "..airtime_xp_bonus)
+
+        if user.unclaimed_xp>0 or airtime_xp_bonus>0 then
+            local u_id = unit:getID()
+            local claimed_xp = (user.unclaimed_xp+airtime_xp_bonus)*ExperienceManager.xp_multiplier
+
+            -- Airframe xp multiplier
+            local airframe_mult = fetchAirframeMultiplier(unit:getTypeName())
+            claimed_xp = math.floor(claimed_xp * airframe_mult)
+
+            trigger.action.outTextForUnit(u_id, "Post-Flight Debrief: +".. claimed_xp .. " XP",10)
+            trigger.action.outSoundForUnit(u_id,"radio click.ogg")
+            ExperienceManager:addXP(user, claimed_xp) -- checks for rank up
+            user.unclaimed_xp = 0
+        end
+
+        local players = coalition.getPlayers(unit:getCoalition())
+        if #players == 1 then
+            PersistenceManager:saveMissionToFile()
+            PersistenceManager:saveUserDataToFile()
+        end
+    end
+
     function ExperienceManager.EventHandler:onEvent(event)
         if not Config.reward_system.enable then return end
 
@@ -89,31 +150,13 @@ do
 
                 local unit_name = event.initiator:getName()
                 local player_name = event.initiator:getPlayerName()
-                local now = timer.getTime()
-                local airborne_user = ExperienceManager.airbone_users[player_name]
-                local airtime = 0
-                if airborne_user then
-                    airtime = now - (airborne_user.take_off_time or now)
-                end
+                local airtime = ExperienceManager:getAirtime(player_name, timer.getTime())
 
+                -- Helicopter landings at neutral airbases/FARPs are debriefed by the capture flow in EventHandler
                 local landed_zone = utils.getZoneOfUnitFromPosition(event.initiator:getPoint())
                 if not landed_zone or landed_zone.side ~= event.initiator:getCoalition()
                 or (landed_zone.zone_type ~= ZoneTypes.AIRBASE and landed_zone.zone_type ~= ZoneTypes.FARP) then return end
 
-                local airtime_xp_bonus = 0
-                if airtime > 20*60 then
-                    if airtime < 30*60 then
-                        airtime_xp_bonus = 200
-                    elseif airtime < 40*60 then
-                        airtime_xp_bonus = 400
-                    elseif airtime < 50*60 then
-                        airtime_xp_bonus = 600
-                    elseif airtime < 60*60 then
-                        airtime_xp_bonus = 900
-                    elseif airtime >= 60*60 then
-                        airtime_xp_bonus = 200 * math.floor(airtime/(600))
-                    end
-                end
                 timer.scheduleFunction(function()
 
                     local unit_check = Unit.getByName(unit_name)
@@ -124,33 +167,7 @@ do
                         if not landed_zone:isPointInsideZone(unit_check:getPoint())
                         or landed_zone.side ~= unit_check:getCoalition() then return end
 
-                        local user = ExperienceManager:fetchUser(unit_check)
-                        if not user then return end
-
-                        -- next takeoff starts a new airtime count
-                        ExperienceManager.airbone_users[player_name] = nil
-
-                        MissionLogger:info("USER: "..player_name .. " landed, time airborne: "..airtime..",    mission XP: "..user.unclaimed_xp .. "     , airtime bonus XP: "..airtime_xp_bonus)
-
-                        if user.unclaimed_xp>0 or airtime_xp_bonus>0 then
-                            local u_id = unit_check:getID()
-                            local claimed_xp = (user.unclaimed_xp+airtime_xp_bonus)*ExperienceManager.xp_multiplier
-
-                            -- Airframe xp multiplier
-                            local airframe_mult = fetchAirframeMultiplier(unit_check:getTypeName())
-                            claimed_xp = math.floor(claimed_xp * airframe_mult)
-
-                            trigger.action.outTextForUnit(u_id, "Post-Flight Debrief: +".. claimed_xp .. " XP",10)
-                            trigger.action.outSoundForUnit(u_id,"radio click.ogg")
-                            ExperienceManager:addXP(user, claimed_xp) -- checks for rank up
-                            user.unclaimed_xp = 0
-                        end
-
-                        local players = coalition.getPlayers(unit_check:getCoalition())
-                        if #players == 1 then
-                            PersistenceManager:saveMissionToFile()
-                            PersistenceManager:saveUserDataToFile()
-                        end
+                        ExperienceManager:debrief(unit_check, airtime)
                     end
                 end, {}, timer.getTime() + Config.reward_system.landing_time)
 

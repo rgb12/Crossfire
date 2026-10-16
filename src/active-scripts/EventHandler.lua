@@ -248,6 +248,9 @@ function ev:onEvent(event)
             if unit and unit.getPlayerName and unit:getPlayerName() then
                 local unit_coalition = unit:getCoalition()
                 local u_id = unit:getID()
+                local unit_name = unit:getName()
+                local player_name = unit:getPlayerName()
+                local airtime = ExperienceManager:getAirtime(player_name, timer.getTime())
                 -- check if heli landed in neutral zone
                 for _,zone in ipairs(zones) do
                     if zone.side == coalition.side.NEUTRAL and zone:isPointInsideZone(unit:getPoint()) then
@@ -255,7 +258,24 @@ function ev:onEvent(event)
                         trigger.action.outSoundForUnit(u_id, "radio click.ogg")
 
                         timer.scheduleFunction(function ()
+                            local was_neutral = zone.side == coalition.side.NEUTRAL
                             zone:capture(unit_coalition)
+
+                            local unit_check = Unit.getByName(unit_name)
+                            if not (unit_check and unit_check:isExist() and unit_check:getLife() > 0) then return end
+                            if unit_check:getPlayerName() ~= player_name or unit_check:inAir() then return end
+                            if zone.side ~= unit_coalition or not zone:isPointInsideZone(unit_check:getPoint()) then return end
+
+                            local user = ExperienceManager:fetchUser(unit_check)
+                            if not user then return end
+                            local capture_xp = Config.reward_system.xp_per_zone_captured or 0
+                            if was_neutral and capture_xp > 0 then
+                                trigger.action.outTextForUnit(u_id, "Captured, +" .. capture_xp .. "XP", 5)
+                                user.unclaimed_xp = user.unclaimed_xp + capture_xp
+                            end
+                            if zone.zone_type == ZoneTypes.AIRBASE or zone.zone_type == ZoneTypes.FARP then
+                                ExperienceManager:debrief(unit_check, airtime)
+                            end
                         end, {}, timer.getTime() + math.random(50,60))
                         break
                     end
