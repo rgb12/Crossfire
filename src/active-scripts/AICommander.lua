@@ -342,7 +342,16 @@ do
         if home_base.side ~= side then return end
 
         -- Calculate distances once for use in closures below
-        local closest_enemy_zone, closest_dist = home_base:getClosestZone(enemy_side,nil,nil,true)
+        local closest_enemy_zone, closest_dist = home_base:getClosestZone(enemy_side,nil,nil,true)   -- Source airbase eligibility (runway, aircraft stock, per-airbase limits) does not depend
+        -- on the target zone, so check once instead of failing the same lookup for every zone.
+        local function hasSourceAirbase(ai_task_type)
+            if TaskManager:findClosestAirbaseWithAircraftInStock(nil, side, ai_task_type, 2, ai_task_type, home_base.zone.point) then
+                return true
+            end
+            MissionLogger:info(string.format("[%s] %s: No airbase with required aircraft in stock and runway operable, skipping.",
+                ai_task_type, utils.coalitionToString(side)))
+            return false
+        end
 
         -- Each function returns TRUE if a task was successfully sent.
         local possible_tasks = {}
@@ -434,6 +443,7 @@ do
                 MissionLogger:info("[CAS]: No valid target zones.")
                 return false
                 end
+            if not hasSourceAirbase(AITaskTypes.CAS) then return false end
 
             for _,p in ipairs(potential_zones) do
                 MissionLogger:info("[CAS]: Attempting to initiate CAS task to " .. p.zone.name)
@@ -480,6 +490,7 @@ do
                 MissionLogger:info("[SEAD]: No valid target zones.")
                 return false
             end
+            if not hasSourceAirbase(AITaskTypes.SEAD) then return false end
 
             for _,p in ipairs(potential_zones) do
                 MissionLogger:info("[SEAD]: Attempting to initiate SEAD task to " .. p.zone.name)
@@ -521,6 +532,7 @@ do
                 return a.distance < b.distance
             end)
             if #potential_zones == 0 then return false end
+            if not hasSourceAirbase(AITaskTypes.CAP) then return false end
 
             for _,p in ipairs(potential_zones) do
                 MissionLogger:info(string.format("[CAP] %s: Attempting to initiate CAP task to %s",
@@ -541,6 +553,8 @@ do
             if strike_enroute and #strike_enroute < Config.tasking.max_strike_theatre
             and side_comms_towers >= Config.tasking_requirements.comms_zones_required_for_strike
             then
+                if not hasSourceAirbase(AITaskTypes.STRIKE) then return false end
+
                 local valid_strike_targets = {
                     ZoneTypes.LOGISTICS,
                     ZoneTypes.COMMS,
