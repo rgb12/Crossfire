@@ -1305,6 +1305,23 @@ do
                 local lha_setup = Config.lha_setup
                 MissionLogger:info("Attempting LHA restock")
                 WarehouseManager:attributeAirbaseStock(Config.lha_setup.lha_unit_name, coalition.side.BLUE, {StockTypes.FARP,StockTypes.FARP,StockTypes.FARP})
+
+                -- Harriers and equipment
+                local lha_airbase = Airbase.getByName(Config.lha_setup.lha_unit_name)
+                local lha_warehouse = lha_airbase and lha_airbase:getWarehouse()
+                if lha_warehouse and EraSystem.isAircraftEnabled(Stocks.Aircraft.AV8BNA, coalition.side.BLUE) then
+                    local scale = WarehouseManager:getStockScale() * (Config.blue_stock_multiplier or 1)
+                    lha_warehouse:addItem(Stocks.Aircraft.AV8BNA, math.max(1, math.floor(10 * scale)))
+                    for _, clsid in ipairs(Stocks.AircraftLoads[Stocks.Aircraft.AV8BNA]) do
+                        if EraSystem.isWeaponEnabled(clsid, coalition.side.BLUE) then
+                            local data = Stocks.EquipmentData[clsid] or Stocks.EquipmentDataDefault
+                            local qty = data.base_qty
+                            if type(qty) == "table" then qty = qty[StockTypes.AIR_GROUND_ROCKETS] end
+                            lha_warehouse:addItem(clsid, math.max(1, math.floor((qty or Stocks.EquipmentDataDefault.base_qty) * scale)))
+                        end
+                    end
+                end
+
                 lha_setup.name = lha_setup.lha_unit_name
                 lha_setup.side = coalition.side.BLUE
                 lha_setup.zone_type = ZoneTypes.LOGISTICS
