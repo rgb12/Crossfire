@@ -1,21 +1,31 @@
 ---@class AICommander
 AICommander = {}
 do
-    -- group_name -> target player name
-    ---@type table<string, string>
+    -- group_name -> { target = player name, side = hunting coalition }
+    ---@type table<string, {target: string, side: number}>
     AICommander.active_hunts = {}
 
 
-    AICommander.hunting_side = coalition.side.RED
+    ---@param side coalition.side
+    ---@return boolean
+    function AICommander:isHuntEnabledForSide(side)
+        local sides = Config.hunt.sides
+        if not sides then return side == coalition.side.RED end
+        if side == coalition.side.BLUE then return sides.blue == true end
+        return sides.red == true
+    end
 
-    ---Count current active hunt flights, pruning any whose group is gone.
+    ---Count current active hunt flights for a side, pruning any whose group is gone.
+    ---@param side coalition.side
     ---@return number
-    function AICommander:countActiveHunts()
+    function AICommander:countActiveHunts(side)
         local count = 0
-        for group_name, _ in pairs(self.active_hunts) do
+        for group_name, hunt in pairs(self.active_hunts) do
             local grp = Group.getByName(group_name)
             if grp and grp:isExist() then
-                count = count + 1
+                if hunt.side == side then
+                    count = count + 1
+                end
             else
                 self.active_hunts[group_name] = nil
             end
@@ -27,8 +37,8 @@ do
     ---@param player_name string
     ---@return boolean
     function AICommander:isPlayerHunted(player_name)
-        for group_name, hunted_name in pairs(self.active_hunts) do
-            if hunted_name == player_name then
+        for group_name, hunt in pairs(self.active_hunts) do
+            if hunt.target == player_name then
                 local grp = Group.getByName(group_name)
                 if grp and grp:isExist() then
                     return true
@@ -42,11 +52,12 @@ do
 
 
     ---@param user UserData
+    ---@param side coalition.side hunting side
     ---@return Unit|nil
-    function AICommander:resolvePlayerUnit(user)
+    function AICommander:resolvePlayerUnit(user, side)
         if not user then return nil end
 
-        local players = coalition.getPlayers(utils.getEnemyCoalition(self.hunting_side))
+        local players = coalition.getPlayers(utils.getEnemyCoalition(side))
         for _, p in ipairs(players) do
             if p and p.isExist and p:isExist() and p.getPlayerName and p:getPlayerName() == user.name then
                 return p
@@ -55,19 +66,20 @@ do
         return nil
     end
 
+    ---@param side coalition.side hunting side
     ---@return table[] list of { user = UserData, unit = Unit, dist = number }
-    function AICommander:findHuntTargets()
+    function AICommander:findHuntTargets(side)
         local targets = {}
 
         local home_base = red_airbase
-        if self.hunting_side == coalition.side.BLUE then
+        if side == coalition.side.BLUE then
             home_base = blue_airbase
         end
         if not home_base or not home_base.zone then return targets end
 
         for _, user in pairs(ExperienceManager.user_data) do
             if user and (user.unclaimed_xp or 0) >= Config.hunt.unclaimed_xp_for_hunt then
-                local unit = self:resolvePlayerUnit(user)
+                local unit = self:resolvePlayerUnit(user, side)
                 if unit and unit:inAir() and not self:isPlayerHunted(user.name) then
                     local pos = unit:getPoint()
                     local dist = mist.utils.get2DDist(home_base.zone.point, pos)
@@ -84,9 +96,10 @@ do
         return targets
     end
 
+    ---@param side coalition.side hunting side
     ---@return EnrouteObj|nil, Group|nil
-    function AICommander:findRedirectableCAP()
-        local cap_enroutes = EnrouteManager:findByTaskType(AITaskTypes.CAP, self.hunting_side)
+    function AICommander:findRedirectableCAP(side)
+        local cap_enroutes = EnrouteManager:findByTaskType(AITaskTypes.CAP, side)
         for _, enroute in ipairs(cap_enroutes) do
             if not self.active_hunts[enroute.group_name] then
                 local grp = Group.getByName(enroute.group_name)
@@ -101,7 +114,8 @@ do
     ---@param hunter_group Group
     ---@param target_unit Unit
     ---@param target_name string
-    function AICommander:assignHuntTask(hunter_group, target_unit, target_name)
+    ---@param side coalition.side hunting side
+    function AICommander:assignHuntTask(hunter_group, target_unit, target_name, side)
         if not (hunter_group and hunter_group:isExist()) then return false end
         if not (target_unit and target_unit:isExist()) then return false end
 
@@ -132,11 +146,11 @@ do
         })
 
         -- Fallback to orbit near frontline
-        local hunter_home = self.hunting_side == coalition.side.BLUE and blue_airbase or red_airbase
-        local enemy_side_for_hunt = utils.getEnemyCoalition(self.hunting_side)
+        local hunter_home = side == coalition.side.BLUE and blue_airbase or red_airbase
+        local enemy_side_for_hunt = utils.getEnemyCoalition(side)
         if not hunter_home then return false end
         local closest_enemy_zone, _ = hunter_home:getClosestZone(enemy_side_for_hunt,nil,nil,false)
-        local closest_friendly_zone_to_frontline = closest_enemy_zone and closest_enemy_zone:getClosestZone(self.hunting_side,nil,nil,false)
+        local closest_friendly_zone_to_frontline = closest_enemy_zone and closest_enemy_zone:getClosestZone(side,nil,nil,false)
 
         if closest_friendly_zone_to_frontline then
             target_pos = closest_friendly_zone_to_frontline.zone.point
@@ -171,22 +185,22 @@ do
         ctrl:setOption(AI.Option.Air.id.RTB_ON_OUT_OF_AMMO, aa_weapons)
         ctrl:setOption(AI.Option.Air.id.RTB_ON_BINGO, true)
 
-        self.active_hunts[hunter_group:getName()] = target_name
-        MissionLogger:info(string.format("[HUNT] %s tasked to hunt player '%s' (%d unclaimed XP)",
-            hunter_group:getName(), target_name,
+        self.active_hunts[hunter_group:getName()] = { target = target_name, side = side }
+        MissionLogger:info(string.format("[HUNT] %s %s tasked to hunt player '%s' (%d unclaimed XP)",
+            utils.coalitionToString(side), hunter_group:getName(), target_name,
             (ExperienceManager.user_data[target_name] and ExperienceManager.user_data[target_name].unclaimed_xp) or 0))
         return true
     end
 
     ---@param target_unit Unit
     ---@param target_name string
+    ---@param side coalition.side hunting side
     ---@return boolean
-    function AICommander:spawnHunterFor(target_unit, target_name)
+    function AICommander:spawnHunterFor(target_unit, target_name, side)
         if not Config.hunt.spawn_if_no_cap then return false end
         if not EraSystem.isTaskTypeAllowed(AITaskTypes.CAP) then return false end
         if not (target_unit and target_unit:isExist()) then return false end
 
-        local side = self.hunting_side
         local target_pos = target_unit:getPoint()
 
         local source_airbase = TaskManager:findClosestAirbaseWithAircraftInStock(
@@ -222,7 +236,7 @@ do
             group_name = new_group.name,
             ai_task_type = AITaskTypes.CAP,
         })
-        self.active_hunts[new_group.name] = target_name
+        self.active_hunts[new_group.name] = { target = target_name, side = side }
 
         timer.scheduleFunction(function()
             local hunter = Group.getByName(new_group.name)
@@ -237,56 +251,60 @@ do
                 MissionLogger:info("[HUNT] Target '" .. target_name .. "' gone before hunter ready; flight reverts to CAP.")
                 return
             end
-            AICommander:assignHuntTask(hunter, tgt, target_name)
+            AICommander:assignHuntTask(hunter, tgt, target_name, side)
             trigger.action.outTextForCoalition(side,
                 "Hunter CAP launched from " .. source_airbase.name, 10)
             trigger.action.outSoundForCoalition(side, "transmission1.ogg")
         end, {}, timer.getTime() + 12)
 
-        MissionLogger:info(string.format("[HUNT] Spawned dedicated hunter from %s for '%s'",
-            source_airbase.name, target_name))
+        MissionLogger:info(string.format("[HUNT] Spawned dedicated %s hunter from %s for '%s'",
+            utils.coalitionToString(side), source_airbase.name, target_name))
         return true
     end
 
-    ---Main evaluator: find experienced enemy players and task RED CAP to hunt.
-    function AICommander:huntExperiencedPlayers()
+    ---Main evaluator: find experienced enemy players and task this side's CAP to hunt.
+    ---@param side coalition.side hunting side
+    function AICommander:huntExperiencedPlayers(side)
         if not Config.tasking.enable then return end
         if not Config.reward_system.enable then return end
         if not Config.hunt.enable_hunt_experienced_players then return end
+        if not self:isHuntEnabledForSide(side) then return end
 
-        if self:countActiveHunts() >= Config.hunt.max_hunt_flights then
+        if self:countActiveHunts(side) >= Config.hunt.max_hunt_flights then
             return
         end
 
-        local targets = self:findHuntTargets()
+        local targets = self:findHuntTargets(side)
         if #targets == 0 then return end
 
         for _, t in ipairs(targets) do
-            if self:countActiveHunts() >= Config.hunt.max_hunt_flights then
+            if self:countActiveHunts(side) >= Config.hunt.max_hunt_flights then
                 break
             end
 
-            -- 1. Try to redirect an existing, alive RED CAP flight.
-            local _, hunter_group = self:findRedirectableCAP()
+            -- 1. Try to redirect an existing, alive CAP flight of this side.
+            local _, hunter_group = self:findRedirectableCAP(side)
             if hunter_group then
-                if self:assignHuntTask(hunter_group, t.unit, t.user.name) then
+                if self:assignHuntTask(hunter_group, t.unit, t.user.name, side) then
                     MissionLogger:info("[HUNT] Redirected existing CAP " .. hunter_group:getName() .." onto '" .. t.user.name .. "'")
                 end
             elseif Config.hunt.spawn_if_no_cap then
                 -- 2. No CAP available: spawn one outside the dispatcher.
-                self:spawnHunterFor(t.unit, t.user.name)
+                self:spawnHunterFor(t.unit, t.user.name, side)
             end
         end
     end
 
-    ---Self-scheduling hunt loop.
-    function AICommander.dispatchHunt()
+    ---Self-scheduling hunt loop for one side.
+    ---@param side coalition.side hunting side
+    ---@param delay number|nil (seconds) delay before the first run, defaults to the interval
+    function AICommander.dispatchHunt(side, delay)
         local interval = Config.hunt.hunt_dispatcher_interval or (5 * 60 + 7)
         timer.scheduleFunction(function()
             if MISSION_ENDED == true then return end
-            AICommander:huntExperiencedPlayers()
-            AICommander.dispatchHunt()
-        end, nil, timer.getTime() + interval)
+            AICommander:huntExperiencedPlayers(side)
+            AICommander.dispatchHunt(side)
+        end, nil, timer.getTime() + (delay or interval))
     end
 
     -- AI DISPATCHER
@@ -956,8 +974,16 @@ do
 
         -- Hunt experienced players (optional feature).
         if Config.hunt and Config.hunt.enable_hunt_experienced_players then
-            MissionLogger:info("[AICommander] Hunt experienced players enabled.")
-            AICommander.dispatchHunt()
+            local interval = Config.hunt.hunt_dispatcher_interval or (5 * 60 + 7)
+            if AICommander:isHuntEnabledForSide(coalition.side.RED) then
+                MissionLogger:info("[AICommander] Hunt experienced players enabled for RED.")
+                AICommander.dispatchHunt(coalition.side.RED, interval)
+            end
+            if AICommander:isHuntEnabledForSide(coalition.side.BLUE) then
+                MissionLogger:info("[AICommander] Hunt experienced players enabled for BLUE.")
+                -- Offset from RED so both evaluators don't run on the same tick.
+                AICommander.dispatchHunt(coalition.side.BLUE, interval + 31)
+            end
         else
             MissionLogger:info("[AICommander] Hunt experienced players disabled.")
         end

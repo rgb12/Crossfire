@@ -924,9 +924,16 @@ Config = {
     -- (table) 
     hunt = {
         -- (bool) enables/disables the "hunt experienced players" feature. When
-        -- enabled RED CAP flights are tasked to eliminate enemy players that
-        -- have accumulated a high amount of unclaimed XP.
+        -- enabled, CAP flights of the sides below are tasked to eliminate enemy
+        -- players that have accumulated a high amount of unclaimed XP.
         enable_hunt_experienced_players = true,
+
+        -- (table) which coalitions send CAP to hunt enemy players. If missing,
+        -- only RED hunts.
+        sides = {
+            red = true,
+            blue = true,
+        },
 
         -- (int) minimum unclaimed XP a player must hold before becoming a hunt
         -- target. Unclaimed XP is the in-mission XP not yet cashed in by landing.
@@ -936,14 +943,14 @@ Config = {
         -- 15 to reduce lag spikes.
         hunt_dispatcher_interval = 5*60+7,
 
-        -- (int) maximum number of concurrent hunt CAP flights at any time
+        -- (int) maximum number of concurrent hunt CAP flights per side
         max_hunt_flights = 2,
 
-        -- (int) (meters) only hunt players within this range of the RED home
-        -- base, prevents tasking flights across the whole map
+        -- (int) (meters) only hunt players within this range of the hunting
+        -- side's home base, prevents tasking flights across the whole map
         max_hunt_range = 250*1000,
 
-        -- (bool) if no existing RED CAP flight is available to be redirected onto
+        -- (bool) if no existing CAP flight is available to be redirected onto
         -- the target, spawn a dedicated CAP flight outside the AI dispatcher
         spawn_if_no_cap = true,
     },
