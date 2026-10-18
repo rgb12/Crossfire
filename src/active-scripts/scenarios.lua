@@ -428,7 +428,7 @@ available_zones = {
         ZoneHandler:new({name = "GARZ", zone_type = ZoneTypes.AIRBASE, airbase_name = Airbases.GermanyCW.Garz}),
         ZoneHandler:new({name = "NEUBRANDENBURG", zone_type = ZoneTypes.AIRBASE, airbase_name = Airbases.GermanyCW.Neubrandenburg}),
         ZoneHandler:new({name = "LARZ", zone_type = ZoneTypes.AIRBASE, airbase_name = Airbases.GermanyCW.Larz}),
-        ZoneHandler:new({name = "WITTSTOCK", zone_type = ZoneTypes.AIRBASE, airbase_name = Airbases.GermanyCW.Wittstock}),
+        -- ZoneHandler:new({name = "WITTSTOCK", zone_type = ZoneTypes.AIRBASE, airbase_name = Airbases.GermanyCW.Wittstock}),
         ZoneHandler:new({name = "NEURUPPIN", zone_type = ZoneTypes.AIRBASE, airbase_name = Airbases.GermanyCW.Neuruppin}),
         ZoneHandler:new({name = "TEMPLIN", zone_type = ZoneTypes.AIRBASE, airbase_name = Airbases.GermanyCW.Templin}),
         ZoneHandler:new({name = "CHOJNA", zone_type = ZoneTypes.AIRBASE, airbase_name = Airbases.GermanyCW.Chojna}),
@@ -472,7 +472,24 @@ available_zones = {
         ZoneHandler:new({name = "F3"}),
         ZoneHandler:new({name = "G2"}),
         ZoneHandler:new({name = "G3"}),
-        ZoneHandler:new({name = "CELLE"})
+        ZoneHandler:new({name = "CELLE"}),
+
+        ZoneHandler:new({name = "A-B"}),
+        ZoneHandler:new({name = "J-S"}),
+        ZoneHandler:new({name = "J-N"}),
+        ZoneHandler:new({name = "L-S"}),
+        ZoneHandler:new({name = "F-O"}),
+        ZoneHandler:new({name = "F-Q"}),
+        ZoneHandler:new({name = "S-W"}),
+        ZoneHandler:new({name = "W-V"}),
+        ZoneHandler:new({name = "C-U"}),
+        ZoneHandler:new({name = "I-O"}),
+        ZoneHandler:new({name = "E-Z"}),
+        ZoneHandler:new({name = "A-O"}),
+        ZoneHandler:new({name = "J-K"})
+
+
+
     ), -- [Theatres.CWGERMANY]
 }
 
@@ -684,23 +701,6 @@ scenarios = {
         name        = "South Syria",
         description = "Conflict in southern Syria.",
     },
-    -- {
-    --     theater      = Theatres.CWGERMANY,
-    --     blue_airbase = "RAMSTEIN", -- trigger zone name
-    --     red_airbase  = "NORVENICH", -- trigger zone name
-    --     map_setup = {
-    --         width_factor = 1.8,
-    --         corridor_half_width = 0.20,
-    --         airbase_influence = 40000,
-    --         red_distribution = 0.75,
-    --     },
-    --     resupply = {
-    --         blue_point = { x = -00555483,  y = 6096, z = -00753314 },
-    --         red_point  = { x = -00216419, y = 6096, z = -00924065 },
-    --     },
-    --     name        = "Ramstein expansion",
-    --     description = "Conflict in south-west Germany.",
-    -- },
     {
         theater      = Theatres.CWGERMANY,
         blue_airbase = "WUNSTORF", -- trigger zone name
@@ -718,6 +718,24 @@ scenarios = {
         },
         name        = "Mahlwinkel - WUNSTORF",
         description = "Conflict in central Germany.",
+    },
+    {
+        theater      = Theatres.CWGERMANY,
+        blue_airbase = "PARCHIM", -- trigger zone name
+        red_airbase  = "NEUBRANDENBURG", -- trigger zone name
+        map_setup = {
+            width_factor = 1.8,
+            corridor_half_width = 0.20,
+            airbase_influence = 30000,
+            red_distribution = 0.78,
+        },
+        resupply = {
+            blue_point = { x = -00254895,  y = 6096, z = -00485961 }, --Metric: X-00254895 Z-00485961
+            red_point  = { x = -00114761, y = 6096, z = -00831396 }, --Metric: X-00114761 Z-00831396
+
+        },
+        name        = "PARCHIM - NEUBRANDENBURG",
+        description = "Classic conflict.",
     },
 }
 
