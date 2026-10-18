@@ -644,8 +644,55 @@ InfantrySquads = {} do
         return pts
     end
 
-    --- Mortar: bombard the CLOSEST enemy zone (any type). Fires one round per shot
-    --- at the nearest in-range target belonging to that zone.
+    ---@param point vec3 mortar position
+    ---@param side coalition.side mortar coalition
+    ---@return vec3|nil target_point in-range target, or nil
+    ---@return ZoneHandler|nil target_zone closest enemy zone, or nil if none
+    ---@return number|nil nearest_d distance to that zone's nearest object (in range or not)
+    function InfantrySquads.findMortarTarget(point, side)
+        local range = InfantrySquads.cfg(InfantrySquads.SquadIds.MORTAR).range or 5000
+        local enemy = utils.getEnemyCoalition(side)
+
+        local target_zone, best_zone_d
+        for _, zone in ipairs(zones) do
+            if zone.side == enemy then
+                local d = mist.utils.get2DDist(point, zone.zone.point)
+                if not best_zone_d or d < best_zone_d then target_zone, best_zone_d = zone, d end
+            end
+        end
+        if not target_zone then return nil, nil, nil end
+
+        local nearest_p, nearest_d
+        for _, p in ipairs(zoneTargetPoints(target_zone)) do
+            local d = mist.utils.get2DDist(point, p)
+            if not nearest_d or d < nearest_d then nearest_p, nearest_d = p, d end
+        end
+        if nearest_d and nearest_d <= range then return nearest_p, target_zone, nearest_d end
+        return nil, target_zone, nearest_d
+    end
+
+    --- Pre-deploy check: refuses spots where the squad's behaviour could never trigger.
+    ---@param def SquadDef
+    ---@param side coalition.side
+    ---@param point vec3
+    ---@return boolean ok, string|nil err
+    function InfantrySquads.checkDeployPoint(def, side, point)
+        if def.behaviour ~= InfantrySquads.Behaviours.MORTAR then return true, nil end
+
+        local target, zone, nearest_d = InfantrySquads.findMortarTarget(point, side)
+        if target then return true, nil end
+
+        local range = InfantrySquads.cfg(def.id).range or 5000
+        if not zone then
+            return false, "no enemy zone to engage."
+        elseif not nearest_d then
+            return false, "the nearest enemy zone has no targets left."
+        end
+        return false, string.format("nearest target is %.1f km away, mortar range is %.1f km.",
+            nearest_d / 1000, range / 1000)
+    end
+
+
     ---@param group_name string
     ---@param state SquadState
     function InfantrySquads._mortarTick(group_name, state)
@@ -664,26 +711,8 @@ InfantrySquads = {} do
         local lead = mist.getLeadPos(group_name)
         if not lead then return end
 
-        local range = cfg.range or 5000
-        local enemy = utils.getEnemyCoalition(state.side)
-
-        local target_zone, best_zone_d
-        for _, zone in ipairs(zones) do
-            if zone.side == enemy then
-                local d = mist.utils.get2DDist(lead, zone.zone.point)
-                if not best_zone_d or d < best_zone_d then target_zone, best_zone_d = zone, d end
-            end
-        end
-        if not target_zone then return end
-
-        -- One target per shot: nearest in-range object belonging to that zone.
-        local target_point, best_d
-        for _, p in ipairs(zoneTargetPoints(target_zone)) do
-            local d = mist.utils.get2DDist(lead, p)
-            if d <= range and (not best_d or d < best_d) then
-                target_point, best_d = p, d
-            end
-        end
+        -- One target per shot: nearest in-range object of the closest enemy zone.
+        local target_point = InfantrySquads.findMortarTarget(lead, state.side)
         if not target_point then return end
 
         ctrl:pushTask({
@@ -1495,6 +1524,12 @@ function ctld.unload(unit)
     if part_to_spawn.squad_id then
         local def = InfantrySquads.getDef(part_to_spawn.squad_id)
         if def then
+            local ok, deploy_err = InfantrySquads.checkDeployPoint(def, unit:getCoalition(), unit_pos)
+            if not ok then
+                trigger.action.outTextForUnit(unit_id, "Cannot unload "..def.desc..": "..deploy_err, 10)
+                trigger.action.outSoundForUnit(unit_id, "transmission1.ogg")
+                return
+            end
             local _, err = InfantrySquads.spawnInactive(def, unit)
             if err then
                 trigger.action.outTextForUnit(unit_id, "Cannot unload squad: "..err, 8)
