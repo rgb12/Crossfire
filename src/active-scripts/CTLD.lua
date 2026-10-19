@@ -2034,9 +2034,28 @@ function ctld.tryConstructFARP(unit)
     local farp_cfg = Config.ctld.farp_construction or {}
     local required_crates = farp_cfg.required_supply_crates or 4
     local min_zone_distance = farp_cfg.min_zone_distance or 5000
+    local spawn_distance = farp_cfg.spawn_distance or 150
+
+    -- The FARP is centered ahead of the constructing unit's nose so the pads and assets
+    -- don't spawn on top of it.
+    local heading = mist.getHeading(unit, true) or 0
+    local center_x = unit_pos.x + math.cos(heading) * spawn_distance
+    local center_z = unit_pos.z + math.sin(heading) * spawn_distance
+    local center = {
+        x = center_x,
+        z = center_z,
+        y = land.getHeight({ x = center_x, y = center_z })
+    }
+
+    if land.getSurfaceType({ x = center_x, y = center_z }) == land.SurfaceType.WATER then
+        trigger.action.outTextForUnit(unit_id, string.format(
+            "Cannot construct FARP. The area %.0f m ahead of you is water.", spawn_distance), 10)
+        trigger.action.outSoundForUnit(unit_id, "transmission1.ogg")
+        return false
+    end
 
     -- Block construction too close to any existing zone.
-    local nearest_dist, nearest_zone = ctld.nearestZoneDistance(unit_pos)
+    local nearest_dist, nearest_zone = ctld.nearestZoneDistance(center)
     if nearest_dist < min_zone_distance then
         trigger.action.outTextForUnit(unit_id, string.format(
             "Cannot construct FARP. Too close to %s (%.0f m). Must be at least %.0f m from any zone.",
@@ -2073,13 +2092,6 @@ function ctld.tryConstructFARP(unit)
         trigger.action.outSoundForUnit(unit_id, "transmission1.ogg")
         return false
     end
-
-    -- The FARP is centered on the constructing unit's current position.
-    local center = {
-        x = unit_pos.x,
-        z = unit_pos.z,
-        y = land.getHeight({ x = unit_pos.x, y = unit_pos.z })
-    }
 
     local farp = ctld.buildFARP(unit, center, current_zone, assigned_name)
     if not farp then
