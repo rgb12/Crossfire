@@ -1111,7 +1111,7 @@ Config = {
             -- (int) number of nearby unpacked supply crates consumed to build a FARP
             required_supply_crates = 4,
             -- (int) (meters) minimum distance a constructed FARP must be from ANY zone
-            min_zone_distance = 10,
+            min_zone_distance = 5000,
         },
         -- (bool)
         allow_unpacking_in_zones = true,
