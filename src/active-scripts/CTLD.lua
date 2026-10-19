@@ -1290,7 +1290,12 @@ function ctld.unpack(unit)
 
             for i = 1, units_to_create do
                 local crate_idx = (i - 1) * crates_required + 1
-                local pos = crate_data.objs[crate_idx]:getPoint()
+                local crate_obj = crate_data.objs[crate_idx]
+                local pos = crate_obj:getPoint()
+                -- Crates still in the cargo bay sit at the aircraft's position: spawn behind it instead
+                if ctld.isInCargoBay(crate_obj:getName()) then
+                    pos = ctld.getPointAt6Oclock(unit, ctld.getSecureDistanceFromUnit(unit))
+                end
 
                 if part.type == ctld.AssetTypes.VEHICLES then
                     -- Store vehicle to spawn immediately
@@ -2321,8 +2326,16 @@ function ctld.monitorFARPDestruction()
 end
 
 function ctld.isPackedAsset(asset_name)
-    -- Matches with prefix in config
+    -- Matches with prefix in config (crates loaded in a cargo bay are renamed "CRG:<name>")
+    asset_name = asset_name:gsub("^CRG:", "")
     return string.sub(asset_name, 1, #Config.ctld.packed_asset_prefix) == Config.ctld.packed_asset_prefix
+end
+
+---Dynamic cargo sitting inside an aircraft's cargo bay is renamed with a "CRG:" prefix.
+---@param asset_name string
+---@return boolean
+function ctld.isInCargoBay(asset_name)
+    return string.sub(asset_name, 1, 4) == "CRG:"
 end
 
 function ctld.isUnpackedAsset(asset_name)
