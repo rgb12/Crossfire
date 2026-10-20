@@ -791,7 +791,7 @@ Config = {
             [ZoneTypes.EWSITE]      = 5,
         },
         -- (int) REQUIRES MISSION RESTART. seed determines scenario selection, zone types and levels. Use -1 for random seed
-        seed = 2025,
+        seed = 1972,
         -- (table)  REQUIRES MISSION RESTART
         sam_classification_thresholds = {
             -- (int) (%) rolls below this : SHORT RANGE SAM
@@ -1112,6 +1112,9 @@ Config = {
             required_supply_crates = 4,
             -- (int) (meters) minimum distance a constructed FARP must be from ANY zone
             min_zone_distance = 5000,
+            -- (int) (meters) distance ahead of the constructing aircraft's nose where the FARP is centered,
+            -- must clear the whole FARP layout (pads + Config.farp_assets) so nothing spawns on the aircraft
+            spawn_distance = 150,
         },
         -- (bool)
         allow_unpacking_in_zones = true,
