@@ -83,22 +83,17 @@ do
     function EWRS:cacheRadars()
         self.radars = {}
 
-        -- Loop through all coalitions
-        for _, coalition_id in ipairs({coalition.side.RED, coalition.side.BLUE, coalition.side.NEUTRAL}) do
+        local groups = coalition.getGroups(self.side)
+        for _, group in ipairs(groups) do
 
-            local groups = coalition.getGroups(coalition_id)
-            for _, group in ipairs(groups) do
+            local units = group:getUnits()
+            for _, unit in ipairs(units) do
 
-                local units = group:getUnits()
-                for _, unit in ipairs(units) do
-
-                    if unit and unit:isExist() and unit:isActive() then
-                        -- Check if unit has one of the radar attributes
-                        if unit:hasAttribute("SAM SR")
-                        or unit:hasAttribute("EWR")
-                        or unit:hasAttribute("AWACS") then
-                            table.insert(self.radars, unit)
-                        end
+                if unit and unit:isExist() and unit:isActive() then
+                    if unit:hasAttribute("SAM SR")
+                    or unit:hasAttribute("EWR")
+                    or unit:hasAttribute("AWACS") then
+                        table.insert(self.radars, unit)
                     end
                 end
             end
