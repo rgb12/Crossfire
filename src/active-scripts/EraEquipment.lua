@@ -1954,7 +1954,7 @@ Stocks.EquipmentData = {
 
 
       -- FARP MISC
-        [Stocks.Equipment.AN_APG_78_APACHE_RADAR             ] = { stock_type = StockTypes.FARP_MISC, base_qty = 2, eras = { Eras.MODERN } },
+        [Stocks.Equipment.AN_APG_78_APACHE_RADAR             ] = { stock_type = StockTypes.FARP_MISC, base_qty = 6, eras = { Eras.MODERN } },
         [Stocks.Equipment.IR_DEFLECTOR                       ] = { stock_type = StockTypes.FARP_MISC, base_qty = 24, eras = { Eras.MODERN } },
         [Stocks.Equipment.SAND_FILTER                        ] = { stock_type = StockTypes.FARP_MISC, base_qty = 24, eras = { Eras.MODERN } },
 
