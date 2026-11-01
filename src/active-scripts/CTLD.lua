@@ -383,7 +383,11 @@ InfantrySquads = {} do
                 "Sabotage team must be deployed within %d m of an enemy supply zone (Airbase, FARP or Logistics).", range)
         end
 
-        -- mortar: no placement restriction.
+        -- mortar: must have an enemy target in range. Checked here too (not just on
+        -- CTLD unload) because dynamic cargo squads are carried natively and only
+        -- pass through activation.
+        local ok, err = InfantrySquads.checkDeployPoint(def, side, point)
+        if not ok then return false, nil, err end
         return true, nil, nil
     end
 
