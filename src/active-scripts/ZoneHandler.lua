@@ -450,6 +450,10 @@ do
             stats.neutral_zones = stats.neutral_zones + 1
         end
 
+        if self.zone_type == ZoneTypes.COMMS and self.comms_tower_intact then
+            utils.editCommsAntennasCount(previous_side, -1)
+        end
+
         if self.zone_type == ZoneTypes.STRONGPOINT and self.side ~= coalition.side.NEUTRAL then
             if previous_side == coalition.side.RED then
                 stats.red_strongpoints = stats.red_strongpoints - 1
@@ -483,10 +487,10 @@ do
             elseif previous_side == coalition.side.BLUE then
                 stats.blue_comms_zones = stats.blue_comms_zones - 1
             end
-            -- Tower spawns neutral; if it survived a neutral changeover intact, keep it
-            -- standing for the new owner instead of destroying and rebuilding it.
-            local tower_survived_neutral = previous_side == coalition.side.NEUTRAL and self.comms_tower_intact
-            if not tower_survived_neutral then
+            if self:isCommsTowerAlive() then
+                self.comms_tower_intact = true
+                utils.editCommsAntennasCount(self.side, 1)
+            else
                 -- Mark static as dead, this prevents the check function from flagging it as dead
                 self.linked_comms_tower = nil
                 self.comms_tower_intact = false
@@ -901,6 +905,13 @@ do
         self:drawF10()
     end
 
+    ---@return boolean
+    function ZoneHandler:isCommsTowerAlive()
+        if not self.linked_comms_tower then return false end
+        local comms_tower = StaticObject.getByName(self.linked_comms_tower)
+        return comms_tower ~= nil and comms_tower:isExist() and comms_tower:getLife() >= 1
+    end
+
     function ZoneHandler:checkCOMMSZone()
         if self.side == coalition.side.NEUTRAL then return end
         if self.zone_type ~= ZoneTypes.COMMS then return end
@@ -911,7 +922,7 @@ do
         end
 
         -- First, check the actual status of the tower
-        local is_alive = comms_tower and comms_tower:isExist() and comms_tower:getLife() >= 1
+        local is_alive = self:isCommsTowerAlive()
 
         if not self.comms_tower_intact and not self.comms_tower_last_destroyed then
             -- tower was destroyed but time not recorded, record it now

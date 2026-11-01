@@ -222,7 +222,10 @@ do
     ---@param zone ZoneHandler
     ---@return boolean
     function UnitHandler.initStatics(zone)
-        if zone.side == coalition.side.NEUTRAL then return false end
+        if zone.side == coalition.side.NEUTRAL
+        and not (zone.zone_type == ZoneTypes.COMMS and zone.comms_tower_intact == true) then
+            return false
+        end
         local country_name = 82 -- UN Peace Keepers
 
         if zone.zone_type == ZoneTypes.LOGISTICS or zone.zone_type == ZoneTypes.AIRBASE
