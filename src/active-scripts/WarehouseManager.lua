@@ -580,18 +580,16 @@ do
             return 10000
         end
 
-        local cfg = Config.auto_scaling or {}
 
-        if cfg.enable == false then
+        if Config.auto_scaling.enable == false then
             return 1
         end
 
-        local min_users      = cfg.min_users or 1
-        local max_users      = cfg.max_users or math.huge
-        local users_per_unit = cfg.users_per_unit or 1
+        local min_users      = Config.auto_scaling.min_users or 1
+        local max_users      = Config.auto_scaling.max_users or math.huge
+        local users_per_unit = Config.auto_scaling.users_per_unit or 1
         if users_per_unit < 1 then users_per_unit = 1 end
 
-        -- Determine the player count: explicit estimate, else live BLUE players.
         local users = users_estimate
         if not users then
             local players = coalition.getPlayers(coalition.side.BLUE)
