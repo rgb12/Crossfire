@@ -20,10 +20,10 @@ Config = {
     -- (int) config version should not be edited unless comprehensively understood
     _config_file_version = 4,
     -- (int) mission version should not be edited unless comprehensively understood
-    _mission_version = 6,
+    _mission_version = 7,
     -- (bool) development setting, set to false to prevent the mission from loading
     -- this config (will use default values instead)
-    _enable_external_config = false,
+    _enable_external_config = true,
 
     -- (table)
     persistence = {
@@ -519,10 +519,10 @@ Config = {
     -- (int) (meters) a zone is on the forward edge only if its nearest enemy zone lies within this range
     frontline_contact_range = 80000,
 
-    -- (table) Auto scaling of warehouse weapon stocks to the number of human
-    -- players. When enabled, generated weapon quantities are multiplied by the
+    -- (table) Auto scaling of warehouse stocks to the number of active
+    -- players. When enabled generated weapon quantities are multiplied by the
     -- live player count so a busy server keeps more stock and a quiet one keeps
-    -- less. When disabled, stocks are generated for a single player's worth (scale
+    -- less. When disabled stocks are generated for a single player (scale
     -- 1).
     auto_scaling = {
         -- (bool) on/off switch for player-count based stock scaling
