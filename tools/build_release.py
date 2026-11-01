@@ -14,7 +14,7 @@ from insertion_order import HERE, COMPILED_SCRIPT, RELEASE_DIR as OUTPUT_DIR
 
 theatre = str(input("Enter the theatre name (e.g. caucasus, syria): ")).strip().lower()
 OUTPUT_STEM = f"crossfire_{theatre}"
-VERSION = "v6"
+VERSION = "v7"
 
 
 # enum:      value written into eras_selected as { Eras.<enum> }
