@@ -261,10 +261,12 @@ do
     end
 
     function Frontline.drawFrontline()
-        if not Config.enable_frontline then return end
         MissionLogger:info("FRONTLINE: Computing frontline...")
         local frontline_data = Frontline.computeFrontline()
+        -- Always cache: distanceToFrontline() gates offensives/reinforcements/resupply
+        -- even when the line itself is not drawn.
         Frontline.cached_segments = frontline_data.frontline_segments
+        if not Config.enable_frontline then return end
         Frontline.clearFrontline()
 
         local palette = Config.draw_color_palette
