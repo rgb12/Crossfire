@@ -152,6 +152,27 @@ do
                 local player_name = event.initiator:getPlayerName()
                 local airtime = ExperienceManager:getAirtime(player_name, timer.getTime())
 
+                -- Carrier/LHA landings: ships aren't zones, use the landing place instead
+                local place = event.place
+                if place and place.isExist and place:isExist() and place.getDesc
+                and place:getDesc().category == Airbase.Category.SHIP then
+                    if place:getCoalition() ~= event.initiator:getCoalition() then return end
+
+                    timer.scheduleFunction(function()
+                        local unit_check = Unit.getByName(unit_name)
+                        if unit_check and unit_check:isExist() and unit_check:getLife() > 0 then
+                            if unit_check:inAir() then return end
+                            if not place:isExist() or place:getCoalition() ~= unit_check:getCoalition() then return end
+
+                            -- still on deck
+                            if mist.utils.get2DDist(unit_check:getPoint(), place:getPoint()) > 250 then return end
+
+                            ExperienceManager:debrief(unit_check, airtime)
+                        end
+                    end, {}, timer.getTime() + Config.reward_system.landing_time)
+                    return
+                end
+
                 -- Helicopter landings at neutral airbases/FARPs are debriefed by the capture flow in EventHandler
                 local landed_zone = utils.getZoneOfUnitFromPosition(event.initiator:getPoint())
                 if not landed_zone or landed_zone.side ~= event.initiator:getCoalition()
