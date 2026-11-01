@@ -250,7 +250,7 @@ function ev:onEvent(event)
                 local u_id = unit:getID()
                 local unit_name = unit:getName()
                 local player_name = unit:getPlayerName()
-                local airtime = ExperienceManager:getAirtime(player_name, timer.getTime())
+                local landing_time = timer.getTime()
                 -- check if heli landed in neutral zone
                 for _,zone in ipairs(zones) do
                     if zone.side == coalition.side.NEUTRAL and zone:isPointInsideZone(unit:getPoint()) then
@@ -274,7 +274,7 @@ function ev:onEvent(event)
                                 user.unclaimed_xp = user.unclaimed_xp + capture_xp
                             end
                             if zone.zone_type == ZoneTypes.AIRBASE or zone.zone_type == ZoneTypes.FARP then
-                                ExperienceManager:debrief(unit_check, airtime)
+                                ExperienceManager:debrief(unit_check, landing_time)
                             end
                         end, {}, timer.getTime() + math.random(50,60))
                         break

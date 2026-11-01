@@ -363,7 +363,7 @@ do
                 user.unclaimed_xp = user.unclaimed_xp + capture_xp
             end
             if zone.zone_type == ZoneTypes.AIRBASE or zone.zone_type == ZoneTypes.FARP then
-                ExperienceManager:debrief(unit_check, ExperienceManager:getAirtime(player_name, timer.getTime()))
+                ExperienceManager:debrief(unit_check, timer.getTime())
             end
         end, {}, timer.getTime() + hold_time)
     end

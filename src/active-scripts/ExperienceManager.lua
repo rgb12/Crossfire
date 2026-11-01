@@ -54,17 +54,18 @@ do
     function ExperienceManager:getAirtime(player_name, at_time)
         local airborne_user = ExperienceManager.airbone_users[player_name]
         if not airborne_user then return 0 end
-        return at_time - (airborne_user.take_off_time or at_time)
+        return math.max(0, at_time - (airborne_user.take_off_time or at_time))
     end
 
 
     ---@param unit Unit
-    ---@param airtime number (seconds)
-    function ExperienceManager:debrief(unit, airtime)
+    ---@param landing_time number
+    function ExperienceManager:debrief(unit, landing_time)
         local user = ExperienceManager:fetchUser(unit)
         if not user then return end
 
         local player_name = unit:getPlayerName()
+        local airtime = ExperienceManager:getAirtime(player_name, landing_time)
         local airtime_xp_bonus = fetchAirtimeBonus(airtime)
 
         -- next takeoff starts a new airtime count
@@ -149,8 +150,7 @@ do
             if event.initiator and event.initiator.getPlayerName and event.initiator:getPlayerName() then
 
                 local unit_name = event.initiator:getName()
-                local player_name = event.initiator:getPlayerName()
-                local airtime = ExperienceManager:getAirtime(player_name, timer.getTime())
+                local landing_time = timer.getTime()
 
                 -- Carrier/LHA landings: ships aren't zones, use the landing place instead
                 local place = event.place
@@ -167,7 +167,7 @@ do
                             -- still on deck
                             if mist.utils.get2DDist(unit_check:getPoint(), place:getPoint()) > 250 then return end
 
-                            ExperienceManager:debrief(unit_check, airtime)
+                            ExperienceManager:debrief(unit_check, landing_time)
                         end
                     end, {}, timer.getTime() + Config.reward_system.landing_time)
                     return
@@ -188,7 +188,7 @@ do
                         if not landed_zone:isPointInsideZone(unit_check:getPoint())
                         or landed_zone.side ~= unit_check:getCoalition() then return end
 
-                        ExperienceManager:debrief(unit_check, airtime)
+                        ExperienceManager:debrief(unit_check, landing_time)
                     end
                 end, {}, timer.getTime() + Config.reward_system.landing_time)
 
