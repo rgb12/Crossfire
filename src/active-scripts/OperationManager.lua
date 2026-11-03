@@ -1318,15 +1318,15 @@ do
                             if #supply_crate_objs >= required_crates then
                                 MissionLogger:info("Airdrop objective completed! Supply crates in zone: "..#supply_crate_objs)
 
-                                -- Consume the required supply crates for the upgrade.
-                                for i = 1, required_crates do
-                                    local crate_obj = supply_crate_objs[i]
-                                    if crate_obj and crate_obj:isExist() then
-                                        crate_obj:destroy()
-                                    end
-                                end
-
                                 if zone.level < 4 then
+                                    -- Consume the required supply crates for the upgrade.
+                                    for i = 1, required_crates do
+                                        local crate_obj = supply_crate_objs[i]
+                                        if crate_obj and crate_obj:isExist() then
+                                            crate_obj:destroy()
+                                        end
+                                    end
+
                                     zone.level = zone.level + 1
                                     UnitHandler.updateZoneUnits(zone)
                                     zone:drawF10()
@@ -1402,15 +1402,15 @@ do
                             return false
                         end
 
-                        -- Consume the required supply crates for the upgrade.
-                        for i = 1, required_crates do
-                            local crate_obj = supply_crates_in_zone[i]
-                            if crate_obj and crate_obj:isExist() then
-                                crate_obj:destroy()
-                            end
-                        end
-
                         if target_zone.level < 4 then
+                            -- Consume the required supply crates for the upgrade.
+                            for i = 1, required_crates do
+                                local crate_obj = supply_crates_in_zone[i]
+                                if crate_obj and crate_obj:isExist() then
+                                    crate_obj:destroy()
+                                end
+                            end
+
                             target_zone.level = target_zone.level + 1
                             UnitHandler.updateZoneUnits(target_zone)
                             target_zone:drawF10()
