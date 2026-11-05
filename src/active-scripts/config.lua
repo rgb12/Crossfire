@@ -1331,9 +1331,9 @@ Config = {
     -- (table)
     carrier_setup = {
         -- (string)
-        carrier_unit_name = "Carrier",
+        carrier_unit_name = "CVN-74 John C. Stennis",
         -- (string) only for warehouse attribution
-        supercarrier_unit_name = "Supercarrier",
+        supercarrier_unit_name = "CVN-71 Theodore Roosevelt",
         -- (string) set to nil if no Tomahawk launcher in the mission
         tomahawk_launcher_unit_name = "Naval Launcher",
         -- (bool)
@@ -1343,7 +1343,7 @@ Config = {
     -- (table)
     lha_setup = {
         -- (string)
-        lha_unit_name = "LHA",
+        lha_unit_name = "LHA Tarawa",
         -- (string) display/zone name for the LHA pseudo-zone (defaults to lha_unit_name)
         name = "LHA",
         -- (bool)
