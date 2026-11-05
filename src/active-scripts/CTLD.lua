@@ -1179,7 +1179,10 @@ function ctld.unpack(unit)
     -- Finds nearby unpacked and packed assets
     local unpacked_assets_nearby = {}
     local packed_assets_nearby = {}
-    world.searchObjects({Object.Category.CARGO, Object.Category.UNIT}, vol, function(obj)
+    -- Crates still in a cargo bay would all spawn on the same spot behind the aircraft: they must be unloaded first
+    local check_cargo_bay = ctld.isDynamicCargoCapable(unit)
+    local skipped_bay_crates = 0
+    world.searchObjects({Object.Category.CARGO, Object.Category.STATIC, Object.Category.UNIT}, vol, function(obj)
         if obj and obj:isExist() and obj.getName then
             local cargo_name = obj:getName()
             if obj:getCoalition() ~= unit:getCoalition() then
@@ -1196,12 +1199,22 @@ function ctld.unpack(unit)
                 return true
             end
             if ctld.isPackedAsset(cargo_name) then
+                if check_cargo_bay and ctld.isObjectInUnitCargoBay(obj, unit) then
+                    skipped_bay_crates = skipped_bay_crates + 1
+                    return true
+                end
                 table.insert(packed_assets_nearby, obj)
                 return true
             end
         end
         return true
     end)
+
+    if skipped_bay_crates > 0 then
+        trigger.action.outTextForUnit(unit_id,
+            string.format("%d crate(s) still in the cargo bay: unload them before unpacking.", skipped_bay_crates), 5)
+        trigger.action.outSoundForUnit(unit_id, "transmission1.ogg")
+    end
 
     -- Find the assets part descriptions for unpacked assets
     local unpacked_parts = {}
@@ -1231,6 +1244,14 @@ function ctld.unpack(unit)
                 end
             end
         end
+    end
+
+    if #packed_parts == 0 then
+        if skipped_bay_crates == 0 then
+            trigger.action.outTextForUnit(unit_id, "Nothing to unpack.", 5)
+            trigger.action.outSoundForUnit(unit_id, "transmission1.ogg")
+        end
+        return
     end
 
     -- Group packed parts by part name to check for crate requirements
@@ -1296,10 +1317,6 @@ function ctld.unpack(unit)
                 local crate_idx = (i - 1) * crates_required + 1
                 local crate_obj = crate_data.objs[crate_idx]
                 local pos = crate_obj:getPoint()
-                -- Crates still in the cargo bay sit at the aircraft's position: spawn behind it instead
-                if ctld.isInCargoBay(crate_obj:getName()) then
-                    pos = ctld.getPointAt6Oclock(unit, ctld.getSecureDistanceFromUnit(unit))
-                end
 
                 if part.type == ctld.AssetTypes.VEHICLES then
                     -- Store vehicle to spawn immediately
@@ -1504,6 +1521,16 @@ function ctld.unload(unit)
         trigger.action.outSoundForUnit(unit_id, "transmission1.ogg")
         return
     end
+    if ctld.isDynamicCargoCapable(unit) then
+        local operation_context = ctld.fetchOperationContextForUnit(unit)
+        if operation_context and operation_context.operation_type == OperationTypes.STRATEGIC_AIRLIFT then
+            trigger.action.outTextForUnit(unit_id, "Cannot unload during Strategic Airlift operations.", 5)
+            trigger.action.outSoundForUnit(unit_id, "transmission1.ogg")
+            return
+        end
+        return ctld.unloadCargoBay(unit)
+    end
+
     local unit_pos = unit:getPoint()
     local unit_zone = utils.getZoneOfUnitFromPosition(unit_pos)
     local is_in_zone = unit_zone ~= nil
@@ -1511,13 +1538,6 @@ function ctld.unload(unit)
 
     if is_in_zone and not Config.ctld.allow_unloading_in_zones then
         trigger.action.outTextForUnit(unit_id,"Cannot unload in this area.", 5)
-        trigger.action.outSoundForUnit(unit_id, "transmission1.ogg")
-        return
-    end
-
-
-    if ctld.isDynamicCargoCapable(unit) then
-        trigger.action.outTextForUnit(unit_id,"Cannot unload using CTLD, use native unloading.", 5)
         trigger.action.outSoundForUnit(unit_id, "transmission1.ogg")
         return
     end
@@ -1559,6 +1579,157 @@ function ctld.unload(unit)
     else
         trigger.action.outTextForUnit(unit_id,"Unloaded "..part.desc, 5)
     end
+    trigger.action.outSoundForUnit(unit_id, "transmission1.ogg")
+end
+
+---Unloads every static sitting in the unit's cargo bay ("CRG:" objects) by destroying it
+---and respawning the same object behind the aircraft. Native unloading sometimes loses cargo.
+---@param unit Unit
+function ctld.unloadCargoBay(unit)
+    local unit_id = unit:getID()
+    local unit_pos = unit:getPoint()
+    local unit_side = unit:getCoalition()
+    local secure_dist = ctld.getSecureDistanceFromUnit(unit)
+
+    -- In-bay cargo sits at the aircraft's position: keep the radius tight so neighbouring aircraft are not affected
+    local vol = {
+        id = world.VolumeType.SPHERE,
+        params = {
+            point = unit_pos,
+            radius = secure_dist
+        }
+    }
+
+    local bay_objs = {}
+    world.searchObjects({Object.Category.CARGO, Object.Category.STATIC}, vol, function(obj)
+        if obj and obj:isExist() and obj.getName
+        and obj:getCoalition() == unit_side
+        and ctld.isPackedAsset(obj:getName())
+        and ctld.isObjectInUnitCargoBay(obj, unit) then
+            table.insert(bay_objs, obj)
+        end
+        return true
+    end)
+
+    if #bay_objs == 0 then
+        trigger.action.outTextForUnit(unit_id, "No CTLD assets to unload.", 5)
+        trigger.action.outSoundForUnit(unit_id, "transmission1.ogg")
+        return
+    end
+
+    local crate_gap = 9          -- meters of clearance between neighbouring crates
+    local default_size = 4       -- fallback footprint when a crate has no bounding box
+    local grid_columns = 3
+    local unit_orient = unit:getPosition()
+    local fwd_len = math.sqrt(unit_orient.x.x ^ 2 + unit_orient.x.z ^ 2)
+    if fwd_len < 1e-6 then fwd_len = 1 end
+    local fwd_x, fwd_z = unit_orient.x.x / fwd_len, unit_orient.x.z / fwd_len
+    local right_x, right_z = -fwd_z, fwd_x
+    ---@diagnostic disable-next-line: deprecated
+    local crate_heading = math.atan2(fwd_z, fwd_x)
+
+    -- Footprint (length, width) of each crate from its bounding box
+    local footprints = {}
+    local max_width = 0
+    for i, obj in ipairs(bay_objs) do
+        local length, width = default_size, default_size
+        local ok, desc = pcall(function() return obj:getDesc() end)
+        if ok and desc and desc.box then
+            length = math.abs(desc.box.max.x - desc.box.min.x)
+            width = math.abs(desc.box.max.z - desc.box.min.z)
+        end
+        footprints[i] = {length = length, width = width}
+        if width > max_width then max_width = width end
+    end
+
+    local column_pitch = max_width + crate_gap
+    local slots = {}
+    local row_start = secure_dist
+    for first = 1, #bay_objs, grid_columns do
+        local row_depth = 0
+        for i = first, math.min(first + grid_columns - 1, #bay_objs) do
+            if footprints[i].length > row_depth then row_depth = footprints[i].length end
+        end
+        local row_center = row_start + row_depth / 2
+        for i = first, math.min(first + grid_columns - 1, #bay_objs) do
+            local col = ((i - 1) % grid_columns) - math.floor(grid_columns / 2)   -- -1, 0, 1
+            slots[i] = {aft = row_center, side = col * column_pitch}
+        end
+        row_start = row_start + row_depth + crate_gap
+    end
+
+    local unloaded_descs = {}
+    local failed_count = 0
+    for i, obj in ipairs(bay_objs) do
+        local type_name = obj:getTypeName()
+        local current_name = obj:getName()
+        local original_name = current_name:gsub("^CRG:", "")
+        local name = original_name
+        local country = obj:getCountry() or unit:getCountry()
+        local ok, mass = pcall(function() return obj:getCargoWeight() end)
+        if not ok or type(mass) ~= "number" or mass <= 0 then mass = nil end
+
+        local aft = slots[i].aft
+        local side = slots[i].side
+        local point = {
+            x = unit_pos.x - fwd_x * aft + right_x * side,
+            z = unit_pos.z - fwd_z * aft + right_z * side,
+            y = unit_pos.y,
+        }
+
+        local existing = StaticObject.getByName(name)
+        if name == current_name or (existing and existing:isExist()) then
+            local part_name = ctld.getPackedPartName(original_name)
+                or original_name:sub(#Config.ctld.packed_asset_prefix + 1)
+            name = Config.ctld.packed_asset_prefix .. part_name .. "_" .. ctld.getNextGroupId()
+        end
+
+        local crate = mist.dynAddStatic({
+            type = type_name,
+            name = name,
+            country = country,
+            category = "Cargos",
+            x = point.x,
+            y = point.z,
+            heading = crate_heading,
+            mass = mass
+        })
+
+        if crate then
+            if obj:isExist() then obj:destroy() end
+
+            for _, asset in ipairs(ctld.placed_assets) do
+                if asset.unit_name == original_name then
+                    asset.unit_name = name
+                    asset.point = point
+                    break
+                end
+            end
+            -- Keep operation tracking pointed at the respawned crate when it was renamed
+            if name ~= original_name then
+                for _, assets in pairs(ctld.operation_assets) do
+                    for _, asset in ipairs(assets) do
+                        if asset.unit_name == original_name then
+                            asset.unit_name = name
+                            asset.point = point
+                        end
+                    end
+                end
+            end
+
+            local part = ctld.findPartByName(ctld.getPackedPartName(name) or "")
+            table.insert(unloaded_descs, part and part.desc or type_name)
+        else
+            failed_count = failed_count + 1
+            MissionLogger:info(string.format("Failed to respawn unloaded cargo %s (%s), kept in cargo bay", name, type_name))
+        end
+    end
+
+    local msg = string.format("Unloaded %d crate(s): %s", #unloaded_descs, table.concat(unloaded_descs, ", "))
+    if failed_count > 0 then
+        msg = msg .. string.format("\n%d crate(s) could not be unloaded and remain aboard.", failed_count)
+    end
+    trigger.action.outTextForUnit(unit_id, msg, 5)
     trigger.action.outSoundForUnit(unit_id, "transmission1.ogg")
 end
 
@@ -2352,6 +2523,31 @@ end
 ---@return boolean
 function ctld.isInCargoBay(asset_name)
     return string.sub(asset_name, 1, 4) == "CRG:"
+end
+
+---Whether an object sits inside the unit's fuselage (loaded cargo is not always renamed "CRG:").
+---@param obj Object
+---@param unit Unit
+---@return boolean
+function ctld.isObjectInUnitCargoBay(obj, unit)
+    if ctld.isInCargoBay(obj:getName()) then return true end
+
+    local point = obj:getPoint()
+    local ground_y = land.getHeight({ x = point.x, y = point.z })
+    if point.y <= ground_y + Config.operations.strategic_airlift.boarded_object_height_agl then
+        return false
+    end
+
+    local box = unit:getDesc().box
+    if not box then return false end
+    local pos = unit:getPosition()
+    local d = mist.vec.sub(point, pos.p)
+    local lx = mist.vec.dp(d, pos.x)
+    local lz = mist.vec.dp(d, pos.z)
+
+    local fuselage_half_width = 3
+    return lx >= box.min.x and lx <= box.max.x
+        and math.abs(lz) <= fuselage_half_width
 end
 
 function ctld.isUnpackedAsset(asset_name)
