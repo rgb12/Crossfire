@@ -271,9 +271,8 @@ do
                 .. "). Ignoring it and using mission defaults. Delete this file (or back up your edits) to regenerate a fresh, compatible config.")
 
             trigger.action.outText(
-                "config.json is from an older mission version and was ignored.\n"
-                .. "Move or delete it to regenerate a compatible config (back up your edits first).\n"
-                .."You can safely ignore this message if you have made no changes to the config file.", 45)
+                "Mission info: config settings set to default.\n"
+                .. "(A config.json from an older version of this mission was found and skipped.)", 45)
 
             return false
         end
