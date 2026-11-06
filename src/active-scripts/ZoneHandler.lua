@@ -667,7 +667,9 @@ do
                 table.insert(stats.blue_discovered_zones, self.name)
             end
 
-            trigger.action.outTextForCoalition(1,"SITEP: Allied forces lost control of " .. self.name .. ".", 15)
+            if previous_side == coalition.side.RED then
+                trigger.action.outTextForCoalition(1,"SITREP: Allied forces lost control of " .. self.name .. ".", 15)
+            end
 
             trigger.action.outTextForCoalition(2,"SITREP: Allied forces have occupied " .. self.name .. ".", 15)
 
@@ -682,7 +684,9 @@ do
             -- Adds supplies on capture
             addSupplies(self.side)
 
-            trigger.action.outTextForCoalition(2,"SITEP: Allied forces lost control of " .. self.name .. ".", 15)
+            if previous_side == coalition.side.BLUE then
+                trigger.action.outTextForCoalition(2,"SITREP: Allied forces lost control of " .. self.name .. ".", 15)
+            end
 
             trigger.action.outTextForCoalition(1,"SITREP: Allied forces have occupied " .. self.name .. ".", 15)
         else
