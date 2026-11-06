@@ -3,7 +3,7 @@ The Caucasus region is in a state of open conflict. REDFOR launched coordinated 
 
 ---
 
-As a pilot, your objective is to actively engage and neutralize all REDFOR targets and areas, by any means possible.
+As a pilot, your objective is to engage and neutralize all REDFOR targets and areas, by any means possible.
 
 Mission details are available in the Crossfire documentation.
 
