@@ -1138,6 +1138,73 @@ Config = {
         }
     },
 
+    -- (table) MOAB (GBU-43) airdrop: scripted blast with a rolling shockwave. Hits everything, friendlies included
+    moab = {
+        -- (bool) enables the scripted MOAB blast when a matching weapon is released
+        enabled = true,
+        -- (table<string>) weapon type names (case-insensitive, partial match) that trigger the blast
+        weapon_types = {"GBU_43"},
+        -- (int) (meters) the closest airborne player within this distance of the release point is credited as the dropper
+        dropper_search_radius = 3000,
+        -- (table) shockwave arrival curve as {distance (m), time (s)} pairs, linearly interpolated
+        shockwave_curve = {{0,0},{500,1},{1000,2.5},{2000,5},{2500,6.5}},
+        -- (int) (meters) everything inside this radius is destroyed (fireball)
+        fireball_radius = 250,
+        -- (table) (meters) destruction radius per target class
+        kill_radius = {
+            -- (int) (meters)
+            tank = 300,
+            -- (int) (meters)
+            ifv_apc = 400,
+            -- (int) (meters) trucks, SAMs, AAA and any other ground vehicle
+            truck_sam_aaa = 600,
+            -- (int) (meters)
+            infantry = 700,
+            -- (int) (meters)
+            ship = 300,
+            -- (int) (meters) statics: ammo depots, comms towers, crates...
+            static = 500,
+            -- (int) (meters) aircraft on the ground
+            parked_aircraft = 900,
+            -- (int) (meters) aircraft in the air (3D distance)
+            air = 1000,
+            -- (int) (meters) map buildings
+            scenery = 400,
+        },
+        -- (int) (meters) targets outside their kill radius still get light damage out to this radius
+        light_damage_radius = 2500,
+        -- (int) explosion power used on a target inside its kill radius (survivors are removed after 0.5s)
+        kill_power = 150,
+        -- (int) explosion power just outside a target's kill radius, falling off with distance
+        damage_power_max = 40,
+        -- (int) explosion power at the edge of light_damage_radius
+        damage_power_min = 2,
+        -- (bool) flatten map buildings inside kill_radius.scenery
+        destroy_scenery = true,
+        -- (bool) fireball at ground zero
+        effect_fireball = true,
+        -- (bool) fireball rising off the ground during the first seconds
+        effect_column = true,
+        -- (bool) large dust and smoke cloud at ground zero, made of several merged plumes
+        effect_cloud = true,
+        -- (int) number of plumes around the central one
+        cloud_plumes = 4,
+        -- (int) (meters) radius of the plume cluster, small enough for the plumes to merge into one cloud
+        cloud_radius = 60,
+        -- (table) cloud decay stages as {smoke preset, density, duration (s)}. Presets 5 to 8 are small to huge smoke
+        cloud_stages = {{8, 1, 90}, {7, 0.9, 150}, {6, 0.6, 240}},
+        -- (bool) a few small scattered grass fires near ground zero
+        effect_fires = true,
+        -- (int) number of grass fires
+        fire_count = 4,
+        -- (int) (meters) fires are scattered within this distance of ground zero
+        fire_radius = 150,
+        -- (int) (seconds) maximum fire duration (each fire lasts 50 to 100% of it)
+        fire_duration = 240,
+        -- (int) (meters) players within this distance get a blast warning
+        alert_radius = 5000,
+    },
+
     -- (table) Infantry squads
     squads = {
         -- (bool) master for the infantry squad system

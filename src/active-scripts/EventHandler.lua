@@ -327,5 +327,272 @@ function ev:onEvent(event)
         if unit and unit.getName and Object.getCategory(unit) == Object.Category.STATIC then
             MissionLogger:info("Static unit destroyed: " .. unit:getName())
         end
+    elseif event.id == world.event.S_EVENT_SHOT and event.weapon then
+        if Config.moab and Config.moab.enabled and moabIsMoabWeapon(event.weapon) then
+            local dropper = moabFindDropper(event.weapon:getPoint())
+            local player_name, side = nil, nil
+            if dropper then
+                player_name = dropper:getPlayerName()
+                side = dropper:getCoalition()
+            end
+            MissionLogger:info("MOAB released: " .. event.weapon:getTypeName() .. " by " .. tostring(player_name))
+            moabTrackWeapon(event.weapon, player_name, side)
+        end
     end
+end
+
+--------------------------------------------------------------------------------
+-- MOAB (GBU-43) airdrop: scripted blast with a rolling shockwave
+--------------------------------------------------------------------------------
+
+---@param weapon Weapon
+---@return boolean
+function moabIsMoabWeapon(weapon)
+    if not weapon or not weapon.getTypeName then return false end
+    local type_name = string.lower(weapon:getTypeName() or "")
+    for _, wanted in ipairs(Config.moab.weapon_types or {}) do
+        if string.find(type_name, string.lower(wanted), 1, true) then return true end
+    end
+    return false
+end
+
+--- Closest airborne player unit to the release point (within dropper_search_radius).
+---@param point table vec3
+---@return Unit|nil
+function moabFindDropper(point)
+    local best, best_dist = nil, Config.moab.dropper_search_radius or 3000
+    for _, s in ipairs({ coalition.side.BLUE, coalition.side.RED }) do
+        for _, u in ipairs(coalition.getPlayers(s) or {}) do
+            if u and u:isExist() and u:inAir() and u:getTypeName() == Stocks.Aircraft.C130J_30 then
+                local p = u:getPoint()
+                local d = math.sqrt((p.x - point.x) ^ 2 + (p.y - point.y) ^ 2 + (p.z - point.z) ^ 2)
+                if d < best_dist then best, best_dist = u, d end
+            end
+        end
+    end
+    return best
+end
+
+--- Follows the bomb down and detonates at its last known position.
+---@param weapon Weapon
+---@param player_name string|nil
+---@param side number|nil
+function moabTrackWeapon(weapon, player_name, side)
+    local last = weapon:getPoint()
+    timer.scheduleFunction(function(_, time)
+        if weapon:isExist() then
+            last = weapon:getPoint()
+            return time + 0.1
+        end
+        local gz = { x = last.x, y = land.getHeight({ x = last.x, y = last.z }), z = last.z }
+        moabDetonate(gz, player_name, side)
+        return nil
+    end, nil, timer.getTime() + 0.1)
+end
+
+-- Linear interpolation over a list of {x, y} pairs (extrapolates with the last segment).
+local function moabInterpolate(curve, value, from, to)
+    if value <= curve[1][from] then return curve[1][to] end
+    for i = 2, #curve do
+        local a, b = curve[i - 1], curve[i]
+        if value <= b[from] then
+            return a[to] + (b[to] - a[to]) * (value - a[from]) / (b[from] - a[from])
+        end
+    end
+    local a, b = curve[#curve - 1], curve[#curve]
+    return b[to] + (value - b[from]) * (b[to] - a[to]) / (b[from] - a[from])
+end
+
+-- Shockwave arrival time (s) at a given distance (m)
+local function moabTimeAt(distance) return moabInterpolate(Config.moab.shockwave_curve, distance, 1, 2) end
+
+---@return string|nil kind, number xp
+local function moabClassify(obj)
+    local cat = Object.getCategory(obj)
+    if cat == Object.Category.SCENERY then return "scenery", 0 end
+    if cat == Object.Category.STATIC or cat == Object.Category.CARGO then return "static", 0 end
+    if cat ~= Object.Category.UNIT then return nil, 0 end
+
+    local rs = Config.reward_system
+    if obj:hasAttribute("Planes") or obj:hasAttribute("Helicopters") then
+        local xp = obj:hasAttribute("Planes") and rs.xp_per_aircraft_destroyed or rs.xp_per_helicopter_destroyed
+        if obj:inAir() then return "air", xp end
+        return "parked_aircraft", xp
+    end
+    if obj:hasAttribute("Infantry") then return "infantry", rs.xp_per_infantry_kill end
+    if obj:hasAttribute("Ships") then return "ship", rs.xp_per_ship_sunk end
+    if obj:hasAttribute("Tanks") then return "tank", rs.xp_per_vehicle_destroyed end
+    if obj:hasAttribute("IFV") or obj:hasAttribute("APC") then return "ifv_apc", rs.xp_per_vehicle_destroyed end
+    if obj:hasAttribute("SAM SR") or obj:hasAttribute("SAM TR") or obj:hasAttribute("IR Guided SAM") then
+        return "truck_sam_aaa", rs.xp_per_sam_destroyed
+    end
+    return "truck_sam_aaa", rs.xp_per_vehicle_destroyed
+end
+
+
+local function moabIsAlive(obj, kind)
+    if not (obj and obj:isExist()) then return false end
+    local life = obj:getLife() or 0
+    if kind == "static" or kind == "scenery" then return life > 0 end
+    return life >= 1
+end
+
+local function moabEffects(gz)
+    local now = timer.getTime()
+    local id = math.floor(now * 1000)
+
+    -- Ground-level big smoke that starts after `start` seconds and stops `duration` seconds later.
+    -- Presets: 1-4 smoke+fire (small..huge), 5-8 smoke only (small..huge)
+    local function smokeFor(name, x, z, preset, density, start, duration)
+        timer.scheduleFunction(function()
+            trigger.action.effectSmokeBig({ x = x, y = land.getHeight({ x = x, y = z }), z = z }, preset, density, name)
+        end, nil, now + start)
+        timer.scheduleFunction(function()
+            trigger.action.effectSmokeStop(name)
+        end, nil, now + start + duration)
+    end
+
+    if Config.moab.effect_fireball then
+        -- Tight cluster of detonations: one fireball and one crater, not scattered pops
+        for i = 0, 5 do
+            timer.scheduleFunction(function()
+                local a, r = math.random() * 2 * math.pi, (i == 0) and 0 or math.random(5, 35)
+                trigger.action.explosion({ x = gz.x + r * math.cos(a), y = gz.y + math.random(0, 15), z = gz.z + r * math.sin(a) }, 500)
+            end, nil, now + i * 0.1)
+        end
+    end
+
+    if Config.moab.effect_column then
+        -- Fireball lifting off the ground during the first seconds, before the cloud takes over
+        for i = 0, 5 do
+            timer.scheduleFunction(function()
+                trigger.action.explosion({ x = gz.x + math.random(-10, 10), y = gz.y + 30 + i * 40, z = gz.z + math.random(-10, 10) }, 20)
+            end, nil, now + 0.4 + i * 0.25)
+        end
+    end
+
+    if Config.moab.effect_cloud then
+        -- Several plumes packed close together so they merge into one wide cloud,
+        -- decaying through the configured stages (each overlaps the next so it never pops out)
+        local plumes = { { gz.x, gz.z } }
+        local n, r = Config.moab.cloud_plumes or 4, Config.moab.cloud_radius or 60
+        for i = 1, n do
+            local a = (i / n) * 2 * math.pi + math.random() * 0.5
+            local d = r * (0.6 + math.random() * 0.4)
+            table.insert(plumes, { gz.x + d * math.cos(a), gz.z + d * math.sin(a) })
+        end
+        local stages = Config.moab.cloud_stages or { { 8, 1, 90 }, { 7, 0.9, 150 }, { 6, 0.6, 240 } }
+        local start = 0.5
+        for s, stage in ipairs(stages) do
+            local overlap = (s < #stages) and 5 or 0
+            for p, xz in ipairs(plumes) do
+                smokeFor("MoabCloud" .. id .. "_" .. s .. "_" .. p, xz[1], xz[2], stage[1], stage[2], start, stage[3] + overlap)
+            end
+            start = start + stage[3]
+        end
+    end
+
+    if Config.moab.effect_fires then
+        -- A few small scattered grass fires; the explosive itself burns out in the fireball
+        for i = 1, Config.moab.fire_count or 4 do
+            local a, d = math.random() * 2 * math.pi, math.random(20, Config.moab.fire_radius or 150)
+            smokeFor("MoabFire" .. id .. "_" .. i, gz.x + d * math.cos(a), gz.z + d * math.sin(a),
+                1, 0.5 + math.random() * 0.3, 1 + math.random() * 3, (Config.moab.fire_duration or 240) * (0.5 + math.random() * 0.5))
+        end
+    end
+end
+
+--- Detonates a MOAB at ground zero. Hits everything in range, friendlies included.
+---@param gz table vec3 ground zero
+---@param player_name string|nil player credited with enemy kills (nil = no XP, e.g. Jupiter)
+---@param side number|nil coalition of the dropper, used to decide what counts as an enemy
+function moabDetonate(gz, player_name, side)
+    local now = timer.getTime()
+    MissionLogger:info(string.format("MOAB detonation at x=%.0f z=%.0f (player: %s)", gz.x, gz.z, tostring(player_name)))
+
+    moabEffects(gz)
+
+    local enemy_side = nil
+    if side == coalition.side.BLUE then enemy_side = coalition.side.RED
+    elseif side == coalition.side.RED then enemy_side = coalition.side.BLUE end
+
+    local enemies = {} -- { obj, xp } enemy units that should be counted for XP
+    local last_hit = 0
+
+    local function hit(obj, kind, xp)
+        local p = obj:getPoint()
+        local d2 = math.sqrt((p.x - gz.x) ^ 2 + (p.z - gz.z) ^ 2)
+        local d = (kind == "air") and math.sqrt(d2 ^ 2 + (p.y - gz.y) ^ 2) or d2
+        if d > Config.moab.light_damage_radius then return end
+
+        local kill_r = math.max(Config.moab.kill_radius[kind] or 0, Config.moab.fireball_radius)
+        local t = moabTimeAt(d)
+        if t > last_hit then last_hit = t end
+
+        if enemy_side and kind ~= "scenery" and kind ~= "static" and obj:getCoalition() == enemy_side then
+            table.insert(enemies, { obj = obj, xp = xp })
+        end
+
+        timer.scheduleFunction(function()
+            if not moabIsAlive(obj, kind) then return end
+            local pos = obj:getPoint()
+            if d <= kill_r then
+                trigger.action.explosion(pos, Config.moab.kill_power)
+                if kind ~= "scenery" then
+                    timer.scheduleFunction(function()
+                        if moabIsAlive(obj, kind) then obj:destroy() end
+                    end, nil, timer.getTime() + 0.5)
+                end
+            else
+                local frac = (d - kill_r) / math.max(Config.moab.light_damage_radius - kill_r, 1)
+                local power = Config.moab.damage_power_min + (Config.moab.damage_power_max - Config.moab.damage_power_min) * (1 - frac) ^ 2
+                trigger.action.explosion(pos, power)
+            end
+        end, nil, now + t)
+    end
+
+    local volume = { id = world.VolumeType.SPHERE, params = { point = gz, radius = Config.moab.light_damage_radius } }
+    world.searchObjects({ Object.Category.UNIT, Object.Category.STATIC, Object.Category.CARGO }, volume, function(obj)
+        if obj and obj:isExist() then
+            local kind, xp = moabClassify(obj)
+            if kind then hit(obj, kind, xp) end
+        end
+        return true
+    end)
+
+    if Config.moab.destroy_scenery then
+        local scenery_volume = { id = world.VolumeType.SPHERE, params = { point = gz, radius = Config.moab.kill_radius.scenery } }
+        world.searchObjects(Object.Category.SCENERY, scenery_volume, function(obj)
+            if obj then hit(obj, "scenery", 0) end
+            return true
+        end)
+    end
+
+    -- After the shockwave has passed: update zone structures and award XP
+    timer.scheduleFunction(function()
+        for _, zone in ipairs(zones) do
+            if zone.zone and zone.zone.point and mist.utils.get2DDist(gz, zone.zone.point) <= Config.moab.light_damage_radius then
+                zone:checkCOMMSZone()
+                zone:checkSUPPLIES()
+            end
+        end
+
+        if not player_name then return end
+        local kills, xp_total = 0, 0
+        for _, e in ipairs(enemies) do
+            if not moabIsAlive(e.obj) then
+                kills = kills + 1
+                xp_total = xp_total + (e.xp or 0)
+            end
+        end
+        MissionLogger:info(string.format("MOAB result for %s: %d enemy kills, %d XP", player_name, kills, xp_total))
+
+        local user = Config.reward_system.enable and ExperienceManager.user_data[player_name] or nil
+        if user then
+            user.unclaimed_xp = (user.unclaimed_xp or 0) + xp_total
+            if user.id then
+                trigger.action.outTextForUnit(user.id, string.format("MOAB: %d enemy kills, +%d XP pending - land to claim", kills, xp_total), 15)
+            end
+        end
+    end, nil, now + last_hit + 2.5)
 end

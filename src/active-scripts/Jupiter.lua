@@ -85,6 +85,13 @@ function Jupiter:onEvent(event)
             trigger.action.outText("Jupiter: Boom!", 5)
             cmd_executed = true
 
+        elseif command == "-moab" then
+            -- Full scripted MOAB blast at the marker (no XP awarded)
+            local gz = { x = vec3.x, y = land.getHeight({ x = vec3.x, y = vec3.z }), z = vec3.z }
+            moabDetonate(gz, nil, nil)
+            trigger.action.outText("Jupiter: MOAB inbound!", 5)
+            cmd_executed = true
+
         elseif command == "-smoke" then
             local color = getSmokeColor(param1)
             trigger.action.smoke(vec3, color)
