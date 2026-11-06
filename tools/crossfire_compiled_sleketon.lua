@@ -2,7 +2,7 @@
 
     Crossfire (Compiled Release)
     Core mission logic for the Crossfire dynamic campaign.
-    Version: <6> | Eras, all modules and terrains support, unit composer, config wizard, bug fixes | 2026-07-12
+    Version: <7> | GermanyCW, countless small changes, bug fixes  | 2026-11-06
 
     Load this script into your mission; configure zones/groups per the campaign setup docs.
     Usage: You may modify and share freely, for personal and server use; please give credit and avoid rebranding without attribution.
