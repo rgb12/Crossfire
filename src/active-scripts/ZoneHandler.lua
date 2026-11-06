@@ -527,6 +527,15 @@ do
                 UnitHandler.initFARP(self,false)
             end,{},timer.getTime()+5)
             UnitHandler.updateZoneUnits(self)
+        elseif self.zone_type == ZoneTypes.FARP and self.side == coalition.side.NEUTRAL then
+            if previous_side == coalition.side.RED then
+                stats.red_farp_zones = stats.red_farp_zones - 1
+            elseif previous_side == coalition.side.BLUE then
+                stats.blue_farp_zones = stats.blue_farp_zones - 1
+            end
+            if self.linked_farp then
+                WarehouseManager:clearWarehouse(self.linked_farp)
+            end
         elseif self.zone_type == ZoneTypes.SAMSITE and self.side ~= coalition.side.NEUTRAL then
             if previous_side == coalition.side.RED then
                 stats.red_sam_sites = stats.red_sam_sites - 1
