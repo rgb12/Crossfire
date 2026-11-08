@@ -358,7 +358,6 @@ do
 
             [Stocks.Aircraft.F15C]                 = StockTypes.AA_AIRCRAFT,
             [Stocks.Aircraft.F14B]                 = StockTypes.AA_AIRCRAFT,
-            [Stocks.Aircraft.F_14BU]               = StockTypes.AA_AIRCRAFT,
             [Stocks.Aircraft.F_14A_135_GR]         = StockTypes.AA_AIRCRAFT,
             [Stocks.Aircraft.F14A_EARLY]           = StockTypes.AA_AIRCRAFT,
             [Stocks.Aircraft.F14A]                 = StockTypes.AA_AIRCRAFT,
@@ -404,6 +403,7 @@ do
             [Stocks.Aircraft.TF51D]                = StockTypes.AA_AIRCRAFT,
             [Stocks.Aircraft.I16]                  = StockTypes.AA_AIRCRAFT,
 
+            [Stocks.Aircraft.F_14BU]               = StockTypes.MULTIROLE_AIRCRAFT,
             [Stocks.Aircraft.F16C_BL50]            = StockTypes.MULTIROLE_AIRCRAFT,
             [Stocks.Aircraft.F16C_BL52D]           = StockTypes.MULTIROLE_AIRCRAFT,
             [Stocks.Aircraft.FA18C_HORNET]         = StockTypes.MULTIROLE_AIRCRAFT,

@@ -271,6 +271,7 @@ Config = {
             },
             -- (table<string>)
             [OperationTypes.CAS] = {
+                "F-14BU",
                 "A-10C_2",
                 "Su-25T",
                 "AV8BNA",
@@ -333,6 +334,7 @@ Config = {
             },
             -- (table<string>)
             [OperationTypes.STRIKE] = {
+                "F-14BU",
                 "A-10C_2",
                 "Su-25T",
                 "F-15ESE",
@@ -372,6 +374,7 @@ Config = {
             },
             -- (table<string>)
             [OperationTypes.RUNWAY_BOMBING] = {
+                "F-14BU",
                 "F-14A-135-GR",
                 "F-14B",
                 "M-2000C",
@@ -393,6 +396,7 @@ Config = {
             },
             -- (table<string>)
             [OperationTypes.CAP] = {
+                "F-14BU",
                 "F-15C",
                 "F-15ESE",
                 "F-16C_50",
@@ -432,6 +436,7 @@ Config = {
             },
             -- (table<string>)
             [OperationTypes.INTERCEPT] = {
+                "F-14BU",
                 "F-15C",
                 "F-15ESE",
                 "F-16C_50",
