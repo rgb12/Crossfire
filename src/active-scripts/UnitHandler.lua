@@ -282,6 +282,7 @@ do
         local mission = env and env.mission
         local coalitions = mission and mission.coalition
         if not coalitions then return names end
+        local delayed_groups_count = 0
         for _, coal in pairs(coalitions) do
             if type(coal) == "table" and coal.country then
                 for _, country in pairs(coal.country) do
@@ -289,6 +290,9 @@ do
                         for _, cat in pairs(country) do
                             if type(cat) == "table" and cat.group then
                                 for _, group in pairs(cat.group) do
+                                    if type(group) == "table" and (tonumber(group.start_time) or 0) > 0 then
+                                        delayed_groups_count = delayed_groups_count + 1
+                                    end
                                     if type(group) == "table" and group.name
                                        and group.lateActivation then
                                         names[group.name] = true
@@ -299,6 +303,9 @@ do
                     end
                 end
             end
+        end
+        if delayed_groups_count > 0 then
+            MissionLogger:warn(string.format("%d group(s) have a non-zero start_time: the .miz was likely modified by an external tool (e.g. time injection)", delayed_groups_count))
         end
         return names
     end

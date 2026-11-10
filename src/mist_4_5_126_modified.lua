@@ -1932,13 +1932,7 @@ do -- the main scope
 			newGroup.visible = false
 		end
 
-		if (newGroup.start_time and type(newGroup.start_time) ~= 'number') or not newGroup.start_time then
-			if newGroup.startTime then
-				newGroup.start_time = mist.utils.round(newGroup.startTime)
-			else
-				newGroup.start_time = 0
-			end
-		end
+		newGroup.start_time = 0 -- for ATMOS-X time injection
 
 
 		for unitIndex, unitData in pairs(newGroup.units) do
