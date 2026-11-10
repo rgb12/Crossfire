@@ -342,7 +342,16 @@ Airbases = {
 Theatres = {
     CAUCASUS = "Caucasus",
     SYRIA = "Syria",
-    CWGERMANY = "GermanyCW"
+    CWGERMANY = "GermanyCW",
+    MARIANA_ISLANDS = "MarianaIslands",
+    SOUTH_ATLANTIC = "SouthAtlantic",
+    SINAI          = "Sinai",
+    KOLA           = "Kola",
+    AFGHANISTAN    = "Afghanistan",
+    NEVADA         = "Nevada",
+    PERSIAN_GULF   = "PersianGulf",
+    NORMANDY       = "Normandy",
+    THE_CHANNEL    = "TheChannel",
 }
 
 ---@enum SAM_TYPES
