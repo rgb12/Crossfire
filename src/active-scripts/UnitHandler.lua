@@ -470,10 +470,8 @@ do
         -- Add to warehouse
         if zone.linked_farp then
             if restock then
-                timer.scheduleFunction(function()
-                    WarehouseManager:clearWarehouse(zone.linked_farp)
-                    WarehouseManager:attributeAirbaseStock(zone.linked_farp, zone.side, {StockTypes.FARP})
-                end, {}, timer.getTime()+1)
+                WarehouseManager:clearWarehouse(zone.linked_farp)
+                WarehouseManager:attributeAirbaseStock(zone.linked_farp, zone.side, {StockTypes.FARP})
             end
             WarehouseManager:addLiquids(zone.linked_farp)
         end
