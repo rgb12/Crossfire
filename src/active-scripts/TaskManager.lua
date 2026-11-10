@@ -127,13 +127,12 @@ do
 
         local spawned_name = new_group.name
         local airbase_name = airbase:getName()
-        local side         = airbase:getCoalition()
 
         timer.scheduleFunction(function()
             local grp = Group.getByName(spawned_name)
             if not grp or not grp:isExist() or grp:getSize() == 0 then
                 MissionLogger:info("AI " .. spawned_name .. "' failed to appear at " .. airbase_name.. " - no compatible parking spot.  Falling back to air-spawn.")
-                if grp then grp:destroy() end
+                if grp and grp:isExist() then grp:destroy() end
                 airSpawnOverAirbase(template_name, airbase, spawned_name, on_respawn)
             end
         end, {}, timer.getTime() + 3)
@@ -1617,7 +1616,7 @@ do
     function TaskManager:setATTACKCONVOYTask(convoy_gr_name,side,to_zone, from_zone)
         timer.scheduleFunction(function ()
             local convoy_gr = Group.getByName(convoy_gr_name)
-            if not convoy_gr or not convoy_gr:isExist() then MissionLogger:info("Capture Convoy spawn failed, no convoy sent") return end
+            if not convoy_gr or not convoy_gr:isExist() then MissionLogger:info("Attack Convoy spawn failed, no convoy sent") return end
 
             local ctrl = convoy_gr:getController()
             if ctrl then

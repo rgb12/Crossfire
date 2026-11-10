@@ -616,7 +616,9 @@ do
                     if convoy_group and convoy_group:isExist() then
                         trigger.action.setGroupAIOff(convoy_group)
                         timer.scheduleFunction(function ()
-                            convoy_group:destroy()
+                            if convoy_group:isExist() then
+                                convoy_group:destroy()
+                            end
                         end, {}, timer.getTime() + math.random(5, 10))
                         EnrouteManager:remove(enroute.group_name)
                     end
@@ -630,10 +632,12 @@ do
                     local cargo_group = Group.getByName(enroute.group_name)
                     if cargo_group and cargo_group:isExist() then
                         timer.scheduleFunction(function ()
-                            cargo_group:destroy()
-                            trigger.action.outTextForCoalition(enroute.side,"SITREP: Resupply Aircraft inbound for "..enroute.to_zone.name .. " aborted!",10)
-                            trigger.action.outSoundForCoalition(enroute.side,"radio_beep3.ogg")
-                            EnrouteManager:remove(enroute.group_name)
+                            if cargo_group:isExist() then
+                                cargo_group:destroy()
+                                trigger.action.outTextForCoalition(enroute.side,"SITREP: Resupply Aircraft inbound for "..enroute.to_zone.name .. " aborted!",10)
+                                trigger.action.outSoundForCoalition(enroute.side,"radio_beep3.ogg")
+                                EnrouteManager:remove(enroute.group_name)
+                            end
                         end, {}, timer.getTime() + math.random(5, 10))
                     end
                 end
