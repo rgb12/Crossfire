@@ -1882,22 +1882,30 @@ Stocks.EquipmentData = {
         -- FARP AG ROCKETS
         [Stocks.Equipment.HYDRA_70_M274                      ] = { stock_type = StockTypes.FARP_AG_ROCKETS, base_qty = 54, eras = { Eras.EARLYCOLDWAR, Eras.LATECOLDWAR, Eras.MODERN } },
         [Stocks.Equipment.HYDRA_70_MK1                       ] = { stock_type = StockTypes.FARP_AG_ROCKETS, base_qty = 54, eras = { Eras.EARLYCOLDWAR, Eras.LATECOLDWAR, Eras.MODERN } },
+        [Stocks.Equipment.HYDRA_70_M156                       ] = { stock_type = StockTypes.FARP_AG_ROCKETS, base_qty = 54, eras = { Eras.EARLYCOLDWAR, Eras.LATECOLDWAR, Eras.MODERN } },
+        [Stocks.Equipment.HYDRA_70_M151_HE                       ] = { stock_type = StockTypes.FARP_AG_ROCKETS, base_qty = 54, eras = { Eras.EARLYCOLDWAR, Eras.LATECOLDWAR, Eras.MODERN } },
+        [Stocks.Equipment.HYDRA_70_M151_M433                       ] = { stock_type = StockTypes.FARP_AG_ROCKETS, base_qty = 54, eras = { Eras.EARLYCOLDWAR, Eras.LATECOLDWAR, Eras.MODERN } },
+        [Stocks.Equipment.HYDRA_70_M229                     ] = { stock_type = StockTypes.FARP_AG_ROCKETS, base_qty = 54, eras = { Eras.EARLYCOLDWAR, Eras.LATECOLDWAR, Eras.MODERN } },
         [Stocks.Equipment.SNEB_251_HE                        ] = { stock_type = StockTypes.FARP_AG_ROCKETS, base_qty = 54, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
         [Stocks.Equipment.SNEB_253_HEAT                      ] = { stock_type = StockTypes.FARP_AG_ROCKETS, base_qty = 54, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
         [Stocks.Equipment.SNEB_254_SM_GREEN                  ] = { stock_type = StockTypes.FARP_AG_ROCKETS, base_qty = 36, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
         [Stocks.Equipment.SNEB_254_SM_RED                    ] = { stock_type = StockTypes.FARP_AG_ROCKETS, base_qty = 36, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
         [Stocks.Equipment.SNEB_259_IL                        ] = { stock_type = StockTypes.FARP_AG_ROCKETS, base_qty = 36, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
+        [Stocks.Equipment.SNEB_TYPE252_H1                    ] = { stock_type = StockTypes.FARP_AG_ROCKETS, base_qty = 54, eras = { Eras.LATECOLDWAR, Eras.MODERN } }, -- TP
+        [Stocks.Equipment.SNEB_TYPE254_H1_YELLOW             ] = { stock_type = StockTypes.FARP_AG_ROCKETS, base_qty = 36, eras = { Eras.LATECOLDWAR, Eras.MODERN } }, -- smoke yellow
+        [Stocks.Equipment.SNEB_TYPE256_H1                    ] = { stock_type = StockTypes.FARP_AG_ROCKETS, base_qty = 54, eras = { Eras.LATECOLDWAR, Eras.MODERN } }, -- HE/Frag
+        [Stocks.Equipment.SNEB_TYPE257_H1                    ] = { stock_type = StockTypes.FARP_AG_ROCKETS, base_qty = 54, eras = { Eras.LATECOLDWAR, Eras.MODERN } }, -- HE/Frag Lg Whd
         [Stocks.Equipment.ZUNI_127                           ] = { stock_type = StockTypes.FARP_AG_ROCKETS, base_qty = 54, eras = { Eras.EARLYCOLDWAR, Eras.LATECOLDWAR, Eras.MODERN } },
 
       -- FARP GUNS
-        [Stocks.Equipment.FN_HMP400                          ] = { stock_type = StockTypes.FARP_GUNS, base_qty = 12, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
-        [Stocks.Equipment.FN_HMP400_200                      ] = { stock_type = StockTypes.FARP_GUNS, base_qty = 12, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
+        -- Gazelle gun pods: DCS warehouses only accept the weapons.containers.* names
+        [Stocks.Equipment.FN_HMP400_CONT                     ] = { stock_type = StockTypes.FARP_GUNS, base_qty = 12, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
         [Stocks.Equipment.GIAT_M261                          ] = { stock_type = StockTypes.FARP_GUNS, base_qty = 30, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
-        [Stocks.Equipment.GIAT_M621_AP                       ] = { stock_type = StockTypes.FARP_GUNS, base_qty = 30, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
-        [Stocks.Equipment.GIAT_M621_APHE                     ] = { stock_type = StockTypes.FARP_GUNS, base_qty = 30, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
-        [Stocks.Equipment.GIAT_M621_HE                       ] = { stock_type = StockTypes.FARP_GUNS, base_qty = 30, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
-        [Stocks.Equipment.GIAT_M621_HEAP                     ] = { stock_type = StockTypes.FARP_GUNS, base_qty = 30, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
-        [Stocks.Equipment.GIAT_M621_SAPHEI                   ] = { stock_type = StockTypes.FARP_GUNS, base_qty = 30, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
+        [Stocks.Equipment.GIAT_M621_AP_CONT                  ] = { stock_type = StockTypes.FARP_GUNS, base_qty = 30, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
+        [Stocks.Equipment.GIAT_M621_APHE_CONT                ] = { stock_type = StockTypes.FARP_GUNS, base_qty = 30, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
+        [Stocks.Equipment.GIAT_M621_HE_CONT                  ] = { stock_type = StockTypes.FARP_GUNS, base_qty = 30, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
+        [Stocks.Equipment.GIAT_M621_HEAP_CONT                ] = { stock_type = StockTypes.FARP_GUNS, base_qty = 30, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
+        [Stocks.Equipment.GIAT_M621_SAPHEI_CONT              ] = { stock_type = StockTypes.FARP_GUNS, base_qty = 30, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
         [Stocks.Equipment.HMP400                             ] = { stock_type = StockTypes.FARP_GUNS, base_qty = 12, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
         [Stocks.Equipment.SA342_M134_SIDE_R_CONT             ] = { stock_type = StockTypes.FARP_GUNS, base_qty = 30, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
         [Stocks.Equipment.SA342_M134_SIDE_R_GUN              ] = { stock_type = StockTypes.FARP_GUNS, base_qty = 30, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
@@ -2055,7 +2063,7 @@ Stocks.EquipmentData = {
         [Stocks.Equipment.FFAR_M156_WP                       ] = { stock_type = StockTypes.AIR_GROUND_ROCKETS, base_qty = 400, eras = { Eras.EARLYCOLDWAR, Eras.LATECOLDWAR } }, -- FFAR M156 white phosphorus
         [Stocks.Equipment.HYDRA_70_MK61                      ] = { stock_type = StockTypes.AIR_GROUND_ROCKETS, base_qty = 400, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
         [Stocks.Equipment.HYDRA_70_WTU1B                     ] = { stock_type = StockTypes.AIR_GROUND_ROCKETS, base_qty = 400, eras = { Eras.LATECOLDWAR, Eras.MODERN } }, -- practice
-        [Stocks.Equipment.SNEB_TYPE250_F1B                   ] = { stock_type = StockTypes.AIR_GROUND_ROCKETS, base_qty = 400, eras = { Eras.LATECOLDWAR, Eras.MODERN } }, -- SNEB 68mm (Mirage F1)
+        [Stocks.Equipment.SNEB_TYPE250_F1B                   ] = { stock_type = { StockTypes.AIR_GROUND_ROCKETS, StockTypes.FARP_AG_ROCKETS }, base_qty = { [StockTypes.AIR_GROUND_ROCKETS] = 400, [StockTypes.FARP_AG_ROCKETS] = 54 }, eras = { Eras.LATECOLDWAR, Eras.MODERN } }, -- SNEB 68mm (Mirage F1 + Gazelle TP-SM)
         [Stocks.Equipment.SNEB_TYPE251_F1B                   ] = { stock_type = StockTypes.AIR_GROUND_ROCKETS, base_qty = 400, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
         [Stocks.Equipment.SNEB_TYPE252_F1B                   ] = { stock_type = StockTypes.AIR_GROUND_ROCKETS, base_qty = 400, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
         [Stocks.Equipment.SNEB_TYPE253_F1B                   ] = { stock_type = StockTypes.AIR_GROUND_ROCKETS, base_qty = 400, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
@@ -2072,8 +2080,6 @@ Stocks.EquipmentData = {
         [Stocks.Equipment.AKAN_GUN_2                         ] = { stock_type = StockTypes.FARP_GUNS, base_qty = 30, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
         [Stocks.Equipment.DEFA_553                           ] = { stock_type = StockTypes.FARP_GUNS, base_qty = 30, eras = { Eras.LATECOLDWAR, Eras.MODERN } }, -- DEFA 553 30mm pod (Mirage F1)
         [Stocks.Equipment.DEFA_553_LOWER                     ] = { stock_type = StockTypes.FARP_GUNS, base_qty = 30, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
-        [Stocks.Equipment.FN_HMP400_100_GUN                  ] = { stock_type = StockTypes.FARP_GUNS, base_qty = 12, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
-        [Stocks.Equipment.FN_HMP400_200_GUN                  ] = { stock_type = StockTypes.FARP_GUNS, base_qty = 12, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
         [Stocks.Equipment.SUU_23_POD_GUN                     ] = { stock_type = StockTypes.FARP_GUNS, base_qty = 20, eras = { Eras.EARLYCOLDWAR, Eras.LATECOLDWAR } }, -- SUU-23 20mm gun pod
         [Stocks.Equipment.FN_HMP400_100_CONT                 ] = { stock_type = StockTypes.FARP_GUNS, base_qty = 12, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
         [Stocks.Equipment.FN_HMP400_200_CONT                 ] = { stock_type = StockTypes.FARP_GUNS, base_qty = 12, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
@@ -2351,12 +2357,21 @@ local SA342_STORES = {
     Stocks.Equipment.SNEB_251_HE,
     Stocks.Equipment.SNEB_253_HEAT,
     Stocks.Equipment.SNEB_259_IL,
-    Stocks.Equipment.FN_HMP400,
-    Stocks.Equipment.FN_HMP400_200,
+    Stocks.Equipment.SNEB_254_SM_RED,
+    Stocks.Equipment.SNEB_254_SM_GREEN,
+    Stocks.Equipment.SNEB_TYPE252_H1,
+    Stocks.Equipment.SNEB_TYPE254_H1_YELLOW,
+    Stocks.Equipment.SNEB_TYPE256_H1,
+    Stocks.Equipment.SNEB_TYPE257_H1,
+    Stocks.Equipment.SNEB_TYPE250_F1B,
+    Stocks.Equipment.FN_HMP400_CONT,
     Stocks.Equipment.FN_HMP400_100_CONT,
-    Stocks.Equipment.FN_HMP400_100_GUN,
     Stocks.Equipment.FN_HMP400_200_CONT,
-    Stocks.Equipment.FN_HMP400_200_GUN,
+    Stocks.Equipment.GIAT_M621_AP_CONT,
+    Stocks.Equipment.GIAT_M621_APHE_CONT,
+    Stocks.Equipment.GIAT_M621_HE_CONT,
+    Stocks.Equipment.GIAT_M621_HEAP_CONT,
+    Stocks.Equipment.GIAT_M621_SAPHEI_CONT,
     Stocks.Equipment.IR_DEFLECTOR,
     Stocks.Equipment.SAND_FILTER,
 }
