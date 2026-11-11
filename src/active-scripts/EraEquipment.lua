@@ -2311,20 +2311,36 @@ local MI24_STORES = {
     Stocks.Equipment.ATAKA_9M220,
     Stocks.Equipment.AT_6,
     -- rockets
+    Stocks.Equipment.S5M1_HEFRAG_FFAR,
     Stocks.Equipment.S5_KP_57MM_HEAT_FRAG,
+
     Stocks.Equipment.S_5M,
     Stocks.Equipment.S_5M_DASH,
     Stocks.Equipment.S8_KOM_80MM_HEAT,
     Stocks.Equipment.S8_OM_FP2_MPP,
     Stocks.Equipment.S13_OF_122MM,
     Stocks.Equipment.S24B,
+    Stocks.Equipment.S24B_240MM_UnGd_Rkt,
+    Stocks.Equipment.S5_OFM_340MM,
+    Stocks.Equipment.S_8O0FP2_MPP,
+    Stocks.Equipment.S8_TsM_SM_ORANGE,
+
+
     -- bombs / dispensers
     Stocks.Equipment.FAB_100,
     Stocks.Equipment.FAB_250,
+    Stocks.Equipment.OFAB_250_270,
+    Stocks.Equipment.FAB_250_M62,
     Stocks.Equipment.FAB_500,
     Stocks.Equipment.RBK_250,
+    Stocks.Equipment.RBK_250_275_AO_1SCH,
     Stocks.Equipment.RBK_500U,
     Stocks.Equipment.SAB_100MN,
+    Stocks.Equipment.GUV_YAKB_GSHP_GUN,
+    Stocks.Equipment.GUV_YAKB_GSHP_CONT,
+    Stocks.Equipment.GUV_VOG_GUN,
+    Stocks.Equipment.GUV_VOG_CONT,
+
 }
 
 -- Mi-28N Havoc
