@@ -139,8 +139,8 @@ do
                     [Stocks.Equipment.R73_AA_11_ARCHER] = 2 *2,
                     [Stocks.Equipment.R27ER] = 2 *2,
                     [Stocks.Equipment.R27ET] = 2 *2,
-                    [Stocks.Equipment.L005_SORBSIYA_ECM_POD_LEFT] = 1 *2,
-                    [Stocks.Equipment.L005_SORBSIYA_ECM_POD_RIGHT] = 1 *2,
+                    -- [Stocks.Equipment.L005_SORBSIYA_ECM_POD_LEFT] = 1 *2, -- prevents scarce pods from preventing dispatch
+                    -- [Stocks.Equipment.L005_SORBSIYA_ECM_POD_RIGHT] = 1 *2,
 
                 },
                 [AITaskTypes.STRIKE] = {
@@ -678,7 +678,75 @@ do
             end
         end
 
+        WarehouseManager:applyAIPayloadFloor(airbase_name, side)
+
         return added_stuff_tbl
+    end
+
+    --- Number of guaranteed AI sorties per task type for an airbase zone of
+    --- the given side and tier, from Config.ai_payload_floor
+    ---@param side coalition.side
+    ---@param level integer|nil zone tier (1-4)
+    ---@return integer
+    function WarehouseManager:getAIPayloadFloorSorties(side, level)
+        if Config.ai_payload_floor.enable == false or not level then return 0 end
+        if side == coalition.side.BLUE then
+            return Config.ai_payload_floor.blue["tier_" .. level] or 0
+        elseif side == coalition.side.RED then
+            return Config.ai_payload_floor.red["tier_" .. level] or 0
+        end
+        return 0
+    end
+
+    ---@param airbase_name string
+    ---@param side coalition.side
+    function WarehouseManager:applyAIPayloadFloor(airbase_name, side)
+        if Config.enable_ai_payload_checks == false then return end
+        if not Config.enable_warehouse then return end
+
+        local zone
+        for _, z in ipairs(zones) do
+            if z.zone_type == ZoneTypes.AIRBASE and z.airbase_name == airbase_name then
+                zone = z
+                break
+            end
+        end
+        if not zone then return end
+
+        local sorties = WarehouseManager:getAIPayloadFloorSorties(side, zone.level)
+        if sorties <= 0 then return end
+
+        local side_payloads = WarehouseManager.AIPayloads[side]
+        local active_era = EraSystem and EraSystem.getActiveEra and EraSystem.getActiveEra()
+        local era_payloads = side_payloads and active_era and side_payloads[active_era]
+        if not era_payloads then return end
+
+        local airbase = Airbase.getByName(airbase_name)
+        local warehouse = airbase and airbase:getWarehouse()
+        if not warehouse then return end
+
+        -- Sum requirements across task types (payload amounts are per sortie).
+        local required = {}
+        for _, payload in pairs(era_payloads) do
+            for wpn_id, amount in pairs(payload) do
+                if isWarehouseTrackable(wpn_id) then
+                    required[wpn_id] = (required[wpn_id] or 0) + amount * sorties
+                end
+            end
+        end
+
+        local topped_up = 0
+        for wpn_id, target in pairs(required) do
+            local current = warehouse:getItemCount(wpn_id) or 0
+            if current < target then
+                warehouse:addItem(wpn_id, target - current)
+                topped_up = topped_up + 1
+            end
+        end
+
+        if topped_up > 0 then
+            MissionLogger:info("[PAYLOAD FLOOR] " .. airbase_name .. " (tier " .. zone.level .. "): topped up ".. topped_up .. " item(s) to " .. sorties .. " sortie(s) per AI task")
+        end
     end
 
     ---@param side coalition.side
@@ -701,6 +769,7 @@ do
         local level_2_bases = {}
         local level_3_bases = {}
         local level_4_bases = {}
+        local supplied_airbase_names = {}
 
         -- 1. Find all eligible airbases and their warehouses
         for _, zone in ipairs(zones) do
@@ -709,6 +778,7 @@ do
                 if airbase then
                     local warehouse = airbase:getWarehouse()
                     if warehouse then
+                        table.insert(supplied_airbase_names, zone.airbase_name)
                         if zone.level == 1 then
                             table.insert(level_1_bases, warehouse)
                         elseif zone.level == 2 then
@@ -881,6 +951,11 @@ do
                     end
                 end
             end
+        end
+
+        -- 5. Guarantee minimum AI payload stock per airbase (per tier)
+        for _, airbase_name in ipairs(supplied_airbase_names) do
+            WarehouseManager:applyAIPayloadFloor(airbase_name, side)
         end
 
         trigger.action.outTextForCoalition(side, "Arriving supplies distributed to airbases.", 10)

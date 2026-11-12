@@ -18,7 +18,7 @@
 -- (value)
 Config = {
     -- (int) config version should not be edited unless comprehensively understood
-    _config_file_version = 4,
+    _config_file_version = 5,
     -- (int) mission version should not be edited unless comprehensively understood
     _mission_version = 7,
     -- (bool) development setting, set to false to prevent the mission from loading
@@ -1358,6 +1358,27 @@ Config = {
         tier_3 = 0.25,
         -- (number) % of supplies to tier 4 airbases
         tier_4 = 0.40,
+    },
+
+    -- (table) Minimum AI payload stock per airbase. Executed after mission generation
+    -- and AI resupplies
+    ai_payload_floor = {
+        -- (bool) on/off switch for the payload floor
+        enable = true,
+        -- (int) sorties per task type guaranteed at each red airbase, by tier
+        red = {
+            tier_1 = 1,
+            tier_2 = 2,
+            tier_3 = 2,
+            tier_4 = 3,
+        },
+        -- (int) sorties per task type guaranteed at each blue airbase, by tier
+        blue = {
+            tier_1 = 0,
+            tier_2 = 0,
+            tier_3 = 0,
+            tier_4 = 0,
+        },
     },
 
     -- (table)

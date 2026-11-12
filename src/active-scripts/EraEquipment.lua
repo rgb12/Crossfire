@@ -1691,7 +1691,7 @@ Stocks.EquipmentData = {
         [Stocks.Equipment.PL_5EII                    ] = { stock_type = StockTypes.AIR_AIR_SHORT_RANGE, base_qty = 18, eras = { Eras.MODERN } },
         [Stocks.Equipment.PL_8B                      ] = { stock_type = StockTypes.AIR_AIR_SHORT_RANGE, base_qty = 18, eras = { Eras.MODERN } },
         [Stocks.Equipment.R_60M                      ] = { stock_type = StockTypes.AIR_AIR_SHORT_RANGE, base_qty = 31, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
-        [Stocks.Equipment.R73_AA_11_ARCHER           ] = { stock_type = StockTypes.AIR_AIR_SHORT_RANGE, base_qty = 9, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
+        [Stocks.Equipment.R73_AA_11_ARCHER           ] = { stock_type = StockTypes.AIR_AIR_SHORT_RANGE, base_qty = 31, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
         [Stocks.Equipment.RB_24J                     ] = { stock_type = StockTypes.AIR_AIR_SHORT_RANGE, base_qty = 18, eras = { Eras.EARLYCOLDWAR, Eras.LATECOLDWAR, Eras.MODERN } },
         [Stocks.Equipment.RB_74                      ] = { stock_type = StockTypes.AIR_AIR_SHORT_RANGE, base_qty = 18, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
         [Stocks.Equipment.RS2US                      ] = { stock_type = StockTypes.AIR_AIR_SHORT_RANGE, base_qty = 18, eras = { Eras.EARLYCOLDWAR, Eras.LATECOLDWAR } },
@@ -1863,21 +1863,21 @@ Stocks.EquipmentData = {
         [Stocks.Equipment.S_8O0FP2_MPP                       ] = { stock_type = StockTypes.AIR_GROUND_ROCKETS, base_qty = 400, eras = { Eras.MODERN } },
         [Stocks.Equipment.FFAR_MK1_HE                        ] = { stock_type = StockTypes.AIR_GROUND_ROCKETS, base_qty = 400, eras = { Eras.EARLYCOLDWAR, Eras.LATECOLDWAR, Eras.MODERN } }, -- FFAR Mk1 HE
       -- ECM
-        [Stocks.Equipment.ALQ_184                            ] = { stock_type = StockTypes.ECM, base_qty = 2, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
-        [Stocks.Equipment.ECLAIR_M_51                        ] = { stock_type = StockTypes.ECM, base_qty = 3, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
-        [Stocks.Equipment.ECLAIR_M_60                        ] = { stock_type = StockTypes.ECM, base_qty = 3, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
-        [Stocks.Equipment.L005_SORBSIYA_ECM_POD_LEFT         ] = { stock_type = StockTypes.ECM, base_qty = 2, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
-        [Stocks.Equipment.L005_SORBSIYA_ECM_POD_RIGHT        ] = { stock_type = StockTypes.ECM, base_qty = 2, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
-        [Stocks.Equipment.L081_FANTASMAGORIA                 ] = { stock_type = StockTypes.ECM, base_qty = 2, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
-        [Stocks.Equipment.MPS_410                            ] = { stock_type = StockTypes.ECM, base_qty = 2, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
-        [Stocks.Equipment.U22                                ] = { stock_type = StockTypes.ECM, base_qty = 2, eras = { Eras.LATECOLDWAR, Eras.MODERN } }, -- AJS37 U22 jammer pod
-        [Stocks.Equipment.ASO_2                              ] = { stock_type = StockTypes.ECM, base_qty = 3, eras = { Eras.EARLYCOLDWAR, Eras.LATECOLDWAR, Eras.MODERN } }, -- ASO-2 flare dispenser
-        [Stocks.Equipment.ECLAIR                             ] = { stock_type = StockTypes.ECM, base_qty = 3, eras = { Eras.LATECOLDWAR, Eras.MODERN } }, -- Eclair chaff/flare dispenser
-        [Stocks.Equipment.ECLAIRM_06                         ] = { stock_type = StockTypes.ECM, base_qty = 3, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
-        [Stocks.Equipment.ECLAIRM_15                         ] = { stock_type = StockTypes.ECM, base_qty = 3, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
-        [Stocks.Equipment.ECLAIRM_24                         ] = { stock_type = StockTypes.ECM, base_qty = 3, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
-        [Stocks.Equipment.ECLAIRM_33                         ] = { stock_type = StockTypes.ECM, base_qty = 3, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
-        [Stocks.Equipment.ECLAIRM_42                         ] = { stock_type = StockTypes.ECM, base_qty = 3, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
+        [Stocks.Equipment.ALQ_184                            ] = { stock_type = StockTypes.ECM, base_qty = 6, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
+        [Stocks.Equipment.ECLAIR_M_51                        ] = { stock_type = StockTypes.ECM, base_qty = 6, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
+        [Stocks.Equipment.ECLAIR_M_60                        ] = { stock_type = StockTypes.ECM, base_qty = 6, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
+        [Stocks.Equipment.L005_SORBSIYA_ECM_POD_LEFT         ] = { stock_type = StockTypes.ECM, base_qty = 6, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
+        [Stocks.Equipment.L005_SORBSIYA_ECM_POD_RIGHT        ] = { stock_type = StockTypes.ECM, base_qty = 6, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
+        [Stocks.Equipment.L081_FANTASMAGORIA                 ] = { stock_type = StockTypes.ECM, base_qty = 6, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
+        [Stocks.Equipment.MPS_410                            ] = { stock_type = StockTypes.ECM, base_qty = 8, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
+        [Stocks.Equipment.U22                                ] = { stock_type = StockTypes.ECM, base_qty = 8, eras = { Eras.LATECOLDWAR, Eras.MODERN } }, -- AJS37 U22 jammer pod
+        [Stocks.Equipment.ASO_2                              ] = { stock_type = StockTypes.ECM, base_qty = 8, eras = { Eras.EARLYCOLDWAR, Eras.LATECOLDWAR, Eras.MODERN } }, -- ASO-2 flare dispenser
+        [Stocks.Equipment.ECLAIR                             ] = { stock_type = StockTypes.ECM, base_qty = 8, eras = { Eras.LATECOLDWAR, Eras.MODERN } }, -- Eclair chaff/flare dispenser
+        [Stocks.Equipment.ECLAIRM_06                         ] = { stock_type = StockTypes.ECM, base_qty = 8, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
+        [Stocks.Equipment.ECLAIRM_15                         ] = { stock_type = StockTypes.ECM, base_qty = 8, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
+        [Stocks.Equipment.ECLAIRM_24                         ] = { stock_type = StockTypes.ECM, base_qty = 8, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
+        [Stocks.Equipment.ECLAIRM_33                         ] = { stock_type = StockTypes.ECM, base_qty = 8, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
+        [Stocks.Equipment.ECLAIRM_42                         ] = { stock_type = StockTypes.ECM, base_qty = 8, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
 
         -- FARP AG ROCKETS
         [Stocks.Equipment.HYDRA_70_M274                      ] = { stock_type = StockTypes.FARP_AG_ROCKETS, base_qty = 54, eras = { Eras.EARLYCOLDWAR, Eras.LATECOLDWAR, Eras.MODERN } },
