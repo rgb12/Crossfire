@@ -545,6 +545,152 @@ function Jupiter:onEvent(event)
             MissionLogger:info(string.format("Jupiter -addxp: Found %d units, %d were players", total_units, players_found))
             trigger.action.outText(string.format("Jupiter: Added %d XP to %d players within 500m. (Found %d units total)", xp_to_add, players_found, total_units), 5)
             cmd_executed = true
+        elseif command == "-replace" then
+            local group_name = param1
+            local force = param2 and param2:lower() == "force"
+            local group = group_name and Group.getByName(group_name)
+
+            local template, country_id, group_category
+            local category_ids = {
+                plane = Group.Category.AIRPLANE, helicopter = Group.Category.HELICOPTER,
+                vehicle = Group.Category.GROUND, ship = Group.Category.SHIP,
+            }
+            for _, coalition_data in pairs(env.mission.coalition) do
+                for _, country_data in pairs(coalition_data.country or {}) do
+                    for category_name, category_id in pairs(category_ids) do
+                        local category_table = country_data[category_name]
+                        for _, group_data in pairs(category_table and category_table.group or {}) do
+                            if group_data.name == group_name then
+                                template = mist.utils.deepCopy(group_data)
+                                country_id, group_category = country_data.id, category_id
+                            end
+                        end
+                    end
+                end
+            end
+
+            -- Script-spawned groups (zones, CTLD, tasks) aren't in env.mission: copy the live units instead
+            if not template and group and group:isExist() then
+                template = { name = group_name, units = {} }
+                country_id, group_category = group:getUnit(1):getCountry(), group:getCategory()
+                for _, live_unit in ipairs(group:getUnits()) do
+                    table.insert(template.units, {
+                        type = live_unit:getTypeName(), name = live_unit:getName(),
+                        unitId = live_unit:getID(), skill = "Excellent",
+                    })
+                end
+            end
+
+            local is_air = group_category == Group.Category.AIRPLANE or group_category == Group.Category.HELICOPTER
+            local error_msg
+            if not (group and group:isExist() and template) then
+                error_msg = "no active group named '" .. tostring(group_name) .. "'"
+            end
+
+            local alive_units, inventories, players_on_deck = {}, {}, 0
+            local live_shift_x, live_shift_z -- current position -> marker
+            for _, unit_data in ipairs(not error_msg and template.units or {}) do
+                local unit = Unit.getByName(unit_data.name)
+                if unit_data.skill == "Client" or unit_data.skill == "Player" then
+                    error_msg = "player slots can't be respawned"
+                elseif unit and unit:isExist() then
+                    local position = unit:getPosition()
+                    -- The first surviving unit lands on the marker, the others keep their spacing to it
+                    if not live_shift_x then
+                        live_shift_x, live_shift_z = vec3.x - position.p.x, vec3.z - position.p.z
+                    end
+                    unit_data.x, unit_data.y = position.p.x + live_shift_x, position.p.z + live_shift_z
+                    ---@diagnostic disable-next-line: deprecated
+                    local heading = math.atan2(position.x.z, position.x.x) % (2 * math.pi)
+                    unit_data.heading, unit_data.psi = heading, -heading
+                    if is_air then
+                        unit_data.alt, unit_data.alt_type = position.p.y, "BARO"
+                        unit_data.speed = mist.vec.mag(unit:getVelocity())
+                    end
+
+                    local surface = land.getSurfaceType({ x = unit_data.x, y = unit_data.y })
+                    if group_category == Group.Category.SHIP and surface ~= land.SurfaceType.WATER then
+                        error_msg = unit_data.name .. " would end up out of open water"
+                    elseif group_category == Group.Category.GROUND
+                    and (surface == land.SurfaceType.WATER or surface == land.SurfaceType.SHALLOW_WATER) then
+                        error_msg = unit_data.name .. " would end up in water"
+                    end
+
+                    -- Units with a deck/warehouse: keep the stock, and don't drown parked players
+                    local unit_airbase = Airbase.getByName(unit_data.name)
+                    if unit_airbase and unit_airbase:getWarehouse() then
+                        inventories[unit_data.name] = unit_airbase:getWarehouse():getInventory()
+                        world.searchObjects(Object.Category.UNIT,
+                            { id = world.VolumeType.SPHERE, params = { point = position.p, radius = 400 } },
+                            function(parked_unit)
+                                if parked_unit:getPlayerName() and not parked_unit:inAir() then
+                                    players_on_deck = players_on_deck + 1
+                                end
+                                return true
+                            end)
+                    end
+                    table.insert(alive_units, unit_data)
+                end
+            end
+            if not error_msg and #alive_units == 0 then error_msg = "group has no surviving units" end
+            if not error_msg and players_on_deck > 0 and not force then
+                error_msg = players_on_deck .. " player(s) parked on deck would be destroyed, add :force to proceed"
+            end
+
+            if error_msg then
+                trigger.action.outText("Jupiter: cannot replace group: " .. error_msg, 10)
+            else
+                template.units = alive_units
+                template.x, template.y = alive_units[1].x, alive_units[1].y
+                template.lateActivation, template.start_time = false, 0
+
+                -- Drop route but keep only the first waypoint it carries the start tasks such as
+                -- TACAN/ICLS/Link4 beacons and options)
+                local start_point = template.route and template.route.points and template.route.points[1]
+                if start_point then
+                    start_point.x, start_point.y = template.x, template.y
+                    start_point.ETA, start_point.ETA_locked = 0, false
+                    if is_air then
+                        -- Respawn airborne instead of on the editor's airfield/ramp
+                        start_point.type, start_point.action = "Turning Point", "Turning Point"
+                        start_point.airdromeId, start_point.helipadId, start_point.linkUnit = nil, nil, nil
+                        start_point.alt, start_point.alt_type = alive_units[1].alt, "BARO"
+                    end
+                    template.route.points = { start_point }
+                end
+
+                group:destroy()
+                timer.scheduleFunction(function()
+                    coalition.addGroup(country_id, group_category, template)
+                    timer.scheduleFunction(function()
+                        for unit_name, inventory in pairs(inventories) do
+                            local new_airbase = Airbase.getByName(unit_name)
+                            local warehouse = new_airbase and new_airbase:getWarehouse()
+                            if warehouse then
+                                local new_inventory = warehouse:getInventory()
+                                for _, item_category in ipairs({ "weapon", "aircraft" }) do
+                                    for item_name in pairs(new_inventory[item_category] or {}) do
+                                        if not (inventory[item_category] and inventory[item_category][item_name]) then
+                                            warehouse:setItem(item_name, 0)
+                                        end
+                                    end
+                                    for item_name, count in pairs(inventory[item_category] or {}) do
+                                        warehouse:setItem(item_name, count)
+                                    end
+                                end
+                                for liquid_type, amount in pairs(inventory.liquids or {}) do
+                                    warehouse:setLiquidAmount(tonumber(liquid_type), amount)
+                                end
+                            else
+                                MissionLogger:error("Jupiter -replace: warehouse of " .. unit_name .. " not found after respawn")
+                            end
+                        end
+                    end, nil, timer.getTime() + 1)
+                end, nil, timer.getTime() + 1)
+
+                trigger.action.outText("Jupiter: " .. group_name .. " replaced at marker.", 10)
+                cmd_executed = true
+            end
         elseif command == "-setxpmult" then
             local multiplier = tonumber(param1)
             local time = tonumber(param2) or 5
