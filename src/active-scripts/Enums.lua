@@ -476,7 +476,11 @@ StockTypes = {
     FARP_AG_ROCKETS = 23,
     FARP_MISC = 24,
     FARP_GUNS = 25,
-    FUEL_TANKS = 26
+    FUEL_TANKS = 26,
+    VSTOL_AIRCRAFT = 27,
+    STOL_AIRCRAFT = 28,
+    FARP_GUIDED_BOMBS = 29,
+    FARP_BOMBS = 30
 }
 
 MissionLogger = mist.Logger:new("MissionLogger", 3)

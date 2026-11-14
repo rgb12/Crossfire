@@ -66,7 +66,7 @@ do
         end
 
         if CommandHandler.group_menus[gr_id] then
-            -- Remove existing menus. 
+            -- Remove existing menus.
             for i = #CommandHandler.group_menus[gr_id], 1, -1 do
                 if CommandHandler.group_menus[gr_id][i].type == type then
                     missionCommands.removeItemForGroup(gr_id, CommandHandler.group_menus[gr_id][i].path)
@@ -85,7 +85,7 @@ do
         JTAC.forgetGroupMenus(gr_id)
 
         if CommandHandler.group_menus[gr_id] then
-            -- Remove existing menus. 
+            -- Remove existing menus.
             for i = #CommandHandler.group_menus[gr_id], 1, -1 do
                 missionCommands.removeItemForGroup(gr_id, CommandHandler.group_menus[gr_id][i].path)
                 table.remove(CommandHandler.group_menus[gr_id], i)
@@ -433,7 +433,7 @@ do
                                 return
                             end
 
-                            -- Check if airbase is still friendly before sending 
+                            -- Check if airbase is still friendly before sending
                             local ab = ZoneHandler.getFromName(target_zone.name)
                             if not ab then return end
                             if ab.side ~= side then
@@ -494,6 +494,24 @@ do
                 table.insert(resupply_stock_list, {
                     name = "AG Aircraft (" .. Config.supplies.resupply_costs.AG_AIRCRAFT .. ")",
                     submenu = ag_aircraft_airbases
+                })
+            end
+
+            -- VSTOL Aircraft
+            local vstol_aircraft_airbases = buildAirbaseSubmenu({StockTypes.VSTOL_AIRCRAFT}, Config.supplies.resupply_costs.VSTOL_AIRCRAFT, "VSTOL Aircraft")
+            if #vstol_aircraft_airbases > 0 then
+                table.insert(resupply_stock_list, {
+                    name = "VSTOL Aircraft (" .. Config.supplies.resupply_costs.VSTOL_AIRCRAFT .. ")",
+                    submenu = vstol_aircraft_airbases
+                })
+            end
+
+            -- STOL Aircraft
+            local stol_aircraft_airbases = buildAirbaseSubmenu({StockTypes.STOL_AIRCRAFT}, Config.supplies.resupply_costs.STOL_AIRCRAFT, "STOL Aircraft")
+            if #stol_aircraft_airbases > 0 then
+                table.insert(resupply_stock_list, {
+                    name = "STOL Aircraft (" .. Config.supplies.resupply_costs.STOL_AIRCRAFT .. ")",
+                    submenu = stol_aircraft_airbases
                 })
             end
 
