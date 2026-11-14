@@ -552,6 +552,8 @@ do
                     stocks = {
                         StockTypes.CARGO_AIRCRAFT,
                         StockTypes.AG_AIRCRAFT,
+                        StockTypes.VSTOL_AIRCRAFT,
+                        StockTypes.STOL_AIRCRAFT
                     },
                 },
                 {
