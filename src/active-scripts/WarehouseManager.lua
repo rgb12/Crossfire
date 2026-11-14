@@ -213,7 +213,9 @@ do
         StockTypes.FARP_AG_ROCKETS,
         StockTypes.FARP_MISC,
         StockTypes.FARP_GUNS,
-        StockTypes.FUEL_TANKS
+        StockTypes.FUEL_TANKS,
+        StockTypes.FARP_GUIDED_BOMBS,
+        StockTypes.FARP_BOMBS
     }
 
     WarehouseManager.StockTypeContents = {
@@ -223,13 +225,15 @@ do
             StockTypes.AIR_GROUND_BOMBS, StockTypes.AIR_GROUND_ROCKETS,
             StockTypes.ECM, StockTypes.TGP, StockTypes.MISC,
             StockTypes.AG_AIRCRAFT, StockTypes.AA_AIRCRAFT, StockTypes.MULTIROLE_AIRCRAFT,
-            StockTypes.RECON_AIRCRAFT, StockTypes.CARGO_AIRCRAFT, StockTypes.LOGISTICS_HELICOPTER
+            StockTypes.RECON_AIRCRAFT, StockTypes.CARGO_AIRCRAFT, StockTypes.LOGISTICS_HELICOPTER,
+            StockTypes.VSTOL_AIRCRAFT, StockTypes.STOL_AIRCRAFT
         },
         [StockTypes.CARRIER_INITAL] = {
             StockTypes.AIR_AIR_LONG_RANGE, StockTypes.AIR_AIR_SHORT_RANGE,
             StockTypes.AIR_GROUND_GUIDED_MISSILES, StockTypes.AIR_GROUND_GUIDED_BOMBS,
             StockTypes.AIR_GROUND_BOMBS, StockTypes.AIR_GROUND_ROCKETS, StockTypes.TGP,
             StockTypes.AG_AIRCRAFT, StockTypes.AA_AIRCRAFT, StockTypes.MULTIROLE_AIRCRAFT,
+            StockTypes.VSTOL_AIRCRAFT
         },
         [StockTypes.LOGISTICS_CAPTURE] = {
             StockTypes.AIR_AIR_LONG_RANGE, StockTypes.AIR_AIR_SHORT_RANGE,
@@ -239,10 +243,13 @@ do
             StockTypes.AG_AIRCRAFT, StockTypes.AA_AIRCRAFT, StockTypes.MULTIROLE_AIRCRAFT,
             StockTypes.RECON_AIRCRAFT, StockTypes.CARGO_AIRCRAFT,
             StockTypes.ATTACK_HELICOPTER, StockTypes.LOGISTICS_HELICOPTER,
+            StockTypes.VSTOL_AIRCRAFT, StockTypes.STOL_AIRCRAFT,
         },
         [StockTypes.FARP] = {
             StockTypes.FARP_AG_ROCKETS, StockTypes.FARP_MISC, StockTypes.FARP_MISSILES, StockTypes.FARP_GUNS,
+            StockTypes.FARP_GUIDED_BOMBS, StockTypes.FARP_BOMBS, StockTypes.FUEL_TANKS,
             StockTypes.ATTACK_HELICOPTER, StockTypes.LOGISTICS_HELICOPTER,
+            StockTypes.VSTOL_AIRCRAFT,
         },
     }
 
@@ -254,6 +261,8 @@ do
         StockTypes.CARGO_AIRCRAFT,
         StockTypes.ATTACK_HELICOPTER,
         StockTypes.LOGISTICS_HELICOPTER,
+        StockTypes.VSTOL_AIRCRAFT,
+        StockTypes.STOL_AIRCRAFT,
     }
 
     -- Round half-up to an integer (Lua 5.1 has no integer division/round).
@@ -306,7 +315,7 @@ do
             3    : Diesel
             ]]
             warehouse:addLiquid(0, 50000 * scale) -- jetfuel
-            warehouse:addLiquid(1, 20000 * scale) -- avgas  
+            warehouse:addLiquid(1, 20000 * scale) -- avgas
             warehouse:addLiquid(2, 5000 * scale)  -- MW50
             warehouse:addLiquid(3, 10000 * scale) -- diesel
     end
@@ -327,10 +336,8 @@ do
             [Stocks.Aircraft.SU34]                 = StockTypes.AG_AIRCRAFT,
             [Stocks.Aircraft.SU17M4]               = StockTypes.AG_AIRCRAFT,
             [Stocks.Aircraft.MIG27K]               = StockTypes.AG_AIRCRAFT,
-            [Stocks.Aircraft.AV8BNA]               = StockTypes.AG_AIRCRAFT,
             [Stocks.Aircraft.A6E]                  = StockTypes.AG_AIRCRAFT,
             [Stocks.Aircraft.A20G]                 = StockTypes.AG_AIRCRAFT,
-            [Stocks.Aircraft.AJS37]                = StockTypes.AG_AIRCRAFT,
             [Stocks.Aircraft.S3B]                  = StockTypes.AG_AIRCRAFT,
             [Stocks.Aircraft.L39ZA]                = StockTypes.AG_AIRCRAFT,
             [Stocks.Aircraft.HAWK]                 = StockTypes.AG_AIRCRAFT,
@@ -454,6 +461,9 @@ do
             [Stocks.Aircraft.UH_1H]                = StockTypes.LOGISTICS_HELICOPTER,
             [Stocks.Aircraft.MI8MT]                = StockTypes.LOGISTICS_HELICOPTER,
             [Stocks.Aircraft.MI24P]                = StockTypes.ATTACK_HELICOPTER,
+            [Stocks.Aircraft.MI24V]                = StockTypes.ATTACK_HELICOPTER,
+            [Stocks.Aircraft.KA50]                = StockTypes.ATTACK_HELICOPTER,
+            [Stocks.Aircraft.KA50_III]                = StockTypes.ATTACK_HELICOPTER,
             [Stocks.Aircraft.CH47D]                = StockTypes.LOGISTICS_HELICOPTER,
             [Stocks.Aircraft.CH47F_BL1]                = StockTypes.LOGISTICS_HELICOPTER,
             [Stocks.Aircraft.SA342L]                = StockTypes.ATTACK_HELICOPTER,
@@ -468,10 +478,13 @@ do
             [Stocks.Aircraft.AH64D]                = StockTypes.ATTACK_HELICOPTER,
             [Stocks.Aircraft.UH_60L]                = StockTypes.LOGISTICS_HELICOPTER,
             [Stocks.Aircraft.UH60A]                = StockTypes.LOGISTICS_HELICOPTER,
+
+            [Stocks.Aircraft.AV8BNA]               = StockTypes.VSTOL_AIRCRAFT,
+            [Stocks.Aircraft.AJS37]                = StockTypes.STOL_AIRCRAFT,
         }
         if cached_types[dcs_type] then return cached_types[dcs_type] end
 
-        -- Unknown airframe: treat as multirole 
+        -- Unknown airframe: treat as multirole
         return StockTypes.MULTIROLE_AIRCRAFT
     end
 
@@ -560,6 +573,8 @@ do
             [StockTypes.CARGO_AIRCRAFT]       = {min=10, max=14},
             [StockTypes.ATTACK_HELICOPTER]    = {min=8, max=10},
             [StockTypes.LOGISTICS_HELICOPTER] = {min=10, max=12},
+            [StockTypes.VSTOL_AIRCRAFT]       = {min=16, max=18},
+            [StockTypes.STOL_AIRCRAFT]        = {min=16, max=18},
         }
         local qty = role_qty[stock_type] or {min=2, max=4}
 
@@ -655,7 +670,7 @@ do
         if side == coalition.side.RED and Config.red_stock_multiplier then
             user_scale = user_scale * Config.red_stock_multiplier
         elseif side == coalition.side.BLUE and Config.blue_stock_multiplier then
-            user_scale = user_scale * Config.blue_stock_multiplier    
+            user_scale = user_scale * Config.blue_stock_multiplier
         end
 
         local added_stuff_tbl = {}
@@ -761,7 +776,7 @@ do
             25% of supplies go to airbases level 2, divided equally
             30% of supplies go to airbases level 3, divided equally
             30% of supplies go to airbases level 4, divided equally
-            
+
             If no bases of one level exist, the other levels share proportionally.
         ]]
 
@@ -989,9 +1004,9 @@ do
             MissionLogger:info("[PAYLOAD CHECK] AI payload checks disabled in config")
             return true
         end
-        if not airbase or not airbase.getCoalition then 
+        if not airbase or not airbase.getCoalition then
             MissionLogger:info("[PAYLOAD CHECK] Airbase or coalition check failed")
-            return false 
+            return false
         end
         local airbase_coalition = airbase:getCoalition()
 
