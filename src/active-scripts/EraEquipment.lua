@@ -1984,7 +1984,7 @@ Stocks.EquipmentData = {
         [Stocks.Equipment.KORD_12_7_GUN                      ] = { stock_type = { StockTypes.MISC, StockTypes.FARP_GUNS }, base_qty = { [StockTypes.MISC] = 12, [StockTypes.FARP_GUNS] = 12 }, eras = { Eras.LATECOLDWAR, Eras.MODERN } },
         [Stocks.Equipment.PKT_7_62_CONT                      ] = { stock_type = { StockTypes.MISC, StockTypes.FARP_GUNS }, base_qty = { [StockTypes.MISC] = 12, [StockTypes.FARP_GUNS] = 12 }, eras = { Eras.EARLYCOLDWAR, Eras.LATECOLDWAR, Eras.MODERN } },
         [Stocks.Equipment.PKT_7_62_GUN                       ] = { stock_type = { StockTypes.MISC, StockTypes.FARP_GUNS }, base_qty = { [StockTypes.MISC] = 12, [StockTypes.FARP_GUNS] = 12 }, eras = { Eras.EARLYCOLDWAR, Eras.LATECOLDWAR, Eras.MODERN } },
-        [Stocks.Equipment.UPK_23_25_MIG_21                   ] = { stock_type = { StockTypes.MISC, StockTypes.FARP_GUNS }, base_qty = { [StockTypes.MISC] = 12, [StockTypes.FARP_GUNS] = 8 }, eras = { Eras.EARLYCOLDWAR, Eras.LATECOLDWAR, Eras.MODERN } },
+        [Stocks.Equipment.UPK_23_250_MIG_21                   ] = { stock_type = { StockTypes.MISC, StockTypes.FARP_GUNS }, base_qty = { [StockTypes.MISC] = 12, [StockTypes.FARP_GUNS] = 8 }, eras = { Eras.EARLYCOLDWAR, Eras.LATECOLDWAR, Eras.MODERN } },
         [Stocks.Equipment.UPK_23_25                          ] = { stock_type = { StockTypes.MISC, StockTypes.FARP_GUNS }, base_qty = { [StockTypes.MISC] = 12, [StockTypes.FARP_GUNS] = 8 }, eras = { Eras.EARLYCOLDWAR, Eras.LATECOLDWAR, Eras.MODERN } },
 
       -- FARP MISC
