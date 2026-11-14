@@ -1309,22 +1309,29 @@ do
                 -- Harriers and equipment
                 local lha_airbase = Airbase.getByName(Config.lha_setup.lha_unit_name)
                 local lha_warehouse = lha_airbase and lha_airbase:getWarehouse()
+
                 if lha_warehouse and EraSystem.isAircraftEnabled(Stocks.Aircraft.AV8BNA, coalition.side.BLUE) then
+
                     local scale = WarehouseManager:getStockScale() * (Config.blue_stock_multiplier or 1)
+
+                    -- Add AV8B
                     lha_warehouse:addItem(Stocks.Aircraft.AV8BNA, math.max(1, math.floor(10 * scale)))
+
+                    -- Adds all AV8B stores to the LHA
                     for _, clsid in ipairs(Stocks.AircraftLoads[Stocks.Aircraft.AV8BNA]) do
+
                         if EraSystem.isWeaponEnabled(clsid, coalition.side.BLUE) then
                             local data = Stocks.EquipmentData[clsid] or Stocks.EquipmentDataDefault
                             local qty = data.base_qty
-                            -- begin change y5nh4bkiu3whn
-                            -- This evaluates to nil for non-rocket items, putting just 6 AGM_65E, AGM_65F, AGM_65L, GBU_12, MK_82, AIM_9M, etc. into stock.
-                            -- As those fall back to Stocks.EquipmentDataDefault.base_qty (6).
-                            -- if type(qty) == "table" then qty = qty[StockTypes.AIR_GROUND_ROCKETS] end
+
+                           -- Since Stocks.EquipmentData holds different base qty, and we dont have a specific stock type
+                           -- just take the largest possible as the LHA is considered an "airbase"
                             if type(qty) == "table" then
-                                local _, first_qty = next(qty)
-                                qty = qty[StockTypes.AIR_GROUND_ROCKETS] or first_qty
+                                local best
+                                for _, v in pairs(qty) do if not best or v > best then best = v end end
+                                qty = best
                             end
-                            -- end of change y5nh4bkiu3whn
+
                             lha_warehouse:addItem(clsid, math.max(1, math.floor((qty or Stocks.EquipmentDataDefault.base_qty) * scale)))
                         end
                     end
