@@ -11,6 +11,198 @@ do
 
     CommandHandler.destroy_page = 1
 
+    ---@param target_unit_name string
+    ---@return table|nil
+    local function getNavalNavaids(target_unit_name)
+        for _, coal_data in pairs((env.mission and env.mission.coalition) or {}) do
+            for _, ctry in pairs(coal_data.country or {}) do
+                for _, grp in pairs((ctry.ship and ctry.ship.group) or {}) do
+                    local matched_unit = nil
+                    for _, u in pairs(grp.units or {}) do
+                        if u.name == target_unit_name then
+                            matched_unit = u
+                            break
+                        end
+                    end
+
+                    if matched_unit then
+                        local info = {
+                            atc = matched_unit.frequency and string.format("%.3f MHz", matched_unit.frequency / 1e6) or nil,
+                            tacan = nil,
+                            icls = nil,
+                            link4 = nil,
+                            acls = false,
+                        }
+
+                        local wp1 = grp.route and grp.route.points and grp.route.points[1]
+                        local tasks = wp1 and wp1.task and wp1.task.params and wp1.task.params.tasks or {}
+                        for _, t in pairs(tasks) do
+                            if type(t) == "table" and t.enabled ~= false and t.params and t.params.action then
+                                local act = t.params.action
+                                local p = act.params or {}
+                                if p.unitId == nil or tonumber(p.unitId) == tonumber(matched_unit.unitId) then
+                                    if act.id == "ActivateBeacon" and p.channel then
+                                        local mode = p.modeChannel or "X"
+                                        local cs = (p.callsign and p.callsign ~= "") and (" (" .. p.callsign .. ")") or ""
+                                        info.tacan = tostring(p.channel) .. mode .. cs
+                                    elseif act.id == "ActivateICLS" and p.channel then
+                                        info.icls = "Ch " .. tostring(p.channel)
+                                    elseif act.id == "ActivateLink4" and p.frequency then
+                                        local freq_mhz = p.frequency > 10000 and (p.frequency / 1e6) or p.frequency
+                                        info.link4 = string.format("%.1f MHz", freq_mhz)
+                                    elseif act.id == "ActivateACLS" then
+                                        info.acls = true
+                                    end
+                                end
+                            end
+                        end
+                        return info
+                    end
+                end
+            end
+        end
+        return nil
+    end
+
+
+    ---@param group_id number
+    ---@param side coalition.side
+    function CommandHandler.showCommsInfo(group_id, side)
+        local lines = { "COMMS & FREQUENCIES\n" }
+
+        -- 1. Active AWACS (Dynamic)
+        local found_awacs = false
+        for group_name, orbit in pairs(TaskManager.AWACSOrbitArea or {}) do
+            if orbit and orbit.side == side then
+                local grp = Group.getByName(group_name)
+                if grp and grp:isExist() then
+                    found_awacs = true
+                    local status = orbit.on_station and "On Station" or "Enroute"
+                    table.insert(lines, string.format("AWACS (%s): %.2f MHz AM", status, orbit.frequency or 0))
+                end
+            end
+        end
+        if not found_awacs then
+            table.insert(lines, "AWACS: None active")
+        end
+
+        table.insert(lines, "")
+
+        -- 2. Active Tanker Sectors (Dynamic)
+        local found_tanker = false
+        for _, sector in pairs(TaskManager.TankerSectors or {}) do
+            if sector and sector.active and sector.side == side then
+                found_tanker = true
+                local drogue_freq = sector.frequencies[TankerRoles.DROGUE] or 0
+                local drogue_tcn  = sector.tacan[TankerRoles.DROGUE] or 0
+                if sector.boom_capable == false then
+                    table.insert(lines, string.format("Tanker Sector #%d: Drogue %.2f MHz AM | TCN %dX",
+                        sector.serial or 1, drogue_freq, drogue_tcn))
+                else
+                    local boom_freq = sector.frequencies[TankerRoles.BOOM] or 0
+                    local boom_tcn  = sector.tacan[TankerRoles.BOOM] or 0
+                    table.insert(lines, string.format("Tanker Sector #%d: Drogue %.2f MHz AM (%dX) | Boom %.2f MHz AM (%dX)",
+                        sector.serial or 1, drogue_freq, drogue_tcn, boom_freq, boom_tcn))
+                end
+            end
+        end
+        if not found_tanker then
+            table.insert(lines, "Tankers: None active")
+        end
+
+        -- 3. Friendly Carriers & LHA (ATC, TACAN, ICLS, Link-4, ACLS)
+        if side == coalition.side.BLUE then
+            local ships = {}
+            if Config.carrier_setup and Config.carrier_setup.enabled then
+                if Config.carrier_setup.carrier_unit_name then
+                    table.insert(ships, Config.carrier_setup.carrier_unit_name)
+                end
+                if Config.carrier_setup.supercarrier_unit_name then
+                    table.insert(ships, Config.carrier_setup.supercarrier_unit_name)
+                end
+            end
+            if Config.lha_setup and Config.lha_setup.enabled and Config.lha_setup.lha_unit_name then
+                table.insert(ships, Config.lha_setup.lha_unit_name)
+            end
+
+            local ship_lines = {}
+            for _, ship_name in ipairs(ships) do
+                local ship_unit = Unit.getByName(ship_name)
+                if ship_unit and ship_unit:isExist() then
+                    local info = getNavalNavaids(ship_name)
+                    if info then
+                        local details = {}
+                        if info.atc   then table.insert(details, "ATC " .. info.atc) end
+                        if info.tacan then table.insert(details, "TCN " .. info.tacan) end
+                        if info.icls  then table.insert(details, "ICLS " .. info.icls) end
+                        if info.link4 then table.insert(details, "Link4 " .. info.link4) end
+                        table.insert(details, info.acls and "ACLS ON" or "ACLS OFF")
+                        table.insert(ship_lines, string.format("- %s: %s", ship_name, table.concat(details, " | ")))
+                    else
+                        table.insert(ship_lines, string.format("- %s: Active", ship_name))
+                    end
+                end
+            end
+
+            if #ship_lines > 0 then
+                table.insert(lines, "")
+                table.insert(lines, "Naval Assets:")
+                for _, sl in ipairs(ship_lines) do
+                    table.insert(lines, sl)
+                end
+            end
+        end
+
+        -- 4. Allied FARPs (Zone FARPs + Player-Constructed CTLD FARPs)
+        local farp_callsigns = {
+            "London", "Dallas", "Paris", "Moscow", "Berlin",
+            "Rome", "Madrid", "Warsaw", "Dublin", "Perth"
+        }
+        local farp_lines = {}
+
+        for _, zone in ipairs(zones or {}) do
+            if zone.side == side and zone.zone_type == ZoneTypes.FARP and zone.linked_farp then
+                local pad = Airbase.getByName(zone.linked_farp)
+                if pad then
+                    local callsign_id = ((zone.zone.id - 1) % 10) + 1
+                    local freq = 127.5 + (callsign_id - 1)
+                    local cs_name = farp_callsigns[callsign_id] or ("FARP " .. callsign_id)
+                    table.insert(farp_lines, string.format("- %s (%s): %.1f MHz AM", zone.name, cs_name, freq))
+                end
+            end
+        end
+
+        for _, farp in ipairs(ctld.FARPs or {}) do
+            if farp.coalition == side and farp.farp_name then
+                local pad = Airbase.getByName(farp.farp_name)
+                if pad then
+                    local callsign_id = 1
+                    for i, candidate in ipairs(Config.ctld.FARP_names or {}) do
+                        if farp.farp_name == "FARP " .. candidate or farp.display_name == "FARP " .. candidate then
+                            callsign_id = i
+                            break
+                        end
+                    end
+                    local freq = 127.5 + (callsign_id - 1)
+                    local cs_name = farp_callsigns[callsign_id] or ("FARP " .. callsign_id)
+                    local label = farp.display_name or farp.farp_name
+                    table.insert(farp_lines, string.format("- %s (%s): %.1f MHz AM", label, cs_name, freq))
+                end
+            end
+        end
+
+        if #farp_lines > 0 then
+            table.insert(lines, "")
+            table.insert(lines, "Allied FARPs:")
+            for _, fl in ipairs(farp_lines) do
+                table.insert(lines, fl)
+            end
+        end
+
+        trigger.action.outTextForGroup(group_id, table.concat(lines, "\n"), 25)
+        trigger.action.outSoundForGroup(group_id, "Radio squelch.ogg")
+    end
+
     CommandHandler.jtac_submenu = {
         [coalition.side.RED] = {},
         [coalition.side.BLUE] = {}
@@ -42,6 +234,12 @@ do
             end, nil)
 
             CommandHandler.addToMenuTracking(group_id, sitmap_path, "sitmap")
+
+            local side = unit:getCoalition()
+            local comms_path = missionCommands.addCommandForGroup(group_id, "Comms / Frequencies", nil, function()
+                CommandHandler.showCommsInfo(group_id, side)
+            end, nil)
+            CommandHandler.addToMenuTracking(group_id, comms_path, "comms_info")
 
             ctld.initF10RadioMenu(group)
         end
