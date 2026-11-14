@@ -1832,7 +1832,6 @@ Stocks.EquipmentData = {
         [Stocks.Equipment.AGM_12A                            ] = { stock_type = StockTypes.AIR_GROUND_GUIDED_MISSILES, base_qty = 20, eras = { Eras.EARLYCOLDWAR, Eras.LATECOLDWAR } },
         [Stocks.Equipment.VIKHR_M                            ] = { stock_type = {StockTypes.FARP_MISSILES, StockTypes.AIR_GROUND_GUIDED_MISSILES}, base_qty = { [StockTypes.FARP_MISSILES] = 220, [StockTypes.AIR_GROUND_GUIDED_MISSILES] = 150 }, eras = { Eras.MODERN } },
         [Stocks.Equipment.AGM_45B                            ] = { stock_type = StockTypes.AIR_GROUND_GUIDED_MISSILES, base_qty = 10, eras = { Eras.EARLYCOLDWAR, Eras.LATECOLDWAR, Eras.MODERN } }, -- AGM-45B Shrike
-        [Stocks.Equipment.AGM_65L                            ] = { stock_type = StockTypes.AIR_GROUND_GUIDED_MISSILES, base_qty = 30, eras = { Eras.MODERN } }, -- AGM-65L Maverick
         [Stocks.Equipment.AGM_84E                            ] = { stock_type = StockTypes.AIR_GROUND_GUIDED_MISSILES, base_qty = 10, eras = { Eras.LATECOLDWAR, Eras.MODERN } }, -- AGM-84E SLAM
 
 
