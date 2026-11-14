@@ -837,6 +837,10 @@ Config = {
         BLUFOR_dispatcher_interval = 10*60+8,
         -- (int) (seconds), avoid multiples of 15 to reduce lag spikes
         REDFOR_dispatcher_interval = 8*60+8,
+        -- (int) (seconds) delay between an AI flight being planned and its
+        -- launch, giving players time to start up (e.g. for escort operations).
+        -- Avoid multiples of 15 to reduce lag spikes
+        flight_planning_lead_time = 10*60+3,
 
         -- (table) Scale a coalition dispatcher freq by how many real
         -- players are on the ENEMY coalition so a heavily-played side faces more AI.
@@ -869,54 +873,59 @@ Config = {
         -- Pretense's blocked-despawn timeout.
         ai_stuck_despawn_delay = 10*60,
 
-        -- (int)
-        max_jtac_per_airbase = 2,
-        -- (int)
-        max_cas_per_airbase = 1,
-        -- (int)
-        max_sead_per_airbase = 2,
-        -- (int)
-        max_strike_per_airbase = 2,
-        -- (int)
-        max_cap_per_airbase = 2,
-        -- (int)
-        max_awacs_per_airbase = 1,
-        -- (int)
-        max_tanker_per_airbase = 1,
-        -- (int)
-        max_recon_per_airbase = 1,
+        -- (table<enum,int>)
+        airbase_limits = {
+            -- (int)
+            [AITaskTypes.JTAC]     = 2,
+            -- (int)
+            [AITaskTypes.CAS]      = 1,
+            -- (int)
+            [AITaskTypes.SEAD]     = 2,
+            -- (int)
+            [AITaskTypes.STRIKE]   = 2,
+            -- (int)
+            [AITaskTypes.CAP]      = 2,
+            -- (int)
+            [AITaskTypes.AWACS]    = 1,
+            -- (int)
+            [AITaskTypes.TANKER]   = 1,
+            -- (int)
+            [AITaskTypes.RECON]    = 1,
+        },
 
-        -- (int) per coalition, only for AI auto tasking
-        max_jtac_theatre = 4,
-        -- (int) per coalition, only for AI auto tasking
-        max_cas_theatre = 4,
-        -- (int) per coalition , only for AI auto tasking
-        max_sead_theatre = 4,
-        -- (int) per coalition, only for AI auto tasking
-        max_strike_theatre = 4,
+                -- (table<enum,int>)
+        theatre_limits = {
+            -- (int)
+            [AITaskTypes.JTAC]     = 4,
+            -- (int)
+            [AITaskTypes.CAS]      = 4,
+            -- (int)
+            [AITaskTypes.SEAD]     = 4,
+            -- (int)
+            [AITaskTypes.STRIKE]   = 4,
+            -- (int)
+            [AITaskTypes.CAP]      = 6,
+            -- (int)
+            [AITaskTypes.AWACS]    = 2,
+            -- (int)
+            [AITaskTypes.TANKER]   = 2,
+            -- (int)
+            [AITaskTypes.RECON]    = 4,
+            -- (int)
+            [AITaskTypes.ATTACK_CONVOY]    = 3,
+            -- (int)
+            [AITaskTypes.CAPTURE_CONVOY]    = 3,
+            -- (int)
+            [AITaskTypes.RESUPPLY_CARGO]    = 2,
+        },
+
         -- (bool) AI dispatches STRIKE missions on its own. May cause issues as most structures are neutral.
         enable_auto_strike = false,
-        -- (int) per coalition, only for AI auto tasking
-        max_cap_theatre = 6,
-        -- (int) per coalition, only for AI auto tasking
-        max_recon_theatre = 4,
-        -- (int) per coalition, only for AI auto tasking
-        max_awacs_per_theatre = 2,
-        -- (int) per coalition
-        max_tanker_per_theatre = 2,
-        -- (int) per coalition, only for AI auto tasking
-        max_attack_convoy_per_theatre = 3,
-        -- (int) per coalition, WW2-only ground capture convoys (replaces capture helos)
-        max_capture_convoy_per_theatre = 3,
-        -- (int) per coalition, max resupply aircraft 
-        max_resupply_per_theatre = 2,
 
         -- (int)
         max_capture_helicopters_per_logistics_zone = 4,
         -- (int)
         max_attack_convoys_per_strongpoint_zone = 2,
-        -- (int)
-        max_awacs_theatre = 2,
 
         -- (int) (meters)
         range_for_recon_to_discover_zone = 15*1000,

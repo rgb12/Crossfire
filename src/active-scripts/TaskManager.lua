@@ -409,7 +409,7 @@ do
                 return false
             end
 
-            local max_tanker_theatre = Config.tasking.max_tanker_per_theatre or 2
+            local max_tanker_theatre = Config.tasking.theatre_limits[AITaskTypes.TANKER] or 2
             if self:countActiveTankerSectors(side) >= max_tanker_theatre then
                 sendText("TANKER unavailable, maximum active tanker sectors reached.")
                 MissionLogger:info("[TANKER] Maximum active tanker sectors reached.")
@@ -427,7 +427,7 @@ do
             end
 
             local tanker_from_airbase = self:countActiveTankerSectorsFromAirbase(from_zone, side)
-            if tanker_from_airbase >=Config.tasking.max_tanker_per_airbase then
+            if tanker_from_airbase >=Config.tasking.airbase_limits[AITaskTypes.TANKER] then
                 sendText("TANKER unavailable from "..from_zone.name..", max tanker sectors from this airbase reached.")
                 MissionLogger:info("[TANKER] Maximum tanker sectors from "..from_zone.name.." reached.")
                 return false
@@ -1175,43 +1175,16 @@ do
 
         if #enroutes_from_airbase >= Config.tasking.max_tasks_per_airbase then return true end
 
-        if ai_task_type == AITaskTypes.CAS then
-            local cas_enroutes = EnrouteManager:findByFromZone(airbase,side,{AITaskTypes.CAS})
-            if cas_enroutes and #cas_enroutes >= Config.tasking.max_cas_per_airbase then
-                return true
-            end
-        elseif ai_task_type == AITaskTypes.CAP then
-            local cap_enroutes = EnrouteManager:findByFromZone(airbase,side,{AITaskTypes.CAP})
-            if cap_enroutes and #cap_enroutes >= Config.tasking.max_cap_per_airbase then
-                return true
-            end
-        elseif ai_task_type == AITaskTypes.SEAD then
-            local sead_enroutes = EnrouteManager:findByFromZone(airbase,side,{AITaskTypes.SEAD})
-            if sead_enroutes and #sead_enroutes >= Config.tasking.max_sead_per_airbase then
-                return true
-            end
-        elseif ai_task_type == AITaskTypes.STRIKE then
-            local strike_enroutes = EnrouteManager:findByFromZone(airbase,side,{AITaskTypes.STRIKE})
-            if strike_enroutes and #strike_enroutes >= Config.tasking.max_strike_per_airbase then
-                return true
-            end
-        elseif ai_task_type == AITaskTypes.RECON then
-            local recon_enroutes = EnrouteManager:findByFromZone(airbase,side,{AITaskTypes.RECON})
-            if recon_enroutes and #recon_enroutes >= Config.tasking.max_recon_per_airbase then
-                return true
-            end
-        elseif ai_task_type == AITaskTypes.AWACS then
-            local awacs_enroutes = EnrouteManager:findByFromZone(airbase,side,{AITaskTypes.AWACS})
-            if awacs_enroutes and #awacs_enroutes >= Config.tasking.max_awacs_per_airbase then
-                return true
-            end
-        elseif ai_task_type == AITaskTypes.TANKER then
-            if self:countActiveTankerSectorsFromAirbase(airbase, side) >= (Config.tasking.max_tanker_per_airbase or 2) then
-                return true
-            end
+        local limit = Config.tasking.airbase_limits[ai_task_type]
+        if not limit then return false end
+
+        -- Tankers are capped by active sectors, not by group count.
+        if ai_task_type == AITaskTypes.TANKER then
+            return self:countActiveTankerSectorsFromAirbase(airbase, side) >= limit
         end
 
-        return false
+        local typed_enroutes = EnrouteManager:findByFromZone(airbase,side,{ai_task_type})
+        return typed_enroutes ~= nil and #typed_enroutes >= limit
     end
 
     ---@param to_zone ZoneHandler|nil

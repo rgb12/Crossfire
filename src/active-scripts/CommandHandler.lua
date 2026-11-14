@@ -427,7 +427,7 @@ do
 
                             -- Checks if max resupply per theatre has been reached
                             local enroutes = EnrouteManager:findByTaskType(AITaskTypes.RESUPPLY_CARGO, side)
-                            if enroutes and #enroutes >= Config.tasking.max_resupply_per_theatre then
+                            if enroutes and #enroutes >= Config.tasking.theatre_limits[AITaskTypes.RESUPPLY_CARGO] then
                                 trigger.action.outTextForGroup(gr_id,"Unavailable until the next resupply aircraft arrives.",8)
                                 trigger.action.outSoundForGroup(gr_id, "radio_beep3.ogg")
                                 return

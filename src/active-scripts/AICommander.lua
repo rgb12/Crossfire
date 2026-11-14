@@ -307,8 +307,233 @@ do
         end, nil, timer.getTime() + (delay or interval))
     end
 
-    -- AI DISPATCHER
-    -- Moved here from TheatreCommander. Routine per-coalition zone-based tasking.
+    ---@class PlannedFlight
+    ---@field id number
+    ---@field side coalition.side
+    ---@field ai_task_type AITaskTypes
+    ---@field to_zone ZoneHandler|nil
+    ---@field from_zone ZoneHandler|nil
+    ---@field planned_at number mission time (timer.getTime) the flight was planned
+    ---@field launch_time number mission time (timer.getTime) the flight launches
+    ---@field launch_abs_time number in-game time of day (timer.getAbsTime) the flight launches, for briefings
+    ---@field group_name string|nil set once the flight has launched
+    ---@field on_cancelled fun(flight: PlannedFlight, reason: string)|nil called when the final check or the spawn fails
+    ---@field on_launched fun(flight: PlannedFlight)|nil called once the flight has spawned
+
+    ---@type table<coalition.side, PlannedFlight[]>
+    AICommander.planned_flights = {
+        [coalition.side.BLUE] = {},
+        [coalition.side.RED] = {},
+    }
+    local next_planned_flight_id = 0
+
+    ---All queued (not yet launched) flights for a side, optionally filtered by task type.
+    ---@param side coalition.side
+    ---@param ai_task_type AITaskTypes|nil
+    ---@return PlannedFlight[]
+    function AICommander:getPlannedFlights(side, ai_task_type)
+        local results = {}
+        for _, flight in ipairs(self.planned_flights[side] or {}) do
+            if not ai_task_type or flight.ai_task_type == ai_task_type then
+                table.insert(results, flight)
+            end
+        end
+        return results
+    end
+
+    ---@param side coalition.side
+    ---@param ai_task_type AITaskTypes
+    ---@return number
+    function AICommander:countPlannedFlights(side, ai_task_type)
+        return #self:getPlannedFlights(side, ai_task_type)
+    end
+
+    ---Is a flight of this task type already queued toward this zone?
+    ---@param zone ZoneHandler
+    ---@param side coalition.side
+    ---@param ai_task_type AITaskTypes
+    ---@return boolean
+    function AICommander:isZonePlanned(zone, side, ai_task_type)
+        for _, flight in ipairs(self.planned_flights[side] or {}) do
+            if flight.ai_task_type == ai_task_type and flight.to_zone == zone then
+                return true
+            end
+        end
+        return false
+    end
+
+    ---Queue a flight to launch after the planning lead time.
+    ---@param side coalition.side
+    ---@param ai_task_type AITaskTypes
+    ---@param to_zone ZoneHandler|nil
+    ---@param from_zone ZoneHandler|nil
+    ---@return PlannedFlight
+    function AICommander:planFlight(side, ai_task_type, to_zone, from_zone)
+        local lead = Config.tasking.flight_planning_lead_time or (10 * 60 + 3)
+        local now = timer.getTime()
+        next_planned_flight_id = next_planned_flight_id + 1
+
+        ---@type PlannedFlight
+        local flight = {
+            id = next_planned_flight_id,
+            side = side,
+            ai_task_type = ai_task_type,
+            to_zone = to_zone,
+            from_zone = from_zone,
+            planned_at = now,
+            launch_time = now + lead,
+            launch_abs_time = timer.getAbsTime() + lead,
+        }
+        table.insert(self.planned_flights[side], flight)
+
+        timer.scheduleFunction(function()
+            if MISSION_ENDED == true then return end
+            AICommander:dispatchDueFlights(side)
+        end, nil, flight.launch_time)
+
+        MissionLogger:info(string.format("[DISPATCH] %s planned %s #%d to %s, launch in %ds",
+            utils.coalitionToString(side), ai_task_type, flight.id,
+            (to_zone and to_zone.name) or (from_zone and from_zone.name) or "?", lead))
+        return flight
+    end
+
+    ---@param flight PlannedFlight
+    function AICommander:removePlannedFlight(flight)
+        local queue = self.planned_flights[flight.side]
+        if not queue then return end
+        for i = #queue, 1, -1 do
+            if queue[i] == flight then
+                table.remove(queue, i)
+                return
+            end
+        end
+    end
+
+    ---Remove a queued flight and tell whoever is attached to it why.
+    ---@param flight PlannedFlight
+    ---@param reason string
+    function AICommander:cancelPlannedFlight(flight, reason)
+        self:removePlannedFlight(flight)
+        MissionLogger:info(string.format("[DISPATCH] %s %s #%d cancelled: %s",
+            utils.coalitionToString(flight.side), flight.ai_task_type, flight.id, reason))
+        if flight.on_cancelled then
+            flight.on_cancelled(flight, reason)
+        end
+    end
+
+    ---Flights whose launch time has been reached, earliest first.
+    ---This is the only thing the dispatcher reads to decide what to launch.
+    ---@param side coalition.side
+    ---@return PlannedFlight[]
+    function AICommander:dispatchableFlights(side)
+        local now = timer.getTime()
+        local due = {}
+        for _, flight in ipairs(self.planned_flights[side] or {}) do
+            if flight.launch_time <= now then
+                table.insert(due, flight)
+            end
+        end
+        table.sort(due, function(a, b) return a.launch_time < b.launch_time end)
+        return due
+    end
+
+    ---Final check before launch: tasking limits and warehouse stock.
+    ---Call it after the flight has left the queue, so it does not count itself.
+    ---@param flight PlannedFlight
+    ---@return boolean ok, string|nil reason shown to users when not ok
+    function AICommander:finalFlightCheck(flight)
+        local side = flight.side
+        local task = flight.ai_task_type
+
+        if not Config.tasking.enable then
+            return false, "AI tasking is disabled"
+        end
+        if not EraSystem.isTaskTypeAllowed(task) then
+            return false, task .. " is not available in this era"
+        end
+
+        -- Tasking limits
+        local limit = Config.tasking.theatre_limits[task]
+        local enroute = EnrouteManager:findByTaskType(task, side)
+        if limit and #enroute >= limit then
+            return false, string.format("%s theatre limit reached (%d)", task, limit)
+        end
+
+        local to_zone = flight.to_zone
+        if to_zone then
+            if EnrouteManager:findByToZone(to_zone, side, {task}) then
+                return false, task .. " already tasked to " .. to_zone.name
+            end
+            -- CAP covers friendly zones; every other zone task targets the enemy.
+            local expected_side = (task == AITaskTypes.CAP) and side or utils.getEnemyCoalition(side)
+            if to_zone.side ~= expected_side then
+                return false, to_zone.name .. " changed sides"
+            end
+        end
+
+        -- Warehouse stock (same lookups initiateAITask uses)
+        if to_zone then
+            if not TaskManager:findClosestAirbaseWithAircraftInStock(to_zone, side, task, 2, task) then
+                return false, "no airbase with aircraft in stock, operable runway and free tasking slots"
+            end
+        elseif flight.from_zone then
+            local from_zone = flight.from_zone --[[@as ZoneHandler]]
+            if from_zone.side ~= side then
+                return false, from_zone.name .. " is no longer friendly"
+            end
+            if not TaskManager:isAirbaseRunwayOperational(from_zone) then
+                return false, "runway at " .. from_zone.name .. " is inoperable"
+            end
+            if not WarehouseManager:checkAircraftInStock(from_zone.airbase_name, task) then
+                return false, "no aircraft in stock at " .. from_zone.name
+            end
+        end
+
+        return true, nil
+    end
+
+    ---Find the group a flight just spawned as (newest matching enroute).
+    ---@param flight PlannedFlight
+    ---@return string|nil
+    local function findLaunchedGroupName(flight)
+        local target = flight.to_zone or flight.from_zone
+        for i = #EnrouteManager.enroutes, 1, -1 do
+            local enroute = EnrouteManager.enroutes[i]
+            if enroute.side == flight.side and enroute.ai_task_type == flight.ai_task_type
+            and enroute.to_zone == target then
+                return enroute.group_name
+            end
+        end
+        return nil
+    end
+
+    ---Dispatcher: launch every due flight that passes the final check.
+    ---Runs from one-shot timers set at each flight's launch time.
+    ---@param side coalition.side
+    function AICommander:dispatchDueFlights(side)
+        for _, flight in ipairs(self:dispatchableFlights(side)) do
+            self:removePlannedFlight(flight)
+
+            local ok, reason = self:finalFlightCheck(flight)
+            if ok then
+                ok = TaskManager:initiateAITask(flight.ai_task_type, side, true, flight.to_zone, flight.from_zone, false)
+                if not ok then
+                    reason = "flight failed to spawn (payload not in warehouse or no free parking)"
+                end
+            end
+
+            if ok then
+                flight.group_name = findLaunchedGroupName(flight)
+                MissionLogger:info(string.format("[DISPATCH] %s launched %s #%d (%s)",
+                    utils.coalitionToString(side), flight.ai_task_type, flight.id, tostring(flight.group_name)))
+                if flight.on_launched then
+                    flight.on_launched(flight)
+                end
+            else
+                self:cancelPlannedFlight(flight, reason or "unknown reason")
+            end
+        end
+    end
 
     ---@param side coalition.side
     function AICommander:evaluateAITasks(side)
@@ -380,10 +605,26 @@ do
             end
         end
 
+        -- Launched + queued flights of a task type, checked against theatre limits.
+        local function committedCount(ai_task_type)
+            return #EnrouteManager:findByTaskType(ai_task_type, side) + AICommander:countPlannedFlights(side, ai_task_type)
+        end
+
+        -- A flight of this task type is already launched or queued toward the zone.
+        local function isZoneTasked(zone, ai_task_type)
+            return EnrouteManager:findByToZone(zone, side, {ai_task_type}) ~= nil
+                or AICommander:isZonePlanned(zone, side, ai_task_type)
+        end
+
+        -- Queue the flight; the dispatcher launches it after the lead time.
+        local function plan(ai_task_type, to_zone, from_zone)
+            AICommander:planFlight(side, ai_task_type, to_zone, from_zone)
+            return true
+        end
+
         -- [TASK: RECON]
         addTask(AITaskTypes.RECON, function()
-            local recon_enroute = EnrouteManager:findByTaskType(AITaskTypes.RECON, side)
-            if recon_enroute and #recon_enroute >= Config.tasking.max_recon_theatre then
+            if committedCount(AITaskTypes.RECON) >= Config.tasking.theatre_limits[AITaskTypes.RECON] then
                 return false
             end
             if side_comms_towers < Config.tasking_requirements.comms_zones_required_for_recon then
@@ -406,8 +647,8 @@ do
             end
 
             if closest_undiscovered_zone then
-                if not EnrouteManager:findByToZone(closest_undiscovered_zone, side, {AITaskTypes.RECON}) then
-                    return TaskManager:initiateAITask(AITaskTypes.RECON, side, true, closest_undiscovered_zone, nil, false)
+                if not isZoneTasked(closest_undiscovered_zone, AITaskTypes.RECON) then
+                    return plan(AITaskTypes.RECON, closest_undiscovered_zone, nil)
                 end
             end
             return false
@@ -415,16 +656,15 @@ do
 
         -- [TASK: AWACS]
         addTask(AITaskTypes.AWACS, function()
-            local awacs_enroute = EnrouteManager:findByTaskType(AITaskTypes.AWACS, side)
-            if awacs_enroute and #awacs_enroute >= 1 then
+            if committedCount(AITaskTypes.AWACS) >= 1 then
                 return false
             end
             if side_comms_towers < Config.tasking_requirements.comms_zones_required_for_awacs then
                 return false
             end
             if closest_dist and closest_dist > Config.tasking.min_cleareance_dist_for_awacs then
-                MissionLogger:info("[AWACS] Attempting for " .. utils.coalitionToString(side))
-                return TaskManager:initiateAITask(AITaskTypes.AWACS, side, true, nil, home_base, false)
+                MissionLogger:info("[AWACS] Planning for " .. utils.coalitionToString(side))
+                return plan(AITaskTypes.AWACS, nil, home_base)
             end
             return false
         end)
@@ -432,8 +672,7 @@ do
         -- [TASK: CAS]
         addTask(AITaskTypes.CAS, function()
             MissionLogger:info("[CAS] Checking CAS tasks")
-            local cas_enroute = EnrouteManager:findByTaskType(AITaskTypes.CAS, side)
-            if #cas_enroute >= Config.tasking.max_cas_theatre then
+            if committedCount(AITaskTypes.CAS) >= Config.tasking.theatre_limits[AITaskTypes.CAS] then
                 return false
             end
             if side_comms_towers < Config.tasking_requirements.comms_zones_required_for_cas then
@@ -444,7 +683,7 @@ do
                 if zone.side == enemy_side and not utils.tableContains(active_zones, zone.name) then
                     local discovered = (side == coalition.side.BLUE and utils.tableContains(stats.blue_discovered_zones, zone.name)) or
                                        (side == coalition.side.RED and utils.tableContains(stats.red_discovered_zones, zone.name))
-                    if discovered and not EnrouteManager:findByToZone(zone, side, {AITaskTypes.CAS}) then
+                    if discovered and not isZoneTasked(zone, AITaskTypes.CAS) then
                         if Frontline.distanceToFrontline(zone.zone.point) < Config.tasking.max_distance_to_frontline_for_offensive then
                             local dist = mist.utils.get2DDist(home_base.zone.point, zone.zone.point)
                             table.insert(potential_zones, {distance=dist, zone=zone})
@@ -463,20 +702,14 @@ do
                 end
             if not hasSourceAirbase(AITaskTypes.CAS) then return false end
 
-            for _,p in ipairs(potential_zones) do
-                MissionLogger:info("[CAS]: Attempting to initiate CAS task to " .. p.zone.name)
-                if TaskManager:initiateAITask(AITaskTypes.CAS, side, true, p.zone, nil, false) then
-                    return true
-                end
-            end
-            return false
+            MissionLogger:info("[CAS]: Planning CAS task to " .. potential_zones[1].zone.name)
+            return plan(AITaskTypes.CAS, potential_zones[1].zone, nil)
         end)
 
         -- [TASK: SEAD]
         addTask(AITaskTypes.SEAD, function()
             MissionLogger:info("[SEAD] %s checking SEAD tasks.")
-            local sead_enroute = EnrouteManager:findByTaskType(AITaskTypes.SEAD, side)
-            if sead_enroute and #sead_enroute >= Config.tasking.max_sead_theatre then
+            if committedCount(AITaskTypes.SEAD) >= Config.tasking.theatre_limits[AITaskTypes.SEAD] then
                 return false
             end
             if side_comms_towers < Config.tasking_requirements.comms_zones_required_for_sead then
@@ -492,7 +725,7 @@ do
                                         (side == coalition.side.RED and utils.tableContains(stats.red_discovered_zones, zone.name))
 
                     if discovered then
-                        if not EnrouteManager:findByToZone(zone, side, {AITaskTypes.SEAD}) then
+                        if not isZoneTasked(zone, AITaskTypes.SEAD) then
                             local dist = mist.utils.get2DDist(home_base.zone.point, zone.zone.point)
                             table.insert(potential_zones, {distance=dist, zone=zone})
                         end
@@ -510,19 +743,13 @@ do
             end
             if not hasSourceAirbase(AITaskTypes.SEAD) then return false end
 
-            for _,p in ipairs(potential_zones) do
-                MissionLogger:info("[SEAD]: Attempting to initiate SEAD task to " .. p.zone.name)
-                if TaskManager:initiateAITask(AITaskTypes.SEAD, side, true, p.zone, nil, false) then
-                    return true
-                end
-            end
-            return false
+            MissionLogger:info("[SEAD]: Planning SEAD task to " .. potential_zones[1].zone.name)
+            return plan(AITaskTypes.SEAD, potential_zones[1].zone, nil)
         end)
 
         -- [TASK: CAP]
         addTask(AITaskTypes.CAP, function()
-            local cap_enroute = EnrouteManager:findByTaskType(AITaskTypes.CAP, side)
-            if cap_enroute and #cap_enroute >= Config.tasking.max_cap_theatre then
+            if committedCount(AITaskTypes.CAP) >= Config.tasking.theatre_limits[AITaskTypes.CAP] then
                 return false
             end
             if side_comms_towers < Config.tasking_requirements.comms_zones_required_for_cap then
@@ -538,7 +765,7 @@ do
 
                     if discovered
                     and front_dist < Config.tasking.max_distance_to_frontline_for_offensive
-                    and not EnrouteManager:findByToZone(zone, side, {AITaskTypes.CAP}) then
+                    and not isZoneTasked(zone, AITaskTypes.CAP) then
                         table.insert(potential_zones, {distance=front_dist, zone=zone})
 
                     end
@@ -552,23 +779,18 @@ do
             if #potential_zones == 0 then return false end
             if not hasSourceAirbase(AITaskTypes.CAP) then return false end
 
-            for _,p in ipairs(potential_zones) do
-                MissionLogger:info(string.format("[CAP] %s: Attempting to initiate CAP task to %s",
-                        utils.coalitionToString(side), p.zone.name))
-                if TaskManager:initiateAITask(AITaskTypes.CAP, side, true, p.zone, nil, false) then
-                    return true
-                end
-            end
-            return false
+            MissionLogger:info(string.format("[CAP] %s: Planning CAP task to %s",
+                    utils.coalitionToString(side), potential_zones[1].zone.name))
+            return plan(AITaskTypes.CAP, potential_zones[1].zone, nil)
         end)
 
         -- [TASK: STRIKE]
         addTask(AITaskTypes.STRIKE, function()
             if not Config.tasking.enable_auto_strike then return false end
-            local strike_enroute = EnrouteManager:findByTaskType(AITaskTypes.STRIKE, side)
-            MissionLogger:info(string.format("[STRIKE] %s checking STRIKE tasks. Current enroute: %d, max: %d",
-                utils.coalitionToString(side), strike_enroute and #strike_enroute or 0, Config.tasking.max_strike_theatre))
-            if strike_enroute and #strike_enroute < Config.tasking.max_strike_theatre
+            local strike_committed = committedCount(AITaskTypes.STRIKE)
+            MissionLogger:info(string.format("[STRIKE] %s checking STRIKE tasks. Current enroute+planned: %d, max: %d",
+                utils.coalitionToString(side), strike_committed, Config.tasking.theatre_limits[AITaskTypes.STRIKE]))
+            if strike_committed < Config.tasking.theatre_limits[AITaskTypes.STRIKE]
             and side_comms_towers >= Config.tasking_requirements.comms_zones_required_for_strike
             then
                 if not hasSourceAirbase(AITaskTypes.STRIKE) then return false end
@@ -591,7 +813,7 @@ do
                                             (side == coalition.side.RED and utils.tableContains(stats.red_discovered_zones, zone.name))
 
                             if discovered then
-                                if not EnrouteManager:findByToZone(zone, side, {AITaskTypes.STRIKE}) then
+                                if not isZoneTasked(zone, AITaskTypes.STRIKE) then
                                     local dist = mist.utils.get2DDist(home_base.zone.point, zone.zone.point)
                                     table.insert(potential_zones, {distance=dist, zone=zone})
                                 end
@@ -610,17 +832,12 @@ do
                     return false
                 end
 
-                for _,p in ipairs(potential_zones) do
-                    MissionLogger:info(string.format("[STRIKE] %s: Attempting to initiate STRIKE task to %s",
-                        utils.coalitionToString(side), p.zone.name))
-                    if TaskManager:initiateAITask(AITaskTypes.STRIKE, side, true, p.zone, nil, false) then
-                        return true
-                    end
-                end
-                return false
+                MissionLogger:info(string.format("[STRIKE] %s: Planning STRIKE task to %s",
+                    utils.coalitionToString(side), potential_zones[1].zone.name))
+                return plan(AITaskTypes.STRIKE, potential_zones[1].zone, nil)
 
             else
-                if strike_enroute and #strike_enroute >= Config.tasking.max_strike_theatre then
+                if strike_committed >= Config.tasking.theatre_limits[AITaskTypes.STRIKE] then
                     MissionLogger:info(string.format("[STRIKE] %s: Max STRIKE tasks reached", utils.coalitionToString(side)))
                 elseif side_comms_towers < Config.tasking_requirements.comms_zones_required_for_strike then
                     MissionLogger:info(string.format("[STRIKE] %s: Not enough COMMS towers (%d < %d)",
@@ -788,13 +1005,7 @@ do
     ---@param task_type AITaskTypes
     ---@return number
     function AICommander:perAirbaseTypeCap(task_type)
-        local t = Config.tasking
-        if task_type == AITaskTypes.CAS then return t.max_cas_per_airbase or math.huge end
-        if task_type == AITaskTypes.CAP then return t.max_cap_per_airbase or math.huge end
-        if task_type == AITaskTypes.SEAD then return t.max_sead_per_airbase or math.huge end
-        if task_type == AITaskTypes.STRIKE then return t.max_strike_per_airbase or math.huge end
-        if task_type == AITaskTypes.AWACS then return t.max_awacs_per_airbase or math.huge end
-        return math.huge
+        return Config.tasking.airbase_limits[task_type] or math.huge
     end
 
     ---@param plan table

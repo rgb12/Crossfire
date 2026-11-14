@@ -99,7 +99,7 @@ do
             if candidate.zone_type == ZoneTypes.STRONGPOINT
             and candidate.side ~= coalition.side.NEUTRAL
             and candidate.attack_convoy and candidate.attack_convoy > 0
-            and #EnrouteManager:findByTaskType(AITaskTypes.CAPTURE_CONVOY, candidate.side) < Config.tasking.max_capture_convoy_per_theatre
+            and #EnrouteManager:findByTaskType(AITaskTypes.CAPTURE_CONVOY, candidate.side) < Config.tasking.theatre_limits[AITaskTypes.CAPTURE_CONVOY]
             and not EnrouteManager:findByFromZone(candidate, candidate.side, {AITaskTypes.CAPTURE_CONVOY})
             then
                 -- the dispatching side must have discovered the target
@@ -142,7 +142,7 @@ do
             -- this spawns an attack convoy from strongpoints
             if math.random(1,100) <= 15 and zone.zone_type == ZoneTypes.STRONGPOINT
             and zone.attack_convoy and zone.attack_convoy > 0
-            and #EnrouteManager:findByTaskType(AITaskTypes.ATTACK_CONVOY,zone.side) < Config.tasking.max_attack_convoy_per_theatre
+            and #EnrouteManager:findByTaskType(AITaskTypes.ATTACK_CONVOY,zone.side) < Config.tasking.theatre_limits[AITaskTypes.ATTACK_CONVOY]
             and not EnrouteManager:findByToZone(zone,zone.side,{AITaskTypes.ATTACK_CONVOY})
             then
                 TaskManager:initiateAITask(AITaskTypes.ATTACK_CONVOY,zone.side,true,nil,zone,false)
