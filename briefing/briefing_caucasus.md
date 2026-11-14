@@ -9,10 +9,7 @@ Mission details are available in the Crossfire documentation.
 
 Use resources wisely. Good hits and completed operations earn XP and supplies. Use these to call in resupply or AI tasks from within the F10 radio menu.
 
-Good luck!    
+Good luck!
 
-
-FREQUENCIES:
-
-CARRIER     TACAN 29X   ILCS 11
-SUPERCARRIER    TACAN 28X   ICLS 10
+FREQUENCIES
+Available from F10 radio menu

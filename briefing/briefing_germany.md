@@ -5,10 +5,7 @@ As a pilot, your objective is to engage and neutralize all REDFOR targets and ar
 
 Mission details are available in the Crossfire documentation.
 
-Good luck!    
+Good luck!
 
-
-FREQUENCIES:
-
-CARRIER     TACAN 29X   ILCS 11
-SUPERCARRIER    TACAN 28X   ICLS 10
+FREQUENCIES
+Available from F10 radio menu
