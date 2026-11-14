@@ -403,7 +403,7 @@ do
         if zone.side == coalition.side.BLUE then
             country_name_id = country.id.CJTF_BLUE
             stats.blue_farp_zones = stats.blue_farp_zones +1
-        else 
+        else
             country_name_id = country.id.CJTF_RED
             stats.red_farp_zones = stats.red_farp_zones +1
         end
@@ -480,7 +480,7 @@ do
             x = base_x + Config.farp_assets.vehicles.offset_x,
             y = base_y + Config.farp_assets.vehicles.offset_y
         }
-        
+
         -- Vehicle group
         local group_template_name_side
         if zone.side == coalition.side.RED then
@@ -611,6 +611,8 @@ do
                 [StockTypes.TGP] = "TGP",
                 [StockTypes.MISC] = "Misc Equipment",
                 [StockTypes.INITIAL] = "Initial Stock Package",
+                [StockTypes.VSTOL_AIRCRAFT] = "VSTOL Aircraft",
+                [StockTypes.STOL_AIRCRAFT] = "STOL Aircraft",
             }
             for _, stock in ipairs(chosen_stocks) do
                 if out_text ~= "" then out_text = out_text .. ", " end
@@ -624,7 +626,7 @@ do
 
             MissionLogger:info(prefix .. " Resupply airdrop delivered at " .. airbase_name)
 
-            
+
             if side == coalition.side.RED then
                 WarehouseManager:attributeAirbaseStock(airbase_name, coalition.side.RED, chosen_stocks or {StockTypes.INITIAL})
             else

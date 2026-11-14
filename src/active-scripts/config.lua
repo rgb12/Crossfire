@@ -8,7 +8,7 @@
     Some values contain *, this symbol represents multiplication.
     Ex: 5*60 = 300 seconds, or 5 minutes.
 
-    Do not remove the commas at the end of each line. For example: 
+    Do not remove the commas at the end of each line. For example:
         enable = true,  <--- comma must be here
     Refer to the comments for details on each field
     Comments start with "--"
@@ -282,8 +282,10 @@ Config = {
                 "F-14A-135-GR",
                 "JF-17",
                 "AH-64D_BLK_II",
+                "Ka-50",
                 "Ka-50_3",
                 "Mi-24P",
+                "Mi-8MT",
                 "SA342L",
                 "SA342M",
                 "Su-25",
@@ -324,6 +326,8 @@ Config = {
                 "FA-18C_hornet",
                 "M-2000C",
                 "AV8BNA",
+                "Ka-50",
+                "Ka-50_3",
                 "JF-17",
                 "Su-25",
                 "A-10A",
@@ -342,6 +346,8 @@ Config = {
                 "FA-18C_hornet",
                 "M-2000C",
                 "AV8BNA",
+                "Ka-50",
+                "Ka-50_3",
                 "JF-17",
                 "AH-64D_BLK_II",
                 "Su-25",
@@ -579,6 +585,10 @@ Config = {
             AA_AIRCRAFT = 1400,
             -- (int) Air-to-ground focused aircraft
             AG_AIRCRAFT = 1400,
+            -- (int) Air-to-ground focused VSTOL aircraft
+            VSTOL_AIRCRAFT = 1400,
+            -- (int) Air-to-ground focused STOL aircraft
+            STOL_AIRCRAFT = 1400,
             -- (int) Multirole aircraft
             MULTIROLE_AIRCRAFT = 1700,
             -- (int) Reconnaissance aircraft
@@ -908,7 +918,7 @@ Config = {
         max_attack_convoy_per_theatre = 3,
         -- (int) per coalition, WW2-only ground capture convoys (replaces capture helos)
         max_capture_convoy_per_theatre = 3,
-        -- (int) per coalition, max resupply aircraft 
+        -- (int) per coalition, max resupply aircraft
         max_resupply_per_theatre = 2,
 
         -- (int)
@@ -926,7 +936,7 @@ Config = {
         min_cleareance_dist_for_awacs = 70*1000
     },
 
-    -- (table) 
+    -- (table)
     hunt = {
         -- (bool) enables/disables the "hunt experienced players" feature. When
         -- enabled, CAP flights of the sides below are tasked to eliminate enemy
@@ -1266,6 +1276,7 @@ Config = {
         aircraft_types = {
             "C-130J-30",
             "AV8BNA",
+            "AJS37",
         },
         -- (int) (seconds) time the aircraft must hold position once stopped
         hold_time = 60,
@@ -1485,7 +1496,7 @@ Config = {
         frontline_linestyle = 1,
     },
     enable_frontline = true,
-    
+
 }
 
 -- (ignore)
@@ -1525,7 +1536,7 @@ stats = {
 
 
 -- This table allows you to link the in-mission groups to the script logic
--- Group names from the mission editor. 
+-- Group names from the mission editor.
 GroupData = {
     COMMON_ASSETS = {
         BLUE = {

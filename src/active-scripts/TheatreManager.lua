@@ -31,7 +31,7 @@ do
 
             TaskManager:initiateAITask(AITaskTypes.CAPTURE_HELO, side_sending_capture, true, to_zone, from_zone, false)
         end,nil,timer.getTime()+math.random(10,30))
-        
+
     end
 
     -- checks if a capture group has arrived
@@ -237,7 +237,7 @@ do
                     self:tick_10m()
                 end
             end
-        
+
             ticks = ticks + 15
         end
 
@@ -430,8 +430,8 @@ do
     -- This function starts the tick loop
     function TheatreCommander:tick()
         if MISSION_ENDED == true then return end
-          
-    
+
+
         timer.scheduleFunction(function ()
             self:tick_15s(true)
         end, {}, timer.getTime() + 15)
@@ -456,7 +456,7 @@ do
         if Config.motd.period <= 0 then
             sendMessage(false)
             return
-        end 
+        end
         sendMessage(true)
     end
     ---@param airbase_pool ZoneHandler[]
@@ -559,7 +559,7 @@ do
         else
             return
         end
-        
+
         if destination_airbase == nil then return MissionLogger:error("Resupply task: Destination airbase not found") end
         if not destination_airbase.airbase_name then return MissionLogger:error("Resupply task: Destination airbase has no airbase name") end
         local destination_airbase_obj = Airbase.getByName(destination_airbase.airbase_name)
@@ -574,11 +574,11 @@ do
             side = side,
             ai_task_type = AITaskTypes.RESUPPLY_CARGO
         })
-        
+
         timer.scheduleFunction(function ()
             local cargo_group = Group.getByName(new_group_name)
             if not cargo_group or not cargo_group:isExist() then return end
-            
+
             -- Check if in this short time the airbase has been lost
             local airbase_obj = Airbase.getByName(destination_airbase.airbase_name)
             if not airbase_obj then
@@ -594,45 +594,45 @@ do
 
             local cargo_ctr = cargo_group:getController()
             local landPos = destination_airbase.zone.point
-            
+
             local alignX, alignZ   -- WP1: 15km out (Alignment)
             local startX, startZ   -- WP2: Runway Threshold (Stabilize)
             local dropX, dropZ     -- WP3: Runway End (Drop Trigger)
             local exitX, exitZ     -- WP4: 10km out (Exit)
             local airdropAlt = 0
-            
+
             local airbase = Airbase.getByName(destination_airbase.airbase_name)
-            
+
             if airbase then
                 local runways = airbase:getRunways()
                 if runways and runways[1] then
                     local rwy = runways[1]
                     local course = rwy.course * -1 -- Invert for calculation
                     local halfLen = rwy.length / 2
-                    
+
                     local alignDist = halfLen + 15000
                     alignX = rwy.position.x + (alignDist * math.cos(course + math.pi))
                     alignZ = rwy.position.z + (alignDist * math.sin(course + math.pi))
-                    
-                    
+
+
                     local startDist = halfLen
                     startX = rwy.position.x + (startDist * math.cos(course + math.pi))
                     startZ = rwy.position.z + (startDist * math.sin(course + math.pi))
-                    
-                    
+
+
                     local dropDist = halfLen
                     dropX = rwy.position.x + (dropDist * math.cos(course))
                     dropZ = rwy.position.z + (dropDist * math.sin(course))
-                    
+
                     local exitDist = halfLen + 10000
                     exitX = rwy.position.x + (exitDist * math.cos(course))
                     exitZ = rwy.position.z + (exitDist * math.sin(course))
                 end
-                
+
                 local groundHeight = land.getHeight({x=landPos.x, y=landPos.z})
                 airdropAlt = groundHeight + 305
             end
-            
+
             -- Fallback coordinates if airbase data fails
             if not alignX then
                 alignX = landPos.x - 15000
@@ -644,12 +644,12 @@ do
                 exitX  = landPos.x + 10000
                 exitZ  = landPos.z
             end
-            
+
             local stock_types_str = "{}"
             if stock_types ~= nil and #stock_types > 0 then
                 stock_types_str = "{" .. table.concat(stock_types, ", ") .. "}"
             end
-            
+
             local scriptCommand = string.format("UnitHandler.simulateResupply('%s', '%s', %d, %s)", new_group_name, destination_airbase.airbase_name, side, stock_types_str)
             local waypointScriptTask = {
                 id = "ComboTask",
@@ -716,7 +716,7 @@ do
                     }
                 }
             }
-            
+
             cargo_ctr:setTask(missionTask)
             trigger.action.outTextForCoalition(side, "RESUPPLY Cargo aircraft inbound for " .. destination_airbase.name, 10)
             trigger.action.outSoundForCoalition(side, "Radio squelch.ogg")
@@ -728,8 +728,8 @@ do
             end,nil, timer.getTime() + Config.std_resupply_time)
         end
     end
-    
-    
+
+
     -- AI DISPATCHER moved to AICommander.lua (AICommander.dispatchAI / evaluateAITasks)
 
     function TheatreCommander.checkAirbasesCoalition()
@@ -745,7 +745,7 @@ do
             r_airbase:autoCapture(false)
             r_airbase:setCoalition(red_airbase.side)
         end
-        
+
     end
 
     local smoke_id = 0
@@ -755,7 +755,7 @@ do
         3 = large smoke and fire
         4 = huge smoke and fire
         5 = small smoke
-        6 = medium smoke 
+        6 = medium smoke
         7 = large smoke
         8 = huge smoke ]]
 
@@ -835,14 +835,14 @@ do
         if #eligible_scenarios == 0 then
             trigger.action.outText("CRITICAL MISSION ERROR: No eligible scenarios found for theatre: " .. tostring(current_theatre), 30)
             env.error("CRITICAL MISSION ERROR: No eligible scenarios found for theatre: " .. tostring(current_theatre),true)
-            return 
+            return
         end
-        
-        
+
+
         -- Fetch the available zones for this theatre
         ---@type ZoneHandler[]
         local theatre_zones = available_zones[current_theatre]
-        
+
         if not theatre_zones then
             trigger.action.outText("CRITICAL MISSION ERROR: No available zones defined for theatre: " .. tostring(current_theatre), 30)
             env.error("CRITICAL MISSION ERROR: No available zones defined for theatre: " .. tostring(current_theatre),true)
@@ -853,7 +853,7 @@ do
         ---@type GeneratedScenario
         scenario = eligible_scenarios[rng_int(1, #eligible_scenarios)]
 
-        
+
         local theatre_config = scenario.map_setup or {}
 
         MissionLogger:info("Selected scenario: " .. scenario.name)
@@ -864,7 +864,7 @@ do
         local all_other_zones = {}
 
         for _, zone in ipairs(theatre_zones) do
-            
+
             if zone.name == scenario.blue_airbase then
                 blue_airbase = zone
             elseif zone.name == scenario.red_airbase then
@@ -1049,16 +1049,16 @@ do
                     table.insert(unassigned, z)
                 end
             end
-            
+
             if #unassigned == 0 then return end -- All zones already have types assigned
-            
+
             -- Shuffle for randomness (use deterministic shuffle if seeded)
             rng_shuffle(unassigned)
-            
+
             -- Guarantee at least 1 of each zone type (if enough zones available)
             local idx = 1
             local assigned_guaranteed = 0
-            
+
             -- COMMS (guaranteed)
             if idx <= #unassigned then
                 if allow_comms then
@@ -1123,7 +1123,7 @@ do
                 idx = idx + 1
                 assigned_guaranteed = assigned_guaranteed + 1
             end
-            
+
             -- STRONGPOINT (guaranteed)
             if idx <= #unassigned then
                 unassigned[idx].zone_type = ZoneTypes.STRONGPOINT
@@ -1131,15 +1131,15 @@ do
                 idx = idx + 1
                 assigned_guaranteed = assigned_guaranteed + 1
             end
-            
+
             -- Now handle remaining zones with weighted budgets
             local remaining_zones = #unassigned - assigned_guaranteed
-            
+
             if remaining_zones > 0 then
                 local weights = Config.theatre.zone_type_weights
                 local total_w = 0
                 for _, w in pairs(weights) do total_w = total_w + w end
-                
+
                 -- Calculate budgets for remaining zones only. Era-blacklisted zone
                 -- types get a zero budget so their share falls through to STRONGPOINT.
                 local budget_logistics = allow_logistics and math.ceil((weights[ZoneTypes.LOGISTICS]/total_w) * remaining_zones) or 0
@@ -1147,7 +1147,7 @@ do
                 local budget_sam       = allow_sam_sites and math.ceil((weights[ZoneTypes.SAMSITE]/total_w) * remaining_zones) or 0
                 local budget_comms     = allow_comms and math.ceil((weights[ZoneTypes.COMMS]/total_w) * remaining_zones) or 0
                 local budget_ew        = allow_ew_sites and math.ceil((weights[ZoneTypes.EWSITE]/total_w) * remaining_zones) or 0
-                
+
                 local pre_assigned_count = #pool - #unassigned
                 MissionLogger:info("Assigning Types for " .. utils.coalitionToString(home.side) .. ". Total Zones: " .. #pool ..
                     " (Pre-assigned: " .. pre_assigned_count .. ", Guaranteed: " .. assigned_guaranteed .. ", Remaining: " .. remaining_zones .. ")" ..
@@ -1156,7 +1156,7 @@ do
                 -- Assign remaining zones using budgets
                 for i = idx, #unassigned do
                     local zone = unassigned[i]
-                    
+
                     if budget_comms > 0 then
                         zone.zone_type = ZoneTypes.COMMS
                         budget_comms = budget_comms - 1
@@ -1208,7 +1208,7 @@ do
         stats.red_total_comms_zones = stats.red_comms_zones
 
         for _, zone in ipairs(zones) do
-            
+
             -- Handle Airbase ownership
             if zone.zone_type == ZoneTypes.AIRBASE and zone.airbase_name then
                 local airbase = Airbase.getByName(zone.airbase_name)
@@ -1316,7 +1316,15 @@ do
                         if EraSystem.isWeaponEnabled(clsid, coalition.side.BLUE) then
                             local data = Stocks.EquipmentData[clsid] or Stocks.EquipmentDataDefault
                             local qty = data.base_qty
-                            if type(qty) == "table" then qty = qty[StockTypes.AIR_GROUND_ROCKETS] end
+                            -- begin change y5nh4bkiu3whn
+                            -- This evaluates to nil for non-rocket items, putting just 6 AGM_65E, AGM_65F, AGM_65L, GBU_12, MK_82, AIM_9M, etc. into stock.
+                            -- As those fall back to Stocks.EquipmentDataDefault.base_qty (6).
+                            -- if type(qty) == "table" then qty = qty[StockTypes.AIR_GROUND_ROCKETS] end
+                            if type(qty) == "table" then
+                                local _, first_qty = next(qty)
+                                qty = qty[StockTypes.AIR_GROUND_ROCKETS] or first_qty
+                            end
+                            -- end of change y5nh4bkiu3whn
                             lha_warehouse:addItem(clsid, math.max(1, math.floor((qty or Stocks.EquipmentDataDefault.base_qty) * scale)))
                         end
                     end
@@ -1363,7 +1371,7 @@ do
             MissionLogger:info("No save file found. Establishing new theatre.")
             TheatreCommander.establishTheatre()
         end
-        
+
         if not (blue_airbase and red_airbase) then
             return trigger.action.outText("ERROR: Mission theatre setup failed. Check logs (dcs.log) and config.", 30)
         end
