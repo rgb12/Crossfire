@@ -2428,7 +2428,7 @@ local MI8_STORES = {
     Stocks.Equipment.GUV_YAKB_GSHP_GUN,
     Stocks.Equipment.GUV_VOG_CONT,
     Stocks.Equipment.GUV_VOG_GUN,
-    Stocks.Equipment.UPK_23_25_MIG_21,
+    Stocks.Equipment.UPK_23_250_MIG_21,
     Stocks.Equipment.UPK_23_25,
     -- Door / Nose Gunners
     Stocks.Equipment.KORD_12_7_CONT,
