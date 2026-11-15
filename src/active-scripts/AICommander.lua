@@ -317,6 +317,11 @@ do
     ---@field launch_time number mission time (timer.getTime) the flight launches
     ---@field launch_abs_time number in-game time of day (timer.getAbsTime) the flight launches, for briefings
     ---@field group_name string|nil set once the flight has launched
+    ---@field departure_zone ZoneHandler|nil airbase expected at planning time, for briefings
+    ---@field aircraft_type string|nil airframe of the task template, for briefings
+    ---@field aircraft_count number|nil size of the task template, for briefings
+    ---@field pin_departure boolean|nil launch from departure_zone only (set once an escort is attached)
+    ---@field escort_code number|nil code of the escort operation attached to this flight
     ---@field on_cancelled fun(flight: PlannedFlight, reason: string)|nil called when the final check or the spawn fails
     ---@field on_launched fun(flight: PlannedFlight)|nil called once the flight has spawned
 
@@ -384,6 +389,20 @@ do
             launch_time = now + lead,
             launch_abs_time = timer.getAbsTime() + lead,
         }
+
+        -- Briefing data: expected departure base and the template's airframe/size.
+        if to_zone then
+            flight.departure_zone = TaskManager:findClosestAirbaseWithAircraftInStock(to_zone, side, ai_task_type, 2, ai_task_type)
+        elseif from_zone and from_zone.zone_type == ZoneTypes.AIRBASE then
+            flight.departure_zone = from_zone
+        end
+        local template_name = TaskManager.findGroupName(ai_task_type, side)
+        local template = template_name and mist.getGroupData(template_name)
+        if template and template.units and template.units[1] then
+            flight.aircraft_type = template.units[1].type
+            flight.aircraft_count = #template.units
+        end
+
         table.insert(self.planned_flights[side], flight)
 
         timer.scheduleFunction(function()
@@ -395,6 +414,18 @@ do
             utils.coalitionToString(side), ai_task_type, flight.id,
             (to_zone and to_zone.name) or (from_zone and from_zone.name) or "?", lead))
         return flight
+    end
+
+    ---@param side coalition.side
+    ---@param id number
+    ---@return PlannedFlight|nil
+    function AICommander:findPlannedFlight(side, id)
+        for _, flight in ipairs(self.planned_flights[side] or {}) do
+            if flight.id == id then
+                return flight
+            end
+        end
+        return nil
     end
 
     ---@param flight PlannedFlight
@@ -471,21 +502,25 @@ do
             end
         end
 
-        -- Warehouse stock (same lookups initiateAITask uses)
-        if to_zone then
+        -- Warehouse stock (same lookups initiateAITask uses).
+        -- A pinned flight (escorted) must leave from the base given in the briefing.
+        local source_zone = (flight.pin_departure and flight.departure_zone) or (not to_zone and flight.from_zone) or nil
+        if source_zone then
+            if source_zone.side ~= side then
+                return false, source_zone.name .. " is no longer friendly"
+            end
+            if not TaskManager:isAirbaseRunwayOperational(source_zone) then
+                return false, "runway at " .. source_zone.name .. " is inoperable"
+            end
+            if flight.pin_departure and TaskManager:checkIfMaxTasksReached(source_zone, side, task) then
+                return false, source_zone.name .. " cannot handle more tasks"
+            end
+            if not WarehouseManager:checkAircraftInStock(source_zone.airbase_name, task) then
+                return false, "no aircraft in stock at " .. source_zone.name
+            end
+        elseif to_zone then
             if not TaskManager:findClosestAirbaseWithAircraftInStock(to_zone, side, task, 2, task) then
                 return false, "no airbase with aircraft in stock, operable runway and free tasking slots"
-            end
-        elseif flight.from_zone then
-            local from_zone = flight.from_zone --[[@as ZoneHandler]]
-            if from_zone.side ~= side then
-                return false, from_zone.name .. " is no longer friendly"
-            end
-            if not TaskManager:isAirbaseRunwayOperational(from_zone) then
-                return false, "runway at " .. from_zone.name .. " is inoperable"
-            end
-            if not WarehouseManager:checkAircraftInStock(from_zone.airbase_name, task) then
-                return false, "no aircraft in stock at " .. from_zone.name
             end
         end
 
@@ -516,7 +551,12 @@ do
 
             local ok, reason = self:finalFlightCheck(flight)
             if ok then
-                ok = TaskManager:initiateAITask(flight.ai_task_type, side, true, flight.to_zone, flight.from_zone, false)
+                -- Zone tasks pick their own airbase unless an escort pinned the briefed one.
+                local from_zone = flight.from_zone
+                if flight.pin_departure and flight.to_zone and flight.departure_zone then
+                    from_zone = flight.departure_zone
+                end
+                ok = TaskManager:initiateAITask(flight.ai_task_type, side, true, flight.to_zone, from_zone, false)
                 if not ok then
                     reason = "flight failed to spawn (payload not in warehouse or no free parking)"
                 end

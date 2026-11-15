@@ -416,7 +416,8 @@ OperationTypes = {
     INTERCEPT = "Intercept",
     CSAR = "CSAR",
     DEEP_RECON = "Deep Recon",
-    DEEP_STRIKE = "Deep strike"
+    DEEP_STRIKE = "Deep strike",
+    ESCORT = "Escort"
 }
 
 ---@enum UserAircraftCategories

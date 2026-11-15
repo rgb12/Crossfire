@@ -222,6 +222,30 @@ Config = {
             xp_per_km = 2,
         },
 
+        -- (table) ESCORT operations: protect a friendly flight until it lands
+        -- at a friendly base with every aircraft alive.
+        escort = {
+            -- (bool)
+            enabled = true,
+            -- (table<string>) flights that can be escorted. Matched against the
+            -- AI task type of queued AI flights and against the operation type of
+            -- active player operations (CAS/SEAD match both).
+            allowed_task_types = {
+                AITaskTypes.SEAD,
+                AITaskTypes.CAS,
+                OperationTypes.REINFORCEMENT,
+                OperationTypes.STRATEGIC_AIRLIFT,
+            },
+            -- (int) (seconds) interval of the bearing/range/altitude report
+            tracker_interval = 30,
+            -- (int) (seconds) an AI flight launching sooner than this is not offered
+            min_lead_time = 3*60,
+            -- (int) XP reward range, multiplied by 100
+            min_xp = 10,
+            -- (int)
+            max_xp = 14,
+        },
+
         -- (int) (seconds) this is to set a cooldown for generating operations
         operation_refresh_time = 30,
 

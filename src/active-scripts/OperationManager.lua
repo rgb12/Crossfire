@@ -24,6 +24,20 @@
 ---@field deadline_time number | nil 
 ---@field operation_id string | nil
 ---@field marker_id number | nil
+---@field escort_source "AI"|"PLAYER"|nil who flies the escorted flight
+---@field escort_task_type string|nil AI task type or player operation type being escorted
+---@field planned_flight_id number|nil AI escort: id of the queued PlannedFlight
+---@field escorted_op_code number|nil PLAYER escort: code of the escorted player operation
+---@field escorted_group_name string|nil AI escort: group name once launched
+---@field escorted_unit_names string[]|nil units that must all survive (snapshot at launch/accept)
+---@field launch_abs_time number|nil AI escort: in-game time of day the flight launches
+---@field escort_departure_name string|nil
+---@field escort_destination_name string|nil
+---@field escort_aircraft_type string|nil
+---@field escort_aircraft_count number|nil
+---@field escort_launched boolean|nil
+---@field escort_airborne boolean|nil escorted flight has taken off at least once
+---@field escort_landed boolean|nil success recorded (landed at a friendly base, all alive)
 
 ---@class OperationManager
 ---@field side coalition.side
@@ -119,6 +133,76 @@ do
         return true
     end
 
+    ---In-game time of day as HH:MM.
+    ---@param abs_time number
+    ---@return string
+    local function formatClock(abs_time)
+        local t = math.floor(abs_time) % 86400
+        return string.format("%02d:%02d", math.floor(t / 3600), math.floor((t % 3600) / 60))
+    end
+
+    ---@param op Operation
+    ---@return string
+    local function escortKey(op)
+        return tostring(op.escort_source) .. ":" .. tostring(op.planned_flight_id or op.escorted_op_code)
+    end
+
+    ---@param op Operation
+    ---@return string e.g. "2x Su-25T (CAS)"
+    local function escortFlightLabel(op)
+        return string.format("%dx %s (%s)", op.escort_aircraft_count or 1,
+            op.escort_aircraft_type or "aircraft", tostring(op.escort_task_type))
+    end
+
+    ---@param op Operation
+    ---@return boolean
+    function OperationManager:isOperationActive(op)
+        for _, active_op in ipairs(self.active_operations) do
+            if active_op == op then return true end
+        end
+        return false
+    end
+
+    ---Calls fn for the leader and every joint member whose unit still exists.
+    ---@param op Operation
+    ---@param fn fun(unit_id: number, unit: Unit)
+    function OperationManager:forEachParticipant(op, fn)
+        local participants = {}
+        if op.assigned_player_id and op.assigned_unit_name then
+            participants[op.assigned_player_id] = op.assigned_unit_name
+        end
+        for member_id, member_unit_name in pairs(op.joint_op_members or {}) do
+            participants[member_id] = member_unit_name
+        end
+        for unit_id, unit_name in pairs(participants) do
+            local unit = Unit.getByName(unit_name)
+            if unit and unit:isExist() then
+                fn(unit_id, unit)
+            end
+        end
+    end
+
+    ---@param op Operation
+    ---@param text string
+    ---@param duration number
+    ---@param sound string|nil
+    function OperationManager:notifyParticipants(op, text, duration, sound)
+        self:forEachParticipant(op, function(unit_id)
+            trigger.action.outTextForUnit(unit_id, text, duration)
+            if sound then trigger.action.outSoundForUnit(unit_id, sound) end
+        end)
+    end
+
+    ---First escorted unit still alive (the "lead" the tracker points to).
+    ---@param op Operation
+    ---@return Unit|nil
+    function OperationManager:getEscortedLead(op)
+        for _, unit_name in ipairs(op.escorted_unit_names or {}) do
+            local unit = Unit.getByName(unit_name)
+            if unit and unit:isExist() then return unit end
+        end
+        return nil
+    end
 
     ---@param operation Operation
     ---@return vec3|nil
@@ -127,6 +211,14 @@ do
 
         if operation.type == OperationTypes.CSAR then
             return operation.pilot_position
+        end
+
+        -- ESCORT: the escorted lead once it exists, the departure base before that.
+        if operation.type == OperationTypes.ESCORT then
+            local lead = self:getEscortedLead(operation)
+            if lead then return lead:getPoint() end
+            local departure = operation.escort_departure_name and ZoneHandler.getFromName(operation.escort_departure_name)
+            return departure and departure.zone and departure.zone.point or nil
         end
 
         local zone_tgt = ZoneHandler.getFromName(operation.target_zone_name)
@@ -227,6 +319,8 @@ do
         local label
         if active_op.type == OperationTypes.CSAR then
             label = string.format("%s - downed pilot", active_op.operation_name)
+        elseif active_op.type == OperationTypes.ESCORT then
+            label = string.format("%s (position at %s)", active_op.operation_name, formatClock(timer.getAbsTime()))
         else
             label = string.format("%s - %s", active_op.operation_name, active_op.type)
         end
@@ -259,6 +353,19 @@ do
 
         if not active_mission then
             trigger.action.outTextForUnit(unit_id, "No active operation.", 10)
+            trigger.action.outSoundForUnit(unit_id, "radio_txrx.ogg")
+            return
+        end
+
+        if active_mission.type == OperationTypes.ESCORT then
+            local outtxt = string.format("ACTIVE OPERATION: %s\nType: %s\n\n%s\n\n%s",
+                active_mission.operation_name, active_mission.type,
+                self:formatEscortBriefing(active_mission), self:formatEscortStatus(active_mission, unit))
+            outtxt = outtxt .. "\n\nObjectives:"
+            for i, obj in ipairs(active_mission.objectives) do
+                outtxt = outtxt .. string.format("\n%d. %s", i, obj.description)
+            end
+            trigger.action.outTextForUnit(unit_id, outtxt, 60)
             trigger.action.outSoundForUnit(unit_id, "radio_txrx.ogg")
             return
         end
@@ -339,6 +446,8 @@ do
 
     --- @param event table
     function OperationManager:onEvent(event)
+        self:onEscortEvent(event)
+
         if event.id == world.event.S_EVENT_DEAD or event.id == world.event.S_EVENT_CRASH or event.id == world.event.S_EVENT_PILOT_DEAD then
             if event.initiator and event.initiator.getPlayerName then
                 local dead_unit_name = event.initiator.unit_name or event.initiator:getName()
@@ -680,7 +789,8 @@ do
             -- If this zone is now Active (taken by a player), remove it from Available.
             if self:isZoneActive(op.target_zone_name) then
                 remove_op = true
-            elseif op.type ~= OperationTypes.CSAR then
+            elseif op.type ~= OperationTypes.CSAR and op.type ~= OperationTypes.ESCORT then
+                -- ESCORT offers follow the dispatcher queue instead (syncEscortOperations)
                 local zone = ZoneHandler.getFromName(op.target_zone_name)
                 if not zone then
                     remove_op = true
@@ -1928,30 +2038,495 @@ do
         return op
     end
 
+    ---@param task_type string
+    ---@return boolean
+    function OperationManager:isEscortableTaskType(task_type)
+        local escort_config = Config.operations.escort
+        if not escort_config or not escort_config.enabled then return false end
+        return utils.tableContains(escort_config.allowed_task_types or {}, task_type)
+    end
+
+    ---@return table[]
+    local function buildEscortObjectives()
+        return {
+            {
+                description = "Protect the escorted flight until it lands at a friendly airbase with every aircraft intact.",
+                completed = false,
+                -- Success is recorded by the LAND event (onEscortEvent): AI flights
+                -- are despawned shortly after landing, so it cannot be polled.
+                check = function(_, _, op)
+                    return op.escort_landed == true
+                end
+            }
+        }
+    end
+
+    ---@param flight PlannedFlight
+    ---@return Operation
+    function OperationManager:createESCORTOperationForFlight(flight)
+        local escort_config = Config.operations.escort
+        local destination = flight.to_zone or flight.from_zone
+        ---@type Operation
+        local op = {
+            type = OperationTypes.ESCORT,
+            code = self:createOperationCode(),
+            status = OperationStatus.AVAILABLE,
+            xp_reward = math.random(escort_config.min_xp or 10, escort_config.max_xp or 14) * 100,
+            target_zone_name = "Escort Flight",
+            operation_name = "ESCORT - " .. flight.ai_task_type,
+            is_joint_op = true,
+            joint_op_leader_id = nil,
+            joint_op_leader_name = nil,
+            joint_op_members = {},
+            joint_op_join_code = nil,
+            escort_source = "AI",
+            escort_task_type = flight.ai_task_type,
+            planned_flight_id = flight.id,
+            launch_abs_time = flight.launch_abs_time,
+            escort_departure_name = flight.departure_zone and flight.departure_zone.name or nil,
+            escort_destination_name = destination and destination.name or nil,
+            escort_aircraft_type = flight.aircraft_type,
+            escort_aircraft_count = flight.aircraft_count,
+            objectives = buildEscortObjectives(),
+        }
+        return op
+    end
+
+    ---Player names flying an operation (leader first, then joint members).
+    ---@param op Operation
+    ---@return string[] unit_names, string[] player_names
+    function OperationManager:getOperationPlayerUnits(op)
+        local unit_names, player_names = {}, {}
+        local function add(unit_name)
+            local unit = unit_name and Unit.getByName(unit_name)
+            if unit and unit:isExist() then
+                table.insert(unit_names, unit_name)
+                table.insert(player_names, unit:getPlayerName() or unit_name)
+            end
+        end
+        add(op.assigned_unit_name)
+        for _, member_unit_name in pairs(op.joint_op_members or {}) do
+            add(member_unit_name)
+        end
+        return unit_names, player_names
+    end
+
+    ---@param escorted_op Operation
+    ---@return Operation|nil
+    function OperationManager:createESCORTOperationForPlayers(escorted_op)
+        local unit_names, player_names = self:getOperationPlayerUnits(escorted_op)
+        if #unit_names == 0 then return nil end
+        local lead = Unit.getByName(unit_names[1])
+        local escort_config = Config.operations.escort
+        local destination = ZoneHandler.getFromName(escorted_op.target_zone_name)
+        ---@type Operation
+        local op = {
+            type = OperationTypes.ESCORT,
+            code = self:createOperationCode(),
+            status = OperationStatus.AVAILABLE,
+            xp_reward = math.random(escort_config.min_xp or 10, escort_config.max_xp or 14) * 100,
+            target_zone_name = "Escort Flight",
+            operation_name = "ESCORT - " .. table.concat(player_names, "; "),
+            is_joint_op = true,
+            joint_op_leader_id = nil,
+            joint_op_leader_name = nil,
+            joint_op_members = {},
+            joint_op_join_code = nil,
+            escort_source = "PLAYER",
+            escort_task_type = escorted_op.type,
+            escorted_op_code = escorted_op.code,
+            escort_departure_name = nil,
+            escort_destination_name = destination and destination.name or nil,
+            escort_aircraft_type = lead and lead:getTypeName() or nil,
+            escort_aircraft_count = #unit_names,
+            objectives = buildEscortObjectives(),
+        }
+        return op
+    end
+
+    ---@param code number
+    ---@return Operation|nil
+    function OperationManager:findActiveOperationByCode(code)
+        for _, op in ipairs(self.active_operations) do
+            if op.code == code then return op end
+        end
+        return nil
+    end
+
+    ---@param flight PlannedFlight
+    ---@return boolean
+    function OperationManager:flightHasLiveEscort(flight)
+        if not flight.escort_code then return false end
+        local op = self:findActiveOperationByCode(flight.escort_code)
+        return op ~= nil and op.type == OperationTypes.ESCORT and op.planned_flight_id == flight.id
+    end
+
+    ---Is the escorted flight/operation of an offered escort still there?
+    ---@param op Operation
+    ---@param for_accept boolean|nil skip the min lead time (the offer was already shown)
+    ---@return boolean
+    function OperationManager:isEscortOfferValid(op, for_accept)
+        if op.escort_source == "AI" then
+            local flight = AICommander:findPlannedFlight(self.side, op.planned_flight_id)
+            if not flight or self:flightHasLiveEscort(flight) then return false end
+            local time_to_launch = flight.launch_time - timer.getTime()
+            if for_accept then return time_to_launch > 0 end
+            return time_to_launch >= (Config.operations.escort.min_lead_time or 0)
+        end
+
+        local escorted_op = op.escorted_op_code and self:findActiveOperationByCode(op.escorted_op_code)
+        if not escorted_op or escorted_op.type == OperationTypes.ESCORT
+        or escorted_op.status ~= OperationStatus.ACTIVE then
+            return false
+        end
+        local unit_names, player_names = self:getOperationPlayerUnits(escorted_op)
+        if #unit_names == 0 then return false end
+        -- Joint members may have joined since the offer was made
+        op.operation_name = "ESCORT - " .. table.concat(player_names, "; ")
+        op.escort_aircraft_count = #unit_names
+        return true
+    end
+
+    ---Keep the escort offers in line with the dispatcher queue and active player ops.
+    function OperationManager:syncEscortOperations()
+        for i = #self.available_operations, 1, -1 do
+            local op = self.available_operations[i]
+            if op.type == OperationTypes.ESCORT and not self:isEscortOfferValid(op) then
+                table.remove(self.available_operations, i)
+            end
+        end
+
+        local escort_config = Config.operations.escort
+        if not escort_config or not escort_config.enabled then return end
+
+        local offered = {}
+        for _, op in ipairs(self.available_operations) do
+            if op.type == OperationTypes.ESCORT then offered[escortKey(op)] = true end
+        end
+        for _, op in ipairs(self.active_operations) do
+            if op.type == OperationTypes.ESCORT then offered[escortKey(op)] = true end
+        end
+
+        local now = timer.getTime()
+        for _, flight in ipairs(AICommander:getPlannedFlights(self.side)) do
+            if not offered["AI:" .. tostring(flight.id)]
+            and not self:flightHasLiveEscort(flight)
+            and self:isEscortableTaskType(flight.ai_task_type)
+            and flight.launch_time - now >= (escort_config.min_lead_time or 0) then
+                table.insert(self.available_operations, self:createESCORTOperationForFlight(flight))
+            end
+        end
+
+        for _, active_op in ipairs(self.active_operations) do
+            if active_op.type ~= OperationTypes.ESCORT
+            and active_op.status == OperationStatus.ACTIVE
+            and not offered["PLAYER:" .. tostring(active_op.code)]
+            and self:isEscortableTaskType(active_op.type) then
+                local op = self:createESCORTOperationForPlayers(active_op)
+                if op then
+                    table.insert(self.available_operations, op)
+                end
+            end
+        end
+    end
+
+    ---@param op Operation
+    ---@return string
+    function OperationManager:formatEscortBriefing(op)
+        local lines = { "Flight: " .. escortFlightLabel(op) }
+        if op.escort_source == "AI" and op.launch_abs_time then
+            if op.escort_launched then
+                table.insert(lines, "Launched: " .. formatClock(op.launch_abs_time))
+            else
+                local minutes = math.max(0, math.ceil((op.launch_abs_time - timer.getAbsTime()) / 60))
+                table.insert(lines, string.format("Launch: %s (in %d min)", formatClock(op.launch_abs_time), minutes))
+            end
+            table.insert(lines, string.format("Route: %s -> %s",
+                op.escort_departure_name or "nearest airbase", op.escort_destination_name or "unknown"))
+        else
+            table.insert(lines, "Status: airborne or starting up now")
+            if op.escort_destination_name then
+                table.insert(lines, "Destination: " .. op.escort_destination_name)
+            end
+        end
+        return table.concat(lines, "\n")
+    end
+
+    ---Bearing / range / altitude from a participant to the escorted lead.
+    ---@param op Operation
+    ---@param unit Unit participant
+    ---@return string
+    function OperationManager:formatEscortStatus(op, unit)
+        local lead = self:getEscortedLead(op)
+        if not lead then
+            if op.escort_source == "AI" and not op.escort_launched then
+                return "Escorted flight: awaiting launch"
+            end
+            return "Escorted flight: no contact"
+        end
+
+        local lead_pos = lead:getPoint()
+        local own_pos = unit:getPoint()
+        ---@diagnostic disable-next-line: deprecated
+        local bearing = math.deg(math.atan2(lead_pos.z - own_pos.z, lead_pos.x - own_pos.x)) % 360
+        local range_nm = mist.utils.metersToNM(mist.utils.get2DDist(own_pos, lead_pos))
+
+        local alt_txt = "ALT ON GROUND"
+        if lead:inAir() then
+            local alt_ft = math.floor(mist.utils.metersToFeet(lead_pos.y) / 100 + 0.5) * 100
+            alt_txt = string.format("ALT %d ft", alt_ft)
+        end
+        return string.format("Escorted lead: BRG %03d / %.1f NM / %s", math.floor(bearing + 0.5) % 360, range_nm, alt_txt)
+    end
+
+    ---Accepting an escort: hook it to the queued flight, or start tracking the players.
+    ---@param op Operation
+    function OperationManager:activateEscort(op)
+        if op.escort_source == "AI" then
+            local flight = AICommander:findPlannedFlight(self.side, op.planned_flight_id)
+            if not flight then
+                self:failEscortOperation(op, "the escorted flight is no longer planned")
+                return
+            end
+            flight.escort_code = op.code
+            -- Launch from the base given in the briefing
+            flight.pin_departure = true
+            -- The escort op owns the flight's single callback slot
+            flight.on_launched = function(f)
+                self:onEscortedFlightLaunched(op, f)
+            end
+            flight.on_cancelled = function(_, reason)
+                self:failEscortOperation(op, "flight cancelled, " .. reason)
+            end
+            return
+        end
+
+        local escorted_op = self:findActiveOperationByCode(op.escorted_op_code)
+        op.escorted_unit_names = escorted_op and self:getOperationPlayerUnits(escorted_op) or {}
+        if #op.escorted_unit_names == 0 then
+            self:failEscortOperation(op, "the escorted pilots are no longer flying")
+            return
+        end
+        op.escort_launched = true
+        for _, unit_name in ipairs(op.escorted_unit_names) do
+            local unit = Unit.getByName(unit_name)
+            if unit and unit:isExist() and unit:inAir() then
+                op.escort_airborne = true
+            end
+        end
+        self:startEscortTracker(op)
+    end
+
+    ---@param op Operation
+    ---@param flight PlannedFlight
+    function OperationManager:onEscortedFlightLaunched(op, flight)
+        if not self:isOperationActive(op) then
+            self:releaseEscortFlight(op, flight)
+            return
+        end
+
+        op.escort_launched = true
+        op.escorted_group_name = flight.group_name
+        op.escorted_unit_names = {}
+        local group = flight.group_name and Group.getByName(flight.group_name)
+        if group and group:isExist() then
+            for _, unit in ipairs(group:getUnits() or {}) do
+                table.insert(op.escorted_unit_names, unit:getName())
+            end
+        end
+        if #op.escorted_unit_names == 0 then
+            self:failEscortOperation(op, "the escorted flight could not be tracked after spawning")
+            return
+        end
+
+        local lead = Unit.getByName(op.escorted_unit_names[1])
+        op.escort_aircraft_count = #op.escorted_unit_names
+        op.escort_aircraft_type = (lead and lead:getTypeName()) or op.escort_aircraft_type
+        if flight.departure_zone and flight.pin_departure then
+            op.escort_departure_name = flight.departure_zone.name
+        end
+
+        self:notifyParticipants(op, string.format("%s: %s is starting up at %s.",
+            op.operation_name, escortFlightLabel(op), op.escort_departure_name or "its airbase"), 15, "radio_txrx.ogg")
+        self:startEscortTracker(op)
+    end
+
+    ---Detach the escort from its queued flight so the flight launches normally.
+    ---@param op Operation
+    ---@param flight PlannedFlight|nil
+    function OperationManager:releaseEscortFlight(op, flight)
+        if op.escort_source ~= "AI" then return end
+        flight = flight or AICommander:findPlannedFlight(self.side, op.planned_flight_id)
+        if not flight or flight.escort_code ~= op.code then return end
+        flight.escort_code = nil
+        flight.pin_departure = false
+        flight.on_launched = nil
+        flight.on_cancelled = nil
+    end
+
+    ---@param op Operation
+    ---@param reason string
+    function OperationManager:failEscortOperation(op, reason)
+        if not self:isOperationActive(op) then return end
+        op.status = OperationStatus.FAILED
+        self:notifyParticipants(op, string.format("Operation %s failed: %s.", op.operation_name, reason), 15, "chatter3.ogg")
+        trigger.action.outTextForCoalition(self.side, "SITREP: " .. op.operation_name .. " operation failed!", 15)
+        self:releaseEscortFlight(op)
+        self:removeOperationMarker(op)
+        for i = #self.active_operations, 1, -1 do
+            if self.active_operations[i] == op then
+                table.remove(self.active_operations, i)
+            end
+        end
+        MissionLogger:info("[ESCORT] " .. op.operation_name .. " failed: " .. reason)
+    end
+
+    ---Reports bearing/range/altitude to every escort every tracker_interval seconds.
+    ---@param op Operation
+    function OperationManager:startEscortTracker(op)
+        local interval = Config.operations.escort.tracker_interval or 30
+        timer.scheduleFunction(function(_, time)
+            if MISSION_ENDED == true then return nil end
+            if op.escort_landed or not self:isOperationActive(op) then return nil end
+            self:escortTrackerTick(op)
+            if op.escort_landed or not self:isOperationActive(op) then return nil end
+            return time + interval
+        end, nil, timer.getTime() + 1)
+    end
+
+    ---@param op Operation
+    function OperationManager:escortTrackerTick(op)
+        local alive = 0
+        for _, unit_name in ipairs(op.escorted_unit_names or {}) do
+            local unit = Unit.getByName(unit_name)
+            if unit and unit:isExist() then
+                alive = alive + 1
+                if unit:inAir() then op.escort_airborne = true end
+            end
+        end
+        -- A unit that vanished without a death event (despawned, stuck-on-ramp
+        -- replacement, ...) cannot be protected anymore.
+        if alive < #(op.escorted_unit_names or {}) then
+            self:failEscortOperation(op, "contact lost with the escorted flight")
+            return
+        end
+
+        self:forEachParticipant(op, function(unit_id, unit)
+            trigger.action.outTextForUnit(unit_id, op.operation_name .. "\n" .. self:formatEscortStatus(op, unit), 10)
+        end)
+    end
+
+    ---@param place Airbase|nil
+    ---@return boolean
+    function OperationManager:isFriendlyBase(place)
+        if not place or not place.getCoalition then return false end
+        return place:getCoalition() == self.side
+    end
+
+    ---@param op Operation
+    ---@return boolean
+    local function allEscortedAlive(op)
+        for _, unit_name in ipairs(op.escorted_unit_names or {}) do
+            local unit = Unit.getByName(unit_name)
+            if not unit or not unit:isExist() or unit:getLife() < 1 then return false end
+        end
+        return true
+    end
+
+    -- Built by loop so an event id missing from an older DCS build is skipped, not a nil key.
+    local escort_loss_events = {}
+    for _, event_name in ipairs({"S_EVENT_DEAD", "S_EVENT_CRASH", "S_EVENT_EJECTION", "S_EVENT_PILOT_DEAD", "S_EVENT_UNIT_LOST"}) do
+        if world.event[event_name] then
+            escort_loss_events[world.event[event_name]] = true
+        end
+    end
+
+    ---Success/failure of escort ops, driven by events on the escorted units.
+    ---@param event table
+    function OperationManager:onEscortEvent(event)
+        local id = event.id
+        if not (escort_loss_events[id] or id == world.event.S_EVENT_LAND
+        or id == world.event.S_EVENT_TAKEOFF or id == world.event.S_EVENT_PLAYER_LEAVE_UNIT) then
+            return
+        end
+        if not event.initiator or not event.initiator.getName then return end
+        local unit_name = event.initiator.unit_name or event.initiator:getName()
+        if not unit_name then return end
+
+        local completed = false
+        for i = #self.active_operations, 1, -1 do
+            local op = self.active_operations[i]
+            if op and op.type == OperationTypes.ESCORT and not op.escort_landed
+            and utils.tableContains(op.escorted_unit_names or {}, unit_name) then
+                if id == world.event.S_EVENT_TAKEOFF then
+                    op.escort_airborne = true
+                elseif id == world.event.S_EVENT_LAND then
+                    if op.escort_airborne and self:isFriendlyBase(event.place) and allEscortedAlive(op) then
+                        op.escort_landed = true
+                        completed = true
+                        local base_name = event.place.getName and event.place:getName() or "a friendly base"
+                        self:notifyParticipants(op, string.format("%s: %s has landed safely at %s.",
+                            op.operation_name, escortFlightLabel(op), base_name), 15, "radio_txrx.ogg")
+                        MissionLogger:info("[ESCORT] " .. op.operation_name .. " escorted flight landed at " .. base_name)
+                    end
+                elseif id == world.event.S_EVENT_PLAYER_LEAVE_UNIT then
+                    self:failEscortOperation(op, "an escorted pilot left the aircraft")
+                else
+                    self:failEscortOperation(op, "an escorted aircraft was lost")
+                end
+            end
+        end
+
+        -- Rewards are handed out by the regular objective check
+        if completed then
+            self:checkObjectives()
+        end
+    end
+
     ---@param unit Unit
     ---@param show_joint_op_only boolean|nil -- If true, only show operations that support joint operations
     function OperationManager:showAvailableOperations(unit, show_joint_op_only)
         if not unit or not unit:isExist() or not unit.getPlayerName or not unit.hasAttribute then return end
 
         self:generateOperations()
+        -- Not behind the generation cooldown: escort offers follow the dispatcher queue
+        self:syncEscortOperations()
 
         ---@type Operation[]
         local unit_supported_operations = {}
         local unit_type = unit:getTypeName()
-        
-        -- Filter operations based on distance from home base
+        local unit_id = unit:getID()
+
+        -- Sort by distance from home base. Operations without a known point (CSAR) go last,
+        -- which keeps the comparator a strict ordering.
+        local home_point = self.home_airbase.zone.point
+        local sort_distance = {}
+        for _, op in ipairs(self.available_operations) do
+            local point
+            if op.type == OperationTypes.ESCORT then
+                point = self:getOperationTargetPoint(op)
+            else
+                local zone = ZoneHandler.getFromName(op.target_zone_name)
+                point = zone and zone.zone and zone.zone.point
+            end
+            sort_distance[op] = point and mist.utils.get2DDist(home_point, point) or math.huge
+        end
         table.sort(self.available_operations, function(a, b)
-            local zone_a = ZoneHandler.getFromName(a.target_zone_name)
-            local zone_b = ZoneHandler.getFromName(b.target_zone_name)
-            if not zone_a or not zone_b then return false end
-            local dist_a = mist.utils.get2DDist(self.home_airbase.zone.point, zone_a.zone.point)
-            local dist_b = mist.utils.get2DDist(self.home_airbase.zone.point, zone_b.zone.point)
-            return dist_a < dist_b
+            return sort_distance[a] < sort_distance[b]
         end)
 
         -- Filter operations based on aircraft_filter configuration
         for _, op in ipairs(self.available_operations) do
             local is_allowed = true
+
+            -- Do not offer pilots an escort of their own operation
+            if op.type == OperationTypes.ESCORT and op.escorted_op_code then
+                local escorted_op = self:findActiveOperationByCode(op.escorted_op_code)
+                if escorted_op and (escorted_op.assigned_player_id == unit_id
+                or (escorted_op.joint_op_members and escorted_op.joint_op_members[unit_id])) then
+                    is_allowed = false
+                end
+            end
 
             -- Check if there's a filter for this operation type, if not allow it
             if Config.operations.aircraft_filter and Config.operations.aircraft_filter[op.type] then
@@ -1984,17 +2559,25 @@ do
             if operations_displayed >= 8 then
                 break
             end
+            -- One op per type, except escorts: one per escorted flight/task (ESCORT - CAS, ESCORT - SEAD...)
+            local display_key = (op.type == OperationTypes.ESCORT) and op.operation_name or op.type
             if show_joint_op_only and not op.is_joint_op then
                 -- Skip non-joint operations if filtering for joint ops only
-            elseif not utils.tableContains(operation_types_displayed, op.type) then
-                local tgt_zone = op.target_zone_name
-                if op.type == OperationTypes.RECON or op.type == OperationTypes.DEEP_RECON then
-                    tgt_zone = "Undiscovered Location"
-                elseif op.type == OperationTypes.CSAR then
-                    tgt_zone = "Emergency Rescue"
+            elseif not utils.tableContains(operation_types_displayed, display_key) then
+                if op.type == OperationTypes.ESCORT then
+                    outtext = outtext .. "\n\n " .. op.operation_name
+                    for line in string.gmatch(self:formatEscortBriefing(op), "[^\n]+") do
+                        outtext = outtext .. "\n " .. line
+                    end
+                else
+                    local tgt_zone = op.target_zone_name
+                    if op.type == OperationTypes.RECON or op.type == OperationTypes.DEEP_RECON then
+                        tgt_zone = "Undiscovered Location"
+                    elseif op.type == OperationTypes.CSAR then
+                        tgt_zone = "Emergency Rescue"
+                    end
+                    outtext = outtext .. string.format("\n\n %s - %s", op.type, tgt_zone)
                 end
-
-                outtext = outtext .. string.format("\n\n %s - %s", op.type, tgt_zone)
 
                 for _, obj in ipairs(op.objectives) do
                     outtext = outtext .. "\n - " .. obj.description
@@ -2003,10 +2586,9 @@ do
                 outtext = outtext .. "\n Reward: " .. (op.xp_reward or 500) .. " XP"
                 outtext = outtext .. "\n Operation code: " .. op.code
                 operations_displayed = operations_displayed + 1
-                table.insert(operation_types_displayed, op.type)
+                table.insert(operation_types_displayed, display_key)
             end
         end
-        local unit_id = unit:getID()
         trigger.action.outTextForUnit(unit_id, outtext, 30)
         trigger.action.outSoundForUnit(unit_id,"radio_txrx.ogg")
     end
@@ -2029,6 +2611,8 @@ do
 
                 if active_op.type == OperationTypes.STRATEGIC_AIRLIFT then
                     self:cancelStrategicAirliftOperation(active_op, true)
+                elseif active_op.type == OperationTypes.ESCORT then
+                    self:releaseEscortFlight(active_op)
                 elseif active_op.operation_id then
                     ctld.clearOperationContextForOperation(active_op.operation_id)
                 end
@@ -2349,6 +2933,13 @@ do
             end
         end
 
+        if accepted_mission.type == OperationTypes.ESCORT and not self:isEscortOfferValid(accepted_mission, true) then
+            trigger.action.outTextForUnit(unit_id, "Operation Aborted: the escorted flight is no longer available.", 10)
+            trigger.action.outSoundForUnit(unit_id, "radio_txrx.ogg")
+            table.remove(self.available_operations, mission_index)
+            return
+        end
+
         if accepted_mission.type == OperationTypes.STRATEGIC_AIRLIFT then
             if not ctld or not ctld.getAircraftLimit then
                 trigger.action.outTextForUnit(unit_id, "Strategic Airlift unavailable: CTLD is not initialized.", 10)
@@ -2388,7 +2979,9 @@ do
 
         -- For CSAR operations, handle differently
         local zone_tgt = nil
-        if accepted_mission.type == OperationTypes.CSAR then
+        if accepted_mission.type == OperationTypes.ESCORT then
+            -- No target zone: the escorted flight is the objective
+        elseif accepted_mission.type == OperationTypes.CSAR then
             -- CSAR doesn't need a zone, it uses pilot_position
             if not accepted_mission.pilot_position then
                 trigger.action.outTextForUnit(unit_id, "Error: Pilot position not found.", 10)
@@ -2469,10 +3062,29 @@ do
         
         table.insert(self.active_operations, accepted_mission)
 
+        if accepted_mission.type == OperationTypes.ESCORT then
+            self:activateEscort(accepted_mission)
+            -- activateEscort fails the op when the escorted flight vanished meanwhile
+            if not self:isOperationActive(accepted_mission) then return end
+        end
+
         local outtxt = string.format("\n%s Operation %s Initiated", accepted_mission.type, accepted_mission.operation_name)
 
+        if accepted_mission.type == OperationTypes.ESCORT then
+            outtxt = outtxt .. "\n\n" .. self:formatEscortBriefing(accepted_mission)
+            local meet_point = self:getOperationTargetPoint(accepted_mission)
+            if meet_point then
+                local lat, lon = coord.LOtoLL(meet_point)
+                local mgrs = coord.LLtoMGRS(lat, lon)
+                local label = (accepted_mission.escort_source == "AI" and not accepted_mission.escort_launched)
+                    and "Departure base" or "Escorted lead position"
+                outtxt = outtxt .. string.format("\n\n%s:\n%s\n%s\nMGRS: %s", label,
+                    mist.tostringLL(lat, lon, 4), mist.tostringLL(lat, lon, 4, true), mist.tostringMGRS(mgrs, 4))
+            end
+            outtxt = outtxt .. string.format("\n\nBearing, range and altitude to the escorted lead are sent every %ds once it has launched.",
+                Config.operations.escort.tracker_interval or 30)
         -- Handle CSAR-specific activation
-        if accepted_mission.type == OperationTypes.CSAR then
+        elseif accepted_mission.type == OperationTypes.CSAR then
             -- Spawn smoke at pilot location
             if not accepted_mission.smoke_spawned then
                 trigger.action.smoke(accepted_mission.pilot_position, trigger.smokeColor.Blue)
@@ -2570,8 +3182,11 @@ do
                 local player_unit = player_unit_for_cap or Unit.getByName(op.assigned_unit_name)
 
                 -- AIRDROP operations can be checked even if player unit doesn't exist
-                -- (crates can land after player RTB/ejects/crashes)
-                local can_check_objectives = (player_unit and player_unit:isExist()) or op.type == OperationTypes.AIRDROP
+                -- (crates can land after player RTB/ejects/crashes).
+                -- ESCORT success comes from the escorted flight, not the leader.
+                local can_check_objectives = (player_unit and player_unit:isExist())
+                    or op.type == OperationTypes.AIRDROP
+                    or op.type == OperationTypes.ESCORT
                 
                 if can_check_objectives and not skip_operation then
                     for _, obj in ipairs(op.objectives) do
