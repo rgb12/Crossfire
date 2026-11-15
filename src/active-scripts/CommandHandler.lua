@@ -576,11 +576,15 @@ do
         -- Clear existing resources menu before rebuilding
         CommandHandler.clearMenu(gr, "logistics_main")
 
+        local unit = gr:getUnit(1)
+        if not unit or not unit:isExist() or not unit.getCoalition then
+            return
+        end
+
           -- Create the root menu for this update
         local logistics_main_submenu = missionCommands.addSubMenuForGroup(gr_id,"Logistics",nil)
         CommandHandler.addToMenuTracking(gr_id, logistics_main_submenu, "logistics_main")
-        local unit = gr:getUnit(1)
-        if unit and unit:isExist() and unit.getCoalition then
+        do
             local side = unit:getCoalition()
 
             missionCommands.addCommandForGroup(gr_id, "List Supplies", logistics_main_submenu, function ()
@@ -991,13 +995,16 @@ do
 
         CommandHandler.clearMenu(gr, "tasking_main")
 
+        local side = gr:getCoalition()
+        local unit = gr:getUnit(1)
+
+        if not unit or not unit:isExist() or not unit.getCoalition then
+            return
+        end
+
         -- Create the root menu for this update
         local tasking_main_submenu = missionCommands.addSubMenuForGroup(gr_id,"Request Tasking",nil)
         CommandHandler.addToMenuTracking(gr_id, tasking_main_submenu, "tasking_main")
-
-
-        local side = gr:getCoalition()
-        local unit = gr:getUnit(1)
 
         local function getSideCommsTowers()
             if side == coalition.side.BLUE then
@@ -1083,8 +1090,6 @@ do
             end
         end
 
-        unit = unit or gr:getUnit(1)
-        if not unit or not unit:isExist() or not unit.getCoalition then return end
         local enemy_side = utils.getEnemyCoalition(side)
 
         local function getDiscoveredZones()
