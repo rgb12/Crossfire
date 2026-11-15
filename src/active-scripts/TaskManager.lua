@@ -12,6 +12,41 @@ do
     ---@type table<number, boolean>
     TaskManager.assignedTACANS = {}
 
+    -- Navaids that ships carry on their first waypoint
+    local NAVAL_NAVAID_COMMANDS = {
+        ActivateBeacon = true,
+        ActivateICLS   = true,
+        ActivateLink4  = true,
+        ActivateACLS   = true,
+    }
+
+    -- After an external time injection, carrier/LHA navaids set on the first waypoint
+    -- were observed not to transmit at mission start. Assigning them again once the mission is running.
+    local function reactivateNavalNavaids()
+        for _, coal_data in pairs((env.mission and env.mission.coalition) or {}) do
+            for _, ctry in pairs(coal_data.country or {}) do
+                for _, grp_def in pairs((ctry.ship and ctry.ship.group) or {}) do
+                    local grp = Group.getByName(grp_def.name)
+                    if grp and grp:isExist() then
+                        local ctrl = grp:getController()
+                        local wp1 = grp_def.route and grp_def.route.points and grp_def.route.points[1]
+                        local tasks = wp1 and wp1.task and wp1.task.params and wp1.task.params.tasks or {}
+                        for _, t in ipairs(tasks) do
+                            local act = type(t) == "table" and t.enabled ~= false and t.params and t.params.action
+                            if act and NAVAL_NAVAID_COMMANDS[act.id] then
+                                ctrl:setCommand(act)
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end
+
+    timer.scheduleFunction(function ()
+        reactivateNavalNavaids()
+    end, nil, timer.getTime() + 2)
+
     local STUCK_CHECK_DELAY = 300   -- seconds (5 min) after spawn to test movement
     local STUCK_MOVE_THRESH = 25    -- metres; moved less than this == stuck
     local AIRSPAWN_ALT_FT   = 8000  -- altitude (ft AGL) for the rescue air-spawn
@@ -34,12 +69,17 @@ do
             unit.unitId = nil
         end
 
-        -- Clear late-activation / uncontrolled flags
-        group_data.lateActivation = false
-        group_data.uncontrolled   = false
-
         if not group_data.route        then group_data.route        = {} end
         if not group_data.route.points then group_data.route.points = {} end
+
+        -- Clear late-activation / uncontrolled flags
+        group_data.lateActivation = false
+        group_data.start_time     = 0
+        group_data.uncontrolled   = false
+        local _, wp1 = next(group_data.route.points)
+        if type(wp1) == "table" then
+            wp1.ETA = 0
+        end
 
         -- Unique names prevent collisions on repeat / simultaneous spawns
         local stamp    = string.format("%d_%d", math.floor(timer.getTime()), math.random(100, 999))
@@ -95,7 +135,7 @@ do
 
     ---@param template_name string
     ---@param airbase Airbase
-    ---@param on_respawn fun(new_group:table)|nil 
+    ---@param on_respawn fun(new_group:table)|nil
     ---@return table|boolean
     function TaskManager:spawnAIFlightFromParking(template_name, airbase, on_respawn)
         if not airbase then return false end
@@ -702,9 +742,9 @@ do
             if not template_name then return false end
 
             local new_group = self:spawnAIFlightFromParking(template_name, airbase)
-            if not new_group then 
+            if not new_group then
                 MissionLogger:info("[SEAD] Failed to spawn SEAD flight (possibly airbase "..source_airbase.name.." parking too small).")
-                return false 
+                return false
             end
 
             local ai_enroute_data = EnrouteManager:add({
@@ -759,7 +799,7 @@ do
             if not template_name then return false end
 
             local new_group = self:spawnAIFlightFromParking(template_name, airbase)
-            if not new_group then 
+            if not new_group then
                 MissionLogger:info("[STRIKE] Failed to spawn STRIKE flight (possibly airbase "..source_airbase.name.." parking too small).")
                 return false
             end
@@ -2024,7 +2064,7 @@ do
                     tasks = tasks
                 }
             }
-     
+
             local missionTask = {
                 id = 'Mission',
                 params = {
@@ -2064,7 +2104,7 @@ do
                 action = AI.Task.TurnMethod.FIN_POINT,
                 alt_type = AI.Task.AltitudeType.RADIO
             })
-            
+
             -- 4. Set the complete mission
             ctrl:setTask(missionTask)
 
@@ -2213,14 +2253,14 @@ do
                 type = AI.Task.WaypointType.TURNING_POINT,
                 x = ipPos.x,
                 y = ipPos.y,
-                speed = 257, 
+                speed = 257,
                 action = AI.Task.TurnMethod.FLY_OVER_POINT,
                 alt = mist.utils.feetToMeters(30000),
                 alt_type = AI.Task.AltitudeType.BARO,
-                task = attackTask 
+                task = attackTask
             })
 
-            -- Waypoint 3: LAND 
+            -- Waypoint 3: LAND
             -- They will turn back after the attack (or if out of ammo)
             table.insert(missionTask.params.route.points, {
                 type = AI.Task.WaypointType.LAND,
@@ -2233,7 +2273,7 @@ do
             -- 5. Set Task & Options
             ctrl:setTask(missionTask)
 
-            -- IMPORTANT: Passive Defence allows them to pop flares but MAINTAIN course/lock. 
+            -- IMPORTANT: Passive Defence allows them to pop flares but MAINTAIN course/lock.
             -- 'Evade Fire' makes them turn cold immediately, ruining the HARM shot.
             ctrl:setOption(AI.Option.Air.id.REACTION_ON_THREAT, AI.Option.Air.val.REACTION_ON_THREAT.PASSIVE_DEFENCE)
 
@@ -2289,7 +2329,7 @@ do
                     altitudeEnabled = true,
                 }
             }
-     
+
             -- 3. Build the full 'Mission' wrapper (based on Pretense logic)
             local missionTask = {
                 id = 'Mission',
@@ -2320,7 +2360,7 @@ do
                 action = AI.Task.TurnMethod.FLY_OVER_POINT,
                 alt = 5791, -- 19k ft
                 alt_type = AI.Task.AltitudeType.BARO,
-                task = attackTask 
+                task = attackTask
             })
 
             -- Waypoint 3: LAND (Return to the original airbase)
@@ -2364,7 +2404,7 @@ do
             -- 1. Get the group's current position (at the airbase)
             local startPos = mist.getLeadPos(recon_group_name)
             if not startPos then return end
-            
+
             -- 2. Define the Orbit task
             local orbitTask = {
                 id = 'Orbit',
@@ -2375,7 +2415,7 @@ do
                     altitude = 7620 -- 25k ft
                 }
             }
-            
+
             -- 3. Build the full 'Mission' wrapper
             local missionTask = {
                 id = 'Mission',
@@ -2418,7 +2458,7 @@ do
                 alt = mist.utils.feetToMeters(21000),
                 alt_type = AI.Task.AltitudeType.BARO,
             })
-            
+
             -- 4. Set the complete mission
             ctrl:setTask(missionTask)
 
@@ -2609,7 +2649,7 @@ do
         end
 
         local tankerTask = { id = 'Tanker', params = {} }
-            
+
         local eplrsTask = {
             id = "WrappedAction",
             params = {
@@ -2656,7 +2696,7 @@ do
                 clockWise = clock_wise
             }
         }
-        
+
         local comboTask = {
             id = 'ComboTask',
             params = {
