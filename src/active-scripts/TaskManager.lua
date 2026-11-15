@@ -12,39 +12,29 @@ do
     ---@type table<number, boolean>
     TaskManager.assignedTACANS = {}
 
-    -- Clear start_time across mist.DBs.groupsByName so mist.teleportToPoint and mist.cloneInZone
-    -- (Tankers, JTACs, Convoys, Capture Helos) never inherit an Atmos-X-shifted start_time
-    local function sanitizeMissionStartTimes()
-        for _, grp_data in pairs((mist and mist.DBs and mist.DBs.groupsByName) or {}) do
-            if type(grp_data) == "table" then
-                grp_data.start_time = 0
-                local pts = grp_data.route and grp_data.route.points
-                local _, wp1 = pts and next(pts)
-                if type(wp1) == "table" then
-                    wp1.ETA = 0
-                end
-            end
-        end
+    -- Navaids that ships carry on their first waypoint
+    local NAVAL_NAVAID_COMMANDS = {
+        ActivateBeacon = true,
+        ActivateICLS   = true,
+        ActivateLink4  = true,
+        ActivateACLS   = true,
+    }
 
-        -- Whenever Atmos-X shifts start_time on the naval group, DCS holds back Waypoint 0's ActivateBeacon,
-        -- ActivateICLS, ActivateLink4, and ActivateACLS tasks until that future timestamp. Calling ctrl:setCommand(act)
-        -- on mission start forces them on immediately.
+    -- After an external time injection, carrier/LHA navaids set on the first waypoint
+    -- were observed not to transmit at mission start. Assigning them again once the mission is running.
+    local function reactivateNavalNavaids()
         for _, coal_data in pairs((env.mission and env.mission.coalition) or {}) do
             for _, ctry in pairs(coal_data.country or {}) do
                 for _, grp_def in pairs((ctry.ship and ctry.ship.group) or {}) do
                     local grp = Group.getByName(grp_def.name)
                     if grp and grp:isExist() then
                         local ctrl = grp:getController()
-                        local pts = grp_def.route and grp_def.route.points
-                        local _, wp1 = pts and next(pts)
+                        local wp1 = grp_def.route and grp_def.route.points and grp_def.route.points[1]
                         local tasks = wp1 and wp1.task and wp1.task.params and wp1.task.params.tasks or {}
-                        for _, t in pairs(tasks) do
-                            if type(t) == "table" and t.enabled ~= false and t.params and t.params.action then
-                                local act = t.params.action
-                                if act.id == "ActivateBeacon" or act.id == "ActivateICLS"
-                                or act.id == "ActivateLink4" or act.id == "ActivateACLS" then
-                                    ctrl:setCommand(act)
-                                end
+                        for _, t in ipairs(tasks) do
+                            local act = type(t) == "table" and t.enabled ~= false and t.params and t.params.action
+                            if act and NAVAL_NAVAID_COMMANDS[act.id] then
+                                ctrl:setCommand(act)
                             end
                         end
                     end
@@ -53,9 +43,9 @@ do
         end
     end
 
-    timer.scheduleFunction(function()
-        sanitizeMissionStartTimes()
-    end, {}, timer.getTime() + 2)
+    timer.scheduleFunction(function ()
+        reactivateNavalNavaids()
+    end, nil, timer.getTime() + 2)
 
     local STUCK_CHECK_DELAY = 300   -- seconds (5 min) after spawn to test movement
     local STUCK_MOVE_THRESH = 25    -- metres; moved less than this == stuck
