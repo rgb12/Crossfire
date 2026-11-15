@@ -5,6 +5,7 @@
 ---@field status OperationStatus
 ---@field target_zone_name string
 ---@field operation_name string
+---@field escort_label string|nil ESCORT only: "ESCORT - CAS" / "ESCORT - pilot names"
 ---@field assigned_player_id number | nil
 ---@field assigned_unit_name string | nil
 ---@field xp_reward number
@@ -191,6 +192,21 @@ do
             trigger.action.outTextForUnit(unit_id, text, duration)
             if sound then trigger.action.outSoundForUnit(unit_id, sound) end
         end)
+    end
+
+    ---@param op Operation
+    ---@param success boolean
+    ---@param reason string|nil failure reason (ignored on success)
+    ---@param duration number|nil
+    function OperationManager:announceOperationResult(op, success, reason, duration)
+        local name = string.upper(op.operation_name or "UNKNOWN")
+        local text
+        if success then
+            text = string.format("SITREP OPERATION %s success !", name)
+        else
+            text = string.format("SITREP OPERATION %s failed, %s", name, reason or "unknown reason")
+        end
+        trigger.action.outTextForCoalition(self.side, text, duration or 15)
     end
 
     ---First escorted unit still alive (the "lead" the tracker points to).
@@ -490,7 +506,7 @@ do
                             -- If no new leader found, fail the operation
                             if not new_leader_found then
                                 op.status = OperationStatus.FAILED
-                                trigger.action.outTextForCoalition(self.side, "Operation " .. op.operation_name .. " failed: all operatives lost.", 15)
+                                self:announceOperationResult(op, false, "all operatives lost")
                                 if op.type == OperationTypes.STRATEGIC_AIRLIFT then
                                     self:cancelStrategicAirliftOperation(op, true)
                                 end
@@ -500,7 +516,7 @@ do
                         else
                             -- Solo operation - fail it
                             op.status = OperationStatus.FAILED
-                            trigger.action.outTextForCoalition(self.side, "SITREP: " .. op.operation_name .. " operation failed!.", 15)
+                            self:announceOperationResult(op, false, "operative lost")
                             if op.type == OperationTypes.STRATEGIC_AIRLIFT then
                                 self:cancelStrategicAirliftOperation(op, true)
                             end
@@ -673,7 +689,7 @@ do
                             
                             if not new_leader_found then
                                 op.status = OperationStatus.FAILED
-                                trigger.action.outTextForCoalition(self.side, op.type .. " Operation " .. op.operation_name .. " failed: all operatives left.", 15)
+                                self:announceOperationResult(op, false, "all operatives left")
                                 trigger.action.outSoundForCoalition(self.side, "radio_txrx.ogg")
                                 
                                 if op.type == OperationTypes.STRATEGIC_AIRLIFT then
@@ -685,7 +701,7 @@ do
                         else
                             -- Solo operation - fail it
                             op.status = OperationStatus.FAILED
-                            trigger.action.outTextForCoalition(self.side, op.type .. " " .. op.operation_name .. " operation failed, operative left.", 15)
+                            self:announceOperationResult(op, false, "operative left")
                             if op.type == OperationTypes.STRATEGIC_AIRLIFT then
                                 self:cancelStrategicAirliftOperation(op, true)
                             end
@@ -2073,7 +2089,8 @@ do
             status = OperationStatus.AVAILABLE,
             xp_reward = math.random(escort_config.min_xp or 10, escort_config.max_xp or 14) * 100,
             target_zone_name = "Escort Flight",
-            operation_name = "ESCORT - " .. flight.ai_task_type,
+            operation_name = operations_name[math.random(#operations_name)],
+            escort_label = "ESCORT - " .. flight.ai_task_type,
             is_joint_op = true,
             joint_op_leader_id = nil,
             joint_op_leader_name = nil,
@@ -2126,7 +2143,8 @@ do
             status = OperationStatus.AVAILABLE,
             xp_reward = math.random(escort_config.min_xp or 10, escort_config.max_xp or 14) * 100,
             target_zone_name = "Escort Flight",
-            operation_name = "ESCORT - " .. table.concat(player_names, "; "),
+            operation_name = operations_name[math.random(#operations_name)],
+            escort_label = "ESCORT - " .. table.concat(player_names, "; "),
             is_joint_op = true,
             joint_op_leader_id = nil,
             joint_op_leader_name = nil,
@@ -2182,7 +2200,7 @@ do
         local unit_names, player_names = self:getOperationPlayerUnits(escorted_op)
         if #unit_names == 0 then return false end
         -- Joint members may have joined since the offer was made
-        op.operation_name = "ESCORT - " .. table.concat(player_names, "; ")
+        op.escort_label = "ESCORT - " .. table.concat(player_names, "; ")
         op.escort_aircraft_count = #unit_names
         return true
     end
@@ -2296,7 +2314,7 @@ do
                 self:onEscortedFlightLaunched(op, f)
             end
             flight.on_cancelled = function(_, reason)
-                self:failEscortOperation(op, "flight cancelled, " .. reason)
+                self:failEscortOperation(op, "escorted flight cancelled (" .. tostring(reason) .. ")")
             end
             return
         end
@@ -2304,7 +2322,7 @@ do
         local escorted_op = self:findActiveOperationByCode(op.escorted_op_code)
         op.escorted_unit_names = escorted_op and self:getOperationPlayerUnits(escorted_op) or {}
         if #op.escorted_unit_names == 0 then
-            self:failEscortOperation(op, "the escorted pilots are no longer flying")
+            self:failEscortOperation(op, "escorted pilots no longer flying")
             return
         end
         op.escort_launched = true
@@ -2335,7 +2353,7 @@ do
             end
         end
         if #op.escorted_unit_names == 0 then
-            self:failEscortOperation(op, "the escorted flight could not be tracked after spawning")
+            self:failEscortOperation(op, "escorted flight could not be tracked")
             return
         end
 
@@ -2369,8 +2387,10 @@ do
     function OperationManager:failEscortOperation(op, reason)
         if not self:isOperationActive(op) then return end
         op.status = OperationStatus.FAILED
-        self:notifyParticipants(op, string.format("Operation %s failed: %s.", op.operation_name, reason), 15, "chatter3.ogg")
-        trigger.action.outTextForCoalition(self.side, "SITREP: " .. op.operation_name .. " operation failed!", 15)
+        self:announceOperationResult(op, false, reason)
+        self:forEachParticipant(op, function(unit_id)
+            trigger.action.outSoundForUnit(unit_id, "chatter3.ogg")
+        end)
         self:releaseEscortFlight(op)
         self:removeOperationMarker(op)
         for i = #self.active_operations, 1, -1 do
@@ -2378,7 +2398,7 @@ do
                 table.remove(self.active_operations, i)
             end
         end
-        MissionLogger:info("[ESCORT] " .. op.operation_name .. " failed: " .. reason)
+        MissionLogger:info(string.format("[ESCORT] %s (%s) failed: %s", op.operation_name, op.escort_label or "?", reason))
     end
 
     ---Reports bearing/range/altitude to every escort every tracker_interval seconds.
@@ -2407,7 +2427,7 @@ do
         -- A unit that vanished without a death event (despawned, stuck-on-ramp
         -- replacement, ...) cannot be protected anymore.
         if alive < #(op.escorted_unit_names or {}) then
-            self:failEscortOperation(op, "contact lost with the escorted flight")
+            self:failEscortOperation(op, "contact lost with escorted flight")
             return
         end
 
@@ -2465,14 +2485,12 @@ do
                         op.escort_landed = true
                         completed = true
                         local base_name = event.place.getName and event.place:getName() or "a friendly base"
-                        self:notifyParticipants(op, string.format("%s: %s has landed safely at %s.",
-                            op.operation_name, escortFlightLabel(op), base_name), 15, "radio_txrx.ogg")
-                        MissionLogger:info("[ESCORT] " .. op.operation_name .. " escorted flight landed at " .. base_name)
+                        MissionLogger:info(string.format("[ESCORT] %s (%s) escorted flight landed at %s", op.operation_name, op.escort_label or "?", base_name))
                     end
                 elseif id == world.event.S_EVENT_PLAYER_LEAVE_UNIT then
-                    self:failEscortOperation(op, "an escorted pilot left the aircraft")
+                    self:failEscortOperation(op, "escorted pilot left the aircraft")
                 else
-                    self:failEscortOperation(op, "an escorted aircraft was lost")
+                    self:failEscortOperation(op, "escorted aircraft lost")
                 end
             end
         end
@@ -2560,12 +2578,12 @@ do
                 break
             end
             -- One op per type, except escorts: one per escorted flight/task (ESCORT - CAS, ESCORT - SEAD...)
-            local display_key = (op.type == OperationTypes.ESCORT) and op.operation_name or op.type
+            local display_key = (op.type == OperationTypes.ESCORT) and (op.escort_label or op.operation_name) or op.type
             if show_joint_op_only and not op.is_joint_op then
                 -- Skip non-joint operations if filtering for joint ops only
             elseif not utils.tableContains(operation_types_displayed, display_key) then
                 if op.type == OperationTypes.ESCORT then
-                    outtext = outtext .. "\n\n " .. op.operation_name
+                    outtext = outtext .. string.format("\n\n %s - %s", op.operation_name, op.escort_label or OperationTypes.ESCORT)
                     for line in string.gmatch(self:formatEscortBriefing(op), "[^\n]+") do
                         outtext = outtext .. "\n " .. line
                     end
@@ -3168,9 +3186,9 @@ do
                 and timer.getTime() > op.deadline_time then
                     local leader_unit = Unit.getByName(op.assigned_unit_name)
                     if leader_unit and leader_unit:isExist() then
-                        trigger.action.outTextForUnit(leader_unit:getID(), "Strategic Airlift failed: mission timer expired.", 12)
                         trigger.action.outSoundForUnit(leader_unit:getID(), "chatter3.ogg")
                     end
+                    self:announceOperationResult(op, false, "mission timer expired")
                     self:cancelStrategicAirliftOperation(op, true)
                     self:removeOperationMarker(op)
                     table.remove(self.active_operations, i)
@@ -3237,10 +3255,11 @@ do
                                 joint_op_bonus_multiplier = 1.0 + (Config.reward_system.joint_op_xp_bonus or 0.25)
                             end
 
+                            self:announceOperationResult(op, true, nil, 20)
+
                             -- Award XP to all participants
                             for _, participant_unit in ipairs(participants_to_reward) do
                                 local participant_unit_id = participant_unit:getID()
-                                trigger.action.outTextForUnit(participant_unit_id, "Operation " .. op.operation_name .. " completed !", 20)
                                 trigger.action.outSoundForUnit(participant_unit_id,"chatter2.ogg")
 
                                 local user = ExperienceManager:fetchUser(participant_unit)
