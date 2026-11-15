@@ -150,8 +150,8 @@ do
     ---@param op Operation
     ---@return string e.g. "2x Su-25T (CAS)"
     local function escortFlightLabel(op)
-        return string.format("%dx %s (%s)", op.escort_aircraft_count or 1,
-            op.escort_aircraft_type or "aircraft", tostring(op.escort_task_type))
+        return string.format("%dx %s", op.escort_aircraft_count or 1,
+            op.escort_aircraft_type or "aircraft")
     end
 
     ---@param op Operation
@@ -2233,20 +2233,20 @@ do
     ---@param op Operation
     ---@return string
     function OperationManager:formatEscortBriefing(op)
-        local lines = { "Flight: " .. escortFlightLabel(op) }
+        local lines = { "- Flight : " .. escortFlightLabel(op) }
         if op.escort_source == "AI" and op.launch_abs_time then
             if op.escort_launched then
                 table.insert(lines, "Launched: " .. formatClock(op.launch_abs_time))
             else
                 local minutes = math.max(0, math.ceil((op.launch_abs_time - timer.getAbsTime()) / 60))
-                table.insert(lines, string.format("Launch: %s (in %d min)", formatClock(op.launch_abs_time), minutes))
+                table.insert(lines, string.format("- Launch : %s (in %d min)", formatClock(op.launch_abs_time), minutes))
             end
-            table.insert(lines, string.format("Route: %s -> %s",
+            table.insert(lines, string.format("- Route : %s <> %s",
                 op.escort_departure_name or "nearest airbase", op.escort_destination_name or "unknown"))
         else
             table.insert(lines, "Status: airborne or starting up now")
             if op.escort_destination_name then
-                table.insert(lines, "Destination: " .. op.escort_destination_name)
+                table.insert(lines, "- Destination : " .. op.escort_destination_name)
             end
         end
         return table.concat(lines, "\n")
@@ -2346,7 +2346,7 @@ do
             op.escort_departure_name = flight.departure_zone.name
         end
 
-        self:notifyParticipants(op, string.format("%s: %s is starting up at %s.",
+        self:notifyParticipants(op, string.format("%s: %s is starting up at %s",
             op.operation_name, escortFlightLabel(op), op.escort_departure_name or "its airbase"), 15, "radio_txrx.ogg")
         self:startEscortTracker(op)
     end
@@ -3081,8 +3081,7 @@ do
                 outtxt = outtxt .. string.format("\n\n%s:\n%s\n%s\nMGRS: %s", label,
                     mist.tostringLL(lat, lon, 4), mist.tostringLL(lat, lon, 4, true), mist.tostringMGRS(mgrs, 4))
             end
-            outtxt = outtxt .. string.format("\n\nBearing, range and altitude to the escorted lead are sent every %ds once it has launched.",
-                Config.operations.escort.tracker_interval or 30)
+            outtxt = outtxt .. "\n\nBearing, range and altitude to the escorted lead are transmitted once it has launched."
         -- Handle CSAR-specific activation
         elseif accepted_mission.type == OperationTypes.CSAR then
             -- Spawn smoke at pilot location
