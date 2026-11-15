@@ -397,6 +397,41 @@ function Jupiter:onEvent(event)
             else
                 trigger.action.outText("Jupiter: No zone found within 10km for CAS tasking.", 5)
             end
+        elseif command == "-queue" then
+            local task_type ---@type AITaskTypes?
+            if param1 then
+                local wanted = param1:upper():gsub("^%s+", ""):gsub("%s+$", "")
+                for key, value in pairs(AITaskTypes) do
+                    if wanted == key or wanted == value then
+                        task_type = value
+                        break
+                    end
+                end
+            end
+            if not task_type then
+                trigger.action.outText("Jupiter: Usage -queue:<task> (e.g. cas, sead, recon, strike; marker on a friendly airbase).", 5)
+            else
+                local airbase, dist = getClosestZone(vec3)
+                if airbase and dist <= 10000 and airbase.zone_type == ZoneTypes.AIRBASE
+                and (airbase.side == coalition.side.BLUE or airbase.side == coalition.side.RED) then
+                    local side = airbase.side
+                    ---@cast side coalition.side
+                    local target = airbase:getClosestZone(utils.getEnemyCoalition(side))
+                    if target then
+                        local flight = AICommander:planFlight(side, task_type, target, airbase)
+                        flight.departure_zone = airbase
+                        flight.pin_departure = true
+                        local manager = (side == coalition.side.BLUE) and TheatreCommander.blue_op_manager or TheatreCommander.red_op_manager
+                        manager:syncEscortOperations()
+                        trigger.action.outText(string.format("Jupiter: Queued %s from %s to %s.", task_type, airbase.name, target.name), 5)
+                        cmd_executed = true
+                    else
+                        trigger.action.outText("Jupiter: No enemy zone found to target.", 5)
+                    end
+                else
+                    trigger.action.outText("Jupiter: No friendly airbase found within 10km of marker.", 5)
+                end
+            end
         elseif command == "-sendjtac" then
             local closest_zone, dist = getClosestZone(vec3)
             if closest_zone and dist <= 10000 then
