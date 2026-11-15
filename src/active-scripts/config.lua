@@ -233,8 +233,19 @@ Config = {
             allowed_task_types = {
                 AITaskTypes.SEAD,
                 AITaskTypes.CAS,
+                AITaskTypes.RECON,
+
                 OperationTypes.REINFORCEMENT,
                 OperationTypes.STRATEGIC_AIRLIFT,
+                OperationTypes.CAS,
+                OperationTypes.CSAR,
+                OperationTypes.RECON,
+                OperationTypes.DEEP_RECON,
+                OperationTypes.RUNWAY_BOMBING,
+                OperationTypes.SEAD,
+                OperationTypes.DEAD,
+                OperationTypes.STRIKE,
+
             },
             -- (int) (seconds) interval of the bearing/range/altitude report
             tracker_interval = 30,
