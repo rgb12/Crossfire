@@ -776,14 +776,9 @@ do
             self:setSTRIKETask(new_group.name,ai_enroute_data,strike_point)
             return true
         elseif AITaskTypes.RECON == ai_task_type and to_zone then
-            local closest_airbase, _ = self:findClosestAirbaseWithAircraftInStock(to_zone,side,ai_task_type,2,ai_task_type)
-            if not closest_airbase then
-                if user_requested then
-                    local txt="RECON unavailable for "..to_zone.name..", check aircraft availability, warehouse stock and tasking limits."
-                    trigger.action.outTextForCoalition(side,txt,5)
-                end
-                return false
-            end
+            -- Honours an explicit from_zone airbase (escorted flights are pinned to the briefed base)
+            local closest_airbase, _ = resolveSourceAirbase("RECON")
+            if not closest_airbase then return false end
 
             if prevent_duplicates and EnrouteManager:findByToZone(to_zone,side,{AITaskTypes.RECON}) then
                 if user_requested then
