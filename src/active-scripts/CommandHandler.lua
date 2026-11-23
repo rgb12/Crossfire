@@ -781,7 +781,7 @@ do
             end
 
             -- AG Rockets
-            local ag_rockets_airbases = buildAirbaseSubmenu({StockTypes.AIR_GROUND_ROCKETS}, Config.supplies.resupply_costs.AIR_GROUND_ROCKETS, "AG Rockets")
+            local ag_rockets_airbases = buildAirbaseSubmenu({StockTypes.AIR_GROUND_ROCKETS, StockTypes.FARP_AG_ROCKETS}, Config.supplies.resupply_costs.AIR_GROUND_ROCKETS, "AG Rockets")
             if #ag_rockets_airbases > 0 then
                 table.insert(resupply_stock_list, {
                     name = "AG Rockets (" .. Config.supplies.resupply_costs.AIR_GROUND_ROCKETS .. ")",
@@ -808,7 +808,7 @@ do
             end
 
             -- AG Missiles
-            local ag_missiles_airbases = buildAirbaseSubmenu({StockTypes.AIR_GROUND_GUIDED_MISSILES}, Config.supplies.resupply_costs.AIR_GROUND_GUIDED_MISSILES, "AG Missiles")
+            local ag_missiles_airbases = buildAirbaseSubmenu({StockTypes.AIR_GROUND_GUIDED_MISSILES, StockTypes.FARP_MISSILES}, Config.supplies.resupply_costs.AIR_GROUND_GUIDED_MISSILES, "AG Missiles")
             if #ag_missiles_airbases > 0 then
                 table.insert(resupply_stock_list, {
                     name = "AG Missiles (" .. Config.supplies.resupply_costs.AIR_GROUND_GUIDED_MISSILES .. ")",
@@ -826,7 +826,7 @@ do
             end
 
             -- TGP, Misc
-            local tgp_misc_airbases = buildAirbaseSubmenu({StockTypes.TGP, StockTypes.MISC}, Config.supplies.resupply_costs.TGP_MISC, "TGP/Misc")
+            local tgp_misc_airbases = buildAirbaseSubmenu({StockTypes.TGP, StockTypes.MISC, StockTypes.FARP_MISC, StockTypes.FARP_GUNS}, Config.supplies.resupply_costs.TGP_MISC, "TGP/Misc")
             if #tgp_misc_airbases > 0 then
                 table.insert(resupply_stock_list, {
                     name = "TGP, Misc (" .. Config.supplies.resupply_costs.TGP_MISC .. ")",
