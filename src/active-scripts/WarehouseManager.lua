@@ -224,8 +224,12 @@ do
             StockTypes.AIR_GROUND_GUIDED_MISSILES, StockTypes.AIR_GROUND_GUIDED_BOMBS,
             StockTypes.AIR_GROUND_BOMBS, StockTypes.AIR_GROUND_ROCKETS,
             StockTypes.ECM, StockTypes.TGP, StockTypes.MISC,
+            StockTypes.FARP_MISSILES, StockTypes.FARP_AG_ROCKETS,
+            StockTypes.FARP_GUNS, StockTypes.FARP_MISC,
+            StockTypes.FARP_GUIDED_BOMBS, StockTypes.FARP_BOMBS,
             StockTypes.AG_AIRCRAFT, StockTypes.AA_AIRCRAFT, StockTypes.MULTIROLE_AIRCRAFT,
-            StockTypes.RECON_AIRCRAFT, StockTypes.CARGO_AIRCRAFT, StockTypes.LOGISTICS_HELICOPTER,
+            StockTypes.RECON_AIRCRAFT, StockTypes.CARGO_AIRCRAFT,
+            StockTypes.ATTACK_HELICOPTER, StockTypes.LOGISTICS_HELICOPTER,
             StockTypes.VSTOL_AIRCRAFT, StockTypes.STOL_AIRCRAFT
         },
         [StockTypes.CARRIER_INITAL] = {
@@ -240,6 +244,9 @@ do
             StockTypes.AIR_GROUND_GUIDED_MISSILES, StockTypes.AIR_GROUND_GUIDED_BOMBS,
             StockTypes.AIR_GROUND_BOMBS, StockTypes.AIR_GROUND_ROCKETS,
             StockTypes.ECM, StockTypes.TGP, StockTypes.MISC,
+            StockTypes.FARP_MISSILES, StockTypes.FARP_AG_ROCKETS,
+            StockTypes.FARP_GUNS, StockTypes.FARP_MISC,
+            StockTypes.FARP_GUIDED_BOMBS, StockTypes.FARP_BOMBS,
             StockTypes.AG_AIRCRAFT, StockTypes.AA_AIRCRAFT, StockTypes.MULTIROLE_AIRCRAFT,
             StockTypes.RECON_AIRCRAFT, StockTypes.CARGO_AIRCRAFT,
             StockTypes.ATTACK_HELICOPTER, StockTypes.LOGISTICS_HELICOPTER,
@@ -654,6 +661,36 @@ do
         return expanded
     end
 
+    ---@param stock_types StockTypes[] expanded (non-composite) stock types
+    ---@param side coalition.side
+    ---@return table<string, integer> weapons
+    ---@return table<string, integer> aircraft
+    local function generateMergedStock(stock_types, side)
+        local weapons_by_type = {}
+        local aircraft = {}
+        for _, stock_type in ipairs(stock_types) do
+            if utils.tableContains(WarehouseManager.AircraftStockTypes, stock_type) then
+                for id, amount in pairs(WarehouseManager:generateAircraftStock(stock_type, side)) do
+                    aircraft[id] = (aircraft[id] or 0) + amount
+                end
+            else
+                local type_stock = weapons_by_type[stock_type] or {}
+                weapons_by_type[stock_type] = type_stock
+                for id, amount in pairs(WarehouseManager:generateStock(stock_type, side)) do
+                    type_stock[id] = (type_stock[id] or 0) + amount
+                end
+            end
+        end
+
+        local weapons = {}
+        for _, type_stock in pairs(weapons_by_type) do
+            for id, amount in pairs(type_stock) do
+                weapons[id] = math.max(weapons[id] or 0, amount)
+            end
+        end
+        return weapons, aircraft
+    end
+
     --- Warning: ensure the side is correctly set before execution
     ---@param airbase_name string
     ---@param side coalition.side
@@ -673,23 +710,14 @@ do
             user_scale = user_scale * Config.blue_stock_multiplier
         end
 
-        local added_stuff_tbl = {}
-        for i,stock_type in ipairs(expandStockTypes(stock_types)) do
-            if utils.tableContains(WarehouseManager.AircraftStockTypes, stock_type) then
-                local stock = WarehouseManager:generateAircraftStock(stock_type, side)
-                for id,amount in pairs(stock) do
-                    local scaled_amount = math.max(1, math.floor(amount * user_scale))
-                    warehouse:addItem(id, scaled_amount)
-                    table.insert(added_stuff_tbl, {id, scaled_amount})
-                end
-            else
-                local stock = WarehouseManager:generateStock(stock_type, side)
+        local weapons, aircraft = generateMergedStock(expandStockTypes(stock_types), side)
 
-                for id,amount in pairs(stock) do
-                    local scaled_amount = math.max(1, math.floor(amount * user_scale))
-                    warehouse:addItem(id, scaled_amount)
-                    table.insert(added_stuff_tbl, {id, scaled_amount})
-                end
+        local added_stuff_tbl = {}
+        for _, stock in ipairs({weapons, aircraft}) do
+            for id,amount in pairs(stock) do
+                local scaled_amount = math.max(1, math.floor(amount * user_scale))
+                warehouse:addItem(id, scaled_amount)
+                table.insert(added_stuff_tbl, {id, scaled_amount})
             end
         end
 
@@ -869,23 +897,7 @@ do
         -- 3. Get the full list of items to add (pre-multiplication). Generated
         --    ONCE here per supply event so the per-tier amounts below are
         --    derived from a single deterministic snapshot.
-        local items_to_add = {}
-        local aircraft_to_add = {}
-        for _, stock_type in ipairs(stock_types) do
-            if utils.tableContains(WarehouseManager.AircraftStockTypes, stock_type) then
-                -- Aircraft are handled separately, user multiplier not applied.
-                local stock = WarehouseManager:generateAircraftStock(stock_type, side)
-                for id, amount in pairs(stock) do
-                    aircraft_to_add[id] = (aircraft_to_add[id] or 0) + amount
-                end
-            else
-                local stock = WarehouseManager:generateStock(stock_type, side)
-                for id, amount in pairs(stock) do
-                    -- Use a table to merge items if they appear in multiple stock_types
-                    items_to_add[id] = (items_to_add[id] or 0) + amount
-                end
-            end
-        end
+        local items_to_add, aircraft_to_add = generateMergedStock(stock_types, side)
 
         -- 4. Distribute items to warehouses with calculated amounts
 
