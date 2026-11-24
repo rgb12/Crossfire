@@ -578,18 +578,22 @@ do
                         StockTypes.MISC,
                     },
                 },
-                {
-                    out_text = "Logistics and Attack Helicopter Equipment",
-                    stocks = {
-                        StockTypes.FARP_MISSILES,
-                        StockTypes.FARP_AG_ROCKETS,
-                        StockTypes.FARP_GUNS,
-                        StockTypes.FARP_MISC,
-                        StockTypes.FARP_GUIDED_BOMBS,
-                        StockTypes.FARP_BOMBS,
-                    },
-                },
             }
+
+        -- No helicopters before the Early Cold War (e.g. WW2)
+        if EraSystem.isHelicopterEraCapable() then
+            table.insert(possible_stocks_rnd, {
+                out_text = "Logistics and Attack Helicopter Equipment",
+                stocks = {
+                    StockTypes.FARP_MISSILES,
+                    StockTypes.FARP_AG_ROCKETS,
+                    StockTypes.FARP_GUNS,
+                    StockTypes.FARP_MISC,
+                    StockTypes.FARP_GUIDED_BOMBS,
+                    StockTypes.FARP_BOMBS,
+                },
+            })
+        end
 
         if not stock_types then
             stock_types = stock_types or {}
