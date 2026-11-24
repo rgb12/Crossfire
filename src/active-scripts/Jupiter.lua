@@ -39,7 +39,7 @@ Jupiter.user_ids = {}
 function Jupiter:onEvent(event)
     -- Only handle Mark Added events
     if event.id == world.event.S_EVENT_MARK_CHANGE then
-        
+
         local text = event.text
         local vec3 = event.pos
         local markId = event.idx
@@ -76,7 +76,7 @@ function Jupiter:onEvent(event)
         local command = args[1] and args[1]:lower() or nil
         local param1 = args[2]
         local param2 = args[3]
-        
+
         local cmd_executed = false
 
         if command == "-explosion" then
@@ -340,13 +340,13 @@ function Jupiter:onEvent(event)
         elseif command == "-airkill" then
             local radius = tonumber(param1) or 5000 -- Default 5000m radius
             local count = 0
-        
+
             -- Define search volume
             local volS = {
                 id = world.VolumeType.SPHERE,
                 params = { point = vec3, radius = radius }
             }
-            
+
             -- Callback function to destroy found objects
             local function killObject(obj, val)
                 if obj and obj:isExist() and obj:inAir() then
@@ -355,21 +355,21 @@ function Jupiter:onEvent(event)
                 end
                 return true
             end
-            
+
             world.searchObjects({Object.Category.UNIT,Object.Category.STATIC}, volS, killObject)
-            
+
             trigger.action.outText(string.format("Jupiter: Destroyed %d airborne objects in %dm radius.", count, radius), 5)
             cmd_executed = true
         elseif command == "-destroy" then
             local radius = tonumber(param1) or 5000 -- Default 5000m radius
             local count = 0
-            
+
             -- Define search volume
             local volS = {
                 id = world.VolumeType.SPHERE,
                 params = { point = vec3, radius = radius }
             }
-            
+
             -- Callback function to destroy found objects
             local function killObject(obj, val)
                 if obj and obj:isExist() then
@@ -378,9 +378,9 @@ function Jupiter:onEvent(event)
                 end
                 return true
             end
-            
+
             world.searchObjects({Object.Category.UNIT,Object.Category.STATIC}, volS, killObject)
-            
+
             trigger.action.outText(string.format("Jupiter: Destroyed %d objects in %dm radius.", count, radius), 5)
             cmd_executed = true
         elseif command == "-sendcas" then
@@ -484,9 +484,10 @@ function Jupiter:onEvent(event)
             else
                 local stocktype_num = tonumber(param1) or 1
                 local closest_zone, dist = getClosestZone(vec3)
-                if closest_zone and dist <= 10000 and (closest_zone.zone_type == ZoneTypes.AIRBASE or closest_zone.zone_type == ZoneTypes.FARP) then
+                if closest_zone and dist <= 10000 and (closest_zone.zone_type == ZoneTypes.AIRBASE or closest_zone.zone_type == ZoneTypes.FARP
+                    or closest_zone.zone_type == ZoneTypes.ROADBASE) then
 
-                    if closest_zone.zone_type == ZoneTypes.FARP and closest_zone.linked_farp then
+                    if (closest_zone.zone_type == ZoneTypes.FARP or closest_zone.zone_type == ZoneTypes.ROADBASE) and closest_zone.linked_farp then
                         WarehouseManager:attributeAirbaseStock(closest_zone.linked_farp,closest_zone.side,{stocktype_num})
                     elseif closest_zone.zone_type == ZoneTypes.AIRBASE then
                         WarehouseManager:attributeAirbaseStock(closest_zone.airbase_name,closest_zone.side,{stocktype_num})
@@ -540,7 +541,7 @@ function Jupiter:onEvent(event)
                 end
                 return true
             end
-            
+
             world.searchObjects({Object.Category.UNIT}, volS, addXPToPlayer)
             MissionLogger:info(string.format("Jupiter -addxp: Found %d units, %d were players", total_units, players_found))
             trigger.action.outText(string.format("Jupiter: Added %d XP to %d players within 500m. (Found %d units total)", xp_to_add, players_found, total_units), 5)

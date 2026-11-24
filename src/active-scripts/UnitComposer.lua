@@ -32,6 +32,14 @@ UnitComposer = {} do
             { roles = { "TRUCK" },   weight = 3 },
             { roles = { "INFANTRY" }, weight = 2 },
         },
+        [ZoneTypes.ROADBASE] = {
+            { roles = { "SAM_IR" },  weight = 2 },
+            { roles = { "SAM_EM" },  weight = 1 },
+            { roles = { "AAA" },     weight = 1 },
+            { roles = { "TANK" },    weight = 1 },
+            { roles = { "TRUCK" },   weight = 3 },
+            { roles = { "INFANTRY" }, weight = 2 },
+        },
         [ZoneTypes.LOGISTICS] = {
             { roles = { "TRUCK" },     weight = 4 },
             { roles = { "SUPPLY_TRUCK" }, weight = 2 },

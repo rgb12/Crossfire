@@ -28,12 +28,13 @@ function ev:onEvent(event)
                 for _,zone in ipairs(zones) do
                     if zone:isPointInsideZone(unit_pos) then
                         -- Only check warehouse if zone belongs to player's coalition and is airbase/FARP
-                        if zone.side == unit_coalition and (zone.zone_type == ZoneTypes.AIRBASE or zone.zone_type == ZoneTypes.FARP) then
+                        if zone.side == unit_coalition and (zone.zone_type == ZoneTypes.AIRBASE or zone.zone_type == ZoneTypes.FARP
+                            or zone.zone_type == ZoneTypes.ROADBASE) then
                             if unit.getTypeName and unit:getTypeName() then
                                 local acft_name = unit:getTypeName()
 
                                 local wh_name = nil
-                                if zone.zone_type == ZoneTypes.FARP and zone.linked_farp then
+                                if (zone.zone_type == ZoneTypes.FARP or zone.zone_type == ZoneTypes.ROADBASE) and zone.linked_farp then
                                     wh_name = zone.linked_farp
                                 elseif zone.zone_type == ZoneTypes.AIRBASE then
                                     wh_name = zone.airbase_name
@@ -222,7 +223,7 @@ function ev:onEvent(event)
 
                 end, {}, timer.getTime() + math.random(30,120))
             end
-            
+
         end
     end
 
@@ -273,7 +274,7 @@ function ev:onEvent(event)
                                 trigger.action.outTextForUnit(u_id, "Captured, +" .. capture_xp .. "XP", 5)
                                 user.unclaimed_xp = user.unclaimed_xp + capture_xp
                             end
-                            if zone.zone_type == ZoneTypes.AIRBASE or zone.zone_type == ZoneTypes.FARP then
+                            if zone.zone_type == ZoneTypes.AIRBASE or zone.zone_type == ZoneTypes.FARP or zone.zone_type == ZoneTypes.ROADBASE then
                                 ExperienceManager:debrief(unit_check, landing_time)
                             end
                         end, {}, timer.getTime() + math.random(50,60))

@@ -176,7 +176,8 @@ do
                 -- Helicopter landings at neutral airbases/FARPs are debriefed by the capture flow in EventHandler
                 local landed_zone = utils.getZoneOfUnitFromPosition(event.initiator:getPoint())
                 if not landed_zone or landed_zone.side ~= event.initiator:getCoalition()
-                or (landed_zone.zone_type ~= ZoneTypes.AIRBASE and landed_zone.zone_type ~= ZoneTypes.FARP) then return end
+                    or (landed_zone.zone_type ~= ZoneTypes.AIRBASE and landed_zone.zone_type ~= ZoneTypes.FARP and landed_zone.zone_type ~= ZoneTypes.ROADBASE)
+                then return end
 
                 timer.scheduleFunction(function()
 

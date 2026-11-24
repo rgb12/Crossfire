@@ -108,7 +108,7 @@ Config = {
         -- Select from: "SAMSITE", "EWSITE", "FARP", "AIRBASE", "LOGISTICS", "STRONGPOINT", "COMMS"
         disable_zone_types_for_era = {
             -- (table<enum>)
-            [Eras.WW2]          = { ZoneTypes.SAMSITE, ZoneTypes.EWSITE, ZoneTypes.FARP},
+            [Eras.WW2]          = { ZoneTypes.SAMSITE, ZoneTypes.EWSITE, ZoneTypes.FARP, ZoneTypes.ROADBASE},
             -- (table<enum>)
             [Eras.EARLYCOLDWAR] = { ZoneTypes.SAMSITE },
             [Eras.LATECOLDWAR] = {},
@@ -580,6 +580,8 @@ Config = {
             INITIAL = 8000,
             -- (int) FARP complete resupply
             FARP = 3000,
+            -- (int) ROADBASE complete resupply
+            ROADBASE = 3000,
 
             -- (int) Air-to-air focused aircraft
             AA_AIRCRAFT = 1400,
@@ -1111,7 +1113,7 @@ Config = {
         -- (int) Global limit for all placed assets
         max_placed_assets = 300,
         -- (table<enum>)
-        allowed_load_zones = {ZoneTypes.FARP, ZoneTypes.AIRBASE, ZoneTypes.LOGISTICS},
+        allowed_load_zones = {ZoneTypes.FARP, ZoneTypes.AIRBASE, ZoneTypes.LOGISTICS, ZoneTypes.ROADBASE},
         -- (int) supplies carried by a supply crate
         supply_crate_supplies = 75,
         -- (string)
@@ -1509,6 +1511,7 @@ stats = {
     blue_sam_sites = 0,
     blue_logistics_zone = 0,
     blue_farp_zones = 0,
+    blue_roadbases = 0,
     blue_comms_zones = 0,
     blue_airbases = 0,
     blue_ew_zones = 0,
@@ -1521,6 +1524,7 @@ stats = {
     blue_enroute_resupply = {},
     red_sam_sites = 0,
     red_farp_zones = 0,
+    red_roadbases = 0,
     red_logistics_zone = 0,
     red_comms_zones = 0,
     red_airbases = 0,

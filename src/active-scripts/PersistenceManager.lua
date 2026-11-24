@@ -2,11 +2,11 @@
 
 --[[
     Persistence Manager
-    
+
     Inspired by Dzsek's Pretense persistence script
 ]]
 PersistenceManager = {}
-do 
+do
 
     local JSON = (loadfile("Scripts/JSON.lua"))()
     PersistenceManager.enabled = false
@@ -317,14 +317,14 @@ do
                 side = z.side,
                 level = z.level,
                 zone_type = z.zone_type,
-                
+
                 -- Type-specific properties
                 airbase_name = z.airbase_name,  -- Only for airbases
                 sam_classification = z.sam_classification,  -- Only for SAM sites
-                
+
                 heli_avail = z.heli_avail or 0,
                 attack_convoy = z.attack_convoy or 0,
-                
+
                 -- State tracking
                 ammo_depot_intact = z.ammo_depot_intact,
                 ammo_depot_time_since_destroyed = z.ammo_depot_last_destroyed and (timer.getTime() - z.ammo_depot_last_destroyed) or nil,
@@ -338,7 +338,7 @@ do
                 farp_warehouse_inventory = nil
             }
 
-            if z.zone_type == ZoneTypes.FARP and z.linked_farp then
+            if (z.zone_type == ZoneTypes.FARP or z.zone_type == ZoneTypes.ROADBASE) and z.linked_farp then
                 local farp_airbase = Airbase.getByName(z.linked_farp)
                 if farp_airbase then
                     local farp_warehouse = farp_airbase:getWarehouse()
@@ -362,7 +362,7 @@ do
                     end
                 end
             end
-            if z.zone_type == ZoneTypes.FARP and z.linked_farp then
+            if (z.zone_type == ZoneTypes.FARP or z.zone_type == ZoneTypes.ROADBASE) and z.linked_farp then
                 local farp = Airbase.getByName(z.linked_farp)
                 if farp then
                     local warehouse = farp:getWarehouse()
@@ -433,7 +433,7 @@ do
                     if group and group:isExist() then
                         local units = group:getUnits()
                         local group_units_data = {}
-                        
+
                         -- Check if all units are alive and collect their data
                         for _, unit in ipairs(units) do
                             if unit and unit:isExist() and unit:getLife() > 1
@@ -446,7 +446,7 @@ do
                                     })
                             end
                         end
-                        
+
                         -- Save group if all units are alive
                         if #group_units_data > 0 then
                             table.insert(PersistenceManager.data.placed_assets, {
@@ -463,7 +463,7 @@ do
                     -- Handle individual units and statics
                     local obj = nil
                     local obj_exists = false
-                    
+
                     -- Check if it's a static object (cargo crates, FARPs)
                     if asset.type == ctld.AssetTypes.CARGO_CRATES or asset.type == ctld.AssetTypes.STATIC then
                         obj = StaticObject.getByName(asset.unit_name)
@@ -477,11 +477,11 @@ do
                             obj_exists = true
                         end
                     end
-                    
+
                     -- Save if object exists and is alive
                     if obj_exists and obj then
                         if asset.type == ctld.AssetTypes.STATIC then
-                            
+
                             table.insert(PersistenceManager.data.placed_assets, {
                                 unit_name = asset.unit_name,
                                 asset_name = asset.asset_name,
@@ -542,11 +542,11 @@ do
             and enroute.ai_task_type ~= AITaskTypes.REINFORCEMENT_CONVOY
             and enroute.ai_task_type ~= AITaskTypes.ATTACK_CONVOY
             and enroute.ai_task_type ~= AITaskTypes.RESUPPLY_CARGO then
-                
+
                 if enroute.from_zone and enroute.from_zone.airbase_name then
                     -- Find the warehouse data in our Save Table
                     local wh_root = PersistenceManager.data.warehouses[enroute.from_zone.airbase_name]
-                    
+
                     if wh_root then
                         -- Ensure categories exist in save data if they were empty
                         if not wh_root["aircraft"] then wh_root["aircraft"] = {} end
@@ -646,7 +646,7 @@ do
     ---
     function PersistenceManager:loadFromFile()
         if not PersistenceManager.enabled then return end
-        
+
         -- Check path in case lfs isn't loaded yet
         PersistenceManager:checkPath()
 
@@ -687,7 +687,7 @@ do
             MissionLogger:error("PERSISTENCE RESTORE ERROR: No data loaded.")
             return false
         end
-        
+
         MissionLogger:info("PERSISTENCE: Applying loaded mission state...")
 
         if not PersistenceManager.data.scenario
@@ -726,7 +726,7 @@ do
             end
             if blue_airbase and red_airbase then break end
         end
-        
+
         if not (blue_airbase and red_airbase) then
             MissionLogger:error("PERSISTENCE RESTORE ERROR: Could not find home airbases.")
             return false
@@ -738,6 +738,10 @@ do
         stats.red_comms_antennas = 0
         stats.blue_ammo_depots = 0
         stats.red_ammo_depots = 0
+        stats.blue_farp_zones = 0
+        stats.red_farp_zones = 0
+        stats.blue_roadbases = 0
+        stats.red_roadbases = 0
         MissionLogger:info("Stats table restored.")
 
         -- 3. Restore Zones
@@ -758,11 +762,11 @@ do
                 zone.zone_type = saved_zone.zone_type
                 zone.airbase_name = saved_zone.airbase_name
                 zone.sam_classification = saved_zone.sam_classification
-                
+
                 -- Restore dynamic counters
                 zone.heli_avail = saved_zone.heli_avail or saved_zone.capture_heli_avail or 0
                 zone.attack_convoy = saved_zone.attack_convoy or 0
-                
+
                 -- Restore state tracking
                 zone.ammo_depot_intact = saved_zone.ammo_depot_intact
                 if saved_zone.ammo_depot_time_since_destroyed then
@@ -771,14 +775,14 @@ do
                     zone.ammo_depot_last_destroyed = nil
                 end
                 zone.local_supplies = saved_zone.local_supplies or 0
-                
+
                 zone.comms_tower_intact = saved_zone.comms_tower_intact
                 if saved_zone.comms_tower_time_since_destroyed then
                     zone.comms_tower_last_destroyed = timer.getTime() - saved_zone.comms_tower_time_since_destroyed
                 else
                     zone.comms_tower_last_destroyed = nil
                 end
-                
+
                 -- Clear runtime tracking arrays - will be repopulated by spawn functions
                 zone.linked_groups = {}
                 zone.linked_statics = {}
@@ -789,8 +793,8 @@ do
                 UnitHandler.initStatics(zone)
                 UnitHandler.initFARP(zone,false)
 
-                -- Restore zone FARP warehouse by zone mapping (not old FARP object name).
-                if zone.zone_type == ZoneTypes.FARP and zone.linked_farp and saved_zone.farp_warehouse_inventory then
+                -- Restore zone FARP/Roadbase warehouse by zone mapping (not old FARP object name).
+                if (zone.zone_type == ZoneTypes.FARP or zone.zone_type == ZoneTypes.ROADBASE) and zone.linked_farp and saved_zone.farp_warehouse_inventory then
                     local farp_airbase = Airbase.getByName(zone.linked_farp)
                     if farp_airbase then
                         local farp_warehouse = farp_airbase:getWarehouse()
@@ -808,7 +812,7 @@ do
                         end
                     end
                 end
-                
+
                 -- Post-spawn check for destroyed statics
                 if not zone.ammo_depot_intact and zone.linked_ammo_depot then
                     local depot = StaticObject.getByName(zone.linked_ammo_depot)
@@ -828,7 +832,7 @@ do
                         airbase:setCoalition(zone.side)
                     end
                 end
-                
+
                 -- Redraw the F10 map
                 zone:drawF10()
                 table.insert(new_zones, zone)
@@ -908,7 +912,7 @@ do
             end
         end
         MissionLogger:info("Warehouses restored")
-        
+
         -- 6. Restore Placed Assets (CTLD cargo, troops, vehicles, groups)
         mist.nextGroupId = PersistenceManager.data.ctld_last_group_id or mist.getNextGroupId()
         mist.nextUnitId = PersistenceManager.data.ctld_last_unit_id or mist.getNextUnitId()
@@ -916,12 +920,12 @@ do
         if PersistenceManager.data.placed_assets then
             ctld.placed_assets = {} -- Clear current list
             for _, saved_asset in ipairs(PersistenceManager.data.placed_assets) do
-                
+
                 -- Handle groups (SAM systems, etc.)
                 if saved_asset.is_group and saved_asset.units and saved_asset.coalition then
 
                         local country_id = saved_asset.coalition == coalition.side.BLUE and country.id["CJTF_BLUE"] or country.id["CJTF_RED"]
-                        
+
                         -- Build units table for the group
                         local units_table = {}
                         for _, unit_data in ipairs(saved_asset.units) do
@@ -935,7 +939,7 @@ do
                                 heading = unit_data.heading or 0,
                             })
                         end
-                        
+
                         -- Spawn the group with all its units
                         local spawned_group = mist.dynAdd({
                             units = units_table,
@@ -943,7 +947,7 @@ do
                             category = Group.Category.GROUND,
                             groupName = saved_asset.group_name,
                         })
-                        
+
                         if spawned_group then
                             table.insert(ctld.placed_assets, {
                                 is_group = true,
@@ -956,7 +960,7 @@ do
                             })
                             MissionLogger:info(string.format("Restored group %s with %d units", saved_asset.group_name, #units_table))
                         end
-                    
+
                 else
                     -- Handle individual units and statics
                     if not saved_asset.point or not saved_asset.asset_name or not saved_asset.coalition then
@@ -981,7 +985,7 @@ do
                                     break
                                 end
                             end
-                            
+
                             if part then
                                 -- Determine country from coalition
                                 local country_id = saved_asset.coalition == coalition.side.BLUE and country.id["CJTF_BLUE"] or country.id["CJTF_RED"]

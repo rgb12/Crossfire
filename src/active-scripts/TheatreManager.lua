@@ -1257,7 +1257,7 @@ do
             end
 
             -- Initial supply stock
-            if zone.zone_type == ZoneTypes.AIRBASE or zone.zone_type == ZoneTypes.FARP then
+            if zone.zone_type == ZoneTypes.AIRBASE or zone.zone_type == ZoneTypes.FARP or zone.zone_type == ZoneTypes.ROADBASE then
                 zone.local_supplies = Config.supplies.initial_stock
             end
 

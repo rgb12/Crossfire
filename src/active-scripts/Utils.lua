@@ -153,7 +153,7 @@ end
 ---@param maxR number
 ---@return vec3
 function utils.rndPointFromCenter(center, minR, maxR)
-    
+
 
     local r = math.random() * (maxR - minR) + minR
     local a = math.random() * 2 * math.pi
@@ -191,7 +191,8 @@ end
 ---@return ZoneHandler|nil
 function utils.fetchSuppliesZoneFromPoint(point, coalition_side)
     for _,zone in pairs(zones) do
-        if zone.zone_type == ZoneTypes.AIRBASE or zone.zone_type == ZoneTypes.FARP or zone.zone_type == ZoneTypes.LOGISTICS then
+        if zone.zone_type == ZoneTypes.AIRBASE or zone.zone_type == ZoneTypes.FARP or zone.zone_type == ZoneTypes.ROADBASE
+            or zone.zone_type == ZoneTypes.LOGISTICS then
 
             if (not coalition_side or zone.side == coalition_side) and zone:isPointInsideZone(point) then
                 return zone

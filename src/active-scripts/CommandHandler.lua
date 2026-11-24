@@ -161,16 +161,19 @@ do
         local farp_lines = {}
 
         for _, zone in ipairs(zones or {}) do
-            if zone.side == side and zone.zone_type == ZoneTypes.FARP and zone.linked_farp then
+            if zone.side == side and (zone.zone_type == ZoneTypes.FARP or zone.zone_type == ZoneTypes.ROADBASE) and zone.linked_farp then
                 local pad = Airbase.getByName(zone.linked_farp)
                 if pad then
                     local callsign_id = ((zone.zone.id - 1) % 10) + 1
                     local freq = 127.5 + (callsign_id - 1)
                     local cs_name = farp_callsigns[callsign_id] or ("FARP " .. callsign_id)
-                    table.insert(farp_lines, string.format("- %s (%s): %.1f MHz AM", zone.name, cs_name, freq))
+                    local tag = (zone.zone_type == ZoneTypes.ROADBASE) and " [Roadbase]" or ""
+                    local tcn_str = zone.tacan_channel and string.format(" | TCN %dX (%s)", zone.tacan_channel, zone.tacan_callsign or "RDB") or ""
+                    table.insert(farp_lines, string.format("- %s%s (%s): %.1f MHz AM%s", zone.name, tag, cs_name, freq, tcn_str))
                 end
             end
         end
+
 
         for _, farp in ipairs(ctld.FARPs or {}) do
             if farp.coalition == side and farp.farp_name then
@@ -852,11 +855,15 @@ do
 
 
             local farps_resupply_list = {}
-            -- Add FARP zones
+            -- Add FARP & Roadbase zones
             for _,zone in ipairs(zones) do
-                if zone.side == side and zone.zone_type == ZoneTypes.FARP and zone.linked_farp then
+                if zone.side == side and (zone.zone_type == ZoneTypes.FARP or zone.zone_type == ZoneTypes.ROADBASE) and zone.linked_farp then
+                    local is_rb = (zone.zone_type == ZoneTypes.ROADBASE)
+                    local cost = is_rb and (Config.supplies.resupply_costs.ROADBASE or Config.supplies.resupply_costs.FARP) or Config.supplies.resupply_costs.FARP
+                    local stock_pkg = is_rb and StockTypes.ROADBASE or StockTypes.FARP
+                    local prefix = is_rb and "Roadbase " or "FARP "
                     table.insert(farps_resupply_list, {
-                        name = zone.name .. " - " .. Config.supplies.resupply_costs.FARP .. " supplies",
+                        name = zone.name .. " - " .. cost .. " supplies",
                         func = function (args)
                             if not CommandHandler.isGrounded(unit,gr_id) then return end
                             local coal = args.side
@@ -871,18 +878,18 @@ do
                             end
 
                             local local_supplies = supplies_zone.local_supplies or 0
-                            if local_supplies < Config.supplies.resupply_costs.FARP then
-                                trigger.action.outTextForGroup(gr_id,"CMD-HQ - Negative resupply response for " .. name .. ", not enough supplies    (" .. local_supplies .. "/" .. Config.supplies.resupply_costs.FARP .. ")",8)
+                            if local_supplies < args.cost then
+                                trigger.action.outTextForGroup(gr_id,"CMD-HQ - Negative resupply response for " .. name .. ", not enough supplies    (" .. local_supplies .. "/" .. args.cost .. ")",8)
                                 trigger.action.outSoundForGroup(gr_id, "radio_beep3.ogg")
                                 return
                             else
-                                supplies_zone.local_supplies = math.max(local_supplies - Config.supplies.resupply_costs.FARP,0)
+                                supplies_zone.local_supplies = math.max(local_supplies - args.cost,0)
                             end
-                            WarehouseManager:attributeAirbaseStock(farp,coal, {StockTypes.FARP})
-                            trigger.action.outTextForCoalition(coal, "FARP " .. name .. " has been resupplied.", 10)
+                            WarehouseManager:attributeAirbaseStock(farp,coal, {args.stock_pkg})
+                            trigger.action.outTextForCoalition(coal, args.prefix .. name .. " has been resupplied.", 10)
                             trigger.action.outSoundForCoalition(coal,"radio_txrx.ogg")
                         end,
-                        arg = {side = side, farp_name = zone.linked_farp,name = zone.name}})
+                        arg = {side = side, farp_name = zone.linked_farp, name = zone.name, cost = cost, stock_pkg = stock_pkg, prefix = prefix}})
                 end
             end
             -- Add CTLD FARPs

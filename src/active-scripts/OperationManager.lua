@@ -21,7 +21,7 @@
 ---@field strategic_manifest_text string | nil
 ---@field aircraft_category string | nil
 ---@field time_limit_seconds number | nil
----@field deadline_time number | nil 
+---@field deadline_time number | nil
 ---@field operation_id string | nil
 ---@field marker_id number | nil
 
@@ -270,22 +270,22 @@ do
                 self:cancelOperation(unit)
                 return
             end
-            
+
             local lat, lon = coord.LOtoLL(active_mission.pilot_position)
             local mgrs = coord.LLtoMGRS(lat, lon)
-            
+
             local outtxt = string.format("ACTIVE OPERATION: %s\nType: %s\n\nMission: Rescue downed pilot",
                 active_mission.operation_name, active_mission.type)
-            
+
             outtxt = outtxt .. string.format("\n\nDowned pilot location:\n%s\n%s\nMGRS: %s",
                 mist.tostringLL(lat, lon, 2), mist.tostringLL(lat, lon, 2, true), mist.tostringMGRS(mgrs, 3))
-            
+
             outtxt = outtxt .. "\n\nObjectives:"
             for i, obj in ipairs(active_mission.objectives) do
                 local status = ""--obj.completed and "[Completed]" or "[Pending]"
                 outtxt = outtxt .. string.format("\n%d. %s %s", i, obj.description, status)
             end
-            
+
             -- Show distance to pilot
             local player_pos = unit:getPoint()
             if player_pos and active_mission.pilot_position then
@@ -319,7 +319,7 @@ do
             outtxt = string.format("ACTIVE OPERATION: %s\nType: %s\nTarget: %s",
                 active_mission.operation_name, active_mission.type, active_mission.target_zone_name)
         end
-        
+
         if active_mission.type ~= OperationTypes.INTERCEPT then
             outtxt = outtxt .. string.format("\n\nCoordinates:\n%s\n%s\nMGRS: %s\n%s",
                 mist.tostringLL(lat, lon, 5), mist.tostringLL(lat, lon, 5, true), mist.tostringMGRS(mgrs, 5),
@@ -346,7 +346,7 @@ do
 
                 for i = #self.active_operations, 1, -1 do
                     local op = self.active_operations[i]
-                    
+
                     -- Check if dead player is the leader
                     if op.assigned_unit_name == dead_unit_name then
                         -- If joint operation and there are members, transfer leadership to first active member
@@ -372,12 +372,12 @@ do
                                         trigger.action.outTextForUnit(remaining_id, member_unit:getPlayerName() .. " is now the operation leader.", 10)
                                         trigger.action.outSoundForUnit(remaining_id, "radio_txrx.ogg")
                                     end
-                                    
+
                                     new_leader_found = true
                                     break
                                 end
                             end
-                            
+
                             -- If no new leader found, fail the operation
                             if not new_leader_found then
                                 op.status = OperationStatus.FAILED
@@ -427,7 +427,7 @@ do
                         -- Check if killer is the leader or any joint operation_type member
                         local killer_unit_name = event.initiator:getName()
                         local is_participant = false
-                        
+
                         if killer_unit_name == op.assigned_unit_name then
                             is_participant = true
                         elseif op.joint_op_members then
@@ -438,7 +438,7 @@ do
                                 end
                             end
                         end
-                        
+
                         if is_participant then
                             for _, obj in ipairs(op.objectives) do
                                 if obj.onKill and not obj.completed then
@@ -528,10 +528,10 @@ do
             if event.initiator and event.initiator.getName then
                 local unit_name = event.initiator:getName()
                 local unit_id = event.initiator:getID()
-                
+
                 for i = #self.active_operations, 1, -1 do
                     local op = self.active_operations[i]
-                    
+
                     -- Check if leaving player is the leader
                     if op.assigned_unit_name == unit_name then
                         -- If joint operation and there are members, transfer leadership
@@ -556,17 +556,17 @@ do
                                         trigger.action.outTextForUnit(remaining_id, member_unit:getPlayerName() .. " is now the operation leader.", 10)
                                         trigger.action.outSoundForUnit(remaining_id, "radio_txrx.ogg")
                                     end
-                                    
+
                                     new_leader_found = true
                                     break
                                 end
                             end
-                            
+
                             if not new_leader_found then
                                 op.status = OperationStatus.FAILED
                                 trigger.action.outTextForCoalition(self.side, op.type .. " Operation " .. op.operation_name .. " failed: all operatives left.", 15)
                                 trigger.action.outSoundForCoalition(self.side, "radio_txrx.ogg")
-                                
+
                                 if op.type == OperationTypes.STRATEGIC_AIRLIFT then
                                     self:cancelStrategicAirliftOperation(op, true)
                                 end
@@ -637,7 +637,7 @@ do
         end
         MissionLogger:info("Regenerating operations")
         self.last_generation_time = current_time
-        
+
         local reference_pos = self.home_airbase.zone.point
         local friendly_coalition = self.side
         local enemy_coalition = utils.getEnemyCoalition(friendly_coalition)
@@ -777,7 +777,7 @@ do
                         table.insert(self.available_operations, op)
                     end
 
-                    if zone.zone_type == ZoneTypes.FARP then
+                    if zone.zone_type == ZoneTypes.FARP or zone.zone_type == ZoneTypes.ROADBASE then
                         if zone.linked_statics and #zone.linked_statics > 0 then
                             local strike_op = self:createStrikeOperation(zone, "FARP")
                             table.insert(self.available_operations, strike_op)
@@ -830,7 +830,7 @@ do
                     end
                 end
 
-                
+
                 -- STRATEGIC AIRLIFT from any friendly zone to friendly airbase/FARP destinations
                 if Config.operations.strategic_airlift.enabled
                 and zone.side == friendly_coalition
@@ -860,7 +860,7 @@ do
                     csar_count = csar_count + 1
                 end
             end
-            
+
             -- Create CSAR operations for pilots that don't have one yet
             while csar_count < #self.downed_pilots do
                 local csar_op = self:createCSAROperation()
@@ -924,7 +924,7 @@ do
     ---@return boolean
     function OperationManager:isStrategicAirliftTargetZone(zone)
         if not zone then return false end
-        return zone.zone_type == ZoneTypes.AIRBASE or zone.zone_type == ZoneTypes.FARP
+        return zone.zone_type == ZoneTypes.AIRBASE or zone.zone_type == ZoneTypes.FARP or zone.zone_type == ZoneTypes.ROADBASE
     end
 
     ---@param load_zone ZoneHandler
@@ -1509,7 +1509,7 @@ do
                             return false
                         end
 
-                
+
                         if not self_obj.start_time then
                             self_obj.start_time = timer.getTime()
                             return false
@@ -1876,9 +1876,9 @@ do
 
                             local lat, lon = coord.LOtoLL(target_zone.zone.point)
                             local mgrs = coord.LLtoMGRS(lat, lon)
-                    
+
                             local outtxt = ""
-                            outtxt = outtxt .. string.format("\n\n%s\n%s\nMGRS: %s", 
+                            outtxt = outtxt .. string.format("\n\n%s\n%s\nMGRS: %s",
                             mist.tostringLL(lat, lon, 1), mist.tostringLL(lat, lon, 1, true), mist.tostringMGRS(mgrs, 3))
 
                             if mist.utils.get2DDist(zone.zone.point,player_pos) > self.radius then
@@ -1938,7 +1938,7 @@ do
         ---@type Operation[]
         local unit_supported_operations = {}
         local unit_type = unit:getTypeName()
-        
+
         -- Filter operations based on distance from home base
         table.sort(self.available_operations, function(a, b)
             local zone_a = ZoneHandler.getFromName(a.target_zone_name)
@@ -1970,13 +1970,13 @@ do
                 table.insert(unit_supported_operations, op)
             end
         end
-        
+
 
         local outtext = "Available Operations"
         if #unit_supported_operations == 0 then
             outtext = "No operations available at this time."
         end
-        
+
 
         local operation_types_displayed = {}
         local operations_displayed = 0
@@ -2040,7 +2040,7 @@ do
                 trigger.action.outTextForUnit(unit_id, "Operation " .. active_op.operation_name .. " cancelled.", 10)
                 return
             end
-            
+
             -- Check if this player is a joint op member
             if active_op.is_joint_op and active_op.joint_op_members and active_op.joint_op_members[unit_id] then
                 self:leaveJointOperation(unit, active_op)
@@ -2063,14 +2063,14 @@ do
 
         -- Check if player already has an active operation
         for _, active_op in ipairs(self.active_operations) do
-            if active_op.assigned_player_id == unit_id or 
+            if active_op.assigned_player_id == unit_id or
                (active_op.joint_op_members and active_op.joint_op_members[unit_id]) then
                 trigger.action.outTextForUnit(unit_id, "An operation is already active.", 10)
                 trigger.action.outSoundForUnit(unit_id,"radio_txrx.ogg")
                 return
             end
         end
-        
+
         -- Find the operation with matching join code
         local target_op = nil
         for _, active_op in ipairs(self.active_operations) do
@@ -2079,20 +2079,20 @@ do
                 break
             end
         end
-        
+
         if not target_op then
             trigger.action.outTextForUnit(unit_id, "Invalid joint operation join code.", 10)
             trigger.action.outSoundForUnit(unit_id,"radio_txrx.ogg")
             return
         end
-        
+
         -- Check if operation is still active (not completed/failed)
         if target_op.status ~= OperationStatus.ACTIVE then
             trigger.action.outTextForUnit(unit_id, "Operation is no longer active.", 10)
             trigger.action.outSoundForUnit(unit_id,"radio_txrx.ogg")
             return
         end
-        
+
         -- Verify leader still exists
         local leader_unit = Unit.getByName(target_op.assigned_unit_name)
         if not leader_unit or not leader_unit:isExist() then
@@ -2100,7 +2100,7 @@ do
             trigger.action.outSoundForUnit(unit_id,"radio_txrx.ogg")
             return
         end
-        
+
         -- Check max joint operation members
         local current_members = 1 -- leader
         if target_op.joint_op_members then
@@ -2108,20 +2108,20 @@ do
                 current_members = current_members + 1
             end
         end
-        
+
         local max_members = Config.operations.joint_op_max_members or 4
         if current_members >= max_members then
             trigger.action.outTextForUnit(unit_id, "Joint operation is at maximum operating capacity.", 10)
             trigger.action.outSoundForUnit(unit_id,"radio_txrx.ogg")
             return
         end
-        
+
         -- Add player to joint operation members
         if not target_op.joint_op_members then
             target_op.joint_op_members = {}
         end
         target_op.joint_op_members[unit_id] = unit:getName()
-        
+
         -- Notify all participants
         local join_msg = string.format("%s has joined Operation %s", unit:getPlayerName(), target_op.operation_name)
         trigger.action.outTextForUnit(target_op.assigned_player_id, join_msg, 10)
@@ -2132,11 +2132,11 @@ do
                 trigger.action.outSoundForUnit(member_id, "radio_txrx.ogg")
             end
         end
-        
+
         trigger.action.outSoundForUnit(unit_id,"chatter1.ogg")
         self:showActiveOperation(unit)
     end
-    
+
     ---@param unit Unit
     ---@param operation Operation|nil
     function OperationManager:leaveJointOperation(unit, operation)
@@ -2153,7 +2153,7 @@ do
                 end
             end
         end
-        
+
         if not target_op then
             trigger.action.outTextForUnit(unit_id, "You are not in a joint operation.", 10)
             trigger.action.outSoundForUnit(unit_id, "radio_txrx.ogg")
@@ -2171,13 +2171,13 @@ do
             trigger.action.outSoundForUnit(unit_id, "radio_txrx.ogg")
             return
         end
-        
+
         -- Remove player from joint operation members
         target_op.joint_op_members[unit_id] = nil
-        
+
         -- Notify all participants
         local leave_msg = string.format("%s has left Operation %s", unit:getPlayerName(), target_op.operation_name)
-        
+
         -- Notify leader if still exists
         local leader_unit = Unit.getByName(target_op.assigned_unit_name)
         if leader_unit and leader_unit:isExist() then
@@ -2190,12 +2190,12 @@ do
             trigger.action.outTextForUnit(member_id, leave_msg, 10)
             trigger.action.outSoundForUnit(member_id, "radio_txrx.ogg")
         end
-        
+
         self:applyLeaveTimeout(unit)
         trigger.action.outSoundForUnit(unit_id,"radio_txrx.ogg")
         trigger.action.outTextForUnit(unit_id, "You have left the joint operation.", 10)
     end
-    
+
     ---@param unit Unit
     function OperationManager:showJointOperationStatus(unit)
         if not unit or not unit.getPlayerName then return end
@@ -2204,7 +2204,7 @@ do
         -- Find if player is leader or member of a joint operation
         local player_op = nil
         local is_leader = false
-        
+
         for _, active_op in ipairs(self.active_operations) do
             if active_op.is_joint_op then
                 if active_op.assigned_player_id == unit_id then
@@ -2218,22 +2218,22 @@ do
                 end
             end
         end
-        
+
         if not player_op then
             trigger.action.outSoundForUnit(unit_id,"radio_txrx.ogg")
             trigger.action.outTextForUnit(unit_id, "You are not in a joint operation.", 10)
             return
         end
-        
+
         local outtext = string.format("Joint Operation %s\nType: %s", player_op.operation_name, player_op.type)
-        
+
         if is_leader then
             outtext = outtext .. string.format("\n\nJoin Code: %d", player_op.joint_op_join_code)
         end
-        
+
         -- List all participants
         outtext = outtext .. string.format("\n\nLeader: %s", player_op.joint_op_leader_name)
-        
+
         if player_op.joint_op_members then
             local member_count = 0
             for member_id, member_name in pairs(player_op.joint_op_members) do
@@ -2244,11 +2244,11 @@ do
                 end
             end
         end
-        
+
         -- Show bonus info
         local joint_op_bonus_pct = (Config.reward_system.joint_op_xp_bonus or 0.25) * 100
         outtext = outtext .. string.format("\n\nJoint Operation bonus: +%d%% XP", joint_op_bonus_pct)
-        
+
         trigger.action.outTextForUnit(unit_id, outtext, 30)
         trigger.action.outSoundForUnit(unit_id,"radio_txrx.ogg")
     end
@@ -2319,7 +2319,7 @@ do
             return
         end
 
-        
+
 
         -- Check if the target zone was taken by someone else between the time the menu was generated and now.
         -- Skip this check for CSAR operations
@@ -2404,7 +2404,7 @@ do
         accepted_mission.assigned_player_id = unit_id
         accepted_mission.assigned_unit_name = unit:getName()
         accepted_mission.operation_id = string.format("airlift_%d_%d", accepted_mission.code or 0, math.floor(timer.getTime()))
-        
+
         if accepted_mission.type == OperationTypes.STRATEGIC_AIRLIFT then
             local load_zone = ZoneHandler.getFromName(accepted_mission.load_zone_name)
             local target_zone = ZoneHandler.getFromName(accepted_mission.target_zone_name)
@@ -2456,7 +2456,7 @@ do
                 target_zone_name = accepted_mission.target_zone_name,
             })
         end
-        
+
         -- Initialize joint operation fields if this is a joint operation
         if accepted_mission.is_joint_op then
             accepted_mission.joint_op_leader_id = unit_id
@@ -2466,7 +2466,7 @@ do
                 accepted_mission.joint_op_members = {}
             end
         end
-        
+
         table.insert(self.active_operations, accepted_mission)
 
         local outtxt = string.format("\n%s Operation %s Initiated", accepted_mission.type, accepted_mission.operation_name)
@@ -2478,10 +2478,10 @@ do
                 trigger.action.smoke(accepted_mission.pilot_position, trigger.smokeColor.Blue)
                 accepted_mission.smoke_spawned = true
             end
-            
+
             local lat, lon = coord.LOtoLL(accepted_mission.pilot_position)
             local mgrs = coord.LLtoMGRS(lat, lon)
-            outtxt = outtxt .. string.format("\n\nApproximate pilot location:\n%s\n%s\nMGRS: %s", 
+            outtxt = outtxt .. string.format("\n\nApproximate pilot location:\n%s\n%s\nMGRS: %s",
                 mist.tostringLL(lat, lon, 4), mist.tostringLL(lat, lon, 4, true), mist.tostringMGRS(mgrs, 4))
             outtxt = outtxt .. "\n\nSmoke has been deployed near the pilot's location."
             outtxt = outtxt .. string.format("\n\nLand within %dm of the pilot to complete the rescue.", Config.operations.csar_rescue_radius or 50)
@@ -2494,8 +2494,8 @@ do
 
             local slat, slon = coord.LOtoLL(load_zone.zone.point)
             local smgrs = coord.LLtoMGRS(slat, slon)
-           
-            
+
+
             local lat, lon = coord.LOtoLL(unload_zone.zone.point)
             local mgrs = coord.LLtoMGRS(lat, lon)
 
@@ -2572,7 +2572,7 @@ do
                 -- AIRDROP operations can be checked even if player unit doesn't exist
                 -- (crates can land after player RTB/ejects/crashes)
                 local can_check_objectives = (player_unit and player_unit:isExist()) or op.type == OperationTypes.AIRDROP
-                
+
                 if can_check_objectives and not skip_operation then
                     for _, obj in ipairs(op.objectives) do
                         if not obj.completed then
@@ -2588,12 +2588,12 @@ do
                     if all_objectives_complete then
                         -- Collect all active participants at completion time (only those alive and existing)
                         local participants_to_reward = {}
-                        
+
                         -- Add leader if alive
                         if player_unit and player_unit:isExist() and player_unit:isActive() then
                             table.insert(participants_to_reward, player_unit)
                         end
-                        
+
                         -- Add joint operation members if alive and existing
                         if op.is_joint_op and op.joint_op_members then
                             for _, member_unit_name in pairs(op.joint_op_members) do
@@ -2706,7 +2706,7 @@ do
     function OperationManager:tick()
         self:checkObjectives()
     end
-    
+
     -- Force regeneration of operations (call when zones change ownership)
     function OperationManager:forceRegenerateOperations()
         self.available_operations = {}

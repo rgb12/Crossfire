@@ -229,7 +229,7 @@ do
         local country_name = 82 -- UN Peace Keepers
 
         if zone.zone_type == ZoneTypes.LOGISTICS or zone.zone_type == ZoneTypes.AIRBASE
-        or zone.zone_type == ZoneTypes.FARP then
+        or zone.zone_type == ZoneTypes.FARP or zone.zone_type == ZoneTypes.ROADBASE then
             if zone.ammo_depot_intact == false then return false end
 
             local depot_point = UnitHandler.findClearPoint(zone,30,200,40)
@@ -396,17 +396,33 @@ do
     ---@param zone ZoneHandler
     ---@param restock boolean
     function UnitHandler.initFARP(zone,restock)
-        if zone.zone_type ~= ZoneTypes.FARP then return end
+        if zone.zone_type ~= ZoneTypes.FARP and zone.zone_type ~= ZoneTypes.ROADBASE then return end
         if zone.side == coalition.side.NEUTRAL then return end
 
-        local country_name_id
-        if zone.side == coalition.side.BLUE then
-            country_name_id = country.id.CJTF_BLUE
-            stats.blue_farp_zones = stats.blue_farp_zones +1
-        else
-            country_name_id = country.id.CJTF_RED
-            stats.red_farp_zones = stats.red_farp_zones +1
+        local is_roadbase = (zone.zone_type == ZoneTypes.ROADBASE)
+        local pad_type = is_roadbase and "Invisible FARP" or "FARP"
+        local pad_shape = is_roadbase and "invisiblefarp" or "FARPS"
+        local stock_package = is_roadbase and StockTypes.ROADBASE or StockTypes.FARP
+
+        local country_name_id = (zone.side == coalition.side.BLUE) and country.id.CJTF_BLUE or country.id.CJTF_RED
+        -- Increment stats only when the pad is created for the first time.
+        -- Keeps the numbers accurate if -logstats is run:
+        if not zone.linked_farp then
+            if zone.side == coalition.side.BLUE then
+                if zone.zone_type == ZoneTypes.FARP then
+                    stats.blue_farp_zones = stats.blue_farp_zones + 1
+                else
+                    stats.blue_roadbases = stats.blue_roadbases + 1
+                end
+            else
+                if zone.zone_type == ZoneTypes.FARP then
+                    stats.red_farp_zones = stats.red_farp_zones + 1
+                else
+                    stats.red_roadbases = stats.red_roadbases + 1
+                end
+            end
         end
+
 
         -- Base coordinates for the zone center (where the FARP pad goes)
         local base_x = zone.zone.point.x
@@ -428,16 +444,15 @@ do
 
             -- Skip re-spawning the pad if this zone already has one linked (e.g. on restock).
             if not (zone.linked_farp and static_data.type == "FARP") then
-
                 if static_data.type ~= "FARP" then
                     local new_static = mist.dynAddStatic({
-                            type = static_data.type,
-                            shape_name = static_data.shape_name,
-                            country = country_name_id,
-                            category = static_data.category,
-                            x = static_point.x,
-                            y = static_point.y,
-                            heading = 0
+                        type = static_data.type,
+                        shape_name = static_data.shape_name,
+                        country = country_name_id,
+                        category = static_data.category,
+                        x = static_point.x,
+                        y = static_point.y,
+                        heading = 0
                     })
                     if new_static and new_static.name then
                         table.insert(zone.linked_statics, new_static.name)
@@ -445,12 +460,12 @@ do
                 else
                     local new_static = coalition.addStaticObject(country_name_id, {
                         ["category"] = static_data.category,
-                        ["shape_name"] = static_data.shape_name,
-                        ["type"] = static_data.type,
+                        ["shape_name"] = pad_shape,
+                        ["type"] = pad_type,
                         ["unitId"] = mist.getNextUnitId(),
                         ["x"] = static_point.x,
                         ["y"] = static_point.y,
-                        ["name"] = "FARP " .. zone.name,
+                        ["name"] = (is_roadbase and "ROADBASE " or "FARP ") .. zone.name,
                         ["heading"] = 0,
                         ["dead"] = false,
                         ["dynamicSpawn"] = true,
@@ -467,11 +482,61 @@ do
             end
         end
 
+        -- Spawn portable TACANs for Roadbases, as IRL NATO/Swedish roadbases (BAS 60/BAS 90 and Harrier forward operating strips)
+        -- did deploy portable ground TACAN transponders (like the AN/TRN-26 / AN/TRN-41).
+        if is_roadbase and not zone.tacan_channel then
+            local tacan_ch = 90 + ((zone.zone.id - 1) % 30) -- 90X..119X (avoids tanker 50X..80X & CVN 71X/74X)
+            local tacan_callsign = string.upper((zone.name:gsub("^ROADBASE%-?", "")):sub(1, 3))
+            if #tacan_callsign < 3 then tacan_callsign = "RDB" end
+
+            local tcn_group = mist.dynAdd({
+                country = country_name_id,
+                category = Group.Category.GROUND,
+                name = "TACAN_" .. zone.name .. "_" .. mist.getNextGroupId(),
+                units = {
+                    {
+                        type = "TACAN_beacon",
+                        name = "TACAN_" .. zone.name .. "_u1_" .. mist.getNextUnitId(),
+                        x = base_x + 12,
+                        y = base_y - 35,
+                        heading = 0,
+                        skill = "Excellent",
+                    }
+                }
+            })
+
+            if tcn_group and tcn_group.name then
+                zone.tacan_channel = tacan_ch
+                zone.tacan_callsign = tacan_callsign
+                table.insert(zone.linked_groups, tcn_group.name)
+
+                timer.scheduleFunction(function()
+                    local grp = Group.getByName(tcn_group.name)
+                    if grp and grp:isExist() then
+                        grp:getController():setCommand({
+                            id = "ActivateBeacon",
+                            params = {
+                                type = 4,          -- TACAN
+                                system = 5,        -- Portable ground TACAN
+                                unitId = grp:getUnit(1):getID(),
+                                name = "TACAN_" .. zone.name,
+                                callsign = tacan_callsign,
+                                channel = tacan_ch,
+                                modeChannel = "X",
+                                AA = false,
+                                bearing = true,
+                            }
+                        })
+                    end
+                end, {}, timer.getTime() + 2)
+            end
+        end
+
         -- Add to warehouse
         if zone.linked_farp then
             if restock then
                 WarehouseManager:clearWarehouse(zone.linked_farp)
-                WarehouseManager:attributeAirbaseStock(zone.linked_farp, zone.side, {StockTypes.FARP})
+                WarehouseManager:attributeAirbaseStock(zone.linked_farp, zone.side, {stock_package})
             end
             WarehouseManager:addLiquids(zone.linked_farp)
         end

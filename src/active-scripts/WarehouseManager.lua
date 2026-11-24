@@ -251,6 +251,11 @@ do
             StockTypes.ATTACK_HELICOPTER, StockTypes.LOGISTICS_HELICOPTER,
             StockTypes.VSTOL_AIRCRAFT,
         },
+        [StockTypes.ROADBASE] = {
+            StockTypes.FARP_MISSILES, StockTypes.FARP_AG_ROCKETS, StockTypes.FARP_MISC, StockTypes.FARP_GUNS, StockTypes.FARP_GUIDED_BOMBS, StockTypes.FARP_BOMBS, StockTypes.FUEL_TANKS,
+            StockTypes.VSTOL_AIRCRAFT, StockTypes.STOL_AIRCRAFT,
+            StockTypes.ATTACK_HELICOPTER, StockTypes.LOGISTICS_HELICOPTER,
+        },
     }
 
     WarehouseManager.AircraftStockTypes = {

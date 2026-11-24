@@ -370,6 +370,7 @@ ZoneTypes = {
     EWSITE = "EWSITE",
     LOGISTICS = "LOGISTICS",
     COMMS = "COMMS",
+    ROADBASE = "ROADBASE",
 }
 
 -- Fill in isDefensiveOperation
@@ -480,7 +481,8 @@ StockTypes = {
     VSTOL_AIRCRAFT = 27,
     STOL_AIRCRAFT = 28,
     FARP_GUIDED_BOMBS = 29,
-    FARP_BOMBS = 30
+    FARP_BOMBS = 30,
+    ROADBASE = 31
 }
 
 MissionLogger = mist.Logger:new("MissionLogger", 3)
