@@ -179,6 +179,19 @@ function ev:onEvent(event)
                 CommandHandler.clearF10(group)
             end
 
+            -- Persist warehouse state 2s after slot release so native DCS dynamic-slot
+            -- refunds (airframe/equipment returned on Release Slot) are captured in mission.json.
+            -- Checking (#blue_players + #red_players) == 0 means it only forces an immediate disk save when the server empties out
+            -- (matching ExperienceManager:debrief's last-player save design), while busy servers continue using the periodic autoSave() timer.
+            if PersistenceManager and PersistenceManager.enabled then
+                timer.scheduleFunction(function()
+                    local blue_players = coalition.getPlayers(coalition.side.BLUE) or {}
+                    local red_players  = coalition.getPlayers(coalition.side.RED) or {}
+                    if (#blue_players + #red_players) == 0 then
+                        PersistenceManager:saveMissionToFile()
+                    end
+                end, {}, timer.getTime() + 2)
+            end
         end
     end
 
@@ -222,7 +235,7 @@ function ev:onEvent(event)
 
                 end, {}, timer.getTime() + math.random(30,120))
             end
-            
+
         end
     end
 
