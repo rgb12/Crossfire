@@ -578,6 +578,17 @@ do
                         StockTypes.MISC,
                     },
                 },
+                {
+                    out_text = "Logistics and Attack Helicopter Equipment",
+                    stocks = {
+                        StockTypes.FARP_MISSILES,
+                        StockTypes.FARP_AG_ROCKETS,
+                        StockTypes.FARP_GUNS,
+                        StockTypes.FARP_MISC,
+                        StockTypes.FARP_GUIDED_BOMBS,
+                        StockTypes.FARP_BOMBS,
+                    },
+                },
             }
 
         if not stock_types then
@@ -612,6 +623,12 @@ do
                 [StockTypes.ECM] = "ECM Equipment",
                 [StockTypes.TGP] = "TGP",
                 [StockTypes.MISC] = "Misc Equipment",
+                [StockTypes.FARP_MISSILES] = "Helicopter Missiles",
+                [StockTypes.FARP_AG_ROCKETS] = "Helicopter Rockets",
+                [StockTypes.FARP_GUNS] = "Helicopter Guns",
+                [StockTypes.FARP_MISC] = "Helicopter Equipment",
+                [StockTypes.FARP_GUIDED_BOMBS] = "Helicopter Guided Bombs",
+                [StockTypes.FARP_BOMBS] = "Helicopter Bombs",
                 [StockTypes.INITIAL] = "Initial Stock Package",
                 [StockTypes.VSTOL_AIRCRAFT] = "VSTOL Aircraft",
                 [StockTypes.STOL_AIRCRAFT] = "STOL Aircraft",
