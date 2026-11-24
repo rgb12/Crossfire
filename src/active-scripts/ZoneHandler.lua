@@ -266,8 +266,8 @@ do
             if self.zone_type ~= ZoneTypes.ROADBASE or not self.runway_quad then return end
             local rwy_id = nextMarkId()
             local q = self.runway_quad
-            local rwy_border = { 1.0, 0.85, 0.2, 0.95 }  -- crisp amber/yellow outline
-            local rwy_fill   = { 0.12, 0.12, 0.12, 0.65 } -- dark asphalt fill
+            local rwy_border = { 1.0, 0.85, 0.2, 0.65 }  -- crisp outline
+            local rwy_fill   = { 0.12, 0.12, 0.12, 0.35 } -- dark asphalt fill
             trigger.action.quadToAll(coal_filter, rwy_id, q[1], q[2], q[3], q[4], rwy_border, rwy_fill, utils.LineStyle.SOLID, true)
             self._markIds[rwy_key] = rwy_id
         end
@@ -283,12 +283,11 @@ do
                 trigger.action.quadToAll(-1, nCircleId, self.zone.vertices[4], self.zone.vertices[3],
                     self.zone.vertices[2], self.zone.vertices[1], border_color, fill_color, 1, true)
             end
+            drawRoadbaseOverlay(-1, "neutralRwy")
             trigger.action.textToAll(-1, nTextId, self.zone.point, text_color, text_bg, 13, true, text_display)
 
             self._markIds.neutral = nCircleId
             self._markIds.neutralText = nTextId
-
-            drawRoadbaseOverlay(-1, "neutralRwy")
         else
             -- Draw for BLUE coalition (if they discovered it)
             if utils.tableContains(stats.blue_discovered_zones, self.zone.name) then
@@ -302,12 +301,12 @@ do
                     trigger.action.quadToAll(coalition.side.BLUE, bCircleId, self.zone.vertices[4], self.zone.vertices[3],
                         self.zone.vertices[2], self.zone.vertices[1], border_color, fill_color, 1, true)
                 end
+                drawRoadbaseOverlay(coalition.side.BLUE, "blueRwy")
                 trigger.action.textToAll(coalition.side.BLUE, bTextId, self.zone.point, text_color, text_bg, 13, true, text_display)
 
                 self._markIds.blue = bCircleId
                 self._markIds.blueText = bTextId
 
-                drawRoadbaseOverlay(coalition.side.BLUE, "blueRwy")
             else
                 self._markIds.blue, self._markIds.blueText = nil, nil
             end
@@ -324,12 +323,11 @@ do
                     trigger.action.quadToAll(coalition.side.RED, rCircleId, self.zone.vertices[4], self.zone.vertices[3],
                         self.zone.vertices[2], self.zone.vertices[1], border_color, fill_color, 1, true)
                 end
+                drawRoadbaseOverlay(coalition.side.RED, "redRwy")
                 trigger.action.textToAll(coalition.side.RED, rTextId, self.zone.point, text_color, text_bg, 13, true, text_display)
 
                 self._markIds.red = rCircleId
                 self._markIds.redText = rTextId
-
-                drawRoadbaseOverlay(coalition.side.RED, "redRwy")
             else
                 self._markIds.red, self._markIds.redText = nil, nil
             end
