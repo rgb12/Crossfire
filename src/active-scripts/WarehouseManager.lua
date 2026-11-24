@@ -680,24 +680,35 @@ do
             user_scale = user_scale * Config.blue_stock_multiplier
         end
 
-        local added_stuff_tbl = {}
-        for i,stock_type in ipairs(expandStockTypes(stock_types)) do
+        local stock_by_type = {}
+        for _,stock_type in ipairs(expandStockTypes(stock_types)) do
+            local stock
             if utils.tableContains(WarehouseManager.AircraftStockTypes, stock_type) then
-                local stock = WarehouseManager:generateAircraftStock(stock_type, side)
-                for id,amount in pairs(stock) do
-                    local scaled_amount = math.max(1, math.floor(amount * user_scale))
-                    warehouse:addItem(id, scaled_amount)
-                    table.insert(added_stuff_tbl, {id, scaled_amount})
-                end
+                stock = WarehouseManager:generateAircraftStock(stock_type, side)
             else
-                local stock = WarehouseManager:generateStock(stock_type, side)
-
-                for id,amount in pairs(stock) do
-                    local scaled_amount = math.max(1, math.floor(amount * user_scale))
-                    warehouse:addItem(id, scaled_amount)
-                    table.insert(added_stuff_tbl, {id, scaled_amount})
-                end
+                stock = WarehouseManager:generateStock(stock_type, side)
             end
+            local type_stock = stock_by_type[stock_type] or {}
+            stock_by_type[stock_type] = type_stock
+            for id,amount in pairs(stock) do
+                type_stock[id] = (type_stock[id] or 0) + amount
+            end
+        end
+        
+        -- Prevent stock types from adding twice a weapon
+        -- sum instead
+        local merged_stock = {}
+        for _,type_stock in pairs(stock_by_type) do
+            for id,amount in pairs(type_stock) do
+                merged_stock[id] = math.max(merged_stock[id] or 0, amount)
+            end
+        end
+
+        local added_stuff_tbl = {}
+        for id,amount in pairs(merged_stock) do
+            local scaled_amount = math.max(1, math.floor(amount * user_scale))
+            warehouse:addItem(id, scaled_amount)
+            table.insert(added_stuff_tbl, {id, scaled_amount})
         end
 
         WarehouseManager:applyAIPayloadFloor(airbase_name, side)
