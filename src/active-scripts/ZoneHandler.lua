@@ -88,34 +88,33 @@ do
             end
         end
 
-
         if obj.zone_type == ZoneTypes.ROADBASE and obj.runway_heading and obj.runway_length then
             local rad = math.rad(obj.runway_heading)
-            local half = obj.runway_length * 0.5
+            local half_len = obj.runway_length * 0.5
+            local half_wid = (obj.runway_width or 30) * 0.5
             local lat_off = obj.runway_offset or 0
-            -- Perpendicular offset (left/right of heading) from parking center to road centerline
-            local cx = obj.zone.point.x - math.sin(rad) * lat_off
-            local cz = obj.zone.point.z + math.cos(rad) * lat_off
+            local along_off = obj.runway_along_offset or 0
 
-            obj.runway_p1 = {
-                x = cx - math.cos(rad) * half,
-                y = land.getHeight({ x = cx - math.cos(rad) * half, y = cz - math.sin(rad) * half }),
-                z = cz - math.sin(rad) * half,
-            }
-            obj.runway_p2 = {
-                x = cx + math.cos(rad) * half,
-                y = land.getHeight({ x = cx + math.cos(rad) * half, y = cz + math.sin(rad) * half }),
-                z = cz + math.sin(rad) * half,
-            }
+            -- Unit vectors: forward (along heading) and right (perpendicular)
+            local fx, fz = math.cos(rad), math.sin(rad)
+            local rx, rz = -fz, fx
 
-            -- Place RWY text label 120 m on the opposite side of the road from the main zone label
-            local label_dir = (lat_off < 0) and -1 or 1
-            local lx = cx - math.sin(rad) * (120 * label_dir)
-            local lz = cz + math.cos(rad) * (120 * label_dir)
-            obj.runway_label_point = {
-                x = lx,
-                y = land.getHeight({ x = lx, y = lz }),
-                z = lz,
+            -- Road centerline midpoint
+            local cx = obj.zone.point.x + fx * along_off + rx * lat_off
+            local cz = obj.zone.point.z + fz * along_off + rz * lat_off
+
+            local function corner(along, across)
+                local px = cx + fx * along + rx * across
+                local pz = cz + fz * along + rz * across
+                return { x = px, y = land.getHeight({ x = px, y = pz }), z = pz }
+            end
+
+            -- 4 corners of the runway rectangle
+            obj.runway_quad = {
+                corner(-half_len, -half_wid),
+                corner(-half_len,  half_wid),
+                corner( half_len,  half_wid),
+                corner( half_len, -half_wid),
             }
 
             local rwy1 = math.floor(((obj.runway_heading % 360) + 5) / 10) % 36
@@ -226,6 +225,9 @@ do
             text_display = text_display .. "\nFARP"
         elseif self.zone_type == ZoneTypes.ROADBASE then
             text_display = text_display .. "\nROADBASE"
+            if self.runway_label then
+                text_display = text_display .. "\n" .. self.runway_label
+            end
         elseif self.zone_type == ZoneTypes.SAMSITE then
             text_display = text_display .. "\nSAM SITE"
         elseif self.zone_type == ZoneTypes.EWSITE then
@@ -244,36 +246,30 @@ do
 
         -- 3. Cleanup Old Marks
         self._markIds = self._markIds or {
-            blue=nil, blueText=nil, blueRwyLine=nil, blueRwyText=nil,
-            red=nil,  redText=nil,  redRwyLine=nil,  redRwyText=nil,
-            neutral=nil, neutralText=nil, neutralRwyLine=nil, neutralRwyText=nil
+            blue=nil, blueText=nil, blueRwy=nil,
+            red=nil,  redText=nil,  redRwy=nil,
+            neutral=nil, neutralText=nil, neutralRwy=nil
         }
 
-        if self._markIds.blue           then trigger.action.removeMark(self._markIds.blue) end
-        if self._markIds.blueText       then trigger.action.removeMark(self._markIds.blueText) end
-        if self._markIds.blueRwyLine    then trigger.action.removeMark(self._markIds.blueRwyLine) end
-        if self._markIds.blueRwyText    then trigger.action.removeMark(self._markIds.blueRwyText) end
-        if self._markIds.red            then trigger.action.removeMark(self._markIds.red) end
-        if self._markIds.redText        then trigger.action.removeMark(self._markIds.redText) end
-        if self._markIds.redRwyLine     then trigger.action.removeMark(self._markIds.redRwyLine) end
-        if self._markIds.redRwyText     then trigger.action.removeMark(self._markIds.redRwyText) end
-        if self._markIds.neutral        then trigger.action.removeMark(self._markIds.neutral) end
-        if self._markIds.neutralText    then trigger.action.removeMark(self._markIds.neutralText) end
-        if self._markIds.neutralRwyLine then trigger.action.removeMark(self._markIds.neutralRwyLine) end
-        if self._markIds.neutralRwyText then trigger.action.removeMark(self._markIds.neutralRwyText) end
+        if self._markIds.blue        then trigger.action.removeMark(self._markIds.blue) end
+        if self._markIds.blueText    then trigger.action.removeMark(self._markIds.blueText) end
+        if self._markIds.blueRwy     then trigger.action.removeMark(self._markIds.blueRwy) end
+        if self._markIds.red         then trigger.action.removeMark(self._markIds.red) end
+        if self._markIds.redText     then trigger.action.removeMark(self._markIds.redText) end
+        if self._markIds.redRwy      then trigger.action.removeMark(self._markIds.redRwy) end
+        if self._markIds.neutral     then trigger.action.removeMark(self._markIds.neutral) end
+        if self._markIds.neutralText then trigger.action.removeMark(self._markIds.neutralText) end
+        if self._markIds.neutralRwy  then trigger.action.removeMark(self._markIds.neutralRwy) end
 
         -- 4. Draw New Marks
-        local function drawRoadbaseOverlay(coal_filter, line_key, text_key)
-            if self.zone_type ~= ZoneTypes.ROADBASE or not (self.runway_p1 and self.runway_p2) then return end
-            local line_id, text_id = nextMarkId(), nextMarkId()
-            local label_pos = self.runway_label_point or {
-                x = (self.runway_p1.x + self.runway_p2.x) * 0.5,
-                y = self.zone.point.y,
-                z = (self.runway_p1.z + self.runway_p2.z) * 0.5,
-            }
-            trigger.action.lineToAll(coal_filter, line_id, self.runway_p1, self.runway_p2, border_color, utils.LineStyle.SOLID, true)
-            trigger.action.textToAll(coal_filter, text_id, label_pos, text_color, text_bg, 11, true, self.runway_label)
-            self._markIds[line_key], self._markIds[text_key] = line_id, text_id
+        local function drawRoadbaseOverlay(coal_filter, rwy_key)
+            if self.zone_type ~= ZoneTypes.ROADBASE or not self.runway_quad then return end
+            local rwy_id = nextMarkId()
+            local q = self.runway_quad
+            local rwy_border = { 1.0, 0.85, 0.2, 0.95 }  -- crisp amber/yellow outline
+            local rwy_fill   = { 0.12, 0.12, 0.12, 0.65 } -- dark asphalt fill
+            trigger.action.quadToAll(coal_filter, rwy_id, q[1], q[2], q[3], q[4], rwy_border, rwy_fill, utils.LineStyle.SOLID, true)
+            self._markIds[rwy_key] = rwy_id
         end
 
         if self.side == coalition.side.NEUTRAL then
@@ -292,7 +288,7 @@ do
             self._markIds.neutral = nCircleId
             self._markIds.neutralText = nTextId
 
-            drawRoadbaseOverlay(-1, "neutralRwyLine", "neutralRwyText")
+            drawRoadbaseOverlay(-1, "neutralRwy")
         else
             -- Draw for BLUE coalition (if they discovered it)
             if utils.tableContains(stats.blue_discovered_zones, self.zone.name) then
@@ -311,7 +307,7 @@ do
                 self._markIds.blue = bCircleId
                 self._markIds.blueText = bTextId
 
-                drawRoadbaseOverlay(coalition.side.BLUE, "blueRwyLine", "blueRwyText")
+                drawRoadbaseOverlay(coalition.side.BLUE, "blueRwy")
             else
                 self._markIds.blue, self._markIds.blueText = nil, nil
             end
@@ -333,7 +329,7 @@ do
                 self._markIds.red = rCircleId
                 self._markIds.redText = rTextId
 
-                drawRoadbaseOverlay(coalition.side.RED, "redRwyLine", "redRwyText")
+                drawRoadbaseOverlay(coalition.side.RED, "redRwy")
             else
                 self._markIds.red, self._markIds.redText = nil, nil
             end

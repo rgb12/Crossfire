@@ -214,8 +214,8 @@ available_zones = {
     ZoneHandler:new({name = "SUPSEH"}),
     ZoneHandler:new({name = "NORTH-FIELDS"}),
     ZoneHandler:new({name = "LONDON"}),
-    ZoneHandler:new({ name = "ROADBASE-GORI", zone_type = ZoneTypes.ROADBASE, runway_heading = 107, runway_length = 2578, runway_offset = -62 }),
-    ZoneHandler:new({name = "ROADBASE-TUZI", zone_type = ZoneTypes.ROADBASE, runway_heading = 39, runway_length = 1000, runway_offset = -60})
+    ZoneHandler:new({ name = "ROADBASE-GORI", zone_type = ZoneTypes.ROADBASE, runway_heading = 107, runway_length = 2578, runway_offset = 62 }),
+    ZoneHandler:new({name = "ROADBASE-TUZI", zone_type = ZoneTypes.ROADBASE, runway_heading = 39, runway_length = 1000, runway_offset = -60, runway_along_offset = -500 })
     ), -- [Theaters.CAUCASUS]
     [Theatres.SYRIA] = passUnknown(
         ZoneHandler:new({name = "KHALKHALAH", zone_type = ZoneTypes.AIRBASE, airbase_name = Airbases.Syria.Khalkhalah}),
