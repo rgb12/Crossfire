@@ -215,7 +215,8 @@ do
         StockTypes.FARP_GUNS,
         StockTypes.FUEL_TANKS,
         StockTypes.FARP_GUIDED_BOMBS,
-        StockTypes.FARP_BOMBS
+        StockTypes.FARP_BOMBS,
+        StockTypes.ROADBASE
     }
 
     WarehouseManager.StockTypeContents = {

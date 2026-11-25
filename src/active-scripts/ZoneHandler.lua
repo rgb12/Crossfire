@@ -592,11 +592,13 @@ do
             timer.scheduleFunction(function ()
                 if self.linked_farp then
                     WarehouseManager:clearWarehouse(self.linked_farp)
-                    local old_pad = StaticObject.getByName(self.linked_farp)
-                    if old_pad and old_pad:isExist() then
-                        old_pad:destroy()
+                    if self.zone_type == ZoneTypes.FARP then
+                        local old_pad = StaticObject.getByName(self.linked_farp)
+                        if old_pad and old_pad:isExist() then
+                            old_pad:destroy()
+                        end
+                        self.linked_farp = nil
                     end
-                    self.linked_farp = nil
                 end
                 UnitHandler.initFARP(self,false)
             end,{},timer.getTime()+5)

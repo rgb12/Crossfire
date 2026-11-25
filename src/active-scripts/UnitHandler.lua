@@ -400,8 +400,6 @@ do
         if zone.side == coalition.side.NEUTRAL then return end
 
         local is_roadbase = (zone.zone_type == ZoneTypes.ROADBASE)
-        local pad_type = is_roadbase and "Invisible FARP" or "FARP"
-        local pad_shape = is_roadbase and "invisiblefarp" or "FARPS"
         local stock_package = is_roadbase and StockTypes.ROADBASE or StockTypes.FARP
 
         local country_name_id = (zone.side == coalition.side.BLUE) and country.id.CJTF_BLUE or country.id.CJTF_RED
@@ -435,50 +433,54 @@ do
         -- Statics to spawn, laid out on the pad itself
         local farp_statics_to_spawn = Config.farp_assets.statics
 
+        -- Link a pre-placed .miz Invisible FARP if present (so coalition.addStaticObject skips spawning a duplicate pad)
+        local title_name = zone.name:gsub("%-", " "):lower():gsub("(%a)([%w']*)", function(a, b) return a:upper() .. b end)
+        local expected_pad_name = is_roadbase and title_name or ("FARP " .. zone.name)
+        if not zone.linked_farp then
+            if Airbase.getByName(expected_pad_name .. "-1") then
+                zone.linked_farp = expected_pad_name .. "-1"
+            elseif Airbase.getByName(expected_pad_name) then
+                zone.linked_farp = expected_pad_name
+            end
+        end
+
         -- Spawn the Statics
         for _, static_data in ipairs(farp_statics_to_spawn) do
-            local static_point = {
-                x = base_x + static_data.offset_x,
-                y = base_y + static_data.offset_y
-            }
-
             -- Skip re-spawning the pad if this zone already has one linked (e.g. on restock).
             if not (zone.linked_farp and static_data.type == "FARP") then
-                if static_data.type ~= "FARP" then
-                    local new_static = mist.dynAddStatic({
-                        type = static_data.type,
-                        shape_name = static_data.shape_name,
-                        country = country_name_id,
-                        category = static_data.category,
-                        x = static_point.x,
-                        y = static_point.y,
-                        heading = 0
-                    })
-                    if new_static and new_static.name then
-                        table.insert(zone.linked_statics, new_static.name)
-                    end
-                else
-                    local new_static = coalition.addStaticObject(country_name_id, {
-                        ["category"] = static_data.category,
-                        ["shape_name"] = pad_shape,
-                        ["type"] = pad_type,
-                        ["unitId"] = mist.getNextUnitId(),
-                        ["x"] = static_point.x,
-                        ["y"] = static_point.y,
-                        ["name"] = (is_roadbase and "ROADBASE " or "FARP ") .. zone.name,
-                        ["heading"] = 0,
-                        ["dead"] = false,
-                        ["dynamicSpawn"] = true,
-                        ["allowHotStart"] = true,
-                        ["heliport_frequency"] = heliport_frequency,
-                        ["heliport_modulation"] = 0,
-                        ["heliport_callsign_id"] = heliport_callsign_id
-                    })
+                -- Offset things a bit more geographically for the roadbases:
+                local mult = is_roadbase and 1.6 or 1.0
+                local static_point = {
+                    x = base_x + static_data.offset_x * mult,
+                    y = base_y + static_data.offset_y * mult
+                }
 
-                    if new_static and new_static.getName then
-                        zone.linked_farp = new_static:getName()
-                    end
+                local static_name = (static_data.name_prefix or static_data.type) .. " " .. zone.name .. "_" .. mist.getNextUnitId()
+                local heading_rad = math.rad(static_data.heading or 0)
+
+                local static_obj = {
+                    ["name"] = static_name,
+                    ["type"] = static_data.type,
+                    ["shape_name"] = static_data.shape_name,
+                    ["x"] = static_point.x,
+                    ["y"] = static_point.y,
+                    ["heading"] = heading_rad,
+                    ["category"] = static_data.category,
+                    ["dead"] = false,
+                }
+
+                if static_data.type == "FARP" then
+                    local callsign_id = ((zone.zone.id - 1) % 10) + 1
+                    static_obj["heliport_callsign_id"] = callsign_id
+                    static_obj["heliport_modulation"] = 0
+                    static_obj["heliport_frequency"] = 127.5 + (callsign_id - 1)
+                    static_obj["dynamicSpawn"] = true
+                    static_obj["allowHotStart"] = true
+                    zone.linked_farp = static_name
                 end
+
+                mist.dynAddStatic(static_obj)
+                table.insert(zone.linked_statics, static_name)
             end
         end
 
@@ -486,7 +488,7 @@ do
         -- did deploy portable ground TACAN transponders (like the AN/TRN-26 / AN/TRN-41).
         if is_roadbase and not zone.tacan_channel then
             local tacan_ch = 90 + ((zone.zone.id - 1) % 30) -- 90X..119X (avoids tanker 50X..80X & CVN 71X/74X)
-            local tacan_callsign = string.upper((zone.name:gsub("^ROADBASE%-?", "")):sub(1, 3))
+            local tacan_callsign = string.upper((zone.name:gsub("^[Rr][Oo][Aa][Dd][Bb][Aa][Ss][Ee][%-%s]*", "")):sub(1, 3))
             if #tacan_callsign < 3 then tacan_callsign = "RDB" end
 
             local tcn_group = mist.dynAdd({
@@ -497,8 +499,8 @@ do
                     {
                         type = "TACAN_beacon",
                         name = "TACAN_" .. zone.name .. "_u1_" .. mist.getNextUnitId(),
-                        x = base_x + 12,
-                        y = base_y - 35,
+                        x = base_x + 45,
+                        y = base_y - 65,
                         heading = 0,
                         skill = "Excellent",
                     }
