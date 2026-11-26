@@ -15,6 +15,7 @@ do
     ---@param group_id number
     ---@param side coalition.side
     function CommandHandler.illuminateNearestRoadbase(group_id, side)
+        ---@type RoadbaseZone|nil
         local best_zone = nil
         local best_dist = 20000 -- 20 km max request range
 
@@ -36,13 +37,16 @@ do
         end
 
         for _, z in ipairs(zones or {}) do
-            if z.zone_type == ZoneTypes.ROADBASE and z.side == side and z.runway_quad and #z.runway_quad == 4 then
-                local dx = z.zone.point.x - ref_pos.x
-                local dz = z.zone.point.z - ref_pos.z
-                local dist = math.sqrt(dx * dx + dz * dz)
-                if dist < best_dist then
-                    best_dist = dist
-                    best_zone = z
+            if z.zone_type == ZoneTypes.ROADBASE and z.side == side then
+                ---@cast z RoadbaseZone
+                if z.runway_quad and #z.runway_quad == 4 then
+                    local dx = z.zone.point.x - ref_pos.x
+                    local dz = z.zone.point.z - ref_pos.z
+                    local dist = math.sqrt(dx * dx + dz * dz)
+                    if dist < best_dist then
+                        best_dist = dist
+                        best_zone = z
+                    end
                 end
             end
         end
@@ -62,7 +66,8 @@ do
         best_zone._last_illum_time = now
 
         -- Launch a flare every ~500m. Depends on the runway_length, defined in scenarios.lua:
-        local q1, q2, q3, q4 = unpack(best_zone.runway_quad)
+        local quad = best_zone.runway_quad
+        local q1, q2, q3, q4 = quad[1], quad[2], quad[3], quad[4]
         local start_mid = { x = (q1.x + q2.x) * 0.5, z = (q1.z + q2.z) * 0.5 }
         local end_mid   = { x = (q3.x + q4.x) * 0.5, z = (q3.z + q4.z) * 0.5 }
 

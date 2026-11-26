@@ -5,7 +5,14 @@ function nextMarkId()
 end
 
 
-
+---@class RoadbaseZone : ZoneHandler
+---@field tacan_channel number|nil
+---@field tacan_callsign string|nil
+---@field runway_heading number|nil
+---@field runway_quad vec3[]
+---@field runway_label string
+---@field runway_length number
+---@field _last_illum_time number
 
 ---@class ZoneHandler
 ---@field name string
@@ -224,6 +231,7 @@ do
         elseif self.zone_type == ZoneTypes.FARP then
             text_display = text_display .. "\nFARP"
         elseif self.zone_type == ZoneTypes.ROADBASE then
+            ---@cast self RoadbaseZone
             text_display = text_display .. "\nROADBASE"
             if self.runway_label then
                 text_display = text_display .. "\n" .. self.runway_label
