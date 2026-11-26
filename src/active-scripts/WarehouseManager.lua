@@ -253,6 +253,7 @@ do
             StockTypes.VSTOL_AIRCRAFT,
         },
         [StockTypes.ROADBASE] = {
+            StockTypes.ROADBASE,
             StockTypes.FARP_MISSILES, StockTypes.FARP_AG_ROCKETS, StockTypes.FARP_MISC, StockTypes.FARP_GUNS, StockTypes.FARP_GUIDED_BOMBS, StockTypes.FARP_BOMBS, StockTypes.FUEL_TANKS,
             StockTypes.VSTOL_AIRCRAFT, StockTypes.STOL_AIRCRAFT,
             StockTypes.ATTACK_HELICOPTER, StockTypes.LOGISTICS_HELICOPTER,
@@ -279,11 +280,11 @@ do
     ---@param stock_type StockTypes
     ---@return StockTypes[] list of weapon stock type enum values
     local function weaponStockTypesFor(stock_type)
-        local composite = WarehouseManager.StockTypeContents[stock_type]
-        if composite then return composite end
         if utils.tableContains(WarehouseManager.EquipmentNonAircraftStockTypes, stock_type) then
             return { stock_type }
         end
+        local composite = WarehouseManager.StockTypeContents[stock_type]
+        if composite then return composite end
         return {}
     end
 
