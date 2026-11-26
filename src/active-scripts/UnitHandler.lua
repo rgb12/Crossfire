@@ -484,54 +484,141 @@ do
             end
         end
 
-        -- Spawn portable TACANs for Roadbases, as IRL NATO/Swedish roadbases (BAS 60/BAS 90 and Harrier forward operating strips)
-        -- did deploy portable ground TACAN transponders (like the AN/TRN-26 / AN/TRN-41).
-        if is_roadbase and not zone.tacan_channel then
-            local tacan_ch = 90 + ((zone.zone.id - 1) % 30) -- 90X..119X (avoids tanker 50X..80X & CVN 71X/74X)
-            local tacan_callsign = string.upper((zone.name:gsub("^[Rr][Oo][Aa][Dd][Bb][Aa][Ss][Ee][%-%s]*", "")):sub(1, 3))
-            if #tacan_callsign < 3 then tacan_callsign = "RDB" end
+        if is_roadbase then
+            -- Spawn portable TACANs for Roadbases, as IRL NATO/Swedish roadbases (BAS 60/BAS 90 and Harrier forward operating strips)
+            -- did deploy portable ground TACAN transponders (like the AN/TRN-26 / AN/TRN-41).
+            if not zone.tacan_channel then
+                local tacan_ch = 90 + ((zone.zone.id - 1) % 30) -- 90X..119X (avoids tanker 50X..80X & CVN 71X/74X)
+                local tacan_callsign = string.upper((zone.name:gsub("^[Rr][Oo][Aa][Dd][Bb][Aa][Ss][Ee][%-%s]*", "")):sub(
+                1, 3))
+                if #tacan_callsign < 3 then tacan_callsign = "RDB" end
 
-            local tcn_group = mist.dynAdd({
-                country = country_name_id,
-                category = Group.Category.GROUND,
-                name = "TACAN_" .. zone.name .. "_" .. mist.getNextGroupId(),
-                units = {
-                    {
-                        type = "TACAN_beacon",
-                        name = "TACAN_" .. zone.name .. "_u1_" .. mist.getNextUnitId(),
-                        x = base_x + 45,
-                        y = base_y - 65,
-                        heading = 0,
-                        skill = "Excellent",
+                local tcn_group = mist.dynAdd({
+                    country = country_name_id,
+                    category = Group.Category.GROUND,
+                    name = "TACAN_" .. zone.name .. "_" .. mist.getNextGroupId(),
+                    units = {
+                        {
+                            type = "TACAN_beacon",
+                            name = "TACAN_" .. zone.name .. "_u1_" .. mist.getNextUnitId(),
+                            x = base_x + 45,
+                            y = base_y - 65,
+                            heading = 0,
+                            skill = "Excellent",
+                        }
                     }
-                }
-            })
+                })
 
-            if tcn_group and tcn_group.name then
-                zone.tacan_channel = tacan_ch
-                zone.tacan_callsign = tacan_callsign
-                table.insert(zone.linked_groups, tcn_group.name)
+                if tcn_group and tcn_group.name then
+                    zone.tacan_channel = tacan_ch
+                    zone.tacan_callsign = tacan_callsign
+                    table.insert(zone.linked_groups, tcn_group.name)
 
-                timer.scheduleFunction(function()
-                    local grp = Group.getByName(tcn_group.name)
-                    if grp and grp:isExist() then
-                        grp:getController():setCommand({
-                            id = "ActivateBeacon",
-                            params = {
-                                type = 4,          -- TACAN
-                                system = 5,        -- Portable ground TACAN
-                                unitId = grp:getUnit(1):getID(),
-                                name = "TACAN_" .. zone.name,
-                                callsign = tacan_callsign,
-                                channel = tacan_ch,
-                                modeChannel = "X",
-                                AA = false,
-                                bearing = true,
-                            }
-                        })
-                    end
-                end, {}, timer.getTime() + 2)
+                    timer.scheduleFunction(function()
+                        local grp = Group.getByName(tcn_group.name)
+                        if grp and grp:isExist() then
+                            grp:getController():setCommand({
+                                id = "ActivateBeacon",
+                                params = {
+                                    type = 4,   -- TACAN
+                                    system = 5, -- Portable ground TACAN
+                                    unitId = grp:getUnit(1):getID(),
+                                    name = "TACAN_" .. zone.name,
+                                    callsign = tacan_callsign,
+                                    channel = tacan_ch,
+                                    modeChannel = "X",
+                                    AA = false,
+                                    bearing = true,
+                                }
+                            })
+                        end
+                    end, {}, timer.getTime() + 2)
+                end
             end
+
+            -- Spawn 4 roadblock security vehicles at the runway corners (blocks highway & marks thresholds with headlights)
+            -- that is 100% authentic to how Sweden's BAS 60/90 and Soviet highway strips operated in real life.
+            -- Military police / airfield security vehicles actually parked across the highway shoulders at both ends of
+            -- the active runway strip to block civilian traffic AND mark the threshold boundaries with their headlights.
+            if zone.runway_quad and #zone.runway_quad == 4 then
+                local q1, q2, q3, q4 = unpack(zone.runway_quad)
+                local rwy_rad = math.rad(zone.runway_heading or 0)
+
+                -- Same basis vectors as ZoneHandler:new (fx/fz = forward along runway, rx/rz = right across runway)
+                local fx, fz = math.cos(rwy_rad), math.sin(rwy_rad)
+                local rx, rz = -fz, fx
+
+                -- Aim inward toward a point 50 m down the runway centerline from each threshold
+                local start_aim_x = (q1.x + q2.x) * 0.5 + fx * 50
+                local start_aim_z = (q1.z + q2.z) * 0.5 + fz * 50
+                local end_aim_x   = (q3.x + q4.x) * 0.5 - fx * 50
+                local end_aim_z   = (q3.z + q4.z) * 0.5 - fz * 50
+
+                -- Push 6 m inward from the 30 m quad edges (= 9 m from road centerline, right on the pavement edge)
+                local function makeCorner(qx, qz, out_x, out_z, aim_x, aim_z)
+                    local px = qx - out_x * 6
+                    local pz = qz - out_z * 6
+                    local hdg = math.atan2(aim_z - pz, aim_x - px) % (2 * math.pi)
+                    return { x = px, z = pz, hdg = hdg }
+                end
+
+                local corners = {
+                    makeCorner(q1.x, q1.z, -rx, -rz, start_aim_x, start_aim_z), -- Start-left
+                    makeCorner(q2.x, q2.z,  rx,  rz, start_aim_x, start_aim_z), -- Start-right
+                    makeCorner(q3.x, q3.z,  rx,  rz, end_aim_x,   end_aim_z),   -- End-right
+                    makeCorner(q4.x, q4.z, -rx, -rz, end_aim_x,   end_aim_z),   -- End-left
+                }
+
+                for idx, c in ipairs(corners) do
+                    local grp_name = "ROADBLOCK_" .. zone.name .. "_" .. idx .. "_" .. mist.getNextGroupId()
+                    local rb_grp = mist.dynAdd({
+                        country = country_name_id,
+                        category = Group.Category.GROUND,
+                        name = grp_name,
+                        route = {
+                            points = {
+                                { x = c.x, y = c.z, speed = 0.5, action = "Off Road", type = "Turning Point" },
+                                { x = c.x + math.cos(c.hdg) * 0.4, y = c.z + math.sin(c.hdg) * 0.4, speed = 0.5, action = "Off Road", type = "Turning Point" },
+                            }
+                        },
+                        units = {
+                            {
+                                type = "Tigr_233036",
+                                name = grp_name .. "_u1_" .. mist.getNextUnitId(),
+                                x = c.x,
+                                y = c.z,
+                                heading = c.hdg,
+                                skill = "Excellent",
+                            }
+                        },
+                    })
+
+                    if rb_grp and rb_grp.name then
+                        table.insert(zone.linked_groups, rb_grp.name)
+                        timer.scheduleFunction(function()
+                            local grp = Group.getByName(rb_grp.name)
+                            if grp and grp:isExist() then
+                                grp:getController():setOption(AI.Option.Ground.id.ALARM_STATE,
+                                    AI.Option.Ground.val.ALARM_STATE.GREEN)
+                            end
+                        end, {}, timer.getTime() + 1)
+                    end
+                end
+            end
+
+            -- Spawn a windsock on the shoulder at the trigger zone center
+            local windsock_name = "Windsock_" .. zone.name .. "_" .. mist.getNextUnitId()
+            mist.dynAddStatic({
+                name = windsock_name,
+                type = "Windsock",
+                shape_name = "H-Windsock_RW",
+                category = "Fortifications",
+                x = base_x,
+                y = base_y,
+                heading = 0,
+                dead = false,
+            })
+            table.insert(zone.linked_statics, windsock_name)
         end
 
         -- Add to warehouse

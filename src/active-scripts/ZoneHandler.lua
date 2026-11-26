@@ -578,6 +578,7 @@ do
                 end
             end
 
+            -- Destroy roadbase tacans:
             self.tacan_channel = nil
             self.tacan_callsign = nil
 
@@ -622,6 +623,7 @@ do
             if self.linked_farp then
                 WarehouseManager:clearWarehouse(self.linked_farp)
             end
+            -- Destroy roadbase tacans:
             self.tacan_channel = nil
             self.tacan_callsign = nil
 

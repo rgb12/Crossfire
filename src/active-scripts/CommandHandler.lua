@@ -11,6 +11,71 @@ do
 
     CommandHandler.destroy_page = 1
 
+    -- On-Demand nearest roadbase illumination logic:
+    ---@param group_id number
+    ---@param side coalition.side
+    function CommandHandler.illuminateNearestRoadbase(group_id, side)
+        local best_zone = nil
+        local best_dist = 20000 -- 20 km max request range
+
+        -- Find any live unit in this group to measure distance from
+        local ref_pos = nil
+        for _, u in ipairs(coalition.getPlayers(side) or {}) do
+            if u and u:isExist() then
+                local g = u:getGroup()
+                if g and g:getID() == group_id then
+                    ref_pos = u:getPoint()
+                    break
+                end
+            end
+        end
+
+        if not ref_pos then
+            trigger.action.outTextForGroup(group_id, "Unable to determine aircraft position.", 8)
+            return
+        end
+
+        for _, z in ipairs(zones or {}) do
+            if z.zone_type == ZoneTypes.ROADBASE and z.side == side and z.runway_quad and #z.runway_quad == 4 then
+                local dx = z.zone.point.x - ref_pos.x
+                local dz = z.zone.point.z - ref_pos.z
+                local dist = math.sqrt(dx * dx + dz * dz)
+                if dist < best_dist then
+                    best_dist = dist
+                    best_zone = z
+                end
+            end
+        end
+
+        if not best_zone then
+            trigger.action.outTextForGroup(group_id, "No friendly roadbase within 20 km to illuminate.", 8)
+            trigger.action.outSoundForGroup(group_id, "Radio squelch.ogg")
+            return
+        end
+
+        local now = timer.getTime()
+        if best_zone._last_illum_time and (now - best_zone._last_illum_time) < 120 then
+            trigger.action.outTextForGroup(group_id, best_zone.name .. " runway is already illuminated.", 8)
+            trigger.action.outSoundForGroup(group_id, "Radio squelch.ogg")
+            return
+        end
+        best_zone._last_illum_time = now
+
+        local q = best_zone.runway_quad
+        local start_mid = { x = (q[1].x + q[2].x) * 0.5, z = (q[1].z + q[2].z) * 0.5 }
+        local end_mid   = { x = (q[3].x + q[4].x) * 0.5, z = (q[3].z + q[4].z) * 0.5 }
+        local center    = { x = (start_mid.x + end_mid.x) * 0.5, z = (start_mid.z + end_mid.z) * 0.5 }
+
+        for _, pt in ipairs({ start_mid, center, end_mid }) do
+            local ground_y = land.getHeight({ x = pt.x, y = pt.z })
+            trigger.action.illuminationBomb({ x = pt.x, y = ground_y + 180, z = pt.z }, 50000)
+        end
+
+        trigger.action.outTextForGroup(group_id, "Illumination flares deployed over " .. best_zone.name .. " (" .. (best_zone.runway_label or "RWY") .. ").", 10)
+        trigger.action.outSoundForGroup(group_id, "radio_txrx.ogg")
+    end
+
+
     ---@param target_unit_name string
     ---@return table|nil
     local function getNavalNavaids(target_unit_name)
@@ -243,6 +308,11 @@ do
                 CommandHandler.showCommsInfo(group_id, side)
             end, nil)
             CommandHandler.addToMenuTracking(group_id, comms_path, "comms_info")
+
+            local illum_path = missionCommands.addCommandForGroup(group_id, "Illuminate Nearest Roadbase", nil, function()
+                CommandHandler.illuminateNearestRoadbase(group_id, side)
+            end, nil)
+            CommandHandler.addToMenuTracking(group_id, illum_path, "roadbase_illum")
 
             ctld.initF10RadioMenu(group)
         end
