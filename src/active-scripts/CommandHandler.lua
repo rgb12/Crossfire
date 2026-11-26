@@ -17,7 +17,7 @@ do
     function CommandHandler.illuminateNearestRoadbase(group_id, side)
         ---@type RoadbaseZone|nil
         local best_zone = nil
-        local best_dist = 20000 -- 20 km max request range
+        local best_dist = Config.roadbase.illumination.max_request_range
 
         -- Find any live unit in this group to measure distance from
         local ref_pos = nil
@@ -52,34 +52,34 @@ do
         end
 
         if not best_zone then
-            trigger.action.outTextForGroup(group_id, "No friendly roadbase within 20 km to illuminate.", 8)
+            trigger.action.outTextForGroup(group_id, "No friendly roadbase within " .. math.floor(Config.roadbase.illumination.max_request_range / 1000) .. " km to illuminate.", 8)
             trigger.action.outSoundForGroup(group_id, "Radio squelch.ogg")
             return
         end
 
         local now = timer.getTime()
-        if best_zone._last_illum_time and (now - best_zone._last_illum_time) < 120 then
+        if best_zone._last_illum_time and (now - best_zone._last_illum_time) < Config.roadbase.illumination.cooldown then
             trigger.action.outTextForGroup(group_id, best_zone.name .. " runway is already illuminated.", 8)
             trigger.action.outSoundForGroup(group_id, "Radio squelch.ogg")
             return
         end
         best_zone._last_illum_time = now
 
-        -- Launch a flare every ~500m. Depends on the runway_length, defined in scenarios.lua:
+        -- Launch a flare every ~flare_spacing meters. Depends on the runway_length, defined in scenarios.lua:
         local quad = best_zone.runway_quad
         local q1, q2, q3, q4 = quad[1], quad[2], quad[3], quad[4]
         local start_mid = { x = (q1.x + q2.x) * 0.5, z = (q1.z + q2.z) * 0.5 }
         local end_mid   = { x = (q3.x + q4.x) * 0.5, z = (q3.z + q4.z) * 0.5 }
 
         local rwy_len = best_zone.runway_length or 1000
-        local num_flares = math.max(3, math.ceil(rwy_len / 450))
+        local num_flares = math.max(Config.roadbase.illumination.min_flares, math.ceil(rwy_len / Config.roadbase.illumination.flare_spacing))
 
         for i = 0, num_flares - 1 do
             local t = i / (num_flares - 1)
             local px = start_mid.x + (end_mid.x - start_mid.x) * t
             local pz = start_mid.z + (end_mid.z - start_mid.z) * t
             local ground_y = land.getHeight({ x = px, y = pz })
-            trigger.action.illuminationBomb({ x = px, y = ground_y + 180, z = pz }, 50000)
+            trigger.action.illuminationBomb({ x = px, y = ground_y + Config.roadbase.illumination.flare_height_agl, z = pz }, Config.roadbase.illumination.flare_power)
         end
 
         trigger.action.outTextForGroup(group_id, "Illumination flares deployed over " .. best_zone.name .. " (" .. (best_zone.runway_label or "RWY") .. ").", 10)

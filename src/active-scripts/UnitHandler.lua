@@ -454,7 +454,7 @@ do
             -- Skip re-spawning the pad if this zone already has one linked (e.g. on restock).
             if not (zone.linked_farp and static_data.type == "FARP") then
                 -- Offset things a bit more geographically for the roadbases:
-                local mult = is_roadbase and 1.6 or 1.0
+                local mult = is_roadbase and Config.roadbase.statics_offset_multiplier or 1.0
                 local static_point = {
                     x = base_x + static_data.offset_x * mult,
                     y = base_y + static_data.offset_y * mult
@@ -496,10 +496,10 @@ do
             -- did deploy portable ground TACAN transponders (like the AN/TRN-26 / AN/TRN-41).
             
             if not zone.tacan_channel then
-                local tacan_ch = 90 + ((zone.zone.id - 1) % 30) -- 90X..119X (avoids tanker 50X..80X & CVN 71X/74X)
+                local tacan_ch = Config.roadbase.tacan.base_channel + ((zone.zone.id - 1) % Config.roadbase.tacan.channel_count)
                 local tacan_callsign = string.upper((zone.name:gsub("^[Rr][Oo][Aa][Dd][Bb][Aa][Ss][Ee][%-%s]*", "")):sub(
                 1, 3))
-                if #tacan_callsign < 3 then tacan_callsign = "RDB" end
+                if #tacan_callsign < 3 then tacan_callsign = Config.roadbase.tacan.fallback_callsign end
 
                 local tcn_group = mist.dynAdd({
                     country = country_name_id,
@@ -509,8 +509,8 @@ do
                         {
                             type = "TACAN_beacon",
                             name = "TACAN_" .. zone.name .. "_u1_" .. mist.getNextUnitId(),
-                            x = base_x + 45,
-                            y = base_y - 65,
+                            x = base_x + Config.roadbase.tacan.offset_x,
+                            y = base_y + Config.roadbase.tacan.offset_y,
                             heading = 0,
                             skill = "Excellent",
                         }
@@ -557,16 +557,16 @@ do
                 local fx, fz = math.cos(rwy_rad), math.sin(rwy_rad)
                 local rx, rz = -fz, fx
 
-                -- Aim inward toward a point 50 m down the runway centerline from each threshold
-                local start_aim_x = (q1.x + q2.x) * 0.5 + fx * 50
-                local start_aim_z = (q1.z + q2.z) * 0.5 + fz * 50
-                local end_aim_x   = (q3.x + q4.x) * 0.5 - fx * 50
-                local end_aim_z   = (q3.z + q4.z) * 0.5 - fz * 50
+                -- Aim inward toward a point aim_distance down the runway centerline from each threshold
+                local start_aim_x = (q1.x + q2.x) * 0.5 + fx * Config.roadbase.roadblocks.aim_distance
+                local start_aim_z = (q1.z + q2.z) * 0.5 + fz * Config.roadbase.roadblocks.aim_distance
+                local end_aim_x   = (q3.x + q4.x) * 0.5 - fx * Config.roadbase.roadblocks.aim_distance
+                local end_aim_z   = (q3.z + q4.z) * 0.5 - fz * Config.roadbase.roadblocks.aim_distance
 
-                -- Push 6 m inward from the 30 m quad edges (= 9 m from road centerline, right on the pavement edge)
+                -- Push edge_inset inward from the quad edges (default 6 m on a 30 m strip = right on the pavement edge)
                 local function makeCorner(qx, qz, out_x, out_z, aim_x, aim_z)
-                    local px = qx - out_x * 6
-                    local pz = qz - out_z * 6
+                    local px = qx - out_x * Config.roadbase.roadblocks.edge_inset
+                    local pz = qz - out_z * Config.roadbase.roadblocks.edge_inset
                     ---@diagnostic disable-next-line: deprecated
                     local hdg = math.atan2(aim_z - pz, aim_x - px) % (2 * math.pi)
                     return { x = px, z = pz, hdg = hdg }
@@ -593,7 +593,7 @@ do
                         },
                         units = {
                             {
-                                type = "Tigr_233036",
+                                type = Config.roadbase.roadblocks.vehicle_type,
                                 name = grp_name .. "_u1_" .. mist.getNextUnitId(),
                                 x = c.x,
                                 y = c.z,
@@ -620,9 +620,9 @@ do
             local windsock_name = "Windsock_" .. zone.name .. "_" .. mist.getNextUnitId()
             mist.dynAddStatic({
                 name = windsock_name,
-                type = "Windsock",
-                shape_name = "H-Windsock_RW",
-                category = "Fortifications",
+                type = Config.roadbase.windsock.type,
+                shape_name = Config.roadbase.windsock.shape_name,
+                category = Config.roadbase.windsock.category,
                 x = base_x,
                 y = base_y,
                 heading = 0,

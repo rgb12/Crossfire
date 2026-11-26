@@ -98,7 +98,7 @@ do
         if obj.zone_type == ZoneTypes.ROADBASE and obj.runway_heading and obj.runway_length then
             local rad = math.rad(obj.runway_heading)
             local half_len = obj.runway_length * 0.5
-            local half_wid = (obj.runway_width or 30) * 0.5
+            local half_wid = (obj.runway_width or Config.roadbase.default_runway_width) * 0.5
             local lat_off = obj.runway_offset or 0
             local along_off = obj.runway_along_offset or 0
 
@@ -274,9 +274,8 @@ do
             if self.zone_type ~= ZoneTypes.ROADBASE or not self.runway_quad then return end
             local rwy_id = nextMarkId()
             local q = self.runway_quad
-            local rwy_border = { 1.0, 0.85, 0.2, 0.65 }  -- crisp outline
-            local rwy_fill   = { 0.12, 0.12, 0.12, 0.35 } -- dark asphalt fill
-            trigger.action.quadToAll(coal_filter, rwy_id, q[1], q[2], q[3], q[4], rwy_border, rwy_fill, utils.LineStyle.SOLID, true)
+            trigger.action.quadToAll(coal_filter, rwy_id, q[1], q[2], q[3], q[4],
+                Config.draw_color_palette.roadbase_runway_border, Config.draw_color_palette.roadbase_runway_fill, utils.LineStyle.SOLID, true)
             self._markIds[rwy_key] = rwy_id
         end
 

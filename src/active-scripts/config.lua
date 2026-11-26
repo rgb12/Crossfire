@@ -18,7 +18,7 @@
 -- (value)
 Config = {
     -- (int) config version should not be edited unless comprehensively understood
-    _config_file_version = 5,
+    _config_file_version = 6,
     -- (int) mission version should not be edited unless comprehensively understood
     _mission_version = 7,
     -- (bool) development setting, set to false to prevent the mission from loading
@@ -1357,6 +1357,60 @@ Config = {
         vehicles = { offset_x = -30, offset_y = -45 },
     },
 
+    -- (table) Roadbase (highway strip) zones. Per-zone runway geometry
+    -- (heading, length, offsets) lives in scenarios.lua.
+    roadbase = {
+        -- (int) (meters) default runway width when a zone does not set runway_width
+        default_runway_width = 30,
+        -- (number) multiplier applied to farp_assets.statics offsets so the
+        -- roadbase statics are spread further from the road
+        statics_offset_multiplier = 1.6,
+
+        -- (table) "Illuminate Nearest Roadbase" radio command
+        illumination = {
+            -- (int) (meters) max distance from the requesting aircraft to the roadbase
+            max_request_range = 20*1000,
+            -- (int) (seconds) cooldown per roadbase between two requests
+            cooldown = 2*60,
+            -- (int) (meters) approximate spacing between flares along the runway
+            flare_spacing = 450,
+            -- (int) minimum number of flares, whatever the runway length
+            min_flares = 3,
+            -- (int) (meters) flare release height above ground
+            flare_height_agl = 180,
+            -- (int) illumination bomb power
+            flare_power = 50000,
+        },
+
+        -- (table) portable TACAN spawned at each roadbase
+        tacan = {
+            -- (int) first channel (X band) assigned to roadbases
+            base_channel = 90,
+            -- (int) number of channels in the pool (base_channel .. base_channel+count-1).
+            -- Default 90X..119X avoids tankers (50X..80X) and carriers (71X/74X)
+            channel_count = 30,
+            -- (string) callsign used when the zone name is too short to derive one
+            fallback_callsign = "RDB",
+            -- (int) (meters) beacon offset from the zone center
+            offset_x = 45,
+            offset_y = -65,
+        },
+
+        -- (table) vehicles parked at the 4 runway corners: block the road and
+        -- mark the thresholds with their headlights at night
+        roadblocks = {
+            -- (string) vehicle type
+            vehicle_type = "Tigr_233036",
+            -- (int) (meters) how far inside the runway edge the vehicles park
+            edge_inset = 6,
+            -- (int) (meters) vehicles face a point this far down the runway from their threshold
+            aim_distance = 50,
+        },
+
+        -- (table) windsock static spawned at the zone center
+        windsock = { type = "Windsock", shape_name = "H-Windsock_RW", category = "Fortifications" },
+    },
+
     -- (int) (seconds)
     comms_tower_respawn_time = 55*60,
 
@@ -1496,6 +1550,11 @@ Config = {
         frontline_color = {1.00, 1.00, 1.00, 0.95},
         -- (int) line style (1=solid, 2=dashed, 3=dotted, see utils.LineStyle)
         frontline_linestyle = 1,
+
+        -- (table<number>) roadbase runway outline color (RGBA): amber/yellow
+        roadbase_runway_border = {1.0, 0.85, 0.2, 0.95},
+        -- (table<number>) roadbase runway fill color (RGBA): dark asphalt
+        roadbase_runway_fill = {0.12, 0.12, 0.12, 0.65},
     },
     enable_frontline = true,
 
