@@ -1363,7 +1363,8 @@ Config = {
         -- (int) (meters) default runway width when a zone does not set runway_width
         default_runway_width = 30,
         -- (number) multiplier applied to farp_assets.statics offsets so the
-        -- roadbase statics are spread further from the road
+        -- roadbase statics are spread further from the road, prevents FARP pending
+        -- state
         statics_offset_multiplier = 1.6,
 
         -- (table) "Illuminate Nearest Roadbase" radio command
