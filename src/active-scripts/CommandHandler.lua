@@ -61,14 +61,20 @@ do
         end
         best_zone._last_illum_time = now
 
-        local q = best_zone.runway_quad
-        local start_mid = { x = (q[1].x + q[2].x) * 0.5, z = (q[1].z + q[2].z) * 0.5 }
-        local end_mid   = { x = (q[3].x + q[4].x) * 0.5, z = (q[3].z + q[4].z) * 0.5 }
-        local center    = { x = (start_mid.x + end_mid.x) * 0.5, z = (start_mid.z + end_mid.z) * 0.5 }
+        -- Launch a flare every ~500m. Depends on the runway_length, defined in scenarios.lua:
+        local q1, q2, q3, q4 = unpack(best_zone.runway_quad)
+        local start_mid = { x = (q1.x + q2.x) * 0.5, z = (q1.z + q2.z) * 0.5 }
+        local end_mid   = { x = (q3.x + q4.x) * 0.5, z = (q3.z + q4.z) * 0.5 }
 
-        for _, pt in ipairs({ start_mid, center, end_mid }) do
-            local ground_y = land.getHeight({ x = pt.x, y = pt.z })
-            trigger.action.illuminationBomb({ x = pt.x, y = ground_y + 180, z = pt.z }, 50000)
+        local rwy_len = best_zone.runway_length or 1000
+        local num_flares = math.max(3, math.ceil(rwy_len / 450))
+
+        for i = 0, num_flares - 1 do
+            local t = i / (num_flares - 1)
+            local px = start_mid.x + (end_mid.x - start_mid.x) * t
+            local pz = start_mid.z + (end_mid.z - start_mid.z) * t
+            local ground_y = land.getHeight({ x = px, y = pz })
+            trigger.action.illuminationBomb({ x = px, y = ground_y + 180, z = pz }, 50000)
         end
 
         trigger.action.outTextForGroup(group_id, "Illumination flares deployed over " .. best_zone.name .. " (" .. (best_zone.runway_label or "RWY") .. ").", 10)
