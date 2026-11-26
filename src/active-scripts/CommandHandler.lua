@@ -11,6 +11,82 @@ do
 
     CommandHandler.destroy_page = 1
 
+    -- On-Demand nearest roadbase illumination logic:
+    ---@param group_id number
+    ---@param side coalition.side
+    function CommandHandler.illuminateNearestRoadbase(group_id, side)
+        ---@type RoadbaseZone|nil
+        local best_zone = nil
+        local best_dist = Config.roadbase.illumination.max_request_range
+
+        -- Find any live unit in this group to measure distance from
+        local ref_pos = nil
+        for _, u in ipairs(coalition.getPlayers(side) or {}) do
+            if u and u:isExist() then
+                local g = u:getGroup()
+                if g and g:getID() == group_id then
+                    ref_pos = u:getPoint()
+                    break
+                end
+            end
+        end
+
+        if not ref_pos then
+            trigger.action.outTextForGroup(group_id, "Unable to determine aircraft position.", 8)
+            return
+        end
+
+        for _, z in ipairs(zones or {}) do
+            if z.zone_type == ZoneTypes.ROADBASE and z.side == side then
+                ---@cast z RoadbaseZone
+                if z.runway_quad and #z.runway_quad == 4 then
+                    local dx = z.zone.point.x - ref_pos.x
+                    local dz = z.zone.point.z - ref_pos.z
+                    local dist = math.sqrt(dx * dx + dz * dz)
+                    if dist < best_dist then
+                        best_dist = dist
+                        best_zone = z
+                    end
+                end
+            end
+        end
+
+        if not best_zone then
+            trigger.action.outTextForGroup(group_id, "No friendly roadbase within " .. math.floor(Config.roadbase.illumination.max_request_range / 1000) .. " km to illuminate.", 8)
+            trigger.action.outSoundForGroup(group_id, "Radio squelch.ogg")
+            return
+        end
+
+        local now = timer.getTime()
+        if best_zone._last_illum_time and (now - best_zone._last_illum_time) < Config.roadbase.illumination.cooldown then
+            trigger.action.outTextForGroup(group_id, best_zone.name .. " runway is already illuminated.", 8)
+            trigger.action.outSoundForGroup(group_id, "Radio squelch.ogg")
+            return
+        end
+        best_zone._last_illum_time = now
+
+        -- Launch a flare every ~flare_spacing meters. Depends on the runway_length, defined in scenarios.lua:
+        local quad = best_zone.runway_quad
+        local q1, q2, q3, q4 = quad[1], quad[2], quad[3], quad[4]
+        local start_mid = { x = (q1.x + q2.x) * 0.5, z = (q1.z + q2.z) * 0.5 }
+        local end_mid   = { x = (q3.x + q4.x) * 0.5, z = (q3.z + q4.z) * 0.5 }
+
+        local rwy_len = best_zone.runway_length or 1000
+        local num_flares = math.max(Config.roadbase.illumination.min_flares, math.ceil(rwy_len / Config.roadbase.illumination.flare_spacing))
+
+        for i = 0, num_flares - 1 do
+            local t = i / (num_flares - 1)
+            local px = start_mid.x + (end_mid.x - start_mid.x) * t
+            local pz = start_mid.z + (end_mid.z - start_mid.z) * t
+            local ground_y = land.getHeight({ x = px, y = pz })
+            trigger.action.illuminationBomb({ x = px, y = ground_y + Config.roadbase.illumination.flare_height_agl, z = pz }, Config.roadbase.illumination.flare_power)
+        end
+
+        trigger.action.outTextForGroup(group_id, "Illumination flares deployed over " .. best_zone.name .. " (" .. (best_zone.runway_label or "RWY") .. ").", 10)
+        trigger.action.outSoundForGroup(group_id, "radio_txrx.ogg")
+    end
+
+
     ---@param target_unit_name string
     ---@return table|nil
     local function getNavalNavaids(target_unit_name)
@@ -161,16 +237,19 @@ do
         local farp_lines = {}
 
         for _, zone in ipairs(zones or {}) do
-            if zone.side == side and zone.zone_type == ZoneTypes.FARP and zone.linked_farp then
+            if zone.side == side and (zone.zone_type == ZoneTypes.FARP or zone.zone_type == ZoneTypes.ROADBASE) and zone.linked_farp then
                 local pad = Airbase.getByName(zone.linked_farp)
                 if pad then
                     local callsign_id = ((zone.zone.id - 1) % 10) + 1
                     local freq = 127.5 + (callsign_id - 1)
                     local cs_name = farp_callsigns[callsign_id] or ("FARP " .. callsign_id)
-                    table.insert(farp_lines, string.format("- %s (%s): %.1f MHz AM", zone.name, cs_name, freq))
+                    local tag = (zone.zone_type == ZoneTypes.ROADBASE) and " [Roadbase]" or ""
+                    local tcn_str = zone.tacan_channel and string.format(" | TCN %dX (%s)", zone.tacan_channel, zone.tacan_callsign or "RDB") or ""
+                    table.insert(farp_lines, string.format("- %s%s (%s): %.1f MHz AM%s", zone.name, tag, cs_name, freq, tcn_str))
                 end
             end
         end
+
 
         for _, farp in ipairs(ctld.FARPs or {}) do
             if farp.coalition == side and farp.farp_name then
@@ -240,6 +319,11 @@ do
                 CommandHandler.showCommsInfo(group_id, side)
             end, nil)
             CommandHandler.addToMenuTracking(group_id, comms_path, "comms_info")
+
+            local illum_path = missionCommands.addCommandForGroup(group_id, "Illuminate Nearest Roadbase", nil, function()
+                CommandHandler.illuminateNearestRoadbase(group_id, side)
+            end, nil)
+            CommandHandler.addToMenuTracking(group_id, illum_path, "roadbase_illum")
 
             ctld.initF10RadioMenu(group)
         end
@@ -852,11 +936,15 @@ do
 
 
             local farps_resupply_list = {}
-            -- Add FARP zones
+            -- Add FARP & Roadbase zones
             for _,zone in ipairs(zones) do
-                if zone.side == side and zone.zone_type == ZoneTypes.FARP and zone.linked_farp then
+                if zone.side == side and (zone.zone_type == ZoneTypes.FARP or zone.zone_type == ZoneTypes.ROADBASE) and zone.linked_farp then
+                    local is_rb = (zone.zone_type == ZoneTypes.ROADBASE)
+                    local cost = is_rb and (Config.supplies.resupply_costs.ROADBASE or Config.supplies.resupply_costs.FARP) or Config.supplies.resupply_costs.FARP
+                    local stock_pkg = is_rb and StockTypes.ROADBASE or StockTypes.FARP
+                    local prefix = is_rb and "Roadbase " or "FARP "
                     table.insert(farps_resupply_list, {
-                        name = zone.name .. " - " .. Config.supplies.resupply_costs.FARP .. " supplies",
+                        name = zone.name .. " - " .. cost .. " supplies",
                         func = function (args)
                             if not CommandHandler.isGrounded(unit,gr_id) then return end
                             local coal = args.side
@@ -871,18 +959,18 @@ do
                             end
 
                             local local_supplies = supplies_zone.local_supplies or 0
-                            if local_supplies < Config.supplies.resupply_costs.FARP then
-                                trigger.action.outTextForGroup(gr_id,"CMD-HQ - Negative resupply response for " .. name .. ", not enough supplies    (" .. local_supplies .. "/" .. Config.supplies.resupply_costs.FARP .. ")",8)
+                            if local_supplies < args.cost then
+                                trigger.action.outTextForGroup(gr_id,"CMD-HQ - Negative resupply response for " .. name .. ", not enough supplies    (" .. local_supplies .. "/" .. args.cost .. ")",8)
                                 trigger.action.outSoundForGroup(gr_id, "radio_beep3.ogg")
                                 return
                             else
-                                supplies_zone.local_supplies = math.max(local_supplies - Config.supplies.resupply_costs.FARP,0)
+                                supplies_zone.local_supplies = math.max(local_supplies - args.cost,0)
                             end
-                            WarehouseManager:attributeAirbaseStock(farp,coal, {StockTypes.FARP})
-                            trigger.action.outTextForCoalition(coal, "FARP " .. name .. " has been resupplied.", 10)
+                            WarehouseManager:attributeAirbaseStock(farp,coal, {args.stock_pkg})
+                            trigger.action.outTextForCoalition(coal, args.prefix .. name .. " has been resupplied.", 10)
                             trigger.action.outSoundForCoalition(coal,"radio_txrx.ogg")
                         end,
-                        arg = {side = side, farp_name = zone.linked_farp,name = zone.name}})
+                        arg = {side = side, farp_name = zone.linked_farp, name = zone.name, cost = cost, stock_pkg = stock_pkg, prefix = prefix}})
                 end
             end
             -- Add CTLD FARPs

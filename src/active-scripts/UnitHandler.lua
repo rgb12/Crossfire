@@ -229,7 +229,7 @@ do
         local country_name = 82 -- UN Peace Keepers
 
         if zone.zone_type == ZoneTypes.LOGISTICS or zone.zone_type == ZoneTypes.AIRBASE
-        or zone.zone_type == ZoneTypes.FARP then
+        or zone.zone_type == ZoneTypes.FARP or zone.zone_type == ZoneTypes.ROADBASE then
             if zone.ammo_depot_intact == false then return false end
 
             local depot_point = UnitHandler.findClearPoint(zone,30,200,40)
@@ -396,17 +396,36 @@ do
     ---@param zone ZoneHandler
     ---@param restock boolean
     function UnitHandler.initFARP(zone,restock)
-        if zone.zone_type ~= ZoneTypes.FARP then return end
+        if zone.zone_type ~= ZoneTypes.FARP and zone.zone_type ~= ZoneTypes.ROADBASE then return end
         if zone.side == coalition.side.NEUTRAL then return end
+
+        local is_roadbase = (zone.zone_type == ZoneTypes.ROADBASE)
+        local stock_package = is_roadbase and StockTypes.ROADBASE or StockTypes.FARP
 
         local country_name_id
         if zone.side == coalition.side.BLUE then
             country_name_id = country.id.CJTF_BLUE
-            stats.blue_farp_zones = stats.blue_farp_zones +1
         else
             country_name_id = country.id.CJTF_RED
-            stats.red_farp_zones = stats.red_farp_zones +1
         end
+        -- Increment stats only when the pad is created for the first time.
+        -- Keeps the numbers accurate if -logstats is run:
+        if not zone.linked_farp then
+            if zone.side == coalition.side.BLUE then
+                if zone.zone_type == ZoneTypes.FARP then
+                    stats.blue_farp_zones = stats.blue_farp_zones + 1
+                else
+                    stats.blue_roadbases = stats.blue_roadbases + 1
+                end
+            else
+                if zone.zone_type == ZoneTypes.FARP then
+                    stats.red_farp_zones = stats.red_farp_zones + 1
+                else
+                    stats.red_roadbases = stats.red_roadbases + 1
+                end
+            end
+        end
+
 
         -- Base coordinates for the zone center (where the FARP pad goes)
         local base_x = zone.zone.point.x
@@ -419,59 +438,204 @@ do
         -- Statics to spawn, laid out on the pad itself
         local farp_statics_to_spawn = Config.farp_assets.statics
 
+        -- Link a pre-placed .miz Invisible FARP if present (so coalition.addStaticObject skips spawning a duplicate pad)
+        local title_name = zone.name:gsub("%-", " "):lower():gsub("(%a)([%w']*)", function(a, b) return a:upper() .. b end)
+        local expected_pad_name = is_roadbase and title_name or ("FARP " .. zone.name)
+        if not zone.linked_farp then
+            if Airbase.getByName(expected_pad_name .. "-1") then
+                zone.linked_farp = expected_pad_name .. "-1"
+            elseif Airbase.getByName(expected_pad_name) then
+                zone.linked_farp = expected_pad_name
+            end
+        end
+
         -- Spawn the Statics
         for _, static_data in ipairs(farp_statics_to_spawn) do
-            local static_point = {
-                x = base_x + static_data.offset_x,
-                y = base_y + static_data.offset_y
-            }
-
             -- Skip re-spawning the pad if this zone already has one linked (e.g. on restock).
             if not (zone.linked_farp and static_data.type == "FARP") then
+                -- Offset things a bit more geographically for the roadbases:
+                local mult = is_roadbase and Config.roadbase.statics_offset_multiplier or 1.0
+                local static_point = {
+                    x = base_x + static_data.offset_x * mult,
+                    y = base_y + static_data.offset_y * mult
+                }
 
-                if static_data.type ~= "FARP" then
-                    local new_static = mist.dynAddStatic({
-                            type = static_data.type,
-                            shape_name = static_data.shape_name,
-                            country = country_name_id,
-                            category = static_data.category,
-                            x = static_point.x,
-                            y = static_point.y,
-                            heading = 0
-                    })
-                    if new_static and new_static.name then
-                        table.insert(zone.linked_statics, new_static.name)
-                    end
-                else
-                    local new_static = coalition.addStaticObject(country_name_id, {
-                        ["category"] = static_data.category,
-                        ["shape_name"] = static_data.shape_name,
-                        ["type"] = static_data.type,
-                        ["unitId"] = mist.getNextUnitId(),
-                        ["x"] = static_point.x,
-                        ["y"] = static_point.y,
-                        ["name"] = "FARP " .. zone.name,
-                        ["heading"] = 0,
-                        ["dead"] = false,
-                        ["dynamicSpawn"] = true,
-                        ["allowHotStart"] = true,
-                        ["heliport_frequency"] = heliport_frequency,
-                        ["heliport_modulation"] = 0,
-                        ["heliport_callsign_id"] = heliport_callsign_id
+                local static_name = (static_data.name_prefix or static_data.type) .. " " .. zone.name .. "_" .. mist.getNextUnitId()
+                local heading_rad = math.rad(static_data.heading or 0)
+
+                local static_obj = {
+                    ["name"] = static_name,
+                    ["type"] = static_data.type,
+                    ["shape_name"] = static_data.shape_name,
+                    ["x"] = static_point.x,
+                    ["y"] = static_point.y,
+                    ["heading"] = heading_rad,
+                    ["category"] = static_data.category,
+                    ["dead"] = false,
+                }
+
+                if static_data.type == "FARP" then
+                    local callsign_id = ((zone.zone.id - 1) % 10) + 1
+                    static_obj["heliport_callsign_id"] = callsign_id
+                    static_obj["heliport_modulation"] = 0
+                    static_obj["heliport_frequency"] = 127.5 + (callsign_id - 1)
+                    static_obj["dynamicSpawn"] = true
+                    static_obj["allowHotStart"] = true
+                    zone.linked_farp = static_name
+                end
+
+                mist.dynAddStatic(static_obj)
+                table.insert(zone.linked_statics, static_name)
+            end
+        end
+
+        if is_roadbase then
+            ---@cast zone RoadbaseZone
+
+            -- Spawn portable TACANs for Roadbases, as IRL NATO/Swedish roadbases (BAS 60/BAS 90 and Harrier forward operating strips)
+            -- did deploy portable ground TACAN transponders (like the AN/TRN-26 / AN/TRN-41).
+            
+            if not zone.tacan_channel then
+                local tacan_ch = Config.roadbase.tacan.base_channel + ((zone.zone.id - 1) % Config.roadbase.tacan.channel_count)
+                local tacan_callsign = string.upper((zone.name:gsub("^[Rr][Oo][Aa][Dd][Bb][Aa][Ss][Ee][%-%s]*", "")):sub(
+                1, 3))
+                if #tacan_callsign < 3 then tacan_callsign = Config.roadbase.tacan.fallback_callsign end
+
+                local tcn_group = mist.dynAdd({
+                    country = country_name_id,
+                    category = Group.Category.GROUND,
+                    name = "TACAN_" .. zone.name .. "_" .. mist.getNextGroupId(),
+                    units = {
+                        {
+                            type = "TACAN_beacon",
+                            name = "TACAN_" .. zone.name .. "_u1_" .. mist.getNextUnitId(),
+                            x = base_x + Config.roadbase.tacan.offset_x,
+                            y = base_y + Config.roadbase.tacan.offset_y,
+                            heading = 0,
+                            skill = "Excellent",
+                        }
+                    }
+                })
+
+                if tcn_group and tcn_group.name then
+                    zone.tacan_channel = tacan_ch
+                    zone.tacan_callsign = tacan_callsign
+                    table.insert(zone.linked_groups, tcn_group.name)
+
+                    timer.scheduleFunction(function()
+                        local grp = Group.getByName(tcn_group.name)
+                        if grp and grp:isExist() then
+                            grp:getController():setCommand({
+                                id = "ActivateBeacon",
+                                params = {
+                                    type = 4,   -- TACAN
+                                    system = 5, -- Portable ground TACAN
+                                    unitId = grp:getUnit(1):getID(),
+                                    name = "TACAN_" .. zone.name,
+                                    callsign = tacan_callsign,
+                                    channel = tacan_ch,
+                                    modeChannel = "X",
+                                    AA = false,
+                                    bearing = true,
+                                }
+                            })
+                        end
+                    end, {}, timer.getTime() + 2)
+                end
+            end
+
+            -- Spawn 4 roadblock security vehicles at the runway corners (blocks highway & marks thresholds with headlights)
+            -- that is 100% authentic to how Sweden's BAS 60/90 and Soviet highway strips operated in real life.
+            -- Military police / airfield security vehicles actually parked across the highway shoulders at both ends of
+            -- the active runway strip to block civilian traffic AND mark the threshold boundaries with their headlights.
+            if zone.runway_quad and #zone.runway_quad == 4 then
+                local quad = zone.runway_quad
+                local q1, q2, q3, q4 = quad[1], quad[2], quad[3], quad[4]
+                local rwy_rad = math.rad(zone.runway_heading or 0)
+
+                -- Same basis vectors as ZoneHandler:new (fx/fz = forward along runway, rx/rz = right across runway)
+                local fx, fz = math.cos(rwy_rad), math.sin(rwy_rad)
+                local rx, rz = -fz, fx
+
+                -- Aim inward toward a point aim_distance down the runway centerline from each threshold
+                local start_aim_x = (q1.x + q2.x) * 0.5 + fx * Config.roadbase.roadblocks.aim_distance
+                local start_aim_z = (q1.z + q2.z) * 0.5 + fz * Config.roadbase.roadblocks.aim_distance
+                local end_aim_x   = (q3.x + q4.x) * 0.5 - fx * Config.roadbase.roadblocks.aim_distance
+                local end_aim_z   = (q3.z + q4.z) * 0.5 - fz * Config.roadbase.roadblocks.aim_distance
+
+                -- Push edge_inset inward from the quad edges (default 6 m on a 30 m strip = right on the pavement edge)
+                local function makeCorner(qx, qz, out_x, out_z, aim_x, aim_z)
+                    local px = qx - out_x * Config.roadbase.roadblocks.edge_inset
+                    local pz = qz - out_z * Config.roadbase.roadblocks.edge_inset
+                    ---@diagnostic disable-next-line: deprecated
+                    local hdg = math.atan2(aim_z - pz, aim_x - px) % (2 * math.pi)
+                    return { x = px, z = pz, hdg = hdg }
+                end
+
+                local corners = {
+                    makeCorner(q1.x, q1.z, -rx, -rz, start_aim_x, start_aim_z), -- Start-left
+                    makeCorner(q2.x, q2.z,  rx,  rz, start_aim_x, start_aim_z), -- Start-right
+                    makeCorner(q3.x, q3.z,  rx,  rz, end_aim_x,   end_aim_z),   -- End-right
+                    makeCorner(q4.x, q4.z, -rx, -rz, end_aim_x,   end_aim_z),   -- End-left
+                }
+
+                for idx, c in ipairs(corners) do
+                    local grp_name = "ROADBLOCK_" .. zone.name .. "_" .. idx .. "_" .. mist.getNextGroupId()
+                    local rb_grp = mist.dynAdd({
+                        country = country_name_id,
+                        category = Group.Category.GROUND,
+                        name = grp_name,
+                        route = {
+                            points = {
+                                { x = c.x, y = c.z, speed = 0.5, action = "Off Road", type = "Turning Point" },
+                                { x = c.x + math.cos(c.hdg) * 0.4, y = c.z + math.sin(c.hdg) * 0.4, speed = 0.5, action = "Off Road", type = "Turning Point" },
+                            }
+                        },
+                        units = {
+                            {
+                                type = Config.roadbase.roadblocks.vehicle_type,
+                                name = grp_name .. "_u1_" .. mist.getNextUnitId(),
+                                x = c.x,
+                                y = c.z,
+                                heading = c.hdg,
+                                skill = "Excellent",
+                            }
+                        },
                     })
 
-                    if new_static and new_static.getName then
-                        zone.linked_farp = new_static:getName()
+                    if rb_grp and rb_grp.name then
+                        table.insert(zone.linked_groups, rb_grp.name)
+                        timer.scheduleFunction(function()
+                            local grp = Group.getByName(rb_grp.name)
+                            if grp and grp:isExist() then
+                                grp:getController():setOption(AI.Option.Ground.id.ALARM_STATE,
+                                    AI.Option.Ground.val.ALARM_STATE.GREEN)
+                            end
+                        end, {}, timer.getTime() + 1)
                     end
                 end
             end
+
+            -- Spawn a windsock on the shoulder at the trigger zone center
+            local windsock_name = "Windsock_" .. zone.name .. "_" .. mist.getNextUnitId()
+            mist.dynAddStatic({
+                name = windsock_name,
+                type = Config.roadbase.windsock.type,
+                shape_name = Config.roadbase.windsock.shape_name,
+                category = Config.roadbase.windsock.category,
+                x = base_x,
+                y = base_y,
+                heading = 0,
+                dead = false,
+            })
+            table.insert(zone.linked_statics, windsock_name)
         end
 
         -- Add to warehouse
         if zone.linked_farp then
             if restock then
                 WarehouseManager:clearWarehouse(zone.linked_farp)
-                WarehouseManager:attributeAirbaseStock(zone.linked_farp, zone.side, {StockTypes.FARP})
+                WarehouseManager:attributeAirbaseStock(zone.linked_farp, zone.side, {stock_package})
             end
             WarehouseManager:addLiquids(zone.linked_farp)
         end

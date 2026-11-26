@@ -213,7 +213,9 @@ available_zones = {
     ZoneHandler:new({name = "NORTH-BAY"}),
     ZoneHandler:new({name = "SUPSEH"}),
     ZoneHandler:new({name = "NORTH-FIELDS"}),
-    ZoneHandler:new({name = "LONDON"})
+    ZoneHandler:new({name = "LONDON"}),
+    ZoneHandler:new({ name = "ROADBASE-GORI", zone_type = ZoneTypes.ROADBASE, runway_heading = 107.35, runway_length = 2578, runway_offset = -65 }),
+    ZoneHandler:new({name = "ROADBASE-TUZI", zone_type = ZoneTypes.ROADBASE, runway_heading = 39, runway_length = 1000, runway_offset = 60, runway_along_offset = -500 })
     ), -- [Theaters.CAUCASUS]
     [Theatres.SYRIA] = passUnknown(
         ZoneHandler:new({name = "KHALKHALAH", zone_type = ZoneTypes.AIRBASE, airbase_name = Airbases.Syria.Khalkhalah}),
@@ -589,22 +591,24 @@ scenarios = {
                 "HOUSES", "ESTO", "VARDANE", "LOO", "OBSERVATORY", "REFUGE",
                 "KARACHAEVSK", "TEBERDA", "HURZUK", "BYLYM", "ALAGIR", "SADON", "BURON",
                 "ACE", "JOKER", "JACK", "QUEEN", "KING", "HEART", "CLUB", "SPADE", "DIAMOND",
-                 "ECHO", "XRAY", "MIKE", "ZULU", "LIMA",
-                 "WHISKEY", "TANGO", "KILO", "STRONGHOLD",
+                "ECHO", "XRAY", "MIKE", "ZULU", "LIMA",
+                "WHISKEY", "TANGO", "KILO", "STRONGHOLD",
                 "CHECKPOINT-NORTH", "CHECKPOINT-EAST", "CHECKPOINT-WEST",
                 "CHECKPOINT-ALPHA", "CHECKPOINT-BRAVO", "CHECKPOINT-CHARLIE",
                 "CHECKPOINT-DELTA", "CHECKPOINT-ECHO", "CHECKPOINT-FOXTROT",
                 "CHECKPOINT-GOLF", "CHECKPOINT-HOTEL", "CHECKPOINT-INDIA",
                 "CHECKPOINT-JULIETT", "CHECKPOINT-ROMEO", "CHECKPOINT-KILO",
                 "CHECKPOINT-LIMA", "CHECKPOINT-MIKE", "CHECKPOINT-NOVEMBER",
-                  "CHECKPOINT-SIERRA",
+                "CHECKPOINT-SIERRA",
                 "CHECKPOINT-ZULU", "CHECKPOINT-XRAY", "CHECKPOINT-VICTOR",
                 "CHECKPOINT-WHISKEY", "CHECKPOINT-UNIFORM", "CHECKPOINT-TANGO",
                 "CHECKPOINT-YANKEE",
                 "OUTPOST-ALPHA", "OUTPOST-BRAVO", "OUTPOST-CHARLIE", "OUTPOST-DELTA",
                 "OUTPOST-ECHO", "OUTPOST-FOXTROT", "OUTPOST-GOLF", "OUTPOST-HOTEL",
                 "OUTPOST-JULIETT", "OUTPOST-KILO", "OUTPOST-LIMA", "OUTPOST-MIKE",
-                 "OUTPOST-ZULU",
+                "OUTPOST-ZULU",
+                "ROADBASE-GORI",
+                "ROADBASE-TUZI"
             },
         },
         resupply = {

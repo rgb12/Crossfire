@@ -166,7 +166,7 @@ ctld.parts = {
     {name = "MaxxPro_MRAP", desc="Light Tank - MRAP", weight = 14500, type = ctld.AssetTypes.VEHICLES, can_move = true, req_supplies = 300, crates_required = 2},
 
     {name = "LAV-25", desc="Med Tank - LAV-25", weight = 12800, type = ctld.AssetTypes.VEHICLES, can_move = true, req_supplies = 100, crates_required = 3},
-    
+
     {name = "M-1 Abrams", desc="Heavy Tank - Abrams", weight = 10000, type = ctld.AssetTypes.VEHICLES, crates_required = 4, can_move = true, req_supplies = 150},
 
     {name = "Hummer", desc="Hummer - JTAC", weight = 1000, type = ctld.AssetTypes.VEHICLES, req_supplies = 50},
@@ -788,7 +788,7 @@ function ctld.initF10RadioMenu(group)
         local root_menu = missionCommands.addSubMenuForGroup(gr_id, "CTLD", nil)
         CommandHandler.addToMenuTracking(gr_id, root_menu, "ctld_menu")
         local load_submenu = missionCommands.addSubMenuForGroup(gr_id, "Load", root_menu)
-    
+
         local load_troops_submenu = missionCommands.addSubMenuForGroup(gr_id, "Troops", load_submenu)
 
         local load_CARGO_CRATES_submenu = missionCommands.addSubMenuForGroup(gr_id, "Crates", load_submenu)
@@ -799,15 +799,15 @@ function ctld.initF10RadioMenu(group)
         missionCommands.addCommandForGroup(gr_id, "Unload", root_menu, function ()
             ctld.unload(unit)
         end)
-    
+
         missionCommands.addCommandForGroup(gr_id, "Unpack", root_menu, function ()
             ctld.unpack(unit)
         end)
-    
+
         missionCommands.addCommandForGroup(gr_id, "Unit Attack", root_menu, function ()
             ctld.unitAttack(unit)
         end)
-    
+
         missionCommands.addCommandForGroup(gr_id, "Construct FARP", root_menu, function ()
             -- Check if nearby supply crates can be consumed to assemble a FARP.
             ctld.tryConstructFARP(unit)
@@ -889,7 +889,7 @@ function ctld.load(part, unit)
     -- If the unit is dynamic cargo capable, then spawn a cargo crate nearby, otherwise store in ctld.users
     local unit_id = unit:getID()
 
-    
+
     local airlift_operation = ctld.airlift_operation_tracking[unit_id]
 
     if unit:inAir() then
@@ -1099,7 +1099,7 @@ function ctld.load(part, unit)
             trigger.action.outTextForUnit(unit_id, "Troop deployed.", 5)
             trigger.action.outSoundForUnit(unit_id, "transmission1.ogg")
         elseif part.type == ctld.AssetTypes.CARGO_CRATES or part.type == ctld.AssetTypes.VEHICLES or part.type == ctld.AssetTypes.SAM then
-            -- spawn cargo crate nearby 
+            -- spawn cargo crate nearby
             ctld.spawnCargoCrate(unit, part)
             trigger.action.outTextForUnit(unit_id, string.format("A %s crate weighing %d kg has been brought out and is at your 12 or 6 o'clock", part.desc, part.weight), 5)
             trigger.action.outSoundForUnit(unit_id, "transmission1.ogg")
@@ -1417,7 +1417,7 @@ function ctld.unpack(unit)
                 })
             end
 
-            trigger.action.outTextForUnit(unit_id, 
+            trigger.action.outTextForUnit(unit_id,
                 string.format("Unpacked %s, used %d crate(s)", vehicle_data.part.desc, vehicle_data.crates_required), 3)
             trigger.action.outSoundForUnit(unit_id, "transmission1.ogg")
             end
@@ -1453,12 +1453,12 @@ function ctld.unpack(unit)
             else
                 MissionLogger:info("Creating new SAM group: "..group_req)
             end
-            
+
             -- Add all new units
             for _, unit_data in ipairs(sam_data.units) do
                 table.insert(group_units, unit_data.unit_data)
             end
-            
+
             -- Spawn the complete group
             local gr_name = "ctld_gr_"..mist.getNextGroupId()
             local spawned_group = mist.dynAdd({
@@ -1467,7 +1467,7 @@ function ctld.unpack(unit)
                 category = Group.Category.GROUND,
                 groupName = gr_name
             })
-            
+
             if spawned_group then
                 -- Record all newly added units in placed_assets, unless this is operation cargo
                 for _, unit_data in ipairs(sam_data.units) do
@@ -1493,7 +1493,7 @@ function ctld.unpack(unit)
                             group_name = gr_name
                         })
                     end
-                    
+
                     -- Destroy crates
                     for j = unit_data.crate_idx, math.min(unit_data.crate_idx + unit_data.crates_required - 1, #unit_data.crate_objs) do
                         if unit_data.crate_objs[j] and unit_data.crate_objs[j]:isExist() then
@@ -1501,7 +1501,7 @@ function ctld.unpack(unit)
                         end
                     end
                 end
-                
+
                 trigger.action.outTextForUnit(unit_id,
                     string.format("Unpacked %s with %d unit(s) total", group_req, #group_units), 3)
                 trigger.action.outSoundForUnit(unit_id, "transmission1.ogg")
@@ -1772,7 +1772,7 @@ function ctld.unitAttack(unit)
             local objType = obj:getTypeName()
             for _,part in ipairs(ctld.parts) do
                 if part.can_move and objType == part.name then
-                
+
                     local gr = obj:getGroup()
                     if not gr or not gr:isExist() then return true end
                     local controller = gr:getController()
@@ -1824,7 +1824,7 @@ function ctld.listSupplies(unit)
     local sorted_zones = {}
     for _, zone in ipairs(zones) do
         if zone.side == unit_coalition and (zone.zone_type == ZoneTypes.AIRBASE or zone.zone_type == ZoneTypes.LOGISTICS
-        or zone.zone_type == ZoneTypes.FARP) then
+        or zone.zone_type == ZoneTypes.FARP or zone.zone_type == ZoneTypes.ROADBASE) then
             table.insert(sorted_zones, zone)
         end
     end
@@ -1989,7 +1989,7 @@ function ctld.getPointAtDirection(unit, offset, direction_in_radian)
     local randomOffsetZ = math.random(0, Config.ctld.random_crate_spacing)
 
     local position = unit:getPosition()
-    
+
     ---@diagnostic disable-next-line: deprecated
     local angle    = math.atan2(position.x.z, position.x.x) + direction_in_radian
     local xOffset  = math.cos(angle) * (offset + randomOffsetX)
@@ -2249,7 +2249,7 @@ function ctld.tryConstructFARP(unit)
         return false
     end
 
-    if current_zone and current_zone.zone_type == ZoneTypes.FARP and current_zone.linked_farp then
+    if current_zone and (current_zone.zone_type == ZoneTypes.FARP or current_zone.zone_type == ZoneTypes.ROADBASE) and current_zone.linked_farp then
         local existing_farp = Airbase.getByName(current_zone.linked_farp)
         if existing_farp then
             trigger.action.outTextForUnit(unit_id, "Negative, this FARP zone is already operational.", 5)
@@ -2290,7 +2290,7 @@ end
 
 -- Sounds and text included
 ---@param farp ConstructedFARP
----@param unit_id any|nil    
+---@param unit_id any|nil
 function ctld.displayConstructedFarp(farp, unit_id)
     if not farp then return end
     if farp.linked_zone then
@@ -2468,9 +2468,9 @@ function ctld.monitorFARPDestruction()
         local farp = ctld.FARPs[idx]
         if farp then
             local farp_display_name = farp.display_name or farp.farp_name
-            
+
             MissionLogger:info(string.format("FARP %s destroyed. Removing from active FARPs.", farp_display_name))
-            
+
             -- Broadcast to coalition
             trigger.action.outTextForCoalition(farp.coalition,string.format("Sector ALERT: %s FARP has been destroyed.", farp_display_name),10)
             trigger.action.outSoundForCoalition(farp.coalition,"alert1.ogg")

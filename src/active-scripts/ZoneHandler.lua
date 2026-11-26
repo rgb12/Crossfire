@@ -5,7 +5,14 @@ function nextMarkId()
 end
 
 
-
+---@class RoadbaseZone : ZoneHandler
+---@field tacan_channel number|nil
+---@field tacan_callsign string|nil
+---@field runway_heading number|nil
+---@field runway_quad vec3[]
+---@field runway_label string
+---@field runway_length number
+---@field _last_illum_time number
 
 ---@class ZoneHandler
 ---@field name string
@@ -72,7 +79,7 @@ do
         -- change airbase coalition based on zone
 
         -- checks for good zones declarations
-        
+
 
 
         if obj.zone_type == ZoneTypes.AIRBASE and obj.airbase_name then
@@ -83,11 +90,46 @@ do
                 obj.runway_destroyed = obj.runway_destroyed or false
                 obj.runway_destroyed_until = obj.runway_destroyed_until or nil
             else
-                MissionLogger:error("ZoneHandler:new - AIRBASE zone "..obj.name.." could not find airbase "..obj.airbase_name)
+                MissionLogger:error("ZoneHandler:new - AIRBASE zone " ..
+                obj.name .. " could not find airbase " .. obj.airbase_name)
             end
-
         end
 
+        if obj.zone_type == ZoneTypes.ROADBASE and obj.runway_heading and obj.runway_length then
+            local rad = math.rad(obj.runway_heading)
+            local half_len = obj.runway_length * 0.5
+            local half_wid = (obj.runway_width or Config.roadbase.default_runway_width) * 0.5
+            local lat_off = obj.runway_offset or 0
+            local along_off = obj.runway_along_offset or 0
+
+            -- Unit vectors: forward (along heading) and right (perpendicular)
+            local fx, fz = math.cos(rad), math.sin(rad)
+            local rx, rz = -fz, fx
+
+            -- Road centerline midpoint
+            local cx = obj.zone.point.x + fx * along_off + rx * lat_off
+            local cz = obj.zone.point.z + fz * along_off + rz * lat_off
+
+            local function corner(along, across)
+                local px = cx + fx * along + rx * across
+                local pz = cz + fz * along + rz * across
+                return { x = px, y = land.getHeight({ x = px, y = pz }), z = pz }
+            end
+
+            -- 4 corners of the runway rectangle
+            obj.runway_quad = {
+                corner(-half_len, -half_wid),
+                corner(-half_len,  half_wid),
+                corner( half_len,  half_wid),
+                corner( half_len, -half_wid),
+            }
+
+            local rwy1 = math.floor(((obj.runway_heading % 360) + 5) / 10) % 36
+            if rwy1 == 0 then rwy1 = 36 end
+            local rwy2 = ((rwy1 + 17) % 36) + 1
+            if rwy1 > rwy2 then rwy1, rwy2 = rwy2, rwy1 end
+            obj.runway_label = string.format("RWY %02d / %02d (%.1f km)", rwy1, rwy2, obj.runway_length / 1000)
+        end
 
         return obj
     end
@@ -188,6 +230,12 @@ do
             end
         elseif self.zone_type == ZoneTypes.FARP then
             text_display = text_display .. "\nFARP"
+        elseif self.zone_type == ZoneTypes.ROADBASE then
+            ---@cast self RoadbaseZone
+            text_display = text_display .. "\nROADBASE"
+            if self.runway_label then
+                text_display = text_display .. "\n" .. self.runway_label
+            end
         elseif self.zone_type == ZoneTypes.SAMSITE then
             text_display = text_display .. "\nSAM SITE"
         elseif self.zone_type == ZoneTypes.EWSITE then
@@ -197,28 +245,40 @@ do
         elseif self.zone_type == ZoneTypes.COMMS then
             text_display = text_display .. "\nCOMMS"
         end
-    
+
         text_display = text_display.."\nT:"..(self.level or 1).."/4" .. (self.name_suffix or "")
-    
+
         if addtional_text then
             text_display = text_display .. "\n" .. addtional_text
         end
 
         -- 3. Cleanup Old Marks
         self._markIds = self._markIds or {
-            blue=nil, blueText=nil,
-            red=nil,  redText=nil,
-            neutral=nil, neutralText=nil
+            blue=nil, blueText=nil, blueRwy=nil,
+            red=nil,  redText=nil,  redRwy=nil,
+            neutral=nil, neutralText=nil, neutralRwy=nil
         }
-    
-        if self._markIds.blue         then trigger.action.removeMark(self._markIds.blue) end
-        if self._markIds.blueText     then trigger.action.removeMark(self._markIds.blueText) end
-        if self._markIds.red          then trigger.action.removeMark(self._markIds.red) end
-        if self._markIds.redText      then trigger.action.removeMark(self._markIds.redText) end
-        if self._markIds.neutral      then trigger.action.removeMark(self._markIds.neutral) end
-        if self._markIds.neutralText  then trigger.action.removeMark(self._markIds.neutralText) end
+
+        if self._markIds.blue        then trigger.action.removeMark(self._markIds.blue) end
+        if self._markIds.blueText    then trigger.action.removeMark(self._markIds.blueText) end
+        if self._markIds.blueRwy     then trigger.action.removeMark(self._markIds.blueRwy) end
+        if self._markIds.red         then trigger.action.removeMark(self._markIds.red) end
+        if self._markIds.redText     then trigger.action.removeMark(self._markIds.redText) end
+        if self._markIds.redRwy      then trigger.action.removeMark(self._markIds.redRwy) end
+        if self._markIds.neutral     then trigger.action.removeMark(self._markIds.neutral) end
+        if self._markIds.neutralText then trigger.action.removeMark(self._markIds.neutralText) end
+        if self._markIds.neutralRwy  then trigger.action.removeMark(self._markIds.neutralRwy) end
 
         -- 4. Draw New Marks
+        local function drawRoadbaseOverlay(coal_filter, rwy_key)
+            if self.zone_type ~= ZoneTypes.ROADBASE or not self.runway_quad then return end
+            local rwy_id = nextMarkId()
+            local q = self.runway_quad
+            trigger.action.quadToAll(coal_filter, rwy_id, q[1], q[2], q[3], q[4],
+                Config.draw_color_palette.roadbase_runway_border, Config.draw_color_palette.roadbase_runway_fill, utils.LineStyle.SOLID, true)
+            self._markIds[rwy_key] = rwy_id
+        end
+
         if self.side == coalition.side.NEUTRAL then
 
             local nCircleId = nextMarkId()
@@ -230,6 +290,7 @@ do
                 trigger.action.quadToAll(-1, nCircleId, self.zone.vertices[4], self.zone.vertices[3],
                     self.zone.vertices[2], self.zone.vertices[1], border_color, fill_color, 1, true)
             end
+            drawRoadbaseOverlay(-1, "neutralRwy")
             trigger.action.textToAll(-1, nTextId, self.zone.point, text_color, text_bg, 13, true, text_display)
 
             self._markIds.neutral = nCircleId
@@ -247,17 +308,19 @@ do
                     trigger.action.quadToAll(coalition.side.BLUE, bCircleId, self.zone.vertices[4], self.zone.vertices[3],
                         self.zone.vertices[2], self.zone.vertices[1], border_color, fill_color, 1, true)
                 end
+                drawRoadbaseOverlay(coalition.side.BLUE, "blueRwy")
                 trigger.action.textToAll(coalition.side.BLUE, bTextId, self.zone.point, text_color, text_bg, 13, true, text_display)
-    
+
                 self._markIds.blue = bCircleId
                 self._markIds.blueText = bTextId
+
             else
                 self._markIds.blue, self._markIds.blueText = nil, nil
             end
-    
+
             -- Draw for RED coalition (if they discovered it)
             if utils.tableContains(stats.red_discovered_zones, self.zone.name) then
-    
+
                 local rCircleId = nextMarkId()
                 local rTextId   = nextMarkId()
 
@@ -267,8 +330,9 @@ do
                     trigger.action.quadToAll(coalition.side.RED, rCircleId, self.zone.vertices[4], self.zone.vertices[3],
                         self.zone.vertices[2], self.zone.vertices[1], border_color, fill_color, 1, true)
                 end
+                drawRoadbaseOverlay(coalition.side.RED, "redRwy")
                 trigger.action.textToAll(coalition.side.RED, rTextId, self.zone.point, text_color, text_bg, 13, true, text_display)
-    
+
                 self._markIds.red = rCircleId
                 self._markIds.redText = rTextId
             else
@@ -329,22 +393,22 @@ do
             if current_zone.name ~= self.name
             and not utils.tableContains(ignore_zone_names or {}, current_zone.name)
             and (not zone_types or utils.tableContains(zone_types, current_zone.zone_type)) then
-            
+
                 local allow_discovered = false
                 if discovered then
                     -- Check the discovery list of the CALLER (self.side)
                     if self.side == coalition.side.BLUE and utils.tableContains(stats.blue_discovered_zones, current_zone.name) then
                         allow_discovered = true
-                    elseif self.side == coalition.side.RED and utils.tableContains(stats.red_discovered_zones, current_zone.name) then 
+                    elseif self.side == coalition.side.RED and utils.tableContains(stats.red_discovered_zones, current_zone.name) then
                         allow_discovered = true
                     end
-                else 
+                else
                     allow_discovered = true -- 'discovered' check is not required
                 end
 
                 if allow_discovered then
                     distance = mist.utils.get2DDist(self.zone.point, current_zone.zone.point)
-                    
+
                     -- Check the side of the TARGET (the 'side' parameter)
                     if distance < closestDistance and (side == current_zone.side or side == -1) then
                         closestDistance = distance
@@ -505,14 +569,26 @@ do
                 stats.blue_ew_zones = stats.blue_ew_zones - 1
             end
             UnitHandler.updateZoneUnits(self)
-        elseif self.zone_type == ZoneTypes.FARP and self.side ~= coalition.side.NEUTRAL then
+
+        elseif (self.zone_type == ZoneTypes.FARP or self.zone_type == ZoneTypes.ROADBASE) and self.side ~= coalition.side.NEUTRAL then
             if previous_side == coalition.side.RED then
-                stats.red_farp_zones = stats.red_farp_zones - 1
+                if self.zone_type == ZoneTypes.FARP then
+                    stats.red_farp_zones = stats.red_farp_zones - 1
+                else
+                    stats.red_roadbases = stats.red_roadbases - 1
+                end
             elseif previous_side == coalition.side.BLUE then
-                stats.blue_farp_zones = stats.blue_farp_zones - 1
+                if self.zone_type == ZoneTypes.FARP then
+                    stats.blue_farp_zones = stats.blue_farp_zones - 1
+                else
+                    stats.blue_roadbases = stats.blue_roadbases - 1
+                end
             end
-            -- Depot spawns neutral, if it survived a neutral changeover intact, keep it
-            -- running for the new owner instead of destroying and rebuilding it
+
+            -- Destroy roadbase tacans:
+            self.tacan_channel = nil
+            self.tacan_callsign = nil
+
             local depot_survived_neutral = previous_side == coalition.side.NEUTRAL and self.ammo_depot_intact
             if not depot_survived_neutral then
                 self.linked_ammo_depot = nil
@@ -520,22 +596,44 @@ do
                 self.ammo_depot_last_destroyed = timer.getTime()
                 self.linked_statics = {}
             end
+
             timer.scheduleFunction(function ()
                 if self.linked_farp then
                     WarehouseManager:clearWarehouse(self.linked_farp)
+                    if self.zone_type == ZoneTypes.FARP then
+                        local old_pad = StaticObject.getByName(self.linked_farp)
+                        if old_pad and old_pad:isExist() then
+                            old_pad:destroy()
+                        end
+                        self.linked_farp = nil
+                    end
                 end
                 UnitHandler.initFARP(self,false)
             end,{},timer.getTime()+5)
             UnitHandler.updateZoneUnits(self)
-        elseif self.zone_type == ZoneTypes.FARP and self.side == coalition.side.NEUTRAL then
+
+        elseif (self.zone_type == ZoneTypes.FARP or self.zone_type == ZoneTypes.ROADBASE) and self.side == coalition.side.NEUTRAL then
             if previous_side == coalition.side.RED then
-                stats.red_farp_zones = stats.red_farp_zones - 1
+                if self.zone_type == ZoneTypes.FARP then
+                    stats.red_farp_zones = stats.red_farp_zones - 1
+                else
+                    stats.red_roadbases = stats.red_roadbases - 1
+                end
             elseif previous_side == coalition.side.BLUE then
-                stats.blue_farp_zones = stats.blue_farp_zones - 1
+                if self.zone_type == ZoneTypes.FARP then
+                    stats.blue_farp_zones = stats.blue_farp_zones - 1
+                else
+                    stats.blue_roadbases = stats.blue_roadbases - 1
+                end
             end
+
             if self.linked_farp then
                 WarehouseManager:clearWarehouse(self.linked_farp)
             end
+            -- Destroy roadbase tacans:
+            self.tacan_channel = nil
+            self.tacan_callsign = nil
+
         elseif self.zone_type == ZoneTypes.SAMSITE and self.side ~= coalition.side.NEUTRAL then
             if previous_side == coalition.side.RED then
                 stats.red_sam_sites = stats.red_sam_sites - 1
@@ -661,7 +759,7 @@ do
 
         local function addSupplies(supply_side)
             timer.scheduleFunction(function ()
-                local nearest_valid_zone, nearest_distance = self:getClosestZone(supply_side, nil, {ZoneTypes.LOGISTICS, ZoneTypes.AIRBASE, ZoneTypes.FARP}, true)
+                local nearest_valid_zone, nearest_distance = self:getClosestZone(supply_side, nil, {ZoneTypes.LOGISTICS, ZoneTypes.AIRBASE, ZoneTypes.FARP, ZoneTypes.ROADBASE}, true)
                 if nearest_valid_zone and nearest_valid_zone.ammo_depot_intact then
                     local added_supplies = Config.supplies.supplies_looted_on_destroyed + math.random(-Config.supplies.supplies_looted_on_destroyed_variance,Config.supplies.supplies_looted_on_destroyed_variance)
                     local local_cap = Config.supplies.supplies_cap[nearest_valid_zone.level or 1] or 0
@@ -831,7 +929,7 @@ do
             local group = Group.getByName(self.linked_groups[i])
             if group and group:isExist() then
                 units_count = units_count + group:getSize()
-            else 
+            else
                 table.remove(self.linked_groups, i)
             end
         end
@@ -1020,7 +1118,7 @@ do
     function ZoneHandler:checkSUPPLIES()
         if self.side == coalition.side.NEUTRAL then return end
         if not (self.zone_type == ZoneTypes.AIRBASE or self.zone_type == ZoneTypes.FARP
-        or self.zone_type == ZoneTypes.LOGISTICS) then return end
+        or self.zone_type == ZoneTypes.ROADBASE or self.zone_type == ZoneTypes.LOGISTICS) then return end
 
         self.local_supplies = self.local_supplies or 0
 
